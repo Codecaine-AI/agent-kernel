@@ -1,0 +1,24 @@
+{
+  "name": "pi-agent-kernel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "test": "bun run test:boundaries && bun run test:packages",
+    "test:boundaries": "bun run scripts/check-package-boundaries.ts",
+    "test:packages": "bun test packages/kernel/src packages/viewer-core/src",
+    "typecheck": "bun run typecheck:protocol && bun run typecheck:db && bun run typecheck:kernel && bun run typecheck:tailer && bun run typecheck:viewer-core && bun run typecheck:viewer-ui && bun run typecheck:viewer-shell",
+    "typecheck:protocol": "bunx --bun tsc -p packages/protocol/tsconfig.json --noEmit",
+    "typecheck:db": "bunx --bun tsc -p packages/db/tsconfig.json --noEmit",
+    "typecheck:kernel": "bunx --bun tsc -p packages/kernel/tsconfig.json --noEmit",
+    "typecheck:tailer": "bunx --bun tsc -p packages/tailer/tsconfig.json --noEmit",
+    "typecheck:viewer-core": "bunx --bun tsc -p packages/viewer-core/tsconfig.json --noEmit",
+    "typecheck:viewer-ui": "bunx --bun tsc -p packages/viewer-ui/tsconfig.json --noEmit",
+    "typecheck:viewer-shell": "bunx --bun tsc -p packages/viewer-shell/tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}

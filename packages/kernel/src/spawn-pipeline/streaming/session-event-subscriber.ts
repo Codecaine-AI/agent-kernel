@@ -1,0 +1,77 @@
+import { getGraceTurns } from "../config/turn-limits";
+import { getLastAssistantText } from "../trace/assistant-message-inspection";
+import type {
+	KernelAgentSessionEventLike,
+	KernelAgentSessionLike,
+	KernelSpawnResult,
+	KernelSpawnRuntimeOptions,
+} from "../types";
+
+export interface SessionSubscription<TSession extends KernelAgentSessionLike> {
+	unsub(): void;
+	cleanupAbort(): void;
+	readResult(): KernelSpawnResult<TSession>;
+}
+
+export function subscribeToSession<TSession extends KernelAgentSessionLike>(
+	session: TSession,
+	opts: KernelSpawnRuntimeOptions,
+	maxTurns: number | undefined,
+): SessionSubscription<TSession> {
+	let turnCount = 0;
+	let softLimitReached = false;
+	let aborted = false;
+	let currentText = "";
+	let lastAssistantText = "";
+
+	const unsub = session.subscribe((event: KernelAgentSessionEventLike) => {
+		if (event.type === "turn_end") {
+			turnCount++;
+			opts.onTurnEnd?.(turnCount);
+			if (maxTurns != null) {
+				if (!softLimitReached && turnCount >= maxTurns) {
+					softLimitReached = true;
+					session.steer(
+						"You have reached your turn limit. Wrap up immediately - provide your final answer now.",
+					);
+				} else if (softLimitReached && turnCount >= maxTurns + getGraceTurns()) {
+					aborted = true;
+					session.abort();
+				}
+			}
+		}
+		if (event.type === "message_start") currentText = "";
+		const evt = event as any;
+		if (
+			evt.type === "message_update" &&
+			evt.assistantMessageEvent?.type === "text_delta"
+		) {
+			currentText += evt.assistantMessageEvent.delta;
+			lastAssistantText = currentText;
+			opts.onTextDelta?.(evt.assistantMessageEvent.delta);
+		}
+		if (event.type === "tool_execution_start") {
+			opts.onToolActivity?.({ type: "start", toolName: String(evt.toolName) });
+		}
+		if (event.type === "tool_execution_end") {
+			opts.onToolActivity?.({ type: "end", toolName: String(evt.toolName) });
+		}
+	});
+
+	let cleanupAbort = () => {};
+	if (opts.signal) {
+		const onAbort = () => session.abort();
+		opts.signal.addEventListener("abort", onAbort, { once: true });
+		cleanupAbort = () => opts.signal?.removeEventListener("abort", onAbort);
+	}
+
+	return {
+		unsub,
+		cleanupAbort,
+		readResult: () => ({
+			responseText: lastAssistantText.trim() || getLastAssistantText(session),
+			session,
+			aborted,
+		}),
+	};
+}
