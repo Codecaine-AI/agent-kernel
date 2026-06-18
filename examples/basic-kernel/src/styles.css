@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+	color-scheme: dark;
+	--background: 24 25 27;
+	--foreground: 242 240 236;
+	--card: 36 37 40;
+	--card-foreground: 242 240 236;
+	--muted: 45 48 51;
+	--muted-foreground: 158 164 173;
+	--border: 58 61 66;
+	--input: 95 102 112;
+	--ring: 97 112 137;
+	--accent: 38 48 68;
+	--accent-foreground: 242 240 236;
+	--destructive: 255 154 154;
+	--trace-container: 216 212 204;
+
+	--status-neutral: 158 164 173;
+	--status-neutral-fill: 45 48 51;
+	--status-neutral-border: 95 102 112;
+	--status-info: 139 183 255;
+	--status-info-fill: 38 48 68;
+	--status-info-border: 97 112 137;
+	--status-success: 121 217 154;
+	--status-success-fill: 30 51 38;
+	--status-success-border: 56 98 71;
+	--status-warning: 232 192 109;
+	--status-warning-fill: 51 43 29;
+	--status-warning-border: 112 91 45;
+
+	--syntax-key: 216 212 204;
+	--syntax-string: 155 216 143;
+	--syntax-number: 156 199 255;
+	--syntax-boolean: 232 192 109;
+
+	--agentprism-background: 24 25 27;
+	--agentprism-foreground: 242 240 236;
+	--agentprism-muted: 31 32 34;
+	--agentprism-muted-foreground: 158 164 173;
+	--agentprism-border-subtle: 58 61 66;
+	--agentprism-code-base: 158 164 173;
+	--agentprism-badge-agent-foreground: 167 139 250;
+	--agentprism-badge-chain-foreground: 131 213 202;
+	--agentprism-badge-llm-foreground: 139 183 255;
+	--agentprism-badge-tool-foreground: 232 192 109;
+}
+
+* {
+	box-sizing: border-box;
+	scrollbar-color: rgb(var(--muted-foreground) / 0.55) transparent;
+	scrollbar-width: thin;
+}
+
+html,
+body,
+#root {
+	min-height: 100%;
+}
+
+body {
+	margin: 0;
+	min-width: 1024px;
+	background: rgb(var(--background));
+	color: rgb(var(--foreground));
+}
+
+::selection {
+	background: rgb(var(--accent));
+	color: rgb(var(--foreground));
+}
+
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: rgb(var(--muted-foreground) / 0.55);
+	border-radius: 4px;
+}
+
+::-webkit-scrollbar-corner {
+	background: transparent;
+}

@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": ["bun", "react", "react-dom"],
+    "noEmit": true
+  },
+  "include": ["src", "scripts", "vite.config.ts"]
+}

@@ -1,0 +1,32 @@
+{
+  "name": "@agent-kernel/example-basic-kernel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run scripts/dev.ts",
+    "api": "bun run src/server.ts",
+    "frontend": "vite --host 127.0.0.1 --port 5174",
+    "typecheck": "bunx --bun tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@agent-kernel/kernel": "workspace:*",
+    "@agent-kernel/protocol": "workspace:*",
+    "@agent-kernel/viewer-core": "workspace:*",
+    "@agent-kernel/viewer-shell": "workspace:*",
+    "@vitejs/plugin-react": "^4.3.0",
+    "elysia": "^1.2.0",
+    "vite": "^5.4.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "@types/bun": "latest",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}

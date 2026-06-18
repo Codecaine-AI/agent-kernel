@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": ["packages/*", "examples/*"],
   "scripts": {
+    "dev:basic": "bun run --cwd examples/basic-kernel dev",
     "test": "bun run test:boundaries && bun run test:packages",
     "test:boundaries": "bun run scripts/check-package-boundaries.ts",
     "test:packages": "bun test packages/kernel/src packages/viewer-core/src",

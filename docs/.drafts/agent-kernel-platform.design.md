@@ -1,3 +1,8 @@
+---
+covers: "Draft platform design source material for extracting the agent kernel into a reusable runtime and observability platform."
+concepts: [draft, platform-design, repo-split, source-material]
+---
+
 # Agent Kernel Platform — Repo Split Design
 
 **Status:** Draft / proposal

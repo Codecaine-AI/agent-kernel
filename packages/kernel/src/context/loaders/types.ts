@@ -53,6 +53,7 @@ export type KernelLoaderDeclaration =
 
 export interface CustomLoaderDeclaration {
 	kind: string;
+	[key: string]: unknown;
 }
 
 export type LoaderDeclaration =

@@ -1,3 +1,8 @@
+---
+covers: "Draft interface contract source material for the protocol, runtime, loader, database, and viewer package extraction."
+concepts: [draft, contracts, protocol, runtime, source-material]
+---
+
 # Agent Kernel — Interface Contracts
 
 **Status:** Draft / proposal
