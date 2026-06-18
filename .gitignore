@@ -10,3 +10,5 @@ dist/
 .spectre/
 .codex/
 coverage/
+
+references/

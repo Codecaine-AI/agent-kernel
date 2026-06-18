@@ -15,17 +15,20 @@ export function resolveLifecycleEmitter(
 	explicitTraceWriter?: TraceWriterSink,
 	explicitAppSessionId?: string,
 	piSessionUuid?: string,
+	explicitContainerId?: string,
 	logger?: KernelLoggerLike,
 ): LifecycleEmitter | null {
 	const store = runContextStore.getStore();
 	const traceWriter = explicitTraceWriter ?? store?.traceWriter;
 	const appSessionId = explicitAppSessionId ?? store?.appSessionId;
+	const containerId = explicitContainerId ?? store?.containerId;
 	if (!traceWriter || !appSessionId) return null;
 	return createSpawnLifecycleEmitter({
 		appSessionId,
 		agentName,
 		traceWriter,
 		spawnSpanId: newSpanId(),
+		containerId,
 		piSessionUuid,
 		logger,
 	});

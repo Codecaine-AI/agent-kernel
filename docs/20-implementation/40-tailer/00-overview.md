@@ -8,7 +8,7 @@ depends-on: [../../10-system-design/20-observability-model.md, ../10-protocol/00
 
 # Tailer Package
 
-`@agent-kernel/tailer` contains reusable Pi JSONL ingestion primitives. A host app wraps these primitives with DB inserts, watch paths, and app-specific marker names.
+`@agent-kernel/tailer` contains reusable Pi JSONL ingestion primitives. A host app or shared service wraps these primitives with DB inserts, registered watch paths, and app-specific marker names.
 
 ---
 
@@ -41,6 +41,17 @@ It emits protocol events for user messages, assistant messages, tool call starts
 Pi JSONL starts with Pi's own session id. The kernel mapper can hold events until it sees an app session binding marker. Once an app session id is known, pending events are stamped and released.
 
 The marker name and field names are configurable through `EventMapperOptions.sessionBinding`. Spectre can use its compatibility marker while new apps can use kernel-native marker names.
+
+## Registered Watch Roots
+
+Host apps using the local observability setup upsert `kernel_registrations` rows in Postgres. A central tailer daemon can use those rows to discover:
+
+- kernel id and display name
+- Pi sessions directory
+- marker names for session binding, lifecycle, and subagent links
+- app and generic viewer URL templates
+
+The first repo implementation starts only the shared Postgres service with `bun run dev:services`; `@agent-kernel/tailer` remains the primitive package used by future app or central daemon wrappers.
 
 ## Lifecycle Custom Events
 

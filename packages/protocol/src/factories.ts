@@ -70,6 +70,7 @@ interface CreateEventOptions {
   eventData: EventData;
   source: TraceSourceValue;
   agentId?: string;
+  containerId?: string;
   traceLevel?: number;
   spanId?: string;
   parentEventId?: string;
@@ -85,6 +86,7 @@ function createEvent(opts: CreateEventOptions): TraceEvent {
     type: opts.type as TraceEvent["type"],
     source: opts.source,
     agentId: opts.agentId,
+    containerId: opts.containerId,
     traceLevel: (opts.traceLevel ?? TraceLevel.SUMMARY) as TraceEvent["traceLevel"],
     eventData: opts.eventData,
     spanId: opts.spanId,
@@ -104,6 +106,7 @@ export function createAgentSessionStartEvent(
   opts?: {
     agentId?: string;
     modelAlias?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
   },
@@ -120,6 +123,7 @@ export function createAgentSessionStartEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.DEBUG,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -136,6 +140,7 @@ export function createAgentSessionEndEvent(
     outputTokens?: number;
     cost?: number;
     errorMessage?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
   },
@@ -154,6 +159,7 @@ export function createAgentSessionEndEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.DEBUG,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -193,6 +199,7 @@ export function createAgentRunStartEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.DEBUG,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -209,6 +216,7 @@ export function createAgentRunEndEvent(
   opts?: {
     agentId?: string;
     errorMessage?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
     piSessionUuid?: string;
@@ -227,6 +235,7 @@ export function createAgentRunEndEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.DEBUG,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -242,6 +251,7 @@ export function createPiAgentStartEvent(
   opts?: {
     agentId?: string;
     promptSummary?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
   },
@@ -256,6 +266,7 @@ export function createPiAgentStartEvent(
     eventData: data,
     source: TraceSource.AGENT,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.INTERNAL,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -271,6 +282,7 @@ export function createPiAgentEndEvent(
     errorMessage?: string;
     inputTokens?: number;
     outputTokens?: number;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
   },
@@ -288,6 +300,7 @@ export function createPiAgentEndEvent(
     eventData: data,
     source: TraceSource.AGENT,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.INTERNAL,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -300,6 +313,7 @@ export function createPiTurnStartEvent(
   opts?: {
     agentId?: string;
     turnNumber?: number;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
   },
@@ -314,6 +328,7 @@ export function createPiTurnStartEvent(
     eventData: data,
     source: TraceSource.AGENT,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.INTERNAL,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -327,6 +342,7 @@ export function createPiTurnEndEvent(
     agentId?: string;
     turnNumber?: number;
     stopReason?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
   },
@@ -342,6 +358,7 @@ export function createPiTurnEndEvent(
     eventData: data,
     source: TraceSource.AGENT,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.INTERNAL,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -357,6 +374,7 @@ export function createUserMessageEvent(
   phase: string,
   opts?: {
     agentId?: string;
+    containerId?: string;
     parentEventId?: string;
     questionId?: string;
   },
@@ -373,6 +391,7 @@ export function createUserMessageEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     parentEventId: opts?.parentEventId,
   });
 }
@@ -384,6 +403,7 @@ export function createAssistantMessageEvent(
   blockType: string,
   opts?: {
     agentId?: string;
+    containerId?: string;
     parentEventId?: string;
     questionId?: string;
   },
@@ -400,6 +420,7 @@ export function createAssistantMessageEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     parentEventId: opts?.parentEventId,
   });
 }
@@ -414,6 +435,7 @@ export function createToolCallStartEvent(
   opts?: {
     agentId?: string;
     toolInput?: Record<string, unknown>;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
   },
@@ -430,6 +452,7 @@ export function createToolCallStartEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.PROCESSING,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -445,6 +468,7 @@ export function createToolCallEndEvent(
     agentId?: string;
     toolOutput?: string;
     durationMs?: number;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
   },
@@ -462,6 +486,7 @@ export function createToolCallEndEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.PROCESSING,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -475,6 +500,7 @@ export function createPreToolHookEvent(
   opts?: {
     agentId?: string;
     toolInput?: Record<string, unknown>;
+    containerId?: string;
     parentEventId?: string;
   },
 ): TraceEvent {
@@ -489,6 +515,7 @@ export function createPreToolHookEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.DEBUG,
     parentEventId: opts?.parentEventId,
   });
@@ -501,6 +528,7 @@ export function createPostToolHookEvent(
   opts?: {
     agentId?: string;
     toolOutput?: string;
+    containerId?: string;
     parentEventId?: string;
   },
 ): TraceEvent {
@@ -515,6 +543,7 @@ export function createPostToolHookEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.DEBUG,
     parentEventId: opts?.parentEventId,
   });
@@ -528,6 +557,7 @@ export function createPhaseStartEvent(
   phase: string,
   opts?: {
     agentId?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
   },
@@ -540,6 +570,7 @@ export function createPhaseStartEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.DEBUG,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -552,6 +583,7 @@ export function createPhaseEndEvent(
   phase: string,
   opts?: {
     agentId?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
   },
@@ -564,6 +596,7 @@ export function createPhaseEndEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.DEBUG,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -578,6 +611,7 @@ export function createContainerStartEvent(
   data: ContainerStartData,
   opts?: {
     agentId?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
   },
@@ -589,6 +623,7 @@ export function createContainerStartEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId ?? data.container_id,
     traceLevel: TraceLevel.PROCESSING,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -601,6 +636,7 @@ export function createContainerEndEvent(
   data: ContainerEndData,
   opts?: {
     agentId?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
   },
@@ -612,6 +648,7 @@ export function createContainerEndEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId ?? data.container_id,
     traceLevel: TraceLevel.PROCESSING,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -626,6 +663,7 @@ export function createSystemPromptResolvedEvent(
   data: SystemPromptResolvedData,
   opts?: {
     agentId?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
     piSessionUuid?: string;
@@ -638,6 +676,7 @@ export function createSystemPromptResolvedEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.PROCESSING,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -651,6 +690,7 @@ export function createContextBuildStartedEvent(
   data: ContextBuildStartedData,
   opts?: {
     agentId?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
     piSessionUuid?: string;
@@ -663,6 +703,7 @@ export function createContextBuildStartedEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.PROCESSING,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -676,6 +717,7 @@ export function createContextInputResolvedEvent(
   data: ContextInputResolvedData,
   opts?: {
     agentId?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
     piSessionUuid?: string;
@@ -688,6 +730,7 @@ export function createContextInputResolvedEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.INTERNAL,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -701,6 +744,7 @@ export function createContextBuildCompletedEvent(
   data: ContextBuildCompletedData,
   opts?: {
     agentId?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
     piSessionUuid?: string;
@@ -713,6 +757,7 @@ export function createContextBuildCompletedEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.PROCESSING,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
@@ -730,6 +775,7 @@ export function createUIAskRequestedEvent(
   payload: Record<string, unknown>,
   opts?: {
     agentId?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
     piSessionUuid?: string;
@@ -747,6 +793,7 @@ export function createUIAskRequestedEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
     piSessionUuid: opts?.piSessionUuid,
@@ -761,6 +808,7 @@ export function createUIAskAnsweredEvent(
   exchanges: AskExchange[],
   opts?: {
     agentId?: string;
+    containerId?: string;
     spanId?: string;
     parentEventId?: string;
     piSessionUuid?: string;
@@ -782,6 +830,7 @@ export function createUIAskAnsweredEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
     piSessionUuid: opts?.piSessionUuid,
@@ -798,6 +847,7 @@ export function createErrorEvent(
     errorType?: string;
     errorMessage?: string;
     stackTrace?: string;
+    containerId?: string;
     parentEventId?: string;
   },
 ): TraceEvent {
@@ -813,6 +863,7 @@ export function createErrorEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.DEBUG,
     parentEventId: opts?.parentEventId,
   });
@@ -825,6 +876,7 @@ export function createWarningEvent(
   opts?: {
     agentId?: string;
     warningType?: string;
+    containerId?: string;
     parentEventId?: string;
   },
 ): TraceEvent {
@@ -839,6 +891,7 @@ export function createWarningEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     agentId: opts?.agentId,
+    containerId: opts?.containerId,
     traceLevel: TraceLevel.DEBUG,
     parentEventId: opts?.parentEventId,
   });

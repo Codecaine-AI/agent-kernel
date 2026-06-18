@@ -9,16 +9,19 @@
         "typescript": "^5",
       },
     },
-    "examples/basic-kernel": {
-      "name": "@agent-kernel/example-basic-kernel",
+    "examples/simple-research-kernel": {
+      "name": "@agent-kernel/example-simple-research-kernel",
       "version": "0.1.0",
       "dependencies": {
+        "@agent-kernel/db": "workspace:*",
         "@agent-kernel/kernel": "workspace:*",
         "@agent-kernel/protocol": "workspace:*",
         "@agent-kernel/viewer-core": "workspace:*",
         "@agent-kernel/viewer-shell": "workspace:*",
         "@vitejs/plugin-react": "^4.3.0",
+        "drizzle-orm": "^0.45.0",
         "elysia": "^1.2.0",
+        "postgres": "^3.4.7",
         "react": "19.2.3",
         "react-dom": "19.2.3",
         "vite": "^5.4.0",
@@ -131,7 +134,7 @@
   "packages": {
     "@agent-kernel/db": ["@agent-kernel/db@workspace:packages/db"],
 
-    "@agent-kernel/example-basic-kernel": ["@agent-kernel/example-basic-kernel@workspace:examples/basic-kernel"],
+    "@agent-kernel/example-simple-research-kernel": ["@agent-kernel/example-simple-research-kernel@workspace:examples/simple-research-kernel"],
 
     "@agent-kernel/kernel": ["@agent-kernel/kernel@workspace:packages/kernel"],
 
@@ -812,6 +815,8 @@
     "postcss-selector-parser": ["postcss-selector-parser@6.1.4", "", { "dependencies": { "cssesc": "^3.0.0", "util-deprecate": "^1.0.2" } }, "sha512-bIoJLOmjCO1S9XdY/DcnR5hJxvrDir1PbGChrzXG3vw0/FOliy/fA3dmdhQ441kah4gKv+TwckGzex6wNS5cnQ=="],
 
     "postcss-value-parser": ["postcss-value-parser@4.2.0", "", {}, "sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ=="],
+
+    "postgres": ["postgres@3.4.9", "", {}, "sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw=="],
 
     "proper-lockfile": ["proper-lockfile@4.1.2", "", { "dependencies": { "graceful-fs": "^4.2.4", "retry": "^0.12.0", "signal-exit": "^3.0.2" } }, "sha512-TjNPblN4BwAWMXU8s9AEz4JmQxnD1NNL7bNOY/AKUzyamc379FWASUhc/K1pL2noVb+XmZKLL68cjzLsiOAMaA=="],
 

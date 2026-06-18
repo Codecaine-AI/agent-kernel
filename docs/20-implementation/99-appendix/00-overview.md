@@ -22,5 +22,5 @@ Current and intended linking model between Spectre and the standalone kernel rep
 ### [30-source-doc-map.md](30-source-doc-map.md)
 Mapping from promoted Spectre docs into portable kernel docs and Spectre adapter docs.
 
-### [40-basic-workbench.md](40-basic-workbench.md)
-Runnable in-memory kernel workbench for inspecting kernel runtime, context loading, read API, and viewer wiring.
+### [40-simple-research-kernel.md](40-simple-research-kernel.md)
+Runnable Simple Research Kernel for inspecting agent definitions, context loading, subagents, scout reports, working memory, DB-backed observability, read API, and viewer wiring.

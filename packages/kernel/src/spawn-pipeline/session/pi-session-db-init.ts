@@ -11,6 +11,7 @@ export interface SetupPiSessionAndRunArgs {
 	appSessionId: string;
 	agentName: string;
 	parentPiSessionUuid?: string;
+	parentRunId?: string;
 	containerId?: string;
 	phase?: string;
 	displayLabel?: string;
@@ -43,11 +44,14 @@ export async function setupPiSessionAndRun(
 	await createAgentRun(db, {
 		id: runId,
 		piSessionId: args.piSessionUuid,
+		agentName: args.agentName,
 		runNumber,
 		status: "running",
 		startedAt: now,
 		containerId: args.containerId,
 		phase: args.phase,
+		parentRunId: args.parentRunId,
+		displayLabel: args.displayLabel,
 		parentToolUseId: args.parentToolUseId,
 	});
 	return { runId };

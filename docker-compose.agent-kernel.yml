@@ -1,0 +1,20 @@
+services:
+  agent-kernel-db:
+    image: postgres:16
+    container_name: agent-kernel-db
+    environment:
+      POSTGRES_USER: agent_kernel
+      POSTGRES_PASSWORD: agent_kernel
+      POSTGRES_DB: agent_kernel
+    ports:
+      - "55432:5432"
+    volumes:
+      - agent-kernel-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agent_kernel -d agent_kernel"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  agent-kernel-db:

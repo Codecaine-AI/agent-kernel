@@ -94,7 +94,32 @@ app database package
 
 The app should keep domain workflow rows separate from kernel observability rows. Link them through generic correlation fields such as app session identity or kernel container ids.
 
-## Step 3: Create A Kernel Instance
+## Step 3: Register The Kernel
+
+In the local observability setup, the app should upsert its kernel registration row during backend startup.
+
+```ts
+import { upsertKernelRegistration } from "@agent-kernel/db";
+
+await upsertKernelRegistration(db, {
+  kernelId: "my-app",
+  displayName: "My App",
+  workingDir: process.cwd(),
+  piSessionsDir: ".agent-kernel/pi-sessions",
+  appBaseUrl: "http://127.0.0.1:5174",
+  appTraceUrlTemplate: "http://127.0.0.1:5174/traces/{containerId}",
+  genericTraceUrlTemplate: "http://127.0.0.1:8790/containers/{containerId}",
+  markerConfig: {
+    sessionBinding: "agent-kernel:session-binding",
+    lifecycle: "agent-kernel:pi-lifecycle",
+    subagentLink: "agent-kernel:subagent-link",
+  },
+});
+```
+
+The first implementation is a direct DB upsert. A later central observer can add an HTTP registration API and heartbeats without changing the host-app concept.
+
+## Step 4: Create A Kernel Instance
 
 The app adapter creates the kernel instance and supplies the app-specific spawn implementation.
 
@@ -124,7 +149,7 @@ export function createAppKernel() {
 
 The spawn adapter is where the host app wires model resolution, app session identity, working directories, trace writers, agent catalog roots, and app run context.
 
-## Step 4: Define App Session And Container Mapping
+## Step 5: Define App Session And Container Mapping
 
 The kernel uses containers as portable grouping units. The app can keep its own workflow sessions and map them to containers.
 
@@ -139,7 +164,7 @@ app session row
 
 Use app-owned workflow tables for product semantics. Use kernel rows for runtime and observability.
 
-## Step 5: Register Custom Loaders App-Side
+## Step 6: Register Custom Loaders App-Side
 
 Kernel loaders should stay generic. App-specific loaders should live in the host app and be registered into the loader catalog.
 
@@ -164,7 +189,7 @@ catalog.register({
 
 If a loader reads app tables, app artifacts, or product workflow state, it belongs in the app adapter.
 
-## Step 6: Emit Protocol Events Through A Trace Writer
+## Step 7: Emit Protocol Events Through A Trace Writer
 
 Use `@agent-kernel/protocol` factories for trace events and write them into the app-composed kernel tables.
 
@@ -172,7 +197,7 @@ Use `@agent-kernel/protocol` factories for trace events and write them into the 
 import { createAgentRunStartEvent } from "@agent-kernel/protocol";
 
 await traceWriter.submit(
-  createAgentRunStartEvent(appSessionId, userId, runId, agentName, {
+  createAgentRunStartEvent(appSessionId, userId, agentName, runId, {
     containerId,
     phase,
   }),
@@ -181,11 +206,11 @@ await traceWriter.submit(
 
 The app decides when domain-level events happen. The event protocol gives those events a portable shape.
 
-## Step 7: Wrap The Tailer
+## Step 8: Wrap The Tailer
 
 `@agent-kernel/tailer` provides file watching, JSONL reading, event mapping, cursor storage, queueing, and health primitives. The app wrapper supplies:
 
-- watch directory
+- watch directory from the kernel registration row
 - cursor snapshot path
 - database connection
 - queue insert/upsert callbacks
@@ -194,7 +219,7 @@ The app decides when domain-level events happen. The event protocol gives those 
 
 New apps should prefer generic marker names. Existing apps can configure compatibility names.
 
-## Step 8: Mount The Kernel Read API
+## Step 9: Mount The Kernel Read API
 
 The read API route factory lives in `@agent-kernel/kernel/read-api`. The app provides a service that resolves app routes into kernel read DTOs.
 
@@ -215,7 +240,7 @@ app.use(
 
 Keep product routes separate from kernel read routes. Product routes can join app workflow state; kernel read routes should return viewer-core DTOs.
 
-## Step 9: Mount The Viewer
+## Step 10: Mount The Viewer
 
 The base viewer path is:
 
@@ -227,7 +252,7 @@ read API response
 
 The host app owns surrounding navigation, headers, filters, and workflow panels. Generic trace tree behavior belongs in viewer packages; domain interpretation belongs in the host app.
 
-## Step 10: Add Boundary Tests
+## Step 11: Add Boundary Tests
 
 Every host app should have a portability check:
 
@@ -243,6 +268,7 @@ This turns the adapter boundary into a testable contract instead of a convention
 
 - Link or install `@agent-kernel/*`.
 - Add kernel schema to the app migration path.
+- Upsert a kernel registration row on backend startup.
 - Create app workflow/session tables.
 - Create a small app kernel adapter with `createKernel()`.
 - Provide a spawn adapter and trace writer.

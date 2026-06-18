@@ -182,3 +182,30 @@ export interface KernelTraceSessionDetail {
 	agent_runs: AgentRun[];
 	events: TraceEventRow[];
 }
+
+export interface RegisteredKernelSummary {
+	kernelId: string;
+	displayName: string;
+	workingDir: string;
+	piSessionsDir: string;
+	appBaseUrl?: string | null;
+	appTraceUrlTemplate?: string | null;
+	genericTraceUrlTemplate?: string | null;
+	lastSeenAt: string;
+	metadata: JsonObject;
+}
+
+export interface RegisteredKernelDetail extends RegisteredKernelSummary {
+	markerConfig: {
+		sessionBinding: string;
+		lifecycle: string;
+		subagentLink: string;
+	};
+	registeredAt: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface RegisteredKernelListResponse {
+	kernels: RegisteredKernelSummary[];
+}

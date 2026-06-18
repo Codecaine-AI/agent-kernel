@@ -27,6 +27,7 @@ export interface LifecycleEmitterOptions {
 	spawnSpanId: string;
 	parentEventId?: string;
 	agentId?: string;
+	containerId?: string;
 	userId?: string;
 	piSessionUuid?: string;
 	logger?: KernelLoggerLike;
@@ -56,12 +57,14 @@ export class LifecycleEmitter {
 		agentId?: string;
 		spanId: string;
 		parentEventId?: string;
+		containerId?: string;
 		piSessionUuid?: string;
 	} {
 		return {
 			agentId: this.opts.agentId,
 			spanId: this.opts.spawnSpanId,
 			parentEventId: this.currentParentEventId(),
+			containerId: this.opts.containerId,
 			piSessionUuid: this.opts.piSessionUuid,
 		};
 	}

@@ -38,15 +38,18 @@ export function emitAgentRunEnd(
 	status: "ok" | "error",
 	errorMessage?: string,
 	piSessionUuid?: string,
+	containerId?: string,
 ): void {
 	traceWriter.submit(
 		status === "error"
 			? createAgentRunEndEvent(appSessionId, SYSTEM_USER_ID, agentName, runId, "error", {
 					errorMessage: errorMessage ?? "",
 					piSessionUuid,
+					containerId,
 				})
 			: createAgentRunEndEvent(appSessionId, SYSTEM_USER_ID, agentName, runId, "ok", {
 					piSessionUuid,
+					containerId,
 				}),
 	);
 }

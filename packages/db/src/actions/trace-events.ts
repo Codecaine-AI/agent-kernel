@@ -25,7 +25,9 @@ export async function insertTraceEventsBatch(
     timestamp: e.timestamp,
   }));
 
-  await db.insert(traceEvents).values(rows);
+  await db.insert(traceEvents).values(rows).onConflictDoNothing({
+    target: traceEvents.id,
+  });
   return events.length;
 }
 

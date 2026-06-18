@@ -168,6 +168,7 @@ export function createSpawnAgent(
 			appSessionId: opts.appSessionId,
 			agentName: name,
 			parentPiSessionUuid: opts.parentPiSessionUuid,
+			parentRunId: opts.parentRunId,
 			containerId: opts.containerId,
 			phase: opts.phase,
 			displayLabel: opts.displayLabel,
@@ -179,6 +180,7 @@ export function createSpawnAgent(
 			opts.traceWriter,
 			opts.appSessionId,
 			session.sessionId,
+			opts.containerId,
 			adapters.lifecycleLogger,
 		);
 		emitter?.systemPromptResolved({
@@ -269,6 +271,7 @@ export function createSpawnAgent(
 					endStatus,
 					turnErr?.errorMessage,
 					session.sessionId,
+					opts.containerId,
 				);
 			}
 			await updateAgentRunStatus(db!, runId, endStatus === "ok" ? "completed" : "error", {
@@ -288,6 +291,7 @@ export function createSpawnAgent(
 					"error",
 					(err as Error)?.message ?? String(err),
 					session.sessionId,
+					opts.containerId,
 				);
 			}
 			await updateAgentRunStatus(db!, runId, "error", {

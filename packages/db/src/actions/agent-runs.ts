@@ -13,6 +13,36 @@ export async function createAgentRun(
   return row;
 }
 
+export async function upsertAgentRun(
+  db: KernelDatabase,
+  data: NewAgentRun,
+): Promise<AgentRun> {
+  const [row] = await db
+    .insert(agentRuns)
+    .values(data)
+    .onConflictDoUpdate({
+      target: agentRuns.id,
+      set: {
+        ...(data.piSessionId !== undefined && { piSessionId: data.piSessionId }),
+        ...(data.agentName !== undefined && { agentName: data.agentName }),
+        ...(data.containerId !== undefined && { containerId: data.containerId }),
+        ...(data.phase !== undefined && { phase: data.phase }),
+        ...(data.parentRunId !== undefined && { parentRunId: data.parentRunId }),
+        ...(data.displayLabel !== undefined && { displayLabel: data.displayLabel }),
+        ...(data.parentToolUseId !== undefined && { parentToolUseId: data.parentToolUseId }),
+        ...(data.runNumber !== undefined && { runNumber: data.runNumber }),
+        ...(data.status !== undefined && { status: data.status }),
+        ...(data.startedAt !== undefined && { startedAt: data.startedAt }),
+        ...(data.completedAt !== undefined && { completedAt: data.completedAt }),
+        ...(data.inputTokens !== undefined && { inputTokens: data.inputTokens }),
+        ...(data.outputTokens !== undefined && { outputTokens: data.outputTokens }),
+        updatedAt: new Date().toISOString(),
+      },
+    })
+    .returning();
+  return row;
+}
+
 export async function updateAgentRunStatus(
   db: KernelDatabase,
   runId: string,

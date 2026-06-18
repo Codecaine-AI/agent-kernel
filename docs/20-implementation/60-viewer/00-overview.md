@@ -17,7 +17,9 @@ The viewer packages turn kernel trace read responses into a reusable UI.
 Viewer-core owns browser-safe data contracts and trace transforms:
 
 - `KERNEL_TRACE_READ_PATHS`
+- `KERNEL_OBSERVER_READ_PATHS`
 - kernel trace DTOs
+- registered kernel DTOs
 - `buildTraceSpans(events, piSessions, agentRuns)`
 - event pairing
 - run bucketing

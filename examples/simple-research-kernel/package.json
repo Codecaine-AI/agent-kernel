@@ -1,21 +1,24 @@
 {
-  "name": "@agent-kernel/example-basic-kernel",
+  "name": "@agent-kernel/example-simple-research-kernel",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "bun run scripts/dev.ts",
     "api": "bun run src/server.ts",
-    "frontend": "vite --host 127.0.0.1 --port 5174",
+    "frontend": "vite --host 127.0.0.1",
     "typecheck": "bunx --bun tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@agent-kernel/db": "workspace:*",
     "@agent-kernel/kernel": "workspace:*",
     "@agent-kernel/protocol": "workspace:*",
     "@agent-kernel/viewer-core": "workspace:*",
     "@agent-kernel/viewer-shell": "workspace:*",
     "@vitejs/plugin-react": "^4.3.0",
+    "drizzle-orm": "^0.45.0",
     "elysia": "^1.2.0",
+    "postgres": "^3.4.7",
     "vite": "^5.4.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"

@@ -36,20 +36,32 @@ bun run typecheck:tailer
 bun run typecheck:viewer-core
 bun run typecheck:viewer-ui
 bun run typecheck:viewer-shell
+bun run typecheck:examples
 ```
 
-## Basic Workbench
+## Simple Research Kernel Demo
+
+Start the shared Postgres service:
 
 ```bash
-bun run dev:basic
+bun run dev:services
 ```
 
-This starts the non-Spectre in-memory workbench:
+In another terminal, run the Simple Research Kernel:
 
+```bash
+bun run dev:simple-research
+```
+
+Defaults:
+
+- DB: `postgres://agent_kernel:agent_kernel@127.0.0.1:55432/agent_kernel`
 - Viewer: `http://127.0.0.1:5174`
 - API: `http://127.0.0.1:8788`
 
-Use it when checking that the kernel runtime facade, context loader catalog, protocol events, read API, viewer-core transforms, and viewer shell still work together.
+Use it when checking that agent definitions, context sidecars, subagent orchestration, scout-report review, working-memory writes, protocol events, DB persistence, read API, viewer-core transforms, and viewer shell still work together.
+
+Set `AGENT_KERNEL_DATABASE_URL` to point the kernel at a different Postgres instance.
 
 ## Current Recommended Manual Check
 

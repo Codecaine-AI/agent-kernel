@@ -1,6 +1,6 @@
 ---
-covers: "Observability model for containers, Pi agent sessions, agent runs, trace events, and explicit linkage rules."
-concepts: [observability, containers, pi-agent-sessions, agent-runs, trace-events, explicit-linkage, tailer, read-api]
+covers: "Observability model for kernel registrations, containers, Pi agent sessions, agent runs, trace events, and explicit linkage rules."
+concepts: [observability, kernel-registration, containers, pi-agent-sessions, agent-runs, trace-events, explicit-linkage, tailer, read-api]
 code-ref: packages/db/src/schema/, packages/db/src/actions/read-api.ts, packages/viewer-core/src/build-trace-spans.ts
 depends-on: [../00-foundation/20-principles.md, 30-event-protocol.md]
 ---
@@ -15,6 +15,7 @@ The kernel observability model answers a simple question: what work ran, where d
 
 | Record | Meaning |
 |---|---|
+| Kernel registration | Host-kernel discovery record for shared local infrastructure, including watch directories and viewer links. |
 | Container | Generic grouping unit for app work. It has an id, label, status, optional parent container, phase label, phase vocabulary, working paths, and metadata. |
 | Pi agent session | Pi SDK conversation identity for one agent session. This is the durable link to JSONL-sourced events. |
 | Agent run | One processing loop inside a Pi session, usually tied to one user prompt or subagent dispatch. |
@@ -30,11 +31,14 @@ The kernel observability model answers a simple question: what work ran, where d
 
 `runId` identifies a kernel-created run. Where available, run identity should be emitted directly rather than inferred later.
 
+`kernelId` identifies a registered host kernel. It lets a shared tailer or central observer discover watch roots and link back into app-native trace pages.
+
 ## Linkage Rule
 
 If a relationship is known at emit time, write the relationship explicitly:
 
 - an agent run in a container carries `containerId`
+- a trace event in a container carries envelope `containerId`
 - a run in an app phase carries `phase`
 - a subagent spawned by a tool carries `parentToolUseId`
 - a nested run carries `parentRunId` when known

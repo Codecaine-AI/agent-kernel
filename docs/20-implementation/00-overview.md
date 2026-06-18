@@ -42,6 +42,17 @@ kernel depends on protocol, db, and viewer-core for runtime/read contracts.
 
 Kernel packages must not import Spectre packages, Spectre paths, or Spectre naming. Apps consume the kernel through package exports and adapters.
 
+## Local Development Mode
+
+```text
+examples/simple-research-kernel
+  Postgres-backed kernel registrations, containers, sessions, runs, and trace events
+  DB-backed read API
+  app-embedded viewer
+```
+
+Use `bun run dev:services` to start the shared Postgres service, then `bun run dev:simple-research` to run the Simple Research Kernel.
+
 ## Child Nodes
 
 ### [10-protocol/](10-protocol/00-overview.md)

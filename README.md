@@ -32,6 +32,8 @@ A host application (the harness) consumes the kernel through a thin adapter. The
 
 **Spectre** is the reference harness — a coding-workflow application built on the kernel. It exists to show how to extend the kernel for a real vertical, not to define what the kernel is.
 
+For the longer-term service model, see [ARCHITECTURE_UPDATE.md](ARCHITECTURE_UPDATE.md). It describes the centralized local DB/tailer plane, kernel registration, app-embedded viewers, and optional central observer.
+
 ## Setup
 
 ```bash
@@ -50,13 +52,16 @@ The boundary check is the important portability gate: platform packages must not
 
 ## Examples
 
-`examples/basic-kernel` is a minimal non-Spectre harness that boots the kernel, runs agents, and renders traces through the viewer shell.
+`examples/simple-research-kernel` is a runnable non-Spectre Simple Research Kernel. It defines agents in a catalog, loads context sidecars, spawns scout subagents, waits for their reports, reviews gaps, queues a report writer, writes working memory, persists kernel observability rows to Postgres, and renders traces through the viewer shell.
 
 ```bash
-bun run dev:basic
+bun run dev:services
+bun run dev:simple-research
 ```
 
-The command starts the API on `http://127.0.0.1:8788` and the viewer on `http://127.0.0.1:5174`.
+The service command starts shared Postgres in OrbStack/Docker on `127.0.0.1:55432`. The kernel command starts the API on `http://127.0.0.1:8788` and the viewer on `http://127.0.0.1:5174`.
+
+The example uses `AGENT_KERNEL_DATABASE_URL` when set, otherwise `postgres://agent_kernel:agent_kernel@127.0.0.1:55432/agent_kernel`. It bootstraps kernel observability tables, upserts a `kernel_registrations` row, and writes containers/Pi sessions/runs/events to Postgres.
 
 ## Current State
 

@@ -11,3 +11,7 @@ export {
 } from "./pi-agent-sessions";
 export { agentRuns } from "./agent-runs";
 export { traceEvents } from "./trace-events";
+export {
+  kernels,
+  type KernelMarkerConfig,
+} from "./kernel-registrations";

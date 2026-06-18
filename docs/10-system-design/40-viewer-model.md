@@ -15,9 +15,11 @@ The viewer is part of the kernel, not an optional demo. A new app should be able
 
 | Package | Responsibility |
 |---|---|
-| `@agent-kernel/viewer-core` | API paths, DTOs, trace span transforms, linkage resolution |
+| `@agent-kernel/viewer-core` | App trace API paths, central observer API paths, DTOs, trace span transforms, linkage resolution |
 | `@agent-kernel/viewer-ui` | Reusable trace tree, span cards, detail panels, visual utilities |
 | `@agent-kernel/viewer-shell` | Mountable base trace viewer shell with plugin slots |
+
+App-embedded viewers and a future central observer should both read through APIs that return viewer-core DTOs. Browser code should not connect directly to Postgres.
 
 ## Data Flow
 

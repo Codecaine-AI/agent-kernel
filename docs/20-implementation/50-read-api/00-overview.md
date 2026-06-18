@@ -47,7 +47,18 @@ Defaults are intentionally conservative: 5000 fallback, 10000 maximum.
 
 ## Viewer Contract
 
-`@agent-kernel/viewer-core` exports `KERNEL_TRACE_READ_PATHS` for the current v1 routes. Viewer code should use those constants rather than hard-coded paths.
+`@agent-kernel/viewer-core` exports `KERNEL_TRACE_READ_PATHS` for app-mounted trace routes. Viewer code should use those constants rather than hard-coded paths.
+
+Viewer-core also exports `KERNEL_OBSERVER_READ_PATHS` for the future central observer routes:
+
+- `GET /kernels`
+- `GET /kernels/:kernelId`
+- `GET /kernels/:kernelId/containers`
+- `GET /containers/:containerId`
+- `GET /containers/:containerId/trace`
+- `GET /tailers`
+- `GET /tailers/:tailerId/health`
+- `GET /events/orphans`
 
 The response DTOs include:
 
@@ -57,6 +68,7 @@ The response DTOs include:
 - Pi sessions
 - agent runs
 - trace events
+- registered kernel summaries/details for observer routes
 
 ## App Mounting
 
