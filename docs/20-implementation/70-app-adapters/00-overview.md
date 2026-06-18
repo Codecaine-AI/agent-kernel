@@ -28,6 +28,11 @@ A host app usually needs to provide:
 - read API service implementation
 - viewer shell integration
 
+## Child Nodes
+
+### [10-application-setup.md](10-application-setup.md)
+Step-by-step guide for wiring a host application around the kernel packages, including package linking, database composition, kernel creation, custom loaders, tailer wrapping, read API mounting, and viewer setup.
+
 ## Spectre Reference Adapter
 
 Spectre should keep these app-side:

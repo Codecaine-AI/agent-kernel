@@ -41,7 +41,7 @@ An app adapter typically provides:
 
 ## Repo Split Implication
 
-The adapter boundary should be stable before the repository boundary becomes the source of truth. During extraction, it is acceptable for Spectre to keep local workspace packages. After the split, Spectre should consume the standalone kernel repo either as a submodule workspace or as published packages.
+The standalone kernel repository is the source of truth for `@agent-kernel/*` packages. A host app can consume it as a workspace submodule during active development, or as published package versions once contracts stabilize.
 
 The package graph should not change:
 
@@ -51,3 +51,9 @@ Spectre apps -> @agent-kernel/* packages
 ```
 
 That graph is the important contract. Git topology is the delivery mechanism.
+
+## Spectre Compatibility Note
+
+Spectre still has backend files named `apps/backend/src/agent-kernel/*` because the kernel was extracted from that path. In the current split, those files are app adapter code and compatibility shims around the standalone packages, not the portable kernel source of truth.
+
+A new app should not recreate the Spectre backend tree. It should create a small app-specific adapter and import kernel package exports directly. The implementation guide for that setup lives in [20-implementation/70-app-adapters/10-application-setup.md](../20-implementation/70-app-adapters/10-application-setup.md).

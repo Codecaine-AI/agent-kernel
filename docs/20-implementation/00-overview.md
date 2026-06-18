@@ -63,7 +63,7 @@ Elysia route factory and DB read helpers consumed by viewer-core.
 Viewer DTOs, trace transforms, UI components, and shell.
 
 ### [70-app-adapters/](70-app-adapters/00-overview.md)
-How host apps such as Spectre connect domain state to kernel packages.
+How host apps such as Spectre connect domain state to kernel packages, including the [application setup guide](70-app-adapters/10-application-setup.md).
 
 ### [99-appendix/](99-appendix/00-overview.md)
 Development setup, validation, and package linking notes.
