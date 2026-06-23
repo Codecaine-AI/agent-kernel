@@ -10,6 +10,7 @@ export interface SetupPiSessionAndRunArgs {
 	piSessionUuid: string;
 	appSessionId: string;
 	agentName: string;
+	model?: string;
 	parentPiSessionUuid?: string;
 	parentRunId?: string;
 	containerId?: string;
@@ -32,6 +33,7 @@ export async function setupPiSessionAndRun(
 		appSessionId: args.appSessionId,
 		agentName: args.agentName,
 		status: "running",
+		model: args.model,
 		startedAt: now,
 		parentId: args.parentPiSessionUuid,
 		containerId: args.containerId,

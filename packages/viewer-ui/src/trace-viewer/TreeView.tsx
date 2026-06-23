@@ -34,8 +34,6 @@ export const TreeView: FC<TreeViewProps> = ({
   const allCards = flattenSpans(spans);
   const { minStart, maxEnd } = findTimeRange(allCards);
 
-  let phaseIndex = 0;
-
   return (
     <div className="w-full min-w-0">
       <ul
@@ -45,16 +43,13 @@ export const TreeView: FC<TreeViewProps> = ({
       >
         {spans.map((span, idx) => {
           const isPhase = isPhaseSpan(span);
-          const currentPhaseIndex = isPhase ? phaseIndex++ : -1;
 
           return (
             <div
               key={span.id}
               className={cn(
                 "px-4 pt-2",
-                isPhase && currentPhaseIndex % 2 === 0 && "bg-background",
-                isPhase && currentPhaseIndex % 2 === 1 && "bg-muted/30",
-                isPhase && idx > 0 && "border-t border-border/60"
+                isPhase && idx > 0 && "border-t border-border/60",
               )}
             >
               <SpanCard

@@ -12,4 +12,4 @@ The intended flow is:
 6. The coordinator queues a report writer.
 7. The report writer reads accumulated memory and returns a final report.
 
-The demo is deliberately local and deterministic so it can run without external model credentials while still showing the kernel contracts: agent registry, context loading, subagent orchestration, event protocol, read API, and trace viewer.
+The demo is deliberately local in its source material, but the run itself uses a live model/tool loop. A valid run should show the coordinator reading context, spawning source-scout subagents, waiting for their markdown reports, reviewing those reports, queueing the report writer, and writing a final report. If credentials or runtime services are missing, the harness should fail honestly rather than fabricating a trace.

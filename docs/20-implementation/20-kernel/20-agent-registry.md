@@ -51,4 +51,17 @@ The goal is for broken agent definitions to fail at boot, not halfway through a 
 
 `context.ts` and `index.ts` are optional. Lightweight agents can run with only a static prompt. Agents that need dynamic context or private tools colocate those modules with `agent.md`.
 
+`context.ts` exports the agent context resolver. `index.ts` exports a private tool registration function:
+
+```ts
+export function register(pi, runtime) {
+  pi.registerTool({
+    name: "write_report",
+    // tool metadata and execute handler
+  });
+}
+```
+
+The registry imports `index.ts` during boot with a stub Pi object that only records `registerTool({ name })` calls. This lets validation catch private tools that are implemented by the sidecar but missing from `agent.md` frontmatter. Sidecars should register tool definitions without requiring app dependencies at registration time; app dependencies can be captured in `execute` handlers or supplied by the app adapter when it loads the sidecar for a real run.
+
 The kernel stores module paths; app adapters decide how to load them in the current runtime.

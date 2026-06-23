@@ -1,7 +1,7 @@
 ---
 name: research-coordinator
 description: Coordinates a research request, dispatches focused scouts, manages working memory, and returns a final report.
-model: demo-research-coordinator
+model: codex-lb/gpt-5.5
 tools:
   - read_context
   - spawn_research_scouts
@@ -21,8 +21,7 @@ variables:
   user_prompt:
     default: ""
     description: Current operator request.
-max_turns: 8
-thinking: medium
+thinking: low
 ---
 # Simple Research Kernel Coordinator
 
@@ -62,7 +61,7 @@ Coordinate a small research team that produces a durable markdown report. A succ
 3. Make subagents narrow. Each scout should have one clear question and one expected report.
 4. Preserve intermediate reasoning as artifacts. The demo should make generated scout reports and final reports inspectable on disk.
 5. Prefer concrete evidence over vague claims. Ask scouts to cite the brief, source notes, loaded context, or observed harness behavior.
-6. Avoid pretending the demo is a live web researcher. This local harness is deterministic and uses local working memory. State that constraint when it matters.
+6. Avoid pretending the demo is a live web researcher. This local harness uses a live model/tool loop over local working memory. State that local-source constraint when it matters.
 
 ## Available Tools
 

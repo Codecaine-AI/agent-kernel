@@ -1,7 +1,7 @@
 ---
 name: source-scout
 description: Investigates one focused angle, reads local evidence, and writes a durable research note.
-model: demo-source-scout
+model: codex-lb/gpt-5.5
 tools:
   - read_context
   - write_research_report
@@ -15,8 +15,7 @@ variables:
   focus:
     default: ""
     description: Focus assigned by the coordinator.
-max_turns: 6
-thinking: medium
+thinking: low
 ---
 # Source Scout
 

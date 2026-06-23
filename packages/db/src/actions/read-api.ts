@@ -36,6 +36,17 @@ export interface KernelTraceReadRows {
 	events: TraceEventRow[];
 }
 
+export interface KernelTraceDeleteResult {
+	containerIds: string[];
+	piSessionIds: string[];
+	deleted: {
+		traceEvents: number;
+		agentRuns: number;
+		piAgentSessions: number;
+		containers: number;
+	};
+}
+
 function clampLimit(limit: number | undefined, fallback: number, max: number): number {
 	if (limit === undefined || !Number.isFinite(limit)) return fallback;
 	return Math.max(1, Math.min(Math.floor(limit), max));
@@ -107,31 +118,33 @@ export async function getKernelTraceReadRows(
 		piIdentityConditions.push(eq(piAgentSessions.appSessionId, identity.legacySessionId));
 	}
 
-	const piSessions: PiAgentSessionWithEventCount[] = await db
-		.select({
-			id: piAgentSessions.id,
-			appSessionId: piAgentSessions.appSessionId,
-			parentId: piAgentSessions.parentId,
-			containerId: piAgentSessions.containerId,
-			phase: piAgentSessions.phase,
-			displayLabel: piAgentSessions.displayLabel,
-			agentName: piAgentSessions.agentName,
-			status: piAgentSessions.status,
-			model: piAgentSessions.model,
-			startedAt: piAgentSessions.startedAt,
-			completedAt: piAgentSessions.completedAt,
-			createdAt: piAgentSessions.createdAt,
-			updatedAt: piAgentSessions.updatedAt,
-			eventCount: sql<number>`(
-				SELECT COUNT(*)::int FROM ${traceEvents}
-				WHERE ${traceEvents.piSessionId} = ${piAgentSessions.id}
-			)`,
-		})
+	const piSessionRows: PiAgentSession[] = await db
+		.select()
 		.from(piAgentSessions)
 		.where(requiredOr(piIdentityConditions))
 		.orderBy(asc(piAgentSessions.createdAt));
 
-	const piSessionIds = piSessions.map((pi) => pi.id);
+	const piSessionIds = piSessionRows.map((pi) => pi.id);
+	const eventCountRows: Array<{ piSessionId: string | null; eventCount: number }> =
+		piSessionIds.length > 0
+			? await db
+					.select({
+						piSessionId: traceEvents.piSessionId,
+						eventCount: sql<number>`COUNT(*)::int`,
+					})
+					.from(traceEvents)
+					.where(inArray(traceEvents.piSessionId, piSessionIds))
+					.groupBy(traceEvents.piSessionId)
+			: [];
+	const eventCountsByPiSession = new Map<string, number>();
+	for (const row of eventCountRows) {
+		if (row.piSessionId) eventCountsByPiSession.set(row.piSessionId, Number(row.eventCount ?? 0));
+	}
+	const piSessions: PiAgentSessionWithEventCount[] = piSessionRows.map((session) => ({
+		...session,
+		eventCount: eventCountsByPiSession.get(session.id) ?? 0,
+	}));
+
 	const runIdentityConditions: SQL[] = [
 		inArray(agentRuns.containerId, containerIds),
 	];
@@ -169,4 +182,84 @@ export async function getKernelTraceReadRows(
 		agentRuns: runRows,
 		events: eventRows,
 	};
+}
+
+export async function deleteKernelTraceRows(
+	db: KernelDatabase,
+	identity: KernelTraceReadIdentity,
+	opts: Pick<KernelTraceReadOptions, "maxContainers"> = {},
+): Promise<KernelTraceDeleteResult | undefined> {
+	const containerRows = await listContainerTree(db, identity.containerId, {
+		maxContainers: opts.maxContainers,
+	});
+	const rootContainer = containerRows[0];
+	if (!rootContainer) return undefined;
+
+	const containerIds = containerRows.map((container) => container.id);
+
+	return db.transaction(async (tx: KernelDatabase) => {
+		const piIdentityConditions: SQL[] = [
+			inArray(piAgentSessions.containerId, containerIds),
+		];
+		if (identity.legacySessionId) {
+			piIdentityConditions.push(eq(piAgentSessions.appSessionId, identity.legacySessionId));
+		}
+		const piIdentityCondition = requiredOr(piIdentityConditions);
+
+		const piSessionRows: Array<{ id: string }> = await tx
+			.select({ id: piAgentSessions.id })
+			.from(piAgentSessions)
+			.where(piIdentityCondition);
+		const piSessionIds = piSessionRows.map((session) => session.id);
+
+		const eventIdentityConditions: SQL[] = [
+			inArray(traceEvents.containerId, containerIds),
+		];
+		if (identity.legacySessionId) {
+			eventIdentityConditions.push(eq(traceEvents.appSessionId, identity.legacySessionId));
+		}
+		if (piSessionIds.length > 0) {
+			eventIdentityConditions.push(inArray(traceEvents.piSessionId, piSessionIds));
+		}
+		const deletedEvents: Array<{ id: string }> = await tx
+			.delete(traceEvents)
+			.where(requiredOr(eventIdentityConditions))
+			.returning({ id: traceEvents.id });
+
+		const runIdentityConditions: SQL[] = [
+			inArray(agentRuns.containerId, containerIds),
+		];
+		if (piSessionIds.length > 0) {
+			runIdentityConditions.push(inArray(agentRuns.piSessionId, piSessionIds));
+		}
+		const deletedRuns: Array<{ id: string }> = await tx
+			.delete(agentRuns)
+			.where(requiredOr(runIdentityConditions))
+			.returning({ id: agentRuns.id });
+
+		const deletedPiSessions: Array<{ id: string }> = await tx
+			.delete(piAgentSessions)
+			.where(piIdentityCondition)
+			.returning({ id: piAgentSessions.id });
+
+		const deletedContainers: Array<{ id: string }> = [];
+		for (const container of [...containerRows].reverse()) {
+			const rows: Array<{ id: string }> = await tx
+				.delete(containers)
+				.where(eq(containers.id, container.id))
+				.returning({ id: containers.id });
+			deletedContainers.push(...rows);
+		}
+
+		return {
+			containerIds,
+			piSessionIds,
+			deleted: {
+				traceEvents: deletedEvents.length,
+				agentRuns: deletedRuns.length,
+				piAgentSessions: deletedPiSessions.length,
+				containers: deletedContainers.length,
+			},
+		};
+	});
 }

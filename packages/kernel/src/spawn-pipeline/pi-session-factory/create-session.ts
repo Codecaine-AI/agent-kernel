@@ -1,4 +1,5 @@
 import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 
 import { getModel, type Model } from "@mariozechner/pi-ai";
 import {
@@ -121,8 +122,9 @@ export async function createPiSession(
 	});
 	await loader.reload();
 
-	const authStorage = AuthStorage.create();
-	const modelRegistry = ctx?.modelRegistry ?? ModelRegistry.create(authStorage);
+	const authStorage = AuthStorage.create(join(piAgentDir, "auth.json"));
+	const modelRegistry =
+		ctx?.modelRegistry ?? ModelRegistry.create(authStorage, join(piAgentDir, "models.json"));
 
 	let model: Model<any> | undefined;
 	const fm: AgentFrontmatter = resolved.frontmatter;

@@ -7,9 +7,9 @@ import type {
 export const loaders: AgentContextResolver["loaders"] = [
 	{
 		kind: "text",
-		label: "demo mode",
+		label: "runtime mode",
 		content:
-			"This local demo is deterministic. It shows the harness shape without calling a live model."
+			"This local demo runs the live Pi model/tool loop over local working memory. It does not perform web research unless a host app adds a web tool."
 	},
 	{
 		kind: "file",

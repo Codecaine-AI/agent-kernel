@@ -10,10 +10,10 @@ interface SpanCardConnectorProps {
 }
 
 export const SpanCardConnector = ({ type }: SpanCardConnectorProps) => {
-  if (type === "empty") return <div className="w-5 shrink-0 grow" />;
+  if (type === "empty") return <div className="w-6 shrink-0 grow" />;
 
   return (
-    <div className="relative w-5 shrink-0 grow overflow-visible">
+    <div className="relative w-6 shrink-0 grow overflow-visible">
       {(type === "vertical" || type === "t-right") && (
         <div className="bg-agentprism-border-subtle absolute top-0 -bottom-3 left-1/2 z-10 w-0.5 -translate-x-1/2" />
       )}

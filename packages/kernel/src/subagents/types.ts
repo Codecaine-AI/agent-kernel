@@ -54,6 +54,11 @@ export interface SpawnOptions {
 	appSessionSlug?: string;
 	appSessionDir?: string;
 	piSessionsDir?: string;
+	containerId?: string;
+	phase?: string;
+	displayLabel?: string;
+	variables?: Record<string, unknown>;
+	parentPiSessionUuid?: string;
 	signal?: AbortSignal;
 	onToolActivity?: (toolName: string) => void;
 	onTextDelta?: (delta: string) => void;

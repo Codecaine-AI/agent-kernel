@@ -22,3 +22,9 @@ export {
 	AGENT_PRISM_TOKENS,
 	type AgentPrismToken,
 } from "./trace-viewer/theme";
+export { AgentCatalogViewer } from "./agent-viewer/AgentCatalogViewer";
+export type {
+	AgentRenderedPrompt,
+	AgentVariableDeclaration,
+	AgentViewerDefinition,
+} from "./agent-viewer/types";

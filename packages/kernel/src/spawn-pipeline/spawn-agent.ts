@@ -4,7 +4,7 @@ import type {
 	ExtensionFactory,
 	SessionManager,
 } from "@mariozechner/pi-coding-agent";
-import { updateAgentRunStatus } from "@agent-kernel/db/actions";
+import { updateAgentRunStatus, updatePiAgentSessionStatus } from "@agent-kernel/db/actions";
 
 import {
 	buildContext as v2BuildContext,
@@ -147,7 +147,7 @@ export function createSpawnAgent(
 			...(privateFactory ? [privateFactory] : []),
 		];
 		const thinkingLevel = opts.thinkingLevel ?? resolved.frontmatter.thinking;
-		const { session } = await createPiSession({
+		const { session, model } = await createPiSession({
 			resolved,
 			ctx,
 			cwd,
@@ -161,12 +161,16 @@ export function createSpawnAgent(
 			logger: log,
 		});
 		opts.onSessionCreated?.(session);
+		const resolvedModelLabel = model
+			? `${(model as any).provider}/${(model as any).id}`
+			: resolved.frontmatter.model || undefined;
 
 		const db = adapters.getDb();
 		const { runId } = await setupPiSessionAndRun(db!, {
 			piSessionUuid: session.sessionId,
 			appSessionId: opts.appSessionId,
 			agentName: name,
+			model: resolvedModelLabel,
 			parentPiSessionUuid: opts.parentPiSessionUuid,
 			parentRunId: opts.parentRunId,
 			containerId: opts.containerId,
@@ -255,12 +259,12 @@ export function createSpawnAgent(
 			const run = () => triggerRun(session, prompt, opts);
 			await (runCtx ? runWithContext(runCtx, run) : run());
 			const turnErr = getLastAssistantError(session);
-			const endStatus: "ok" | "error" = turnErr ? "error" : "ok";
 			if (turnErr) {
 				log.warn("spawn finished with assistant stopReason=error", {
 					agent: name,
 					errorMessage: turnErr.errorMessage,
 				});
+				throw new Error(turnErr.errorMessage);
 			}
 			if (traceWriter && appSessionId) {
 				emitAgentRunEnd(
@@ -268,15 +272,21 @@ export function createSpawnAgent(
 					appSessionId,
 					name,
 					runId,
-					endStatus,
-					turnErr?.errorMessage,
+					"ok",
+					undefined,
 					session.sessionId,
 					opts.containerId,
 				);
 			}
-			await updateAgentRunStatus(db!, runId, endStatus === "ok" ? "completed" : "error", {
-				completedAt: new Date().toISOString(),
-			}).catch((e) => log.warn("updateAgentRunStatus failed", { error: (e as Error).message }));
+			const completedAt = new Date().toISOString();
+			await Promise.all([
+				updateAgentRunStatus(db!, runId, "completed", { completedAt }).catch((e) =>
+					log.warn("updateAgentRunStatus failed", { error: (e as Error).message })
+				),
+				updatePiAgentSessionStatus(db!, session.sessionId, "completed", completedAt).catch((e) =>
+					log.warn("updatePiAgentSessionStatus failed", { error: (e as Error).message })
+				)
+			]);
 			log.info(`spawn complete for "${name}"`, { aborted: false });
 		} catch (err) {
 			log.error(`spawn failed for "${name}"`, {
@@ -294,9 +304,15 @@ export function createSpawnAgent(
 					opts.containerId,
 				);
 			}
-			await updateAgentRunStatus(db!, runId, "error", {
-				completedAt: new Date().toISOString(),
-			}).catch((e) => log.warn("updateAgentRunStatus failed", { error: (e as Error).message }));
+			const completedAt = new Date().toISOString();
+			await Promise.all([
+				updateAgentRunStatus(db!, runId, "error", { completedAt }).catch((e) =>
+					log.warn("updateAgentRunStatus failed", { error: (e as Error).message })
+				),
+				updatePiAgentSessionStatus(db!, session.sessionId, "error", completedAt).catch((e) =>
+					log.warn("updatePiAgentSessionStatus failed", { error: (e as Error).message })
+				)
+			]);
 			throw err;
 		} finally {
 			sub.unsub();

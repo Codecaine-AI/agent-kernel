@@ -149,6 +149,51 @@ export function createAppKernel() {
 
 The spawn adapter is where the host app wires model resolution, app session identity, working directories, trace writers, agent catalog roots, and app run context.
 
+### Private Tool Sidecars
+
+Agent-specific private tools should live beside the agent definition:
+
+```text
+src/agent-catalog/report-writer/
+  agent.md
+  context.ts
+  index.ts
+```
+
+`agent.md` declares the allowlist. `index.ts` implements the tools for that one agent:
+
+```ts
+import { Type } from "@mariozechner/pi-ai";
+
+export function register(pi, runtime) {
+  pi.registerTool({
+    name: "write_report",
+    label: "Write report",
+    parameters: Type.Object({ content: Type.String() }),
+    async execute(_toolCallId, params) {
+      return runtime.writeReport(params);
+    },
+  });
+}
+```
+
+The spawn adapter loads the sidecar through the registry and binds app-owned runtime services:
+
+```ts
+buildPrivateRegisterFactory: async (name) => {
+  const agent = registry.get(name);
+  if (!agent.indexModulePath) return null;
+
+  const mod = await import(pathToFileURL(agent.indexModulePath).href);
+  const register = mod.default?.register ?? mod.register;
+  if (!register) return null;
+
+  return (pi) => register(pi, appToolRuntime);
+};
+```
+
+Shared tools that should be available across many agents can still come from `buildToolFactories()`. Tools that only make sense for one agent should use the colocated `index.ts` path so the implementation, allowlist, and prompt stay together.
+
 ## Step 5: Define App Session And Container Mapping
 
 The kernel uses containers as portable grouping units. The app can keep its own workflow sessions and map them to containers.
@@ -272,6 +317,7 @@ This turns the adapter boundary into a testable contract instead of a convention
 - Create app workflow/session tables.
 - Create a small app kernel adapter with `createKernel()`.
 - Provide a spawn adapter and trace writer.
+- Colocate per-agent private tools in agent `index.ts` sidecars and load them from the spawn adapter.
 - Register app-owned custom loaders.
 - Wrap the tailer if JSONL ingestion is needed.
 - Mount the kernel read API.

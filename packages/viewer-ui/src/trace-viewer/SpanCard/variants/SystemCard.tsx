@@ -5,7 +5,7 @@ interface SystemCardProps {
 }
 
 export const SystemCard: FC<SystemCardProps> = ({ label }) => (
-  <span className="inline-block rounded border border-agentprism-badge-chain-foreground px-2 py-0.5 text-xs font-medium text-agentprism-badge-chain-foreground">
+  <span className="inline-block rounded-[2px] border border-agentprism-badge-chain-foreground px-2 py-0.5 text-[13px] font-medium text-foreground">
     {label}
   </span>
 );

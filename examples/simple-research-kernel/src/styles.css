@@ -2,55 +2,89 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Instrument Telemetry theme — professional / sustained-read calibration.
+ *
+ * Near-black operational void populated by self-contained instrument panels.
+ * Light comes only from the data: signal-green numbers, LED dots, thin bezel
+ * rules. One primary accent per screen; amber for caution, red for alerts.
+ *
+ * Calibrated for tools you stare at for hours, not a glanceable wall: the
+ * primary is a softened signal green (not neon phosphor), the void sits a hair
+ * above pure black so high-contrast marks don't burn, and phosphor glow is
+ * reserved for the single focal readout only. See DESIGN.md §"Readability
+ * Calibration (Sustained Use)".
+ *
+ * Tokens are RGB triplets consumed by Tailwind's `rgb(var(--token) / <alpha>)`.
+ */
+
 :root {
 	color-scheme: dark;
-	--background: 24 25 27;
-	--foreground: 242 240 236;
-	--card: 36 37 40;
-	--card-foreground: 242 240 236;
-	--muted: 45 48 51;
-	--muted-foreground: 158 164 173;
-	--border: 58 61 66;
-	--input: 95 102 112;
-	--ring: 97 112 137;
-	--accent: 38 48 68;
-	--accent-foreground: 242 240 236;
-	--destructive: 255 154 154;
-	--trace-container: 216 212 204;
 
-	--status-neutral: 158 164 173;
-	--status-neutral-fill: 45 48 51;
-	--status-neutral-border: 95 102 112;
-	--status-info: 139 183 255;
-	--status-info-fill: 38 48 68;
-	--status-info-border: 97 112 137;
-	--status-success: 121 217 154;
-	--status-success-fill: 30 51 38;
-	--status-success-border: 56 98 71;
-	--status-warning: 232 192 109;
-	--status-warning-fill: 51 43 29;
-	--status-warning-border: 112 91 45;
+	/* ── Base & structure ─────────────────────────────────────────── */
+	/* Void nudged a hair off pure black (#040508) — still instrument
+	 * black, but gentler under sustained contrast. */
+	--background: 4 5 8;
+	--foreground: 226 232 238;        /* #E2E8EE — primary text, never pure white   */
+	--card: 11 13 16;                 /* Panel housing — a step above the void      */
+	--card-foreground: 226 232 238;
+	--muted: 20 23 27;                /* Inset Graphite — recessed wells            */
+	--muted-foreground: 148 158 172;  /* Label Gray — bright enough to read for hours */
+	--border: 27 31 37;               /* Bezel Line — 1px panel / row rules         */
+	--input: 27 31 37;
+	--ring: 84 214 147;               /* Focus ring = signal-green primary          */
 
-	--syntax-key: 216 212 204;
-	--syntax-string: 155 216 143;
-	--syntax-number: 156 199 255;
-	--syntax-boolean: 232 192 109;
+	/* ── Primary accent (Signal Green — softened phosphor) ────────── */
+	/* #54D693: desaturated + slightly lower lightness vs neon #16FF6B.
+	 * Reads as emissive on black without chromatic glare. */
+	--accent: 84 214 147;
+	--accent-foreground: 4 12 8;
 
-	--agentprism-background: 24 25 27;
-	--agentprism-foreground: 242 240 236;
-	--agentprism-muted: 31 32 34;
-	--agentprism-muted-foreground: 158 164 173;
-	--agentprism-border-subtle: 58 61 66;
-	--agentprism-code-base: 158 164 173;
-	--agentprism-badge-agent-foreground: 167 139 250;
-	--agentprism-badge-chain-foreground: 131 213 202;
-	--agentprism-badge-llm-foreground: 139 183 255;
-	--agentprism-badge-tool-foreground: 232 192 109;
+	--destructive: 225 91 88;         /* #E15B58 — softened Alert Red               */
+	--trace-container: 148 158 172;
+
+	/* ── Status semantics (consistent across every panel) ─────────── */
+	/* Nominal / Active / Gain → Signal Green (the primary)            */
+	--status-neutral: 148 158 172;
+	--status-neutral-fill: 20 23 27;
+	--status-neutral-border: 40 46 54;
+
+	--status-success: 84 214 147;
+	--status-success-fill: 10 30 22;
+	--status-success-border: 38 92 70;
+
+	/* Warning / Caution / Idle → Amber (softened, warm)               */
+	--status-warning: 220 167 76;     /* #DCA74C                                    */
+	--status-warning-fill: 34 28 10;
+	--status-warning-border: 96 74 28;
+
+	/* Selected / Live / Focus → HUD Cyan (softened, used sparingly)   */
+	--status-info: 84 211 224;        /* #54D3E0                                    */
+	--status-info-fill: 8 30 36;
+	--status-info-border: 28 84 96;
+
+	/* ── Syntax (mono code buffers) ───────────────────────────────── */
+	--syntax-key: 160 175 190;
+	--syntax-string: 84 214 147;      /* green — flat emission on small marks       */
+	--syntax-number: 220 167 76;      /* amber                                       */
+	--syntax-boolean: 214 190 110;    /* soft yellow                                 */
+
+	/* ── Trace badges (instrument hues, no pastels/AI-purple) ─────── */
+	--agentprism-background: 4 5 8;
+	--agentprism-foreground: 226 232 238;
+	--agentprism-muted: 20 23 27;
+	--agentprism-muted-foreground: 148 158 172;
+	--agentprism-border-subtle: 27 31 37;
+	--agentprism-code-base: 148 158 172;
+	--agentprism-badge-agent-foreground: 84 211 224;    /* cyan                       */
+	--agentprism-badge-chain-foreground: 110 210 184;   /* cyan-green                 */
+	--agentprism-badge-llm-foreground: 84 214 147;      /* signal green primary       */
+	--agentprism-badge-tool-foreground: 220 167 76;     /* amber                      */
 }
 
 * {
 	box-sizing: border-box;
-	scrollbar-color: rgb(var(--muted-foreground) / 0.55) transparent;
+	scrollbar-color: rgb(var(--muted-foreground) / 0.4) transparent;
 	scrollbar-width: thin;
 }
 
@@ -62,14 +96,16 @@ body,
 
 body {
 	margin: 0;
-	min-width: 1024px;
 	background: rgb(var(--background));
 	color: rgb(var(--foreground));
+	font-variant-numeric: tabular-nums;
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
 }
 
 ::selection {
-	background: rgb(var(--accent));
-	color: rgb(var(--foreground));
+	background: rgb(var(--accent) / 0.85);
+	color: rgb(var(--accent-foreground));
 }
 
 ::-webkit-scrollbar {
@@ -82,10 +118,61 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-	background: rgb(var(--muted-foreground) / 0.55);
-	border-radius: 4px;
+	background: rgb(var(--muted-foreground) / 0.32);
+	border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: rgb(var(--muted-foreground) / 0.5);
 }
 
 ::-webkit-scrollbar-corner {
 	background: transparent;
+}
+
+/* ── Instrument utilities ─────────────────────────────────────────── */
+
+/* Phosphor emission — subtle, and RESERVED FOR THE SINGLE FOCAL READOUT.
+ * Secondary lit values use flat accent color; many glows compete for the eye
+ * and read as glare, not emission. Intensity kept low for sustained reading. */
+.tk-glow-green {
+	text-shadow: 0 0 5px rgb(84 214 147 / 0.28), 0 0 1px rgb(84 214 147 / 0.42);
+}
+.tk-glow-amber {
+	text-shadow: 0 0 5px rgb(220 167 76 / 0.26), 0 0 1px rgb(220 167 76 / 0.4);
+}
+.tk-glow-red {
+	text-shadow: 0 0 5px rgb(225 91 88 / 0.26), 0 0 1px rgb(225 91 88 / 0.4);
+}
+
+/* Corner-bracket frame — the signature HUD device, applied to key readouts
+ * only. Draws four L-shaped ticks; the field between stays empty. */
+.tk-frame {
+	--tkf-len: 9px;
+	--tkf-c: rgb(var(--muted-foreground) / 0.35);
+	background:
+		linear-gradient(var(--tkf-c), var(--tkf-c)) top left / var(--tkf-len) 1px no-repeat,
+		linear-gradient(var(--tkf-c), var(--tkf-c)) top left / 1px var(--tkf-len) no-repeat,
+		linear-gradient(var(--tkf-c), var(--tkf-c)) top right / var(--tkf-len) 1px no-repeat,
+		linear-gradient(var(--tkf-c), var(--tkf-c)) top right / 1px var(--tkf-len) no-repeat,
+		linear-gradient(var(--tkf-c), var(--tkf-c)) bottom left / var(--tkf-len) 1px no-repeat,
+		linear-gradient(var(--tkf-c), var(--tkf-c)) bottom left / 1px var(--tkf-len) no-repeat,
+		linear-gradient(var(--tkf-c), var(--tkf-c)) bottom right / var(--tkf-len) 1px no-repeat,
+		linear-gradient(var(--tkf-c), var(--tkf-c)) bottom right / 1px var(--tkf-len) no-repeat;
+}
+
+/* Subtle live-tick pulse for status LEDs / the focus cursor. Isolated, tiny,
+ * and frozen under reduced-motion. */
+@keyframes tk-pulse {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.5; }
+}
+.tk-pulse {
+	animation: tk-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.tk-pulse {
+		animation: none;
+	}
 }

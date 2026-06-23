@@ -10,11 +10,31 @@ import {
 	findSpanInTree,
 } from "@agent-kernel/viewer-ui";
 
-const LEVEL_LABELS: readonly string[] = [
-	"Conversation",
-	"Tools",
-	"Full",
-	"Debug",
+import { TraceLevelSlider, type TraceLevelInfo } from "./TraceLevelSlider";
+
+const TRACE_LEVELS: readonly TraceLevelInfo[] = [
+	{
+		marker: "L0",
+		name: "Conversation",
+		description:
+			"High-level conversation: user messages, assistant replies, and ask prompts.",
+	},
+	{
+		marker: "L1",
+		name: "Tools",
+		description: "Adds tool calls and their results.",
+	},
+	{
+		marker: "L2",
+		name: "Full",
+		description: "Adds system prompts, context, and processing detail.",
+	},
+	{
+		marker: "L3",
+		name: "Debug",
+		description:
+			"Adds low-level internal and lifecycle events for deep debugging.",
+	},
 ];
 
 export interface KernelViewerPlugins {
@@ -36,7 +56,7 @@ export interface KernelTraceViewerProps {
 export function KernelTraceViewer({
 	spans,
 	className,
-	initialTraceLevel = 1,
+	initialTraceLevel = 2,
 	selectedId: controlledSelectedId,
 	onSelectedIdChange,
 	plugins,
@@ -55,7 +75,8 @@ export function KernelTraceViewer({
 	useEffect(() => {
 		if (didInitExpand.current || spans.length === 0) return;
 		didInitExpand.current = true;
-		setExpandedSpansIds(spans.map((span) => span.id));
+		// Expand the entire tree (recursively) on first load.
+		setExpandedSpansIds(collectSpanIds(spans));
 	}, [spans]);
 
 	const filteredSpans = useMemo(
@@ -86,7 +107,7 @@ export function KernelTraceViewer({
 			<div className={className}>
 				{plugins?.containerHeader}
 				{plugins?.emptyState ?? (
-					<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+					<div className="flex h-full items-center justify-center font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
 						No events yet
 					</div>
 				)}
@@ -97,32 +118,19 @@ export function KernelTraceViewer({
 	return (
 		<div className={className}>
 			{plugins?.containerHeader}
-			<div className="flex min-h-0 flex-1 gap-3">
-				<div className="flex w-[62.5%] min-h-0 flex-col overflow-hidden rounded-md border border-border/60">
-					<div className="flex items-center gap-3 border-b border-border/60 px-3 py-2 text-[10px] font-display uppercase text-muted-foreground/80">
-						{LEVEL_LABELS.map((label, idx) => (
-							<span
-								key={label}
-								className={idx === level ? "text-foreground" : "text-muted-foreground/60"}
-							>
-								L{idx} {label}
-							</span>
-						))}
-						<input
-							type="range"
-							min={0}
-							max={3}
-							step={1}
+			<div className="flex min-h-0 flex-1 gap-3 font-mono">
+				<div className="flex w-[62.5%] min-h-0 flex-col overflow-hidden rounded-[3px] border border-border bg-card">
+					<div className="flex h-[72px] shrink-0 items-center gap-4 border-b border-border bg-muted/30 px-3">
+						<TraceLevelSlider
+							levels={TRACE_LEVELS}
 							value={level}
-							onChange={(event) => setLevel(Number(event.target.value))}
-							className="w-40 accent-foreground"
-							aria-label="Trace level"
+							onChange={setLevel}
 						/>
 						{plugins?.treeToolbarTrailing}
 						<button
 							type="button"
 							onClick={toggleExpandAll}
-							className="ml-auto rounded border border-border/60 px-2 py-0.5 text-[10px] font-display uppercase text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+							className="ml-auto rounded-[2px] border border-border px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:border-status-success-border hover:text-status-success"
 						>
 							{allExpanded ? "Collapse All" : "Expand All"}
 						</button>
@@ -137,7 +145,7 @@ export function KernelTraceViewer({
 						/>
 					</div>
 				</div>
-				<div className="w-[37.5%] overflow-hidden rounded-md border border-border/60">
+				<div className="w-[37.5%] overflow-hidden rounded-[3px] border border-border bg-card">
 					{selectedSpan ? (
 						<SpanDetailPanel span={selectedSpan} />
 					) : (

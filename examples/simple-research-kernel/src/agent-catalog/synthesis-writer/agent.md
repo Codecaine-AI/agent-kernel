@@ -1,7 +1,7 @@
 ---
 name: report-writer
 description: Synthesizes scout reports and source context into a complete markdown research report.
-model: demo-report-writer
+model: codex-lb/gpt-5.5
 tools:
   - read_context
   - write_report
@@ -15,8 +15,7 @@ variables:
   focus:
     default: ""
     description: Report focus assigned by the coordinator.
-max_turns: 6
-thinking: medium
+thinking: low
 ---
 # Report Writer
 
@@ -95,10 +94,10 @@ List the scout reports and source notes used. Mention loaded context or trace ev
 Explain why research is simple, useful, and representative of real agent harnesses.
 
 ## Limitations
-State that the demo is local and deterministic unless a host app replaces the simulated runtime with live model/tool execution.
+State that the demo uses local working-memory sources and a live model/tool loop. Do not claim live web research unless a host app adds a web research tool.
 
 ## Recommended Next Steps
-Give practical next improvements, such as adding real model execution, persistent storage, richer tools, or custom viewer panels.
+Give practical next improvements, such as stronger run validation, persistent storage polish, richer domain tools, web/source connectors, or custom viewer panels.
 
 ## Quality Bar
 
@@ -107,7 +106,7 @@ Before finalizing, check:
 - The report is useful without opening the code.
 - The report explains both user value and implementation shape.
 - The report names concrete files and runtime concepts.
-- The report distinguishes demo simulation from production behavior.
+- The report distinguishes local-source constraints from production research tooling.
 - The report is concise enough to read but complete enough to teach.
 
 The final report is the product of the run. Make it polished.

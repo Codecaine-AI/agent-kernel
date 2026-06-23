@@ -9,8 +9,15 @@ module.exports = {
 	theme: {
 		extend: {
 			fontFamily: {
-				sans: ['"TX-02"', "ui-sans-serif", "system-ui", "sans-serif"],
-				display: ['"Bank Gothic"', "ui-sans-serif", "system-ui", "sans-serif"]
+				// The voice of this UI is machine type. Mono is the workhorse — every
+				// number, label, table cell, path, and log line. Squared caps face for
+				// large panel titles; neutral sans only for the odd prose paragraph.
+				mono: [
+					'"JetBrains Mono"', '"IBM Plex Mono"', '"Geist Mono"',
+					'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'
+				],
+				sans: ['"TX-02"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+				display: ['"Bank Gothic"', '"Eurostile"', '"Michroma"', 'ui-sans-serif', 'system-ui', 'sans-serif']
 			},
 			colors: {
 				background: "rgb(var(--background) / <alpha-value>)",

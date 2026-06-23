@@ -31,9 +31,12 @@ export interface AgentSpawnOptions {
 	appSessionSlug?: string;
 	appSessionDir?: string;
 	piSessionsDir?: string;
+	variables?: Record<string, unknown>;
 	parentRunId?: string;
+	parentPiSessionUuid?: string;
 	containerId?: string;
 	phase?: string;
+	displayLabel?: string;
 	parentToolUseId?: string;
 	signal?: AbortSignal;
 	onToolActivity?: (activity: { type: "start" | "end"; toolName: string }) => void;
@@ -182,15 +185,20 @@ export class AgentManager {
 		const appSessionDir =
 			options.appSessionDir ??
 			parentRunCtx?.appSessionDir;
+		const parentPiSessionUuid =
+			options.parentPiSessionUuid ?? ctx.sessionManager.getSessionId();
 		const adapterOptions: AgentSpawnOptions = {
 			workingDir: options.workingDir,
 			appSessionId,
 			appSessionSlug,
 			appSessionDir,
 			piSessionsDir: options.piSessionsDir,
+			variables: options.variables,
 			parentRunId: options.parentRunId,
-			containerId: parentRunCtx?.containerId,
-			phase: parentRunCtx?.phase,
+			parentPiSessionUuid,
+			containerId: options.containerId ?? parentRunCtx?.containerId,
+			phase: options.phase ?? parentRunCtx?.phase,
+			displayLabel: options.displayLabel,
 			parentToolUseId: options.toolCallId,
 			signal: record.abortController!.signal,
 			onToolActivity: (activity) => {
@@ -207,7 +215,7 @@ export class AgentManager {
 					record.pendingSteers = undefined;
 				}
 				if (options.toolCallId && options.parentPi) {
-					const parentPiSessionId = ctx.sessionManager.getSessionId();
+					const parentPiSessionId = parentPiSessionUuid;
 					const childPiSessionId = session.sessionId;
 					if (parentPiSessionId && childPiSessionId) {
 						options.parentPi.appendEntry(this.subagentLinkCustomType, {

@@ -19,12 +19,14 @@ The spawn pipeline is portable because app-specific operations are injected:
 |---|---|
 | `loadAgent` | App controls catalog roots and agent names |
 | `loadAgentResolver` | App controls where `context.ts` sidecars live |
-| `buildPrivateRegisterFactory` | App controls private tools |
+| `buildPrivateRegisterFactory` | App loads per-agent `index.ts` private tool sidecars and binds app-owned dependencies |
 | `buildToolFactories` | App controls shared tools and allowlists |
 | `createContextCatalog` | App can register custom loaders |
 | `createSpawnContext` | App can attach app session snapshots and paths |
 | `getDb` | Host app owns DB connection lifecycle |
 | `createAppSessionBinding` | App controls JSONL metadata used by the tailer |
+
+Private tools should be declared in `agent.md` and implemented in the same agent directory's `index.ts`. The adapter usually resolves the agent through the registry, imports `agent.indexModulePath`, and returns an `ExtensionFactory` that calls the sidecar `register()` function with any app-owned runtime services it needs.
 
 ## Sequence
 

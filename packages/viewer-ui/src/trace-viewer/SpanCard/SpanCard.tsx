@@ -24,7 +24,7 @@ import { UserMessageCard, AssistantMessageCard, ToolCard, UIAskCard, AgentCard, 
 import { getSpanStyle, readStringAttr } from "../span-style";
 
 const LAYOUT_CONSTANTS = {
-  CONNECTOR_WIDTH: 20,
+  CONNECTOR_WIDTH: 24,
   CONTENT_BASE_WIDTH: 320,
 } as const;
 
@@ -220,7 +220,7 @@ const getConnectorsLayout = ({
   if (level === 0) {
     return {
       connectors: expandButton === "inside" ? [] : ["vertical"],
-      connectorsColumnWidth: 20,
+      connectorsColumnWidth: LAYOUT_CONSTANTS.CONNECTOR_WIDTH,
     };
   }
 
@@ -316,28 +316,26 @@ const SpanCardChildren: FC<{
   if (!data.children?.length) return null;
 
   return (
-    <div className="relative">
-      <Collapsible.Content>
-        <ul role="group">
-          {data.children.map((child, idx) => (
-            <SpanCard
-              viewOptions={viewOptions}
-              key={child.id}
-              data={child}
-              minStart={minStart}
-              maxEnd={maxEnd}
-              level={level + 1}
-              selectedSpan={selectedSpan}
-              onSpanSelect={onSpanSelect}
-              isLastChild={idx === (data.children || []).length - 1}
-              prevLevelConnectors={prevLevelConnectors}
-              expandedSpansIds={expandedSpansIds}
-              onExpandSpansIdsChange={onExpandSpansIdsChange}
-            />
-          ))}
-        </ul>
-      </Collapsible.Content>
-    </div>
+    <Collapsible.Content forceMount className="ap-collapsible">
+      <ul role="group" className="ap-collapsible__inner">
+        {data.children.map((child, idx) => (
+          <SpanCard
+            viewOptions={viewOptions}
+            key={child.id}
+            data={child}
+            minStart={minStart}
+            maxEnd={maxEnd}
+            level={level + 1}
+            selectedSpan={selectedSpan}
+            onSpanSelect={onSpanSelect}
+            isLastChild={idx === (data.children || []).length - 1}
+            prevLevelConnectors={prevLevelConnectors}
+            expandedSpansIds={expandedSpansIds}
+            onExpandSpansIdsChange={onExpandSpansIdsChange}
+          />
+        ))}
+      </ul>
+    </Collapsible.Content>
   );
 };
 
@@ -453,21 +451,26 @@ export const SpanCard: FC<SpanCardProps> = ({
             ))}
 
             {hasExpandButtonAsFirstChild && (
-              <div className="flex w-5 flex-col items-center justify-center">
+              <div className="relative flex w-6 shrink-0 items-center justify-center self-stretch">
                 <SpanCardToggle
                   isExpanded={state.isExpanded}
                   title={data.title}
                   onToggleClick={eventHandlers.handleToggleClick}
                 />
 
-                {state.isExpanded && <SpanCardConnector type="vertical" />}
+                {state.isExpanded && (
+                  <span
+                    aria-hidden="true"
+                    className="bg-agentprism-border-subtle pointer-events-none absolute left-1/2 top-[calc(50%_+_10px)] -bottom-3 w-0.5 -translate-x-1/2"
+                  />
+                )}
               </div>
             )}
           </div>
           <div
             className={cn(
               "flex items-center gap-2",
-              "min-h-5 w-full cursor-pointer",
+              "min-h-6 w-full cursor-pointer",
               level !== 0 && !hasExpandButtonAsFirstChild && "pl-2",
               level !== 0 && hasExpandButtonAsFirstChild && "pl-1",
             )}
@@ -506,7 +509,7 @@ export const SpanCard: FC<SpanCardProps> = ({
 
             {!spanDisplay && (
               <div
-                className="relative flex min-h-4 shrink-0 flex-wrap items-center gap-1.5"
+                className="relative flex min-h-5 shrink-0 flex-wrap items-center gap-1.5"
                 style={{
                   width: `min(${contentWidth}px, 100%)`,
                   minWidth: 140,
@@ -515,7 +518,7 @@ export const SpanCard: FC<SpanCardProps> = ({
                 {spanStyle.indicator && (
                   <span
                     aria-hidden="true"
-                    className="text-agentprism-foreground text-sm font-bold leading-none"
+                    className="text-agentprism-foreground text-[15px] font-bold leading-none"
                   >
                     {spanStyle.indicator}
                   </span>
@@ -523,7 +526,7 @@ export const SpanCard: FC<SpanCardProps> = ({
 
                 <h3
                   className={cn(
-                    "text-agentprism-foreground max-w-32 truncate leading-[14px]",
+                    "text-agentprism-foreground max-w-32 truncate leading-[16px]",
                     spanStyle.titleClassName,
                   )}
                   title={data.title}

@@ -23,7 +23,7 @@ The service command starts Postgres. The kernel launcher starts two local proces
 - API: `http://127.0.0.1:8788`
 - Viewer: `http://127.0.0.1:5174`
 
-The API exposes the kernel read routes under `/kernel/*` and Simple Research Kernel routes under `/api/*`, including `/api/research` for the current app summary, `/api/run` for starting prompt-driven research runs, and `/api/kernel-registration` for the registration row summary.
+The API exposes the kernel read routes under `/kernel/*` and Simple Research Kernel routes under `/api/*`, including `/api/research` for the current app summary, `/api/run` for starting prompt-driven research runs, and `/api/kernel-registration` for the registration row summary. The viewer opens at `/research`, where a user can start a run and watch its live trace stream. `/traces` lists DB-backed trace sessions, deep-links selections with `traceId`, and hosts the full detailed trace browser.
 
 ## What It Wires
 
@@ -39,6 +39,7 @@ The harness exercises the core package path:
     text loader
     file/directory loaders
     working-memory loader registered by the host app
+  per-agent index.ts private tool sidecars
 
 @agent-kernel/protocol
   trace event factories
@@ -64,13 +65,15 @@ The harness exercises the core package path:
 
 `src/server.ts` owns the Elysia API, DB bootstrap, kernel registration, persistence adapter, and read API factory.
 
-`src/simple-research-kernel-store.ts` owns the kernel instance, deterministic research runtime, container/session/run event production, subagent fan-out, and the custom `working-memory` context loader. Its persistence adapter writes the emitted rows to Postgres.
+`src/simple-research-kernel-store.ts` owns the kernel instance, live research runtime, container/session/run event production, subagent fan-out, and the custom `working-memory` context loader. It loads each agent's private tool sidecar through the registry's `indexModulePath` and passes an app-owned tool runtime into the sidecar. Its persistence adapter writes the emitted rows to Postgres.
 
-`src/agent-catalog/*/agent.md` defines the coordinator, source scout, and report writer agents. Each agent has a colocated `context.ts` sidecar that declares loader inputs and assembles model-facing context.
+`src/agent-catalog/*/agent.md` defines the coordinator, source scout, and report writer agents. Each agent has a colocated `context.ts` sidecar that declares loader inputs and assembles model-facing context, plus an `index.ts` sidecar that registers that agent's private tools.
+
+`src/agent-catalog/tool-runtime.ts` contains the shared tool registration helpers and the runtime contract that lets agent sidecars call back into app-owned working memory and subagent orchestration without moving those concerns into the kernel package.
 
 `research-memory/` holds the seed brief, durable source notes, generated scout-report directory, and generated final-report directory.
 
-`src/main.tsx` fetches the read API response, transforms events into trace spans, and renders `KernelTraceViewer`.
+`src/App.tsx` fetches the DB-backed trace-session list and selected detail, transforms selected events into trace spans, and renders separate research-run, traces, and agent-catalog workspaces around the shared viewer packages.
 
 `src/styles.css`, `tailwind.config.cjs`, and `postcss.config.cjs` provide the example's Tailwind pipeline and Spectre-compatible viewer tokens. The example wrapper uses Tailwind utility classes; it does not define a separate named CSS component system.
 
@@ -81,6 +84,7 @@ This example is deliberately not a Spectre adapter. It proves the extracted kern
 - a kernel instance
 - filesystem agent definitions
 - app-defined context loaders
+- per-agent private tool sidecars
 - subagent orchestration
 - scout-report review and optional follow-up
 - working-memory artifacts

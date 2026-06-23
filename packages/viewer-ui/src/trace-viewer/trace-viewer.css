@@ -1,0 +1,48 @@
+/*
+ * Trace viewer animations.
+ *
+ * Import once at your app entry, e.g.:
+ *   import "@agent-kernel/viewer-ui/styles";
+ *
+ * Drives Radix Collapsible.Content via forceMount + the grid-template-rows
+ * 0fr -> 1fr trick. The row grows from zero height with the children clipped
+ * by overflow:hidden, so they are revealed top-to-bottom as the space opens —
+ * i.e. the section expands downward, with the content visible the whole time.
+ *
+ * No opacity fade: that was making children look like they appeared "out of
+ * thin air" instead of being uncovered by the expanding row.
+ *
+ * Open uses an ease-out curve so it glides open and settles; close uses an
+ * ease-in so the row gathers up before disappearing. visibility is toggled
+ * on a delay so collapsed content is removed from the tab order / a11y tree
+ * only after it has finished closing.
+ */
+
+.ap-collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition:
+    grid-template-rows 200ms cubic-bezier(0.4, 0, 1, 1),
+    visibility 0s linear 200ms;
+}
+
+.ap-collapsible[data-state="open"] {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition:
+    grid-template-rows 480ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s;
+}
+
+.ap-collapsible__inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ap-collapsible,
+  .ap-collapsible[data-state="open"] {
+    transition: none;
+  }
+}

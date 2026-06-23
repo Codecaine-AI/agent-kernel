@@ -16,6 +16,7 @@ export async function upsertPiAgentSession(
       set: {
         ...(data.appSessionId !== undefined && { appSessionId: data.appSessionId }),
         ...(data.parentId !== undefined && { parentId: data.parentId }),
+        ...(data.status !== undefined && { status: data.status }),
         ...(data.model !== undefined && { model: data.model }),
         ...(data.startedAt !== undefined && { startedAt: data.startedAt }),
         ...(data.completedAt !== undefined && { completedAt: data.completedAt }),

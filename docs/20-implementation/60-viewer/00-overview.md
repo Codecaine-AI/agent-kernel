@@ -37,6 +37,7 @@ Viewer-ui owns reusable React components for trace rendering:
 - `TreeView`
 - `SpanCard`
 - `SpanDetailPanel`
+- `AgentCatalogViewer`
 - trace filtering and lookup helpers
 - style and theme helpers
 

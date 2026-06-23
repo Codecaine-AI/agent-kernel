@@ -4,6 +4,7 @@ import {
 	mkdirSync,
 	readdirSync,
 	readFileSync,
+	statSync,
 	writeFileSync
 } from "node:fs";
 import { basename, extname, join, relative, resolve } from "node:path";
@@ -13,42 +14,30 @@ import {
 	AgentManager,
 	buildRegistry,
 	createKernel,
-	runWithContext,
+	getRunContext,
 	type AgentDefinition,
 	type AgentRegistry,
-	type KernelExtensionAPI,
 	type KernelExtensionContext,
 	type KernelInstance
 } from "@agent-kernel/kernel";
 import {
-	buildContext,
+	createSpawnContext,
 	createDefaultCatalog,
 	type AgentContextResolver,
-	type BuildContextResult,
-	type ContextLifecycleEmitter,
 	type Loader,
 	type LoaderDeclaration,
 	type LoaderResult,
-	type RuntimeState,
 	type SpawnContext
 } from "@agent-kernel/kernel/context";
-import { resolveSystemPrompt } from "@agent-kernel/kernel/spawn-pipeline/system-prompt-resolver";
-import type { AgentSpawnOptions } from "@agent-kernel/kernel/subagents";
 import {
-	createAgentRunEndEvent,
-	createAgentRunStartEvent,
-	createAgentSessionEndEvent,
-	createAgentSessionStartEvent,
-	createAssistantMessageEvent,
+	createSpawnAgent,
+	type KernelSpawnAgent,
+	type KernelSpawnAgentResult,
+	type KernelSpawnOptions
+} from "@agent-kernel/kernel/spawn-pipeline";
+import {
 	createContainerStartEvent,
-	createContextBuildCompletedEvent,
-	createContextBuildStartedEvent,
-	createContextInputResolvedEvent,
 	createPhaseStartEvent,
-	createSystemPromptResolvedEvent,
-	createToolCallEndEvent,
-	createToolCallStartEvent,
-	createUserMessageEvent,
 	SYSTEM_USER_ID,
 	TraceSource,
 	type TraceEvent as ProtocolTraceEvent
@@ -61,6 +50,12 @@ import type {
 	PiSessionWithCount,
 	TraceEventRow
 } from "@agent-kernel/viewer-core";
+import type { ExtensionAPI, ExtensionContext, ExtensionFactory } from "@mariozechner/pi-coding-agent";
+import type {
+	SimpleResearchAgentRegisterFn,
+	SimpleResearchToolRuntime,
+	ToolResponse
+} from "./agent-catalog/tool-runtime";
 
 export const APP_SESSION_ID = "11111111-1111-4111-8111-111111111111";
 export const ROOT_CONTAINER_ID = "simple-research-kernel";
@@ -71,25 +66,17 @@ const AGENT_CATALOG_DIR = join(import.meta.dir, "agent-catalog");
 export const WORKING_MEMORY_DIR = join(EXAMPLE_ROOT, "research-memory");
 const SCOUT_REPORTS_DIR = join(WORKING_MEMORY_DIR, "scout-reports");
 const REPORTS_DIR = join(WORKING_MEMORY_DIR, "reports");
+const PI_AGENT_DIR = Bun.env.AGENT_KERNEL_PI_AGENT_DIR ?? join(EXAMPLE_ROOT, ".pi-agent");
+const DEFAULT_PI_SESSIONS_DIR = join(EXAMPLE_ROOT, ".agent-kernel", "pi-sessions");
+const DEFAULT_RESEARCH_MODEL = "codex-lb/gpt-5.5";
 const DEFAULT_RESEARCH_PROMPT =
 	"Research how the Simple Research Kernel should present agents, context loading, subagents, and working memory.";
-
-type DemoRunResult = {
-	responseText: string;
-	session: { sessionId: string; messages: unknown[]; steer(message: string): Promise<void> };
-	aborted: boolean;
-};
-
-type DemoRunOptions = AgentSpawnOptions & {
-	prompt?: string;
-	focus?: string;
-};
 
 type ResearchHarnessInfo = {
 	kernelId: string;
 	concurrency: { maxBackgroundAgents: number };
 	memoryDir: string;
-	agents: { name: string; description: string; model: string; hasContext: boolean }[];
+	agents: ResearchAgentSummary[];
 	activeRuns: ResearchRunSummary[];
 	dummySession: {
 		id: string;
@@ -102,17 +89,64 @@ type ResearchHarnessInfo = {
 		eventCount: number;
 		latestEventAt: string | null;
 	};
+	artifacts: {
+		scoutReports: ResearchArtifactSummary[];
+		reports: ResearchArtifactSummary[];
+	};
 	latestReport: string;
+};
+
+type ResearchAgentSummary = {
+	name: string;
+	description: string;
+	model: string;
+	tools: string[];
+	disallowedTools: string[];
+	extensions: true | string[] | false;
+	canSpawnSubagent: boolean;
+	variables: Array<{ name: string; defaultValue: unknown; description: string | null }>;
+	maxTurns: number | null;
+	thinking: string | null;
+	runInBackground: boolean;
+	hasContext: boolean;
+	contextModule: string | null;
+	agentFile: string;
+	promptTemplate: string;
+	warnings: string[];
+};
+
+type ResearchArtifactSummary = {
+	path: string;
+	bytes: number;
+	updatedAt: string;
 };
 
 type ResearchRunSummary = {
 	id: string;
+	appSessionId: string;
+	appSessionSlug: string;
+	containerId: string;
 	prompt: string;
 	kind: "dummy" | "user";
 	status: "running" | "completed" | "error";
 	startedAt: string;
 	completedAt: string | null;
 	error: string | null;
+};
+
+type ResearchTraceIdentity = {
+	appSessionId: string;
+	appSessionSlug: string;
+	containerId: string;
+	label: string;
+	topic: string;
+	kind: ResearchRunSummary["kind"];
+	prompt: string;
+};
+
+type ArtifactSnapshot = {
+	scoutReports: number;
+	finalReports: number;
 };
 
 type WorkingMemoryLoaderDeclaration = LoaderDeclaration & {
@@ -127,6 +161,13 @@ export interface SimpleResearchKernelPersistence {
 	upsertAgentRun?(run: AgentRun): Promise<void>;
 	insertTraceEvent?(event: ProtocolTraceEvent): Promise<void>;
 }
+
+type ResearchStoreOptions = {
+	persistence?: SimpleResearchKernelPersistence;
+	db?: unknown;
+	piSessionsDir?: string;
+	model?: string;
+};
 
 function hashContent(input: string): string {
 	return createHash("sha256").update(input, "utf8").digest("hex");
@@ -148,6 +189,25 @@ function safeSlug(input: string): string {
 		.slice(0, 54) || "note";
 }
 
+function traceMetadata(trace: ResearchTraceIdentity): Record<string, unknown> {
+	return {
+		kernelId: "simple-research-kernel",
+		app: "simple-research-kernel",
+		appSessionId: trace.appSessionId,
+		appSessionSlug: trace.appSessionSlug,
+		appSessionType: "example",
+		topic: trace.topic,
+		prompt: trace.prompt,
+		kind: trace.kind,
+		description:
+			"A simple research kernel that fans out to scouts, reads their reports, optionally spawns follow-up scouts, and queues a final report writer."
+	};
+}
+
+function isSeedTrace(trace: { appSessionId?: string; containerId?: string }): boolean {
+	return trace.appSessionId === APP_SESSION_ID || trace.containerId === ROOT_CONTAINER_ID;
+}
+
 function collectFiles(dir: string, extensions: Set<string>): string[] {
 	if (!existsSync(dir)) return [];
 
@@ -161,10 +221,6 @@ function collectFiles(dir: string, extensions: Set<string>): string[] {
 		}
 	}
 	return out.sort();
-}
-
-function delay(ms: number): Promise<void> {
-	return new Promise((resolveDelay) => setTimeout(resolveDelay, ms));
 }
 
 const workingMemoryLoader: Loader<WorkingMemoryLoaderDeclaration> = {
@@ -198,131 +254,159 @@ const workingMemoryLoader: Loader<WorkingMemoryLoaderDeclaration> = {
 export class SimpleResearchKernelStore {
 	readonly kernel: KernelInstance<
 		KernelExtensionContext | null,
-		DemoRunOptions,
-		DemoRunResult,
+		KernelSpawnOptions,
+		KernelSpawnAgentResult,
 		AgentManager
 	>;
 
 	private readonly persistence?: SimpleResearchKernelPersistence;
+	private readonly db?: unknown;
+	private readonly piSessionsDir: string;
+	private readonly model: string;
+	private readonly toolRuntime: SimpleResearchToolRuntime;
 	private persistenceTail: Promise<void> = Promise.resolve();
 	private readonly registryPromise: Promise<AgentRegistry>;
+	private liveSpawnAgentPromise: Promise<KernelSpawnAgent> | null = null;
 	private readonly startedAt = nowRounded() - 90_000;
-	private readonly container: KernelContainerSummary;
+	private readonly containers = new Map<string, KernelContainerSummary>();
+	private readonly traceIdentities = new Map<string, ResearchTraceIdentity>();
 	private readonly piSessions: PiSessionWithCount[] = [];
 	private readonly agentRuns: AgentRun[] = [];
 	private readonly events: TraceEventRow[] = [];
 	private eventCounter = 0;
-	private runCounter = 0;
-	private reportCounter = 0;
+	private artifactCounter = 0;
 	private latestReportText = "";
 	private readonly researchRuns = new Map<string, ResearchRunSummary>();
 
-	constructor(options: { persistence?: SimpleResearchKernelPersistence } = {}) {
+	constructor(options: ResearchStoreOptions = {}) {
 		this.persistence = options.persistence;
+		this.db = options.db;
+		this.piSessionsDir = options.piSessionsDir ?? DEFAULT_PI_SESSIONS_DIR;
+		this.model = options.model ?? Bun.env.AGENT_KERNEL_RESEARCH_MODEL ?? DEFAULT_RESEARCH_MODEL;
 		this.ensureWorkingMemory();
+		mkdirSync(PI_AGENT_DIR, { recursive: true });
+		mkdirSync(this.piSessionsDir, { recursive: true });
+		this.toolRuntime = this.createToolRuntime();
 		this.registryPromise = buildRegistry({ catalogRoot: AGENT_CATALOG_DIR });
-		this.container = {
-			id: ROOT_CONTAINER_ID,
-			parentContainerId: null,
-			label: "Simple Research Kernel",
-			status: "running",
-			workingDir: EXAMPLE_ROOT,
-			worktreePath: null,
-			phase: PHASE,
-			phaseVocabulary: [PHASE],
-			metadata: {
-				description:
-					"A simple research kernel that fans out to scouts, reads their reports, optionally spawns follow-up scouts, and queues a final report writer."
-			},
-			startedAt: iso(this.startedAt),
-			completedAt: null,
-			createdAt: iso(this.startedAt),
-			updatedAt: iso(this.startedAt)
-		};
-		this.persistContainer(this.container);
 
 		this.kernel = createKernel<
 			KernelExtensionContext | null,
-			DemoRunOptions,
-			DemoRunResult,
+			KernelSpawnOptions,
+			KernelSpawnAgentResult,
 			AgentManager
 		>({
 			id: "simple-research-kernel",
 			concurrency: { maxBackgroundAgents: 3 },
-			spawnAgent: (name, prompt, ctx, opts) => this.runResearchAgent(name, prompt, ctx, opts),
+			spawnAgent: (name, prompt, ctx, opts) => this.runLiveResearchAgent(name, prompt, ctx, opts),
 			createAgentManager: ({ maxConcurrentBackgroundAgents, spawnAgent }) =>
 				new AgentManager(undefined, maxConcurrentBackgroundAgents, undefined, {
 					spawnAgent: (name, prompt, ctx, opts) => spawnAgent(name, prompt, ctx, opts)
 				})
 		});
-
-		this.seedLifecycle();
-		this.startResearchRun(DEFAULT_RESEARCH_PROMPT, "dummy");
 	}
 
 	listTraceSessions(): KernelTraceSessionListResponse {
 		return {
-			trace_sessions: [
-				{
-					id: APP_SESSION_ID,
-					containerId: ROOT_CONTAINER_ID,
-					label: this.container.label,
-					appSessionSlug: APP_SESSION_SLUG,
-					topic: "Simple Research Kernel demo",
-					status: this.container.status,
-					appSessionType: "example",
-					phase: PHASE,
-					createdAt: this.container.createdAt,
-					updatedAt: this.container.updatedAt,
-					piSessionCount: this.piSessions.length,
-					eventCount: this.events.length,
-					latestEventAt: this.events.at(-1)?.timestamp ?? null,
-					metadata: this.container.metadata
-				}
-			],
+			trace_sessions: [...this.traceIdentities.values()]
+				.map((trace) => {
+					const container = this.containers.get(trace.containerId);
+					if (!container) return null;
+					const piSessions = this.piSessions.filter(
+						(session) =>
+							session.appSessionId === trace.appSessionId ||
+							session.containerId === trace.containerId
+					);
+					const events = this.events.filter(
+						(event) =>
+							event.appSessionId === trace.appSessionId ||
+							event.containerId === trace.containerId
+					);
+					return {
+						id: trace.appSessionId,
+						containerId: trace.containerId,
+						label: container.label,
+						appSessionSlug: trace.appSessionSlug,
+						topic: trace.topic,
+						status: container.status,
+						appSessionType: "example",
+						phase: container.phase ?? PHASE,
+						createdAt: container.createdAt,
+						updatedAt: container.updatedAt,
+						piSessionCount: piSessions.length,
+						eventCount: events.length,
+						latestEventAt: events.at(-1)?.timestamp ?? null,
+						metadata: container.metadata
+					};
+				})
+				.filter((trace) => trace !== null)
+				.sort((a, b) => {
+					const seedDelta = Number(isSeedTrace(a)) - Number(isSeedTrace(b));
+					if (seedDelta !== 0) return seedDelta;
+					return (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "");
+				}),
 			unlinked: null
 		};
 	}
 
-	getTraceSessionDetail(): KernelTraceSessionDetail {
+	getTraceSessionDetail(id = APP_SESSION_ID): KernelTraceSessionDetail | null {
+		const trace = this.resolveTraceIdentity(id);
+		if (!trace) return null;
+		const container = this.containers.get(trace.containerId);
+		if (!container) return null;
+		const piSessions = this.piSessions.filter(
+			(session) =>
+				session.appSessionId === trace.appSessionId ||
+				session.containerId === trace.containerId
+		);
+		const agentRuns = this.agentRuns.filter(
+			(run) =>
+				run.containerId === trace.containerId ||
+				piSessions.some((session) => session.id === run.piSessionId)
+		);
+		const events = this.events.filter(
+			(event) =>
+				event.appSessionId === trace.appSessionId ||
+				event.containerId === trace.containerId
+		);
 		return {
 			session: {
-				id: APP_SESSION_ID,
-				containerId: ROOT_CONTAINER_ID,
-				appSessionSlug: APP_SESSION_SLUG,
-				topic: "Simple Research Kernel demo",
-				status: this.container.status,
+				id: trace.appSessionId,
+				containerId: trace.containerId,
+				appSessionSlug: trace.appSessionSlug,
+				topic: trace.topic,
+				status: container.status,
 				appSessionType: "example",
-				createdAt: this.container.createdAt,
-				updatedAt: this.events.at(-1)?.timestamp ?? this.container.updatedAt
+				createdAt: container.createdAt,
+				updatedAt: events.at(-1)?.timestamp ?? container.updatedAt
 			},
-			container: this.container,
-			containers: [this.container],
-			pi_sessions: this.piSessions,
-			agent_runs: this.agentRuns,
-			events: this.events
+			container,
+			containers: [container],
+			pi_sessions: piSessions,
+			agent_runs: agentRuns,
+			events
 		};
 	}
 
 	async getResearchInfo(): Promise<ResearchHarnessInfo> {
 		const registry = await this.registryPromise;
-		const trace = this.listTraceSessions().trace_sessions[0]!;
+		const traces = this.listTraceSessions().trace_sessions;
+		const trace = traces[0] ?? {
+			label: "Simple Research Kernel",
+			piSessionCount: 0,
+			eventCount: 0,
+			latestEventAt: null
+		};
 		return {
 			kernelId: this.kernel.id,
 			concurrency: this.kernel.concurrency,
 			memoryDir: relative(EXAMPLE_ROOT, WORKING_MEMORY_DIR),
-			agents: registry.list().map((agent) => ({
-				name: agent.name,
-				description: agent.parsed.frontmatter.description,
-				model: agent.parsed.frontmatter.model,
-				hasContext: agent.contextModulePath !== null
-			})),
+			agents: registry.list().map((agent) => this.summarizeAgent(agent)),
 			activeRuns: [...this.researchRuns.values()].filter((run) => run.status === "running"),
 			dummySession: {
 				id: APP_SESSION_ID,
-				label: "Dummy Simple Research Kernel session",
+				label: "No seed research session",
 				description:
-					"Seeded on server start so the viewer always has a complete research-agent trace."
+					"Research traces are created only when a user starts a run."
 			},
 			trace: {
 				label: trace.label,
@@ -330,14 +414,30 @@ export class SimpleResearchKernelStore {
 				eventCount: trace.eventCount,
 				latestEventAt: trace.latestEventAt
 			},
+			artifacts: {
+				scoutReports: this.summarizeArtifacts(this.listScoutReportFiles()),
+				reports: this.summarizeArtifacts(this.listReportFiles())
+			},
 			latestReport: this.latestReportText
 		};
 	}
 
-	startResearchRun(prompt: string, kind: ResearchRunSummary["kind"] = "user"): ResearchRunSummary {
+	async startResearchRun(
+		prompt: string,
+		kind: ResearchRunSummary["kind"] = "user"
+	): Promise<ResearchRunSummary> {
 		const id = randomUUID();
+		const trace = this.createTraceIdentity(id, prompt, kind);
+		this.ensureTraceContainer(trace, {
+			startedAt: kind === "dummy" ? iso(this.startedAt) : new Date().toISOString()
+		});
+		this.seedLifecycle(trace);
+		const artifactSnapshot = this.snapshotArtifacts();
 		const run: ResearchRunSummary = {
 			id,
+			appSessionId: trace.appSessionId,
+			appSessionSlug: trace.appSessionSlug,
+			containerId: trace.containerId,
 			prompt,
 			kind,
 			status: "running",
@@ -348,607 +448,407 @@ export class SimpleResearchKernelStore {
 		this.researchRuns.set(id, run);
 
 		void this.kernel
-			.spawnAgent("research-coordinator", prompt, null, { prompt })
+			.spawnAgent("research-coordinator", prompt, null, {
+				variables: this.variablesFor("research-coordinator", prompt),
+				appSessionId: trace.appSessionId,
+				appSessionSlug: trace.appSessionSlug,
+				appSessionDir: WORKING_MEMORY_DIR,
+				piSessionsDir: this.piSessionsDir,
+				piAgentDir: PI_AGENT_DIR,
+				workingDir: EXAMPLE_ROOT,
+				containerId: trace.containerId,
+				phase: PHASE,
+				displayLabel: this.displayLabel("research-coordinator"),
+				traceWriter: this.createTraceWriter(trace)
+			})
 			.then(() => {
+				const artifactError = this.validateCompletedRun(artifactSnapshot);
+				if (artifactError) throw new Error(artifactError);
 				run.status = "completed";
 				run.completedAt = new Date().toISOString();
+				this.markTraceContainer(trace.containerId, "completed", run.completedAt);
 			})
 			.catch((err) => {
 				run.status = "error";
 				run.completedAt = new Date().toISOString();
 				run.error = err instanceof Error ? err.message : String(err);
+				this.markTraceContainer(trace.containerId, "error", run.completedAt);
 				console.error("Failed to run Simple Research Kernel", err);
 			});
 
 		return run;
 	}
 
-	async runResearchAgent(
+	private async runLiveResearchAgent(
 		agentName: string,
 		prompt: string,
 		ctx?: KernelExtensionContext | null,
-		opts: DemoRunOptions = {}
-	): Promise<DemoRunResult> {
-		const registry = await this.registryPromise;
-		const agent = registry.get(agentName);
-		const runNumber = ++this.runCounter;
-		const base = nowRounded() + runNumber * 1500;
-		const piSessionId = randomUUID();
-		const runId = randomUUID();
-		const parentPiSessionId = ctx?.sessionManager.getSessionId() ?? null;
-		const phase = opts.phase ?? PHASE;
-		const containerId = opts.containerId ?? ROOT_CONTAINER_ID;
-		const model = agent.parsed.frontmatter.model;
-		const modelAlias = model.replace(/^demo-/, "");
-		const focus = opts.focus ?? prompt;
-		const runtime: RuntimeState = {
-			cwd: EXAMPLE_ROOT,
-			appSessionId: APP_SESSION_ID,
-			platform: "simple-research-kernel-demo",
-			topic: "Simple Research Kernel demo",
-			phase,
-			status: "running",
-			appSessionDir: WORKING_MEMORY_DIR
-		};
-		const resolved = resolveSystemPrompt({
-			parsed: agent.parsed,
-			callerVariables: {
-				focus,
-				phase,
-				research_memory_dir: "research-memory",
-				user_prompt: prompt
-			},
-			runtime
+		opts: KernelSpawnOptions = {}
+	): Promise<KernelSpawnAgentResult> {
+		const spawnAgent = await this.getLiveSpawnAgent();
+		return spawnAgent(agentName, prompt, ctx as unknown as ExtensionContext | null | undefined, {
+			...opts,
+			workingDir: opts.workingDir ?? EXAMPLE_ROOT,
+			appSessionDir: opts.appSessionDir ?? WORKING_MEMORY_DIR,
+			piSessionsDir: opts.piSessionsDir ?? this.piSessionsDir,
+			piAgentDir: opts.piAgentDir ?? PI_AGENT_DIR,
+			displayLabel: opts.displayLabel ?? this.displayLabel(agentName),
+			variables: {
+				...this.variablesFor(agentName, prompt),
+				...(opts.variables ?? {})
+			}
 		});
-
-		const piSession: PiSessionWithCount = {
-			id: piSessionId,
-			appSessionId: APP_SESSION_ID,
-			parentId: parentPiSessionId,
-			agentName,
-			model,
-			modelAlias,
-			status: "running",
-			phase,
-			containerId,
-			displayLabel: this.displayLabel(agentName),
-			startedAt: iso(base),
-			completedAt: null,
-			createdAt: iso(base),
-			updatedAt: iso(base),
-			eventCount: 0
-		};
-		this.piSessions.push(piSession);
-		this.persistPiSession(piSession);
-
-		const run: AgentRun = {
-			id: runId,
-			piSessionId,
-			runNumber: 1,
-			agentName,
-			status: "running",
-			parentRunId: opts.parentRunId ?? null,
-			containerId,
-			phase,
-			displayLabel: this.displayLabel(agentName),
-			parentToolUseId: opts.parentToolUseId ?? null,
-			startedAt: iso(base + 100),
-			completedAt: null,
-			createdAt: iso(base + 100),
-			updatedAt: iso(base + 100)
-		};
-		this.agentRuns.push(run);
-		this.persistAgentRun(run);
-
-		const session = {
-			sessionId: piSessionId,
-			messages: [],
-			async steer() {}
-		};
-		opts.onSessionCreated?.(session);
-
-		this.addEvent(
-			createAgentSessionStartEvent(APP_SESSION_ID, SYSTEM_USER_ID, agentName, model, {
-				modelAlias
-			}),
-			base + 50,
-			{ piSessionId, containerId }
-		);
-		this.addEvent(
-			createAgentRunStartEvent(APP_SESSION_ID, SYSTEM_USER_ID, agentName, runId, {
-				containerId,
-				phase,
-				displayLabel: this.displayLabel(agentName),
-				parentRunId: opts.parentRunId,
-				parentToolUseId: opts.parentToolUseId,
-				piSessionUuid: piSessionId
-			}),
-			base + 100,
-			{ piSessionId, containerId }
-		);
-		this.addEvent(
-			createSystemPromptResolvedEvent(
-				APP_SESSION_ID,
-				SYSTEM_USER_ID,
-				{
-					agent_name: agentName,
-					rendered_prompt: resolved.systemPrompt,
-					tools_allowlist: agent.parsed.frontmatter.tools,
-					tools_disallowlist: agent.parsed.frontmatter.disallowed_tools ?? [],
-					extensions: agent.parsed.frontmatter.extensions ?? true,
-					domain_rules_installed: false,
-					variables_resolved: resolved.variables
-				},
-				{ piSessionUuid: piSessionId }
-			),
-			base + 180,
-			{ piSessionId, containerId }
-		);
-		await delay(160);
-
-		const context = await this.buildAgentContext({
-			agent,
-			agentName,
-			prompt,
-			piSessionId,
-			runtime,
-			variables: resolved.variables,
-			baseTime: base + 260
-		});
-
-		this.addEvent(createUserMessageEvent(APP_SESSION_ID, SYSTEM_USER_ID, prompt, phase), base + 620, {
-			piSessionId,
-			containerId
-		});
-		await delay(160);
-
-		let responseText: string;
-		if (agentName === "research-coordinator") {
-			responseText = await this.runCoordinatorFlow({
-				prompt,
-				piSessionId,
-				runId,
-				base,
-				context
-			});
-		} else if (agentName === "source-scout") {
-			responseText = await this.runSourceScoutFlow({ prompt, runNumber, piSessionId, base, context });
-		} else if (agentName === "report-writer") {
-			responseText = await this.runSynthesisWriterFlow({ prompt, runNumber, piSessionId, base, context });
-		} else {
-			responseText = `${this.displayLabel(agentName)} completed the local demo run.`;
-		}
-
-		const endBase = Math.max(this.latestEventTimeMsForPi(piSessionId), base + 1040);
-		this.addEvent(
-			createAssistantMessageEvent(APP_SESSION_ID, SYSTEM_USER_ID, responseText, "markdown"),
-			endBase + 100,
-			{ piSessionId, containerId }
-		);
-		this.addEvent(
-			createAgentRunEndEvent(APP_SESSION_ID, SYSTEM_USER_ID, agentName, runId, "ok", {
-				piSessionUuid: piSessionId
-			}),
-			endBase + 180,
-			{ piSessionId, containerId }
-		);
-		this.addEvent(
-			createAgentSessionEndEvent(APP_SESSION_ID, SYSTEM_USER_ID, "completed", {
-				inputTokens: 720 + context.totalBytes,
-				outputTokens: Math.ceil(responseText.length / 4),
-				cost: 0
-			}),
-			endBase + 240,
-			{ piSessionId, containerId }
-		);
-
-		piSession.status = "completed";
-		piSession.completedAt = iso(endBase + 240);
-		piSession.updatedAt = iso(endBase + 240);
-		piSession.eventCount = this.events.filter((event) => event.piSessionId === piSessionId).length;
-		run.status = "completed";
-		run.completedAt = iso(endBase + 180);
-		run.updatedAt = iso(endBase + 180);
-		this.container.updatedAt = iso(endBase + 240);
-		this.persistPiSession(piSession);
-		this.persistAgentRun(run);
-		this.persistContainer(this.container);
-
-		return { responseText, session, aborted: false };
 	}
 
-	private async runCoordinatorFlow(input: {
-		prompt: string;
-		piSessionId: string;
-		runId: string;
-		base: number;
-		context: BuildContextResult;
-	}): Promise<string> {
-		const dispatchToolUseId = randomUUID();
-		this.addEvent(
-			createToolCallStartEvent(APP_SESSION_ID, SYSTEM_USER_ID, "spawn_research_scouts", dispatchToolUseId, {
-				toolInput: {
-					agents: ["source-scout", "source-scout"],
-					contextBytes: input.context.totalBytes
+	private async getLiveSpawnAgent(): Promise<KernelSpawnAgent> {
+		if (this.liveSpawnAgentPromise) return this.liveSpawnAgentPromise;
+		this.liveSpawnAgentPromise = this.registryPromise.then((registry) =>
+			createSpawnAgent({
+				loadAgent: (name) => {
+					const agent = registry.get(name);
+					return {
+						...agent.parsed,
+						frontmatter: {
+							...agent.parsed.frontmatter,
+							model: this.model
+						}
+					};
 				},
-				spanId: dispatchToolUseId
-			}),
-			input.base + 760,
-			{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-		);
-		await delay(220);
-
-		const fakePi = this.createParentPi();
-		const fakeCtx = this.createParentContext(input.piSessionId);
-		const initialScoutPrompts = [
-			`Scout the kernel architecture and context-loading setup for: ${input.prompt}`,
-			`Scout the working-memory and demo-product angle for: ${input.prompt}`
-		];
-
-		const scoutRecords = await this.spawnScoutBatch({
-			prompts: initialScoutPrompts,
-			parentRunId: input.runId,
-			toolCallId: dispatchToolUseId,
-			fakePi,
-			fakeCtx
-		});
-
-		const afterScouts = this.latestEventTimeMs();
-		this.addEvent(
-			createToolCallEndEvent(APP_SESSION_ID, SYSTEM_USER_ID, "spawn_research_scouts", dispatchToolUseId, {
-				toolOutput: `Completed ${scoutRecords.length} source-scout reports.`,
-				durationMs: Math.max(1, afterScouts - (input.base + 760)),
-				spanId: dispatchToolUseId
-			}),
-			afterScouts + 120,
-			{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-		);
-		await delay(180);
-
-		const reviewToolUseId = randomUUID();
-		this.addEvent(
-			createToolCallStartEvent(APP_SESSION_ID, SYSTEM_USER_ID, "review_research_reports", reviewToolUseId, {
-				toolInput: {
-					reports: scoutRecords.map((record) => record.result ?? record.status),
-					reportDirectory: "research-memory/scout-reports"
+				loadAgentResolver: async (name) => {
+					const agent = registry.get(name);
+					return agent.contextModulePath ? this.loadContextResolver(agent) : null;
 				},
-				spanId: reviewToolUseId
-			}),
-			afterScouts + 240,
-			{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-		);
-		await delay(180);
-
-		const review = this.reviewScoutReports(input.prompt, scoutRecords.length);
-		const afterReview = Math.max(this.latestEventTimeMs(), afterScouts + 360);
-		this.addEvent(
-			createToolCallEndEvent(APP_SESSION_ID, SYSTEM_USER_ID, "review_research_reports", reviewToolUseId, {
-				toolOutput: review.summary,
-				durationMs: 120,
-				spanId: reviewToolUseId
-			}),
-			afterReview,
-			{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-		);
-		await delay(160);
-
-		if (review.needsFollowup) {
-			const followupToolUseId = randomUUID();
-			this.addEvent(
-				createToolCallStartEvent(
-					APP_SESSION_ID,
-					SYSTEM_USER_ID,
-					"spawn_followup_scouts",
-					followupToolUseId,
-					{
-						toolInput: {
-							gap: review.gap,
-							agents: ["source-scout"]
-						},
-						spanId: followupToolUseId
+				buildPrivateRegisterFactory: async (name) => {
+					const agent = registry.get(name);
+					return this.loadPrivateRegisterFactory(agent);
+				},
+				buildToolFactories: () => [],
+				createContextCatalog: () => {
+					const catalog = createDefaultCatalog();
+					catalog.register(workingMemoryLoader);
+					return catalog;
+				},
+				createSpawnContext: (params) =>
+					createSpawnContext({
+						...params,
+						sessionData: {
+							workingMemoryDir: WORKING_MEMORY_DIR
+						}
+					}),
+				getDb: () => {
+					if (!this.db) {
+						throw new Error("Simple Research Kernel requires a database-backed spawn adapter.");
 					}
-				),
-				afterReview + 120,
-				{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-			);
-			await delay(180);
+					return this.db;
+				},
+				createAppSessionBinding: (opts) =>
+					opts.appSessionId
+						? {
+								customType: "agent-kernel:session-binding",
+								data: {
+									appSessionId: opts.appSessionId,
+									appSessionSlug: opts.appSessionSlug,
+									appSessionDir: opts.appSessionDir,
+									containerId: opts.containerId,
+									phase: opts.phase
+								}
+							}
+						: undefined,
+				piLifecycleCustomType: "agent-kernel:pi-lifecycle",
+				logger: console,
+				lifecycleLogger: console
+			})
+		);
+		return this.liveSpawnAgentPromise;
+	}
 
-			const followupRecords = await this.spawnScoutBatch({
-				prompts: [
-					`Follow up on this research gap before final synthesis: ${review.gap}. Original request: ${input.prompt}`
-				],
-				parentRunId: input.runId,
-				toolCallId: followupToolUseId,
-				fakePi,
-				fakeCtx
-			});
-			scoutRecords.push(...followupRecords);
-
-			const afterFollowup = this.latestEventTimeMs();
-			this.addEvent(
-				createToolCallEndEvent(
-					APP_SESSION_ID,
-					SYSTEM_USER_ID,
-					"spawn_followup_scouts",
-					followupToolUseId,
-					{
-						toolOutput: `Completed ${followupRecords.length} follow-up source-scout report.`,
-						durationMs: Math.max(1, afterFollowup - (afterReview + 120)),
-						spanId: followupToolUseId
-					}
-				),
-				afterFollowup + 120,
-				{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-			);
-			await delay(160);
+	private variablesFor(agentName: string, prompt: string): Record<string, unknown> {
+		const common = {
+			research_memory_dir: "research-memory",
+			phase: PHASE
+		};
+		if (agentName === "research-coordinator") {
+			return {
+				...common,
+				user_prompt: prompt
+			};
 		}
+		return {
+			...common,
+			focus: prompt
+		};
+	}
 
-		const queueToolUseId = randomUUID();
-		const queueStart = this.latestEventTimeMs() + 160;
-		this.addEvent(
-			createToolCallStartEvent(APP_SESSION_ID, SYSTEM_USER_ID, "queue_report_writer", queueToolUseId, {
-				toolInput: {
-					agent: "report-writer",
-					scoutReportCount: this.listScoutReportFiles().length,
-					scoutResults: scoutRecords.map((record) => record.status)
-				},
-				spanId: queueToolUseId
-			}),
-			queueStart,
-			{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-		);
-		await delay(180);
-
-		const synthesisId = await runWithContext(
-			this.createRunContext(input.runId, "research-coordinator"),
-			async () => {
-				const id = this.kernel.agentManager.spawn(
-					fakePi,
-					fakeCtx,
-					"report-writer",
-					`Read all scout reports and write the final report for: ${input.prompt}`,
+	private createTraceWriter(trace: ResearchTraceIdentity) {
+		return {
+			submit: (event: ProtocolTraceEvent) => {
+				const timestamp = Date.parse(event.timestamp);
+				this.addEvent(
 					{
-						description: "Queue the final report writer after scout report review",
-						workingDir: EXAMPLE_ROOT,
-						appSessionId: APP_SESSION_ID,
-						appSessionSlug: APP_SESSION_SLUG,
-						appSessionDir: WORKING_MEMORY_DIR,
-						parentRunId: input.runId,
-						toolCallId: queueToolUseId,
-						isBackground: true
+						...event,
+						containerId: event.containerId ?? trace.containerId
+					},
+					Number.isFinite(timestamp) ? timestamp : Date.now(),
+					{
+						piSessionId: event.piSessionUuid,
+						containerId: event.containerId ?? trace.containerId
 					}
 				);
-				await this.kernel.agentManager.waitForAll();
-				return id;
 			}
-		);
-
-		const afterSynthesis = this.latestEventTimeMs();
-		this.addEvent(
-			createToolCallEndEvent(
-				APP_SESSION_ID,
-				SYSTEM_USER_ID,
-				"queue_report_writer",
-				queueToolUseId,
-				{
-					toolOutput: "Report writer completed the final synthesis.",
-					durationMs: Math.max(1, afterSynthesis - queueStart),
-					spanId: queueToolUseId
-				}
-			),
-			afterSynthesis + 120,
-			{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-		);
-
-		return this.kernel.agentManager.getRecord(synthesisId)?.result || this.latestReportText;
+		};
 	}
 
-	private async spawnScoutBatch(input: {
-		prompts: string[];
-		parentRunId: string;
-		toolCallId: string;
-		fakePi: KernelExtensionAPI;
-		fakeCtx: KernelExtensionContext;
-	}) {
-		return runWithContext(this.createRunContext(input.parentRunId, "research-coordinator"), () =>
-			Promise.all(
-				input.prompts.map((scoutPrompt) =>
-					this.kernel.agentManager.spawnAndWait(
-						input.fakePi,
-						input.fakeCtx,
-						"source-scout",
-						scoutPrompt,
-						{
-							description: scoutPrompt,
-							workingDir: EXAMPLE_ROOT,
-							appSessionId: APP_SESSION_ID,
-							appSessionSlug: APP_SESSION_SLUG,
-							appSessionDir: WORKING_MEMORY_DIR,
-							parentRunId: input.parentRunId,
-							toolCallId: input.toolCallId
-						}
-					)
+	private createToolRuntime(): SimpleResearchToolRuntime {
+		return {
+			readContextSnapshot: (paths) => this.readContextSnapshot(paths),
+			spawnScoutAssignments: (pi, ctx, toolCallId, assignments, signal) =>
+				this.spawnScoutAssignments(pi, ctx, toolCallId, assignments, signal),
+			spawnReportWriter: (pi, ctx, toolCallId, focus, signal) =>
+				this.spawnReportWriter(pi, ctx, toolCallId, focus, signal),
+			reviewResearchReports: (question) => this.reviewResearchReports(question),
+			writeResearchReport: (title, content) => this.writeResearchReport(title, content),
+			writeFinalReport: (title, content) => this.writeFinalReport(title, content)
+		};
+	}
+
+	private async loadPrivateRegisterFactory(agent: AgentDefinition): Promise<ExtensionFactory | null> {
+		if (!agent.indexModulePath) return null;
+		const imported = (await import(pathToFileURL(agent.indexModulePath).href)) as {
+			default?: { register?: SimpleResearchAgentRegisterFn };
+			register?: SimpleResearchAgentRegisterFn;
+		};
+		const register = imported.default?.register ?? imported.register;
+		if (!register) return null;
+		return (pi) => register(pi, this.toolRuntime);
+	}
+
+	private reviewResearchReports(question?: string): ToolResponse {
+		const files = this.listScoutReportFiles();
+		const reports = files.map((file) => ({
+			path: relative(EXAMPLE_ROOT, file),
+			content: readFileSync(file, "utf8")
+		}));
+		const reportList =
+			reports.length > 0
+				? reports
+						.map((report) => `<scout_report path="${report.path}">\n${report.content}\n</scout_report>`)
+						.join("\n\n")
+				: "No scout reports are available yet.";
+		const text = [
+			`Review question: ${question ?? "Assess whether coverage is sufficient for final synthesis."}`,
+			`Scout reports found: ${reports.length}`,
+			reportList,
+			reports.length < 2
+				? "Coverage note: fewer than two scout reports are present. Consider spawning more scouts unless the request is trivial."
+				: "Coverage note: at least two scout reports are present. Decide from their substance whether follow-up is needed."
+		].join("\n\n");
+		return {
+			text,
+			details: {
+				reportCount: reports.length,
+				reports: reports.map((report) => ({ path: report.path }))
+			}
+		};
+	}
+
+	private async spawnReportWriter(
+		pi: ExtensionAPI,
+		ctx: ExtensionContext,
+		toolCallId: string,
+		focus: string,
+		signal?: AbortSignal
+	) {
+		const runCtx = getRunContext();
+		return this.kernel.agentManager.spawnAndWait(
+			pi,
+			ctx as unknown as KernelExtensionContext,
+			"report-writer",
+			focus,
+			{
+				description: "Write the final research report",
+				workingDir: EXAMPLE_ROOT,
+				appSessionId: runCtx.appSessionId,
+				appSessionSlug: runCtx.appSessionSlug,
+				appSessionDir: WORKING_MEMORY_DIR,
+				piSessionsDir: this.piSessionsDir,
+				containerId: runCtx.containerId,
+				phase: runCtx.phase,
+				displayLabel: this.displayLabel("report-writer"),
+				parentRunId: runCtx.runId,
+				parentPiSessionUuid: runCtx.piSessionUuid,
+				toolCallId,
+				parentPi: pi,
+				signal,
+				variables: this.variablesFor("report-writer", focus)
+			}
+		);
+	}
+
+	private writeResearchReport(title: string | undefined, content: string): ToolResponse {
+		const reportPath = this.writeArtifact(SCOUT_REPORTS_DIR, title ?? "scout-report", content);
+		return {
+			text: `Wrote scout report to ${relative(EXAMPLE_ROOT, reportPath)}.`,
+			details: {
+				path: relative(EXAMPLE_ROOT, reportPath)
+			}
+		};
+	}
+
+	private writeFinalReport(title: string | undefined, content: string): ToolResponse {
+		const reportPath = this.writeArtifact(REPORTS_DIR, title ?? "research-report", content);
+		this.latestReportText = content;
+		return {
+			text: `Wrote final report to ${relative(EXAMPLE_ROOT, reportPath)}.`,
+			details: {
+				path: relative(EXAMPLE_ROOT, reportPath)
+			}
+		};
+	}
+
+	private async spawnScoutAssignments(
+		pi: ExtensionAPI,
+		ctx: ExtensionContext,
+		toolCallId: string,
+		assignments: Array<{ focus: string; prompt: string }>,
+		signal?: AbortSignal
+	) {
+		const runCtx = getRunContext();
+		return Promise.all(
+			assignments.map((assignment) =>
+				this.kernel.agentManager.spawnAndWait(
+					pi,
+					ctx as unknown as KernelExtensionContext,
+					"source-scout",
+					assignment.prompt,
+					{
+						description: assignment.focus,
+						workingDir: EXAMPLE_ROOT,
+						appSessionId: runCtx.appSessionId,
+						appSessionSlug: runCtx.appSessionSlug,
+						appSessionDir: WORKING_MEMORY_DIR,
+						piSessionsDir: this.piSessionsDir,
+						containerId: runCtx.containerId,
+						phase: runCtx.phase,
+						displayLabel: this.displayLabel("source-scout"),
+						parentRunId: runCtx.runId,
+						parentPiSessionUuid: runCtx.piSessionUuid,
+						toolCallId,
+						parentPi: pi,
+						signal,
+						variables: this.variablesFor("source-scout", assignment.prompt)
+					}
 				)
 			)
 		);
 	}
 
-	private reviewScoutReports(prompt: string, currentScoutReportCount: number): {
-		needsFollowup: boolean;
-		gap: string;
-		summary: string;
-	} {
-		const reports = this.listScoutReportFiles();
-		const lowerPrompt = prompt.toLowerCase();
-		const wantsDepth = /\b(deep|deeper|thorough|complete|architecture|risk|risks|compare|comparison|production|follow[- ]?up)\b/.test(
-			lowerPrompt
-		);
-		const needsFollowup = wantsDepth && currentScoutReportCount < 3;
-		const gap = needsFollowup
-			? "Add a follow-up scout report covering production gaps, risks, and the next implementation step."
-			: "No follow-up scout required; the initial scout reports cover architecture and demo-product behavior.";
-		const reportList =
-			reports.length > 0
-				? reports.map((file) => `- ${relative(EXAMPLE_ROOT, file)}`).join("\n")
-				: "- No scout reports are available yet.";
-
+	private snapshotArtifacts(): ArtifactSnapshot {
 		return {
-			needsFollowup,
-			gap,
-			summary: [
-				`Reviewed ${currentScoutReportCount} scout report(s) from the current batch.`,
-				reportList,
-				needsFollowup ? `Gap found: ${gap}` : gap
-			].join("\n")
+			scoutReports: this.listScoutReportFiles().length,
+			finalReports: this.listReportFiles().length
 		};
 	}
 
-	private async runSourceScoutFlow(input: {
-		prompt: string;
-		runNumber: number;
-		piSessionId: string;
-		base: number;
-		context: BuildContextResult;
-	}): Promise<string> {
-		const toolUseId = randomUUID();
-		this.addEvent(
-			createToolCallStartEvent(APP_SESSION_ID, SYSTEM_USER_ID, "write_research_report", toolUseId, {
-				toolInput: {
-					target: "research-memory/scout-reports",
-					contextBytes: input.context.totalBytes
-				},
-				spanId: toolUseId
-			}),
-			input.base + 760,
-			{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-		);
-		await delay(220);
-
-		const report = this.buildScoutReport(input.prompt, input.context);
-		const reportPath = join(
-			SCOUT_REPORTS_DIR,
-			`${String(input.runNumber).padStart(2, "0")}-${safeSlug(input.prompt)}.md`
-		);
-		writeFileSync(reportPath, report);
-
-		this.addEvent(
-			createToolCallEndEvent(APP_SESSION_ID, SYSTEM_USER_ID, "write_research_report", toolUseId, {
-				toolOutput: relative(EXAMPLE_ROOT, reportPath),
-				durationMs: 220,
-				spanId: toolUseId
-			}),
-			input.base + 980,
-			{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-		);
-
-		return `Source scout wrote ${relative(EXAMPLE_ROOT, reportPath)}.`;
+	private validateCompletedRun(snapshot: ArtifactSnapshot): string | null {
+		const scoutReportsWritten = this.listScoutReportFiles().length - snapshot.scoutReports;
+		const finalReportsWritten = this.listReportFiles().length - snapshot.finalReports;
+		if (scoutReportsWritten < 2) {
+			return [
+				"Research coordinator finished without completing the required scout fan-out.",
+				`Expected at least 2 new scout reports, saw ${Math.max(0, scoutReportsWritten)}.`,
+				"The model must call spawn_research_scouts and the source scouts must call write_research_report."
+			].join(" ");
+		}
+		if (finalReportsWritten < 1) {
+			return [
+				"Research coordinator finished without a final report.",
+				"The model must review scout reports, queue the report writer, and the report writer must call write_report."
+			].join(" ");
+		}
+		return null;
 	}
 
-	private async runSynthesisWriterFlow(input: {
-		prompt: string;
-		runNumber: number;
-		piSessionId: string;
-		base: number;
-		context: BuildContextResult;
-	}): Promise<string> {
-		const toolUseId = randomUUID();
-		this.addEvent(
-			createToolCallStartEvent(APP_SESSION_ID, SYSTEM_USER_ID, "write_report", toolUseId, {
-				toolInput: {
-					target: "research-memory/reports",
-					contextBytes: input.context.totalBytes
-				},
-				spanId: toolUseId
-			}),
-			input.base + 760,
-			{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-		);
-		await delay(240);
-
-		const report = this.buildReport(input.prompt);
-		this.reportCounter += 1;
-		const reportPath = join(
-			REPORTS_DIR,
-			`${String(this.reportCounter).padStart(2, "0")}-research-report.md`
-		);
-		writeFileSync(reportPath, report);
-		this.latestReportText = report;
-
-		this.addEvent(
-			createToolCallEndEvent(APP_SESSION_ID, SYSTEM_USER_ID, "write_report", toolUseId, {
-				toolOutput: relative(EXAMPLE_ROOT, reportPath),
-				durationMs: 260,
-				spanId: toolUseId
-			}),
-			input.base + 1020,
-			{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-		);
-
-		return report;
+	private readContextSnapshot(paths?: string[]): {
+		text: string;
+		files: Array<{ path: string; bytes: number; truncated: boolean }>;
+	} {
+		const files = this.resolveContextFiles(paths);
+		const fileSummaries: Array<{ path: string; bytes: number; truncated: boolean }> = [];
+		let remainingBytes = 60_000;
+		const blocks = files.map((file) => {
+			const raw = readFileSync(file, "utf8");
+			const bytes = Buffer.byteLength(raw, "utf8");
+			const budget = Math.max(0, Math.min(remainingBytes, 14_000));
+			const content = raw.slice(0, budget);
+			remainingBytes -= Buffer.byteLength(content, "utf8");
+			const truncated = content.length < raw.length;
+			const relPath = relative(EXAMPLE_ROOT, file);
+			fileSummaries.push({ path: relPath, bytes, truncated });
+			return `<file path="${relPath}" bytes="${bytes}" truncated="${truncated}">\n${content}\n</file>`;
+		});
+		return {
+			text: blocks.length > 0 ? blocks.join("\n\n") : "No matching context files were found.",
+			files: fileSummaries
+		};
 	}
 
-	private async buildAgentContext(input: {
-		agent: AgentDefinition;
-		agentName: string;
-		prompt: string;
-		piSessionId: string;
-		runtime: RuntimeState;
-		variables: Record<string, unknown>;
-		baseTime: number;
-	}): Promise<BuildContextResult> {
-		const resolver = await this.loadContextResolver(input.agent);
-		const spanId = randomUUID();
-		let tick = 0;
-		const nextTime = () => input.baseTime + tick++ * 80;
-		const emitter: ContextLifecycleEmitter = {
-			contextBuildStarted: (data) => {
-				this.addEvent(
-					createContextBuildStartedEvent(APP_SESSION_ID, SYSTEM_USER_ID, data, {
-						spanId,
-						piSessionUuid: input.piSessionId
-					}),
-					nextTime(),
-					{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-				);
-			},
-			contextInputResolved: (data) => {
-				this.addEvent(
-					createContextInputResolvedEvent(APP_SESSION_ID, SYSTEM_USER_ID, data, {
-						piSessionUuid: input.piSessionId
-					}),
-					nextTime(),
-					{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-				);
-			},
-			contextBuildCompleted: (data) => {
-				this.addEvent(
-					createContextBuildCompletedEvent(APP_SESSION_ID, SYSTEM_USER_ID, data, {
-						spanId,
-						piSessionUuid: input.piSessionId
-					}),
-					nextTime(),
-					{ piSessionId: input.piSessionId, containerId: ROOT_CONTAINER_ID }
-				);
+	private resolveContextFiles(paths?: string[]): string[] {
+		const requested =
+			paths && paths.length > 0
+				? paths
+				: [
+						"research-memory/brief.md",
+						"research-memory/sources",
+						"research-memory/scout-reports",
+						"research-memory/reports"
+					];
+		const files: string[] = [];
+		for (const requestedPath of requested) {
+			const fullPath = this.resolveExamplePath(requestedPath);
+			if (!existsSync(fullPath)) continue;
+			const stats = statSync(fullPath);
+			if (stats.isDirectory()) {
+				files.push(...collectFiles(fullPath, new Set([".md"])));
+			} else if (stats.isFile() && extname(fullPath) === ".md") {
+				files.push(fullPath);
 			}
-		};
-		const catalog = createDefaultCatalog();
-		catalog.register(workingMemoryLoader);
-		const spawnContext: SpawnContext = {
-			agentName: input.agentName,
-			variables: input.variables,
-			caller: { kind: "user", id: SYSTEM_USER_ID },
-			runtime: input.runtime,
-			paths: {
-				workingDir: EXAMPLE_ROOT,
-				activeSessionDir: WORKING_MEMORY_DIR
-			},
-			sessionData: {
-				workingMemoryDir: WORKING_MEMORY_DIR,
-				prompt: input.prompt
-			}
-		};
+		}
+		return [...new Set(files)].sort();
+	}
 
-		return buildContext({ resolver, spawnContext, catalog, emitter });
+	private resolveExamplePath(requestedPath: string): string {
+		const fullPath = resolve(EXAMPLE_ROOT, requestedPath);
+		if (fullPath !== EXAMPLE_ROOT && !fullPath.startsWith(`${EXAMPLE_ROOT}/`)) {
+			throw new Error(`Path escapes the example workspace: ${requestedPath}`);
+		}
+		return fullPath;
+	}
+
+	private writeArtifact(dir: string, title: string, content: string): string {
+		mkdirSync(dir, { recursive: true });
+		this.artifactCounter += 1;
+		const fileName = `${String(this.artifactCounter).padStart(2, "0")}-${safeSlug(title)}.md`;
+		const target = join(dir, fileName);
+		const normalized = content.endsWith("\n") ? content : `${content}\n`;
+		writeFileSync(target, normalized);
+		return target;
+	}
+
+	private readMarkdownSummaries(files: string[]): Array<{ path: string; bytes: number; title: string }> {
+		return files.map((file) => {
+			const content = readFileSync(file, "utf8");
+			const title =
+				content
+					.split("\n")
+					.find((line) => line.startsWith("# "))
+					?.replace(/^#\s+/, "")
+					.trim() || basename(file, extname(file));
+			return {
+				path: relative(EXAMPLE_ROOT, file),
+				bytes: Buffer.byteLength(content, "utf8"),
+				title
+			};
+		});
 	}
 
 	private async loadContextResolver(agent: AgentDefinition): Promise<AgentContextResolver> {
@@ -971,126 +871,113 @@ export class SimpleResearchKernelStore {
 		};
 	}
 
-	private buildScoutReport(prompt: string, context: BuildContextResult): string {
-		const topic = prompt.includes("working-memory")
-			? "Working memory and demo product shape"
-			: prompt.includes("Follow up")
-				? "Follow-up risks and production gaps"
-			: "Kernel architecture and context loading";
-		return [
-			`# ${topic}`,
-			"",
-			`Prompt: ${prompt}`,
-			"",
-			"## Scope",
-			prompt.includes("working-memory")
-				? "- Investigated how durable scout reports, final reports, and run ergonomics make the demo feel like a product workflow."
-				: prompt.includes("Follow up")
-					? "- Investigated whether the initial scout reports left production-readiness gaps before final synthesis."
-				: "- Investigated how the kernel-facing architecture is exposed through catalog files, context sidecars, and trace events.",
-			"- Left final cross-scout synthesis to the report writer.",
-			"",
-			"## Observations",
-			"- Agent definitions are loaded from `src/agent-catalog/*/agent.md`, which mirrors the host-owned catalog pattern used by larger harnesses.",
-			"- Each agent colocates a `context.ts` sidecar with its prompt, so context loading is visible and editable per role.",
-			"- The app registers a `working-memory` loader locally, preserving the boundary that kernel packages stay product-neutral.",
-			"- Subagents run through the kernel `AgentManager`; their Pi sessions carry parent IDs and parent tool-use IDs so the viewer can nest them under coordinator dispatch calls.",
-			"- Working memory makes the demo inspectable outside the trace because scout reports and final reports are normal markdown files on disk.",
-			"",
-			"## Evidence",
-			`- Loaded ${context.loaded.length} context inputs (${context.totalBytes} rendered bytes).`,
-			"- Seed brief: `research-memory/brief.md`.",
-			"- Source notes: `research-memory/sources/kernel-architecture.md` and `research-memory/sources/demo-positioning.md`.",
-			"- Agent catalog: `examples/simple-research-kernel/src/agent-catalog`.",
-			"- Generated artifacts: `research-memory/scout-reports` and `research-memory/reports`.",
-			"",
-			"## Recommendation",
-			"Use the Simple Research Kernel as the base demo because it is small enough to understand quickly while still exercising the contracts a real Agent Harness needs: agent definitions, context loading, subagents, working memory, report review, optional follow-up, trace reading, and final report delivery.",
-			"",
-			"## Residual Questions",
-			"- The current runtime is deterministic; a production host should replace the simulated model/tool execution with real model calls and durable persistence.",
-			""
-		].join("\n");
-	}
-
-	private buildReport(prompt: string): string {
-		const scoutReportFiles = this.listScoutReportFiles();
-		const scoutReportList =
-			scoutReportFiles.length > 0
-				? scoutReportFiles.map((file) => `- ${relative(EXAMPLE_ROOT, file)}`).join("\n")
-				: "- No scout reports were written yet.";
-
-		return [
-			"# Research Report",
-			"",
-			"## Request",
-			prompt.replace(/^Write the final report for:\s*/i, ""),
-			"",
-			"## Executive Summary",
-			"The Simple Research Kernel is a complete local research-agent demo. A coordinator receives the request, loads context, dispatches focused source scouts, waits for their reports, reviews those reports for gaps, optionally spawns a follow-up scout, queues a report writer, and returns a markdown report. That gives the Agent Kernel a base demo that is simple to understand but still representative of real multi-agent harness work.",
-			"",
-			"## What The Harness Demonstrates",
-			"- Agent definitions live in `examples/simple-research-kernel/src/agent-catalog/*/agent.md` instead of being hardcoded into the store.",
-			"- Context sidecars live beside each prompt and declare the loader inputs each role needs.",
-			"- The host app registers a `working-memory` loader while the kernel remains generic.",
-			"- The coordinator uses `AgentManager` to spawn source scouts and queue a report writer as nested subagents.",
-			"- Intermediate scout reports and final reports are normal files under `research-memory/`.",
-			"- The read API and viewer can inspect prompt resolution, context loading, tool calls, subagent links, and assistant outputs in one trace.",
-			"",
-			"## Agent Roles",
-			"- `research-coordinator`: owns the top-level request, decomposes the work, dispatches subagents, reads their reports, decides whether follow-up is needed, queues the writer, and returns the synthesis report.",
-			"- `source-scout`: investigates one narrow angle and writes a durable markdown research report.",
-			"- `report-writer`: reads scout reports, working memory, and source context, then writes the final report.",
-			"",
-			"## Working Memory",
-			"- `research-memory/brief.md` explains the intended harness workflow.",
-			"- `research-memory/sources/` contains durable source notes used by all roles.",
-			"- `research-memory/scout-reports/` receives generated source-scout reports.",
-			"- `research-memory/reports/` receives generated synthesis reports.",
-			"",
-			"## Evidence From This Run",
-			"Scout reports considered:",
-			scoutReportList,
-			"",
-			"Additional seed sources:",
-			"- research-memory/sources/kernel-architecture.md",
-			"- research-memory/sources/demo-positioning.md",
-			"",
-			"## Why This Is The Base Demo",
-			"Research is a strong base demo because the user value is familiar: send off a request and receive a report. It also naturally exercises the kernel behaviors that matter most: agent definitions, context loading, fan-out, waiting for subagents, reading subagent reports, optional follow-up work, artifact persistence, observability, and a final deliverable.",
-			"",
-			"## Limitations",
-			"- This example is local and deterministic so it runs without model credentials or Postgres.",
-			"- The tool calls are simulated by the demo store, but the trace shape mirrors the runtime contracts a live app would use.",
-			"- A production harness should add durable storage, real model execution, richer domain tools, and app-specific viewer panels.",
-			"",
-			"## Recommended Next Steps",
-			"- Replace the deterministic agent bodies with live model calls through the full spawn pipeline.",
-			"- Continue treating `@agent-kernel/db` as the observability substrate for registered kernels.",
-			"- Add real research tools, such as repository readers, web search, or document ingestion.",
-			"- Add a custom viewer panel for working-memory artifacts.",
-			""
-		].join("\n");
-	}
-
-	private seedLifecycle(): void {
-		this.addEvent(createPhaseStartEvent(APP_SESSION_ID, SYSTEM_USER_ID, PHASE), this.startedAt + 100, {
-			containerId: ROOT_CONTAINER_ID
+	private seedLifecycle(trace: ResearchTraceIdentity): void {
+		const container = this.containers.get(trace.containerId);
+		const base = Date.parse(container?.startedAt ?? new Date().toISOString());
+		this.addEvent(createPhaseStartEvent(trace.appSessionId, SYSTEM_USER_ID, PHASE), base + 100, {
+			containerId: trace.containerId
 		});
 		this.addEvent(
-			createContainerStartEvent(APP_SESSION_ID, SYSTEM_USER_ID, {
-				container_id: ROOT_CONTAINER_ID,
+			createContainerStartEvent(trace.appSessionId, SYSTEM_USER_ID, {
+				container_id: trace.containerId,
 				level: "foundation",
 				checkpoint_id: null,
 				task_group_id: null,
 				parent_container_id: null,
-				label: this.container.label,
+				label: container?.label ?? trace.label,
 				producer_stage: "docs",
 				phase: PHASE
 			}),
-			this.startedAt + 200,
-			{ containerId: ROOT_CONTAINER_ID }
+			base + 200,
+			{ containerId: trace.containerId }
 		);
+	}
+
+	private createTraceIdentity(
+		runId: string,
+		prompt: string,
+		kind: ResearchRunSummary["kind"]
+	): ResearchTraceIdentity {
+		if (kind === "dummy") {
+			const trace = {
+				appSessionId: APP_SESSION_ID,
+				appSessionSlug: APP_SESSION_SLUG,
+				containerId: ROOT_CONTAINER_ID,
+				label: "Seed Research Trace",
+				topic: "Simple Research Kernel demo",
+				kind,
+				prompt
+			};
+			this.traceIdentities.set(trace.appSessionId, trace);
+			return trace;
+		}
+
+		const slug = safeSlug(prompt);
+		const suffix = runId.slice(0, 8);
+		const trace = {
+			appSessionId: runId,
+			appSessionSlug: `research-${slug}-${suffix}`.slice(0, 90),
+			containerId: `simple-research-kernel-${suffix}`,
+			label: `Research: ${prompt.slice(0, 72)}`,
+			topic: prompt,
+			kind,
+			prompt
+		};
+		this.traceIdentities.set(trace.appSessionId, trace);
+		return trace;
+	}
+
+	private resolveTraceIdentity(id: string | null | undefined): ResearchTraceIdentity | null {
+		if (!id) return null;
+		for (const trace of this.traceIdentities.values()) {
+			if (trace.appSessionId === id || trace.appSessionSlug === id || trace.containerId === id) {
+				return trace;
+			}
+		}
+		return null;
+	}
+
+	private ensureTraceContainer(
+		trace: ResearchTraceIdentity,
+		opts: { startedAt: string }
+	): KernelContainerSummary {
+		const existing = this.containers.get(trace.containerId);
+		if (existing) return existing;
+
+		const container: KernelContainerSummary = {
+			id: trace.containerId,
+			parentContainerId: null,
+			label: trace.label,
+			status: "running",
+			workingDir: EXAMPLE_ROOT,
+			worktreePath: null,
+			phase: PHASE,
+			phaseVocabulary: [PHASE],
+			metadata: traceMetadata(trace),
+			startedAt: opts.startedAt,
+			completedAt: null,
+			createdAt: opts.startedAt,
+			updatedAt: opts.startedAt
+		};
+		this.containers.set(container.id, container);
+		this.persistContainer(container);
+		return container;
+	}
+
+	private touchTraceContainer(containerId: string, updatedAt: string): void {
+		const container = this.containers.get(containerId);
+		if (!container) return;
+		container.updatedAt = updatedAt;
+		this.persistContainer(container);
+	}
+
+	private markTraceContainer(containerId: string, status: string, completedAt: string): void {
+		const container = this.containers.get(containerId);
+		if (!container) return;
+		container.status = status;
+		container.completedAt = completedAt;
+		container.updatedAt = completedAt;
+		this.persistContainer(container);
 	}
 
 	private ensureWorkingMemory(): void {
@@ -1104,47 +991,52 @@ export class SimpleResearchKernelStore {
 		);
 	}
 
+	private listReportFiles(): string[] {
+		return collectFiles(REPORTS_DIR, new Set([".md"])).filter((file) => basename(file) !== "README.md");
+	}
+
+	private summarizeAgent(agent: AgentDefinition): ResearchAgentSummary {
+		const fm = agent.parsed.frontmatter;
+		return {
+			name: agent.name,
+			description: fm.description,
+			model: this.model,
+			tools: fm.tools,
+			disallowedTools: fm.disallowed_tools ?? [],
+			extensions: fm.extensions ?? true,
+			canSpawnSubagent: fm.can_spawn_subagent ?? false,
+			variables: Object.entries(fm.variables).map(([name, decl]) => ({
+				name,
+				defaultValue: decl.default,
+				description: decl.description ?? null
+			})),
+			maxTurns: fm.max_turns ?? null,
+			thinking: fm.thinking ?? null,
+			runInBackground: fm.run_in_background ?? false,
+			hasContext: agent.contextModulePath !== null,
+			contextModule: agent.contextModulePath ? relative(EXAMPLE_ROOT, agent.contextModulePath) : null,
+			agentFile: relative(EXAMPLE_ROOT, agent.agentFile),
+			promptTemplate: agent.parsed.body.trim(),
+			warnings: agent.warnings
+		};
+	}
+
+	private summarizeArtifacts(files: string[]): ResearchArtifactSummary[] {
+		return files.map((file) => {
+			const stats = statSync(file);
+			return {
+				path: relative(EXAMPLE_ROOT, file),
+				bytes: stats.size,
+				updatedAt: stats.mtime.toISOString()
+			};
+		});
+	}
+
 	private displayLabel(agentName: string): string {
 		return agentName
 			.split("-")
 			.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
 			.join(" ");
-	}
-
-	private createParentPi(): KernelExtensionAPI {
-		return {
-			appendEntry() {
-				return undefined;
-			}
-		};
-	}
-
-	private createParentContext(piSessionId: string): KernelExtensionContext {
-		return {
-			cwd: EXAMPLE_ROOT,
-			sessionManager: {
-				getSessionId: () => piSessionId
-			}
-		};
-	}
-
-	private createRunContext(runId: string, agentName: string) {
-		return {
-			appSessionId: APP_SESSION_ID,
-			appSessionSlug: APP_SESSION_SLUG,
-			appSessionDir: WORKING_MEMORY_DIR,
-			runId,
-			agentName,
-			traceWriter: {
-				submit: (event: ProtocolTraceEvent) => {
-					this.addEvent(event, Date.now(), { containerId: ROOT_CONTAINER_ID });
-				}
-			},
-			piSessionsDir: WORKING_MEMORY_DIR,
-			workingDir: EXAMPLE_ROOT,
-			containerId: ROOT_CONTAINER_ID,
-			phase: PHASE
-		};
 	}
 
 	async flushPersistence(): Promise<void> {
@@ -1154,16 +1046,6 @@ export class SimpleResearchKernelStore {
 			tail = this.persistenceTail;
 			await tail;
 		}
-	}
-
-	private latestEventTimeMs(): number {
-		return this.events.reduce((max, event) => Math.max(max, Date.parse(event.timestamp)), this.startedAt);
-	}
-
-	private latestEventTimeMsForPi(piSessionId: string): number {
-		return this.events
-			.filter((event) => event.piSessionId === piSessionId)
-			.reduce((max, event) => Math.max(max, Date.parse(event.timestamp)), this.startedAt);
 	}
 
 	private persist(operation: () => Promise<void> | void): void {

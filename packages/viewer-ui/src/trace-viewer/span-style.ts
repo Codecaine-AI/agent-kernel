@@ -53,30 +53,30 @@ const CONTAINER_EVENT_TYPES: ReadonlySet<string> = new Set([
 export function getSpanStyle(span: TraceSpan): SpanStyle {
 	if (span.status === "error") {
 		return {
-			titleClassName: "text-sm font-semibold text-destructive",
+			titleClassName: "text-[15px] font-semibold text-destructive",
 			indicator: "!",
 		};
 	}
 	if (span.status === "warning") {
 		return {
-			titleClassName: "text-sm font-semibold text-status-warning",
+			titleClassName: "text-[15px] font-semibold text-status-warning",
 			indicator: "!",
 		};
 	}
 
 	const eventType = readStringAttr(span, "event_type");
 	if (eventType === "ui_ask_requested") {
-		return { titleClassName: "text-sm font-semibold", indicator: "?" };
+		return { titleClassName: "text-[15px] font-semibold", indicator: "?" };
 	}
 	if (
 		eventType !== undefined &&
 		(PROMINENT_EVENT_TYPES.has(eventType) || CONTAINER_EVENT_TYPES.has(eventType))
 	) {
-		return { titleClassName: "text-sm font-semibold" };
+		return { titleClassName: "text-[15px] font-semibold" };
 	}
 
 	const level = readNumberAttr(span, "trace_level");
-	if (level === 3) return { titleClassName: "text-[10px] opacity-60" };
-	if (level === 2) return { titleClassName: "text-xs opacity-70" };
-	return { titleClassName: "text-sm" };
+	if (level === 3) return { titleClassName: "text-[11px] opacity-60" };
+	if (level === 2) return { titleClassName: "text-[13px] opacity-70" };
+	return { titleClassName: "text-[15px]" };
 }
