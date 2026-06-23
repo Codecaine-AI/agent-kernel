@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
+	cpSync,
 	existsSync,
 	mkdirSync,
 	readdirSync,
@@ -64,8 +65,10 @@ export const APP_SESSION_SLUG = "simple-research-kernel";
 export const EXAMPLE_ROOT = resolve(import.meta.dir, "..");
 const AGENT_CATALOG_DIR = join(import.meta.dir, "agent-catalog");
 export const WORKING_MEMORY_DIR = join(EXAMPLE_ROOT, "research-memory");
-const SCOUT_REPORTS_DIR = join(WORKING_MEMORY_DIR, "scout-reports");
-const REPORTS_DIR = join(WORKING_MEMORY_DIR, "reports");
+export const RESEARCH_SESSION_ROOT = join(EXAMPLE_ROOT, ".agent-kernel", "research-sessions");
+const RESEARCH_MEMORY_REL_PATH = "research-memory";
+const SCOUT_REPORTS_REL_PATH = join(RESEARCH_MEMORY_REL_PATH, "scout-reports");
+const REPORTS_REL_PATH = join(RESEARCH_MEMORY_REL_PATH, "reports");
 const PI_AGENT_DIR = Bun.env.AGENT_KERNEL_PI_AGENT_DIR ?? join(EXAMPLE_ROOT, ".pi-agent");
 const DEFAULT_PI_SESSIONS_DIR = join(EXAMPLE_ROOT, ".agent-kernel", "pi-sessions");
 const DEFAULT_RESEARCH_MODEL = "codex-lb/gpt-5.5";
@@ -195,6 +198,7 @@ function traceMetadata(trace: ResearchTraceIdentity): Record<string, unknown> {
 		app: "simple-research-kernel",
 		appSessionId: trace.appSessionId,
 		appSessionSlug: trace.appSessionSlug,
+		appSessionDir: join(RESEARCH_SESSION_ROOT, trace.appSessionSlug),
 		appSessionType: "example",
 		topic: trace.topic,
 		prompt: trace.prompt,
@@ -221,6 +225,24 @@ function collectFiles(dir: string, extensions: Set<string>): string[] {
 		}
 	}
 	return out.sort();
+}
+
+function copySeedPath(source: string, target: string): void {
+	if (!existsSync(source)) return;
+
+	const stats = statSync(source);
+	if (stats.isDirectory()) {
+		mkdirSync(target, { recursive: true });
+		for (const entry of readdirSync(source, { withFileTypes: true })) {
+			copySeedPath(join(source, entry.name), join(target, entry.name));
+		}
+		return;
+	}
+
+	if (stats.isFile() && !existsSync(target)) {
+		mkdirSync(resolve(target, ".."), { recursive: true });
+		cpSync(source, target, { force: false });
+	}
 }
 
 const workingMemoryLoader: Loader<WorkingMemoryLoaderDeclaration> = {
@@ -396,10 +418,17 @@ export class SimpleResearchKernelStore {
 			eventCount: 0,
 			latestEventAt: null
 		};
+		const artifactSessionDir =
+			"id" in trace ? this.artifactSessionDirForTraceId(trace.id) : null;
 		return {
 			kernelId: this.kernel.id,
 			concurrency: this.kernel.concurrency,
-			memoryDir: relative(EXAMPLE_ROOT, WORKING_MEMORY_DIR),
+			memoryDir: relative(
+				EXAMPLE_ROOT,
+				artifactSessionDir
+					? this.workingMemoryDirForSession(artifactSessionDir)
+					: RESEARCH_SESSION_ROOT
+			),
 			agents: registry.list().map((agent) => this.summarizeAgent(agent)),
 			activeRuns: [...this.researchRuns.values()].filter((run) => run.status === "running"),
 			dummySession: {
@@ -415,8 +444,10 @@ export class SimpleResearchKernelStore {
 				latestEventAt: trace.latestEventAt
 			},
 			artifacts: {
-				scoutReports: this.summarizeArtifacts(this.listScoutReportFiles()),
-				reports: this.summarizeArtifacts(this.listReportFiles())
+				scoutReports: artifactSessionDir
+					? this.summarizeArtifacts(this.listScoutReportFiles(artifactSessionDir))
+					: [],
+				reports: artifactSessionDir ? this.summarizeArtifacts(this.listReportFiles(artifactSessionDir)) : []
 			},
 			latestReport: this.latestReportText
 		};
@@ -431,8 +462,9 @@ export class SimpleResearchKernelStore {
 		this.ensureTraceContainer(trace, {
 			startedAt: kind === "dummy" ? iso(this.startedAt) : new Date().toISOString()
 		});
+		const appSessionDir = this.ensureResearchSession(trace);
 		this.seedLifecycle(trace);
-		const artifactSnapshot = this.snapshotArtifacts();
+		const artifactSnapshot = this.snapshotArtifacts(appSessionDir);
 		const run: ResearchRunSummary = {
 			id,
 			appSessionId: trace.appSessionId,
@@ -452,17 +484,17 @@ export class SimpleResearchKernelStore {
 				variables: this.variablesFor("research-coordinator", prompt),
 				appSessionId: trace.appSessionId,
 				appSessionSlug: trace.appSessionSlug,
-				appSessionDir: WORKING_MEMORY_DIR,
+				appSessionDir,
 				piSessionsDir: this.piSessionsDir,
 				piAgentDir: PI_AGENT_DIR,
-				workingDir: EXAMPLE_ROOT,
+				workingDir: appSessionDir,
 				containerId: trace.containerId,
 				phase: PHASE,
 				displayLabel: this.displayLabel("research-coordinator"),
 				traceWriter: this.createTraceWriter(trace)
 			})
 			.then(() => {
-				const artifactError = this.validateCompletedRun(artifactSnapshot);
+				const artifactError = this.validateCompletedRun(appSessionDir, artifactSnapshot);
 				if (artifactError) throw new Error(artifactError);
 				run.status = "completed";
 				run.completedAt = new Date().toISOString();
@@ -486,10 +518,13 @@ export class SimpleResearchKernelStore {
 		opts: KernelSpawnOptions = {}
 	): Promise<KernelSpawnAgentResult> {
 		const spawnAgent = await this.getLiveSpawnAgent();
+		const appSessionDir = this.ensureResearchSessionDir(
+			opts.appSessionDir ?? this.defaultResearchSessionDir()
+		);
 		return spawnAgent(agentName, prompt, ctx as unknown as ExtensionContext | null | undefined, {
 			...opts,
-			workingDir: opts.workingDir ?? EXAMPLE_ROOT,
-			appSessionDir: opts.appSessionDir ?? WORKING_MEMORY_DIR,
+			workingDir: opts.workingDir ?? appSessionDir,
+			appSessionDir,
 			piSessionsDir: opts.piSessionsDir ?? this.piSessionsDir,
 			piAgentDir: opts.piAgentDir ?? PI_AGENT_DIR,
 			displayLabel: opts.displayLabel ?? this.displayLabel(agentName),
@@ -532,7 +567,7 @@ export class SimpleResearchKernelStore {
 					createSpawnContext({
 						...params,
 						sessionData: {
-							workingMemoryDir: WORKING_MEMORY_DIR
+							workingMemoryDir: join(params.cwd ?? params.runtime.cwd, RESEARCH_MEMORY_REL_PATH)
 						}
 					}),
 				getDb: () => {
@@ -623,9 +658,10 @@ export class SimpleResearchKernelStore {
 	}
 
 	private reviewResearchReports(question?: string): ToolResponse {
-		const files = this.listScoutReportFiles();
+		const appSessionDir = this.currentRunSessionDir();
+		const files = this.listScoutReportFiles(appSessionDir);
 		const reports = files.map((file) => ({
-			path: relative(EXAMPLE_ROOT, file),
+			path: relative(appSessionDir, file),
 			content: readFileSync(file, "utf8")
 		}));
 		const reportList =
@@ -659,6 +695,7 @@ export class SimpleResearchKernelStore {
 		signal?: AbortSignal
 	) {
 		const runCtx = getRunContext();
+		const appSessionDir = this.currentRunSessionDir();
 		return this.kernel.agentManager.spawnAndWait(
 			pi,
 			ctx as unknown as KernelExtensionContext,
@@ -666,10 +703,10 @@ export class SimpleResearchKernelStore {
 			focus,
 			{
 				description: "Write the final research report",
-				workingDir: EXAMPLE_ROOT,
+				workingDir: appSessionDir,
 				appSessionId: runCtx.appSessionId,
 				appSessionSlug: runCtx.appSessionSlug,
-				appSessionDir: WORKING_MEMORY_DIR,
+				appSessionDir,
 				piSessionsDir: this.piSessionsDir,
 				containerId: runCtx.containerId,
 				phase: runCtx.phase,
@@ -685,22 +722,32 @@ export class SimpleResearchKernelStore {
 	}
 
 	private writeResearchReport(title: string | undefined, content: string): ToolResponse {
-		const reportPath = this.writeArtifact(SCOUT_REPORTS_DIR, title ?? "scout-report", content);
+		const appSessionDir = this.currentRunSessionDir();
+		const reportPath = this.writeArtifact(
+			this.scoutReportsDirForSession(appSessionDir),
+			title ?? "scout-report",
+			content
+		);
 		return {
-			text: `Wrote scout report to ${relative(EXAMPLE_ROOT, reportPath)}.`,
+			text: `Wrote scout report to ${relative(appSessionDir, reportPath)}.`,
 			details: {
-				path: relative(EXAMPLE_ROOT, reportPath)
+				path: relative(appSessionDir, reportPath)
 			}
 		};
 	}
 
 	private writeFinalReport(title: string | undefined, content: string): ToolResponse {
-		const reportPath = this.writeArtifact(REPORTS_DIR, title ?? "research-report", content);
+		const appSessionDir = this.currentRunSessionDir();
+		const reportPath = this.writeArtifact(
+			this.reportsDirForSession(appSessionDir),
+			title ?? "research-report",
+			content
+		);
 		this.latestReportText = content;
 		return {
-			text: `Wrote final report to ${relative(EXAMPLE_ROOT, reportPath)}.`,
+			text: `Wrote final report to ${relative(appSessionDir, reportPath)}.`,
 			details: {
-				path: relative(EXAMPLE_ROOT, reportPath)
+				path: relative(appSessionDir, reportPath)
 			}
 		};
 	}
@@ -713,6 +760,7 @@ export class SimpleResearchKernelStore {
 		signal?: AbortSignal
 	) {
 		const runCtx = getRunContext();
+		const appSessionDir = this.currentRunSessionDir();
 		return Promise.all(
 			assignments.map((assignment) =>
 				this.kernel.agentManager.spawnAndWait(
@@ -722,10 +770,10 @@ export class SimpleResearchKernelStore {
 					assignment.prompt,
 					{
 						description: assignment.focus,
-						workingDir: EXAMPLE_ROOT,
+						workingDir: appSessionDir,
 						appSessionId: runCtx.appSessionId,
 						appSessionSlug: runCtx.appSessionSlug,
-						appSessionDir: WORKING_MEMORY_DIR,
+						appSessionDir,
 						piSessionsDir: this.piSessionsDir,
 						containerId: runCtx.containerId,
 						phase: runCtx.phase,
@@ -742,16 +790,16 @@ export class SimpleResearchKernelStore {
 		);
 	}
 
-	private snapshotArtifacts(): ArtifactSnapshot {
+	private snapshotArtifacts(appSessionDir: string): ArtifactSnapshot {
 		return {
-			scoutReports: this.listScoutReportFiles().length,
-			finalReports: this.listReportFiles().length
+			scoutReports: this.listScoutReportFiles(appSessionDir).length,
+			finalReports: this.listReportFiles(appSessionDir).length
 		};
 	}
 
-	private validateCompletedRun(snapshot: ArtifactSnapshot): string | null {
-		const scoutReportsWritten = this.listScoutReportFiles().length - snapshot.scoutReports;
-		const finalReportsWritten = this.listReportFiles().length - snapshot.finalReports;
+	private validateCompletedRun(appSessionDir: string, snapshot: ArtifactSnapshot): string | null {
+		const scoutReportsWritten = this.listScoutReportFiles(appSessionDir).length - snapshot.scoutReports;
+		const finalReportsWritten = this.listReportFiles(appSessionDir).length - snapshot.finalReports;
 		if (scoutReportsWritten < 2) {
 			return [
 				"Research coordinator finished without completing the required scout fan-out.",
@@ -772,7 +820,8 @@ export class SimpleResearchKernelStore {
 		text: string;
 		files: Array<{ path: string; bytes: number; truncated: boolean }>;
 	} {
-		const files = this.resolveContextFiles(paths);
+		const appSessionDir = this.currentRunSessionDir();
+		const files = this.resolveContextFiles(appSessionDir, paths);
 		const fileSummaries: Array<{ path: string; bytes: number; truncated: boolean }> = [];
 		let remainingBytes = 60_000;
 		const blocks = files.map((file) => {
@@ -782,7 +831,7 @@ export class SimpleResearchKernelStore {
 			const content = raw.slice(0, budget);
 			remainingBytes -= Buffer.byteLength(content, "utf8");
 			const truncated = content.length < raw.length;
-			const relPath = relative(EXAMPLE_ROOT, file);
+			const relPath = relative(appSessionDir, file);
 			fileSummaries.push({ path: relPath, bytes, truncated });
 			return `<file path="${relPath}" bytes="${bytes}" truncated="${truncated}">\n${content}\n</file>`;
 		});
@@ -792,7 +841,7 @@ export class SimpleResearchKernelStore {
 		};
 	}
 
-	private resolveContextFiles(paths?: string[]): string[] {
+	private resolveContextFiles(appSessionDir: string, paths?: string[]): string[] {
 		const requested =
 			paths && paths.length > 0
 				? paths
@@ -804,7 +853,7 @@ export class SimpleResearchKernelStore {
 					];
 		const files: string[] = [];
 		for (const requestedPath of requested) {
-			const fullPath = this.resolveExamplePath(requestedPath);
+			const fullPath = this.resolveSessionPath(appSessionDir, requestedPath);
 			if (!existsSync(fullPath)) continue;
 			const stats = statSync(fullPath);
 			if (stats.isDirectory()) {
@@ -816,10 +865,10 @@ export class SimpleResearchKernelStore {
 		return [...new Set(files)].sort();
 	}
 
-	private resolveExamplePath(requestedPath: string): string {
-		const fullPath = resolve(EXAMPLE_ROOT, requestedPath);
-		if (fullPath !== EXAMPLE_ROOT && !fullPath.startsWith(`${EXAMPLE_ROOT}/`)) {
-			throw new Error(`Path escapes the example workspace: ${requestedPath}`);
+	private resolveSessionPath(appSessionDir: string, requestedPath: string): string {
+		const fullPath = resolve(appSessionDir, requestedPath);
+		if (fullPath !== appSessionDir && !fullPath.startsWith(`${appSessionDir}/`)) {
+			throw new Error(`Path escapes the research session: ${requestedPath}`);
 		}
 		return fullPath;
 	}
@@ -981,18 +1030,71 @@ export class SimpleResearchKernelStore {
 	}
 
 	private ensureWorkingMemory(): void {
-		mkdirSync(SCOUT_REPORTS_DIR, { recursive: true });
-		mkdirSync(REPORTS_DIR, { recursive: true });
+		mkdirSync(WORKING_MEMORY_DIR, { recursive: true });
+		mkdirSync(RESEARCH_SESSION_ROOT, { recursive: true });
+		this.ensureResearchSessionDir(this.defaultResearchSessionDir());
 	}
 
-	private listScoutReportFiles(): string[] {
-		return collectFiles(SCOUT_REPORTS_DIR, new Set([".md"])).filter(
+	private defaultResearchSessionDir(): string {
+		return join(RESEARCH_SESSION_ROOT, APP_SESSION_SLUG);
+	}
+
+	private appSessionDirForTrace(trace: ResearchTraceIdentity): string {
+		return join(RESEARCH_SESSION_ROOT, trace.appSessionSlug);
+	}
+
+	private artifactSessionDirForTraceId(traceId: string): string | null {
+		const trace = this.resolveTraceIdentity(traceId);
+		if (!trace || isSeedTrace(trace)) return null;
+		return this.appSessionDirForTrace(trace);
+	}
+
+	private workingMemoryDirForSession(appSessionDir: string): string {
+		return join(appSessionDir, RESEARCH_MEMORY_REL_PATH);
+	}
+
+	private scoutReportsDirForSession(appSessionDir: string): string {
+		return join(appSessionDir, SCOUT_REPORTS_REL_PATH);
+	}
+
+	private reportsDirForSession(appSessionDir: string): string {
+		return join(appSessionDir, REPORTS_REL_PATH);
+	}
+
+	private ensureResearchSession(trace: ResearchTraceIdentity): string {
+		return this.ensureResearchSessionDir(this.appSessionDirForTrace(trace));
+	}
+
+	private ensureResearchSessionDir(appSessionDir: string): string {
+		const workingMemoryDir = this.workingMemoryDirForSession(appSessionDir);
+		mkdirSync(workingMemoryDir, { recursive: true });
+		copySeedPath(join(WORKING_MEMORY_DIR, "brief.md"), join(workingMemoryDir, "brief.md"));
+		copySeedPath(join(WORKING_MEMORY_DIR, "sources"), join(workingMemoryDir, "sources"));
+		mkdirSync(this.scoutReportsDirForSession(appSessionDir), { recursive: true });
+		mkdirSync(this.reportsDirForSession(appSessionDir), { recursive: true });
+		return appSessionDir;
+	}
+
+	private currentRunSessionDir(): string {
+		const runCtx = getRunContext();
+		const appSessionDir =
+			runCtx.appSessionDir ??
+			(runCtx.appSessionSlug
+				? join(RESEARCH_SESSION_ROOT, runCtx.appSessionSlug)
+				: this.defaultResearchSessionDir());
+		return this.ensureResearchSessionDir(appSessionDir);
+	}
+
+	private listScoutReportFiles(appSessionDir: string): string[] {
+		return collectFiles(this.scoutReportsDirForSession(appSessionDir), new Set([".md"])).filter(
 			(file) => basename(file) !== "README.md"
 		);
 	}
 
-	private listReportFiles(): string[] {
-		return collectFiles(REPORTS_DIR, new Set([".md"])).filter((file) => basename(file) !== "README.md");
+	private listReportFiles(appSessionDir: string): string[] {
+		return collectFiles(this.reportsDirForSession(appSessionDir), new Set([".md"])).filter(
+			(file) => basename(file) !== "README.md"
+		);
 	}
 
 	private summarizeAgent(agent: AgentDefinition): ResearchAgentSummary {

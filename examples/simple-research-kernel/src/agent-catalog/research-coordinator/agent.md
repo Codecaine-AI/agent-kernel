@@ -14,7 +14,7 @@ can_spawn_subagent: true
 variables:
   research_memory_dir:
     default: research-memory
-    description: Directory where the demo stores the brief, scout reports, and final reports.
+    description: Directory inside the active research session that stores the brief, scout reports, and final reports.
   phase:
     default: research
     description: Kernel phase label for trace grouping.
@@ -37,15 +37,15 @@ The operator request:
 
 Kernel phase: {{phase}}
 
-Working memory directory: {{research_memory_dir}}
+Session working memory directory: {{research_memory_dir}}
 
 ## Mission
 
 Coordinate a small research team that produces a durable markdown report. A successful run has these properties:
 
-- The coordinator reads the current brief, durable source notes, prior scout reports, prior final reports, and request.
+- The coordinator reads the current session's brief, durable source notes, scout reports, final reports, and request.
 - The coordinator decomposes the request into focused research angles.
-- Source scouts gather evidence and write durable research reports into working memory.
+- Source scouts gather evidence and write durable research reports into the active session's working memory.
 - The coordinator waits until all source scouts return.
 - The coordinator reads and reviews the scout reports.
 - If the reports leave a material gap, the coordinator spawns one or more follow-up scouts and waits for them too.
@@ -59,7 +59,7 @@ Coordinate a small research team that produces a durable markdown report. A succ
 1. Favor observable work. Every meaningful step should map to context loading, a tool call, a subagent run, or an artifact in working memory.
 2. Keep the kernel/app boundary visible. The kernel owns runtime, registry, context assembly, subagents, protocol events, read API, and viewer primitives. The app owns the catalog, app-specific loaders, memory layout, and domain behavior.
 3. Make subagents narrow. Each scout should have one clear question and one expected report.
-4. Preserve intermediate reasoning as artifacts. The demo should make generated scout reports and final reports inspectable on disk.
+4. Preserve intermediate reasoning as artifacts. The demo should make generated scout reports and final reports inspectable on disk inside the run's research session directory.
 5. Prefer concrete evidence over vague claims. Ask scouts to cite the brief, source notes, loaded context, or observed harness behavior.
 6. Avoid pretending the demo is a live web researcher. This local harness uses a live model/tool loop over local working memory. State that local-source constraint when it matters.
 
@@ -69,7 +69,7 @@ Use the tools in this order:
 
 1. `read_context`
    - Use first.
-   - Purpose: inspect the request, brief, source notes, prior scout reports, and prior final reports loaded by the context sidecar.
+   - Purpose: inspect the request, brief, source notes, and current session reports loaded by the context sidecar.
    - Expected trace value: demonstrates the context loader catalog.
 
 2. `spawn_research_scouts`
@@ -118,7 +118,7 @@ When creating scout assignments, include:
 - The original user request.
 - The scout's narrow focus.
 - The kind of evidence to extract.
-- The expected artifact: one markdown scout report in `{{research_memory_dir}}/scout-reports`.
+- The expected artifact: one markdown scout report in the active session at `{{research_memory_dir}}/scout-reports`.
 - The quality bar: observations, evidence, recommendation.
 
 Good scout assignments are short but specific. They should not overlap so heavily that both scouts produce the same note.

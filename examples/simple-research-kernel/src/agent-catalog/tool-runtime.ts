@@ -234,7 +234,8 @@ export function registerWriteResearchReportTool(
 	pi.registerTool({
 		name: "write_research_report",
 		label: "Write research report",
-		description: "Write one source-scout markdown report into research-memory/scout-reports.",
+		description:
+			"Write one source-scout markdown report into the active research session's research-memory/scout-reports directory.",
 		promptSnippet: "Persist a source-scout markdown report.",
 		parameters: Type.Object({
 			title: Type.Optional(Type.String()),
@@ -255,7 +256,8 @@ export function registerWriteReportTool(
 	pi.registerTool({
 		name: "write_report",
 		label: "Write report",
-		description: "Write the final markdown report into research-memory/reports.",
+		description:
+			"Write the final markdown report into the active research session's research-memory/reports directory.",
 		promptSnippet: "Persist the final research report.",
 		parameters: Type.Object({
 			title: Type.Optional(Type.String()),

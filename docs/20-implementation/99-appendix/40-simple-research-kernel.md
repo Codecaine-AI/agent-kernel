@@ -71,7 +71,7 @@ The harness exercises the core package path:
 
 `src/agent-catalog/tool-runtime.ts` contains the shared tool registration helpers and the runtime contract that lets agent sidecars call back into app-owned working memory and subagent orchestration without moving those concerns into the kernel package.
 
-`research-memory/` holds the seed brief, durable source notes, generated scout-report directory, and generated final-report directory.
+`research-memory/` holds the seed brief and durable source notes. When a run starts, the app creates `.agent-kernel/research-sessions/<app-session-slug>/`, copies that seed material into the session's `research-memory/` folder, and writes generated scout/final reports under that session directory.
 
 `src/App.tsx` fetches the DB-backed trace-session list and selected detail, transforms selected events into trace spans, and renders separate research-run, traces, and agent-catalog workspaces around the shared viewer packages.
 

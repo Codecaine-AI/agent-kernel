@@ -43,6 +43,7 @@ import {
 	SimpleResearchKernelStore,
 	EXAMPLE_ROOT,
 	PHASE,
+	RESEARCH_SESSION_ROOT,
 	ROOT_CONTAINER_ID,
 	WORKING_MEMORY_DIR,
 	type SimpleResearchKernelPersistence
@@ -477,7 +478,8 @@ try {
 		metadata: {
 			mode: "local-observability",
 			appSessionId: APP_SESSION_ID,
-			workingMemoryDir: WORKING_MEMORY_DIR
+			researchSessionRoot: RESEARCH_SESSION_ROOT,
+			workingMemoryTemplateDir: WORKING_MEMORY_DIR
 		}
 	});
 } catch (error) {

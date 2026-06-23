@@ -22,7 +22,7 @@ export const loaders: AgentContextResolver["loaders"] = [
 	},
 	{
 		kind: "working-memory",
-		scope: "prior reports",
+		scope: "current session reports",
 		path: "research-memory/reports"
 	}
 ];

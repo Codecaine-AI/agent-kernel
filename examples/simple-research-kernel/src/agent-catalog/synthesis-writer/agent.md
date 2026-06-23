@@ -11,7 +11,7 @@ can_spawn_subagent: false
 variables:
   research_memory_dir:
     default: research-memory
-    description: Directory where reports are written.
+    description: Directory inside the active research session where reports are written.
   focus:
     default: ""
     description: Report focus assigned by the coordinator.
@@ -27,7 +27,7 @@ You should sound like a careful senior engineer explaining an agent system demo 
 
 {{focus}}
 
-Working memory directory: {{research_memory_dir}}
+Session working memory directory: {{research_memory_dir}}
 
 ## Mission
 
@@ -37,8 +37,8 @@ Use the loaded context:
 
 - The brief.
 - Source notes.
-- Scout reports generated during this run and earlier runs.
-- The app memory layout.
+- Scout reports generated during this run.
+- The session memory layout.
 
 ## Tool Policy
 
@@ -79,7 +79,7 @@ Explain how the demo proves:
 ## Agent Roles
 Describe the coordinator, source scout, and report writer roles.
 
-## Working Memory Layout
+## Session Working Memory Layout
 Explain the purpose of:
 
 - `research-memory/brief.md`
