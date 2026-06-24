@@ -6,7 +6,12 @@ export {
 	groupAgentsByContainer,
 	type ContainerRange,
 } from "./trace-builder/containerGrouping";
-export { findToolCallSpanByToolUseId, groupSpansByUserMessage } from "./trace-builder/nesting";
+export {
+	findToolCallSpanByToolUseId,
+	groupContextInputsByBuild,
+	groupProvisioningSpans,
+	groupSpansByUserMessage,
+} from "./trace-builder/nesting";
 export { pairEvents, type PairedEvent } from "./trace-builder/pairEvents";
 export {
 	extractPhaseSpans,

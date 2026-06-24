@@ -2,14 +2,19 @@ import { describe, expect, it } from "bun:test";
 
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 
-import { EventType } from "../types";
+import { buildTraceSpans } from "../build-trace-spans";
+import { EventType, type PiAgentSession, type TraceEvent } from "../types";
 
 import {
   groupAgentsByContainer,
   type ContainerRange,
 } from "./containerGrouping";
 import { groupAgentsByPhase, type PhaseRange } from "./phaseGrouping";
-import { findToolCallSpanByToolUseId } from "./nesting";
+import {
+  findToolCallSpanByToolUseId,
+  groupContextInputsByBuild,
+  groupProvisioningSpans,
+} from "./nesting";
 import { makeAttr } from "./spanAttributes";
 
 // Fixture timestamps. Note: agent.startTime in the OUTSIDE windows below is
@@ -95,6 +100,54 @@ function makeToolCallSpan(opts: {
     raw: "",
     attributes: attrs,
     children: opts.children,
+  };
+}
+
+function makeEventSpan(opts: {
+  id: string;
+  eventType: string;
+  start: Date;
+  end?: Date;
+}): TraceSpan {
+  const eventTypeAttr = makeAttr("event_type", opts.eventType);
+  const attrs = [eventTypeAttr].filter((a): a is NonNullable<typeof a> => a !== null);
+  const end = opts.end ?? opts.start;
+  return {
+    id: opts.id,
+    title: opts.id,
+    startTime: opts.start,
+    endTime: end,
+    duration: end.getTime() - opts.start.getTime(),
+    type: "agent_invocation",
+    status: "success",
+    raw: "",
+    attributes: attrs,
+  };
+}
+
+function makeTraceEvent(opts: {
+  id: string;
+  type: TraceEvent["type"];
+  timestamp: string;
+  spanId?: string;
+  eventData: TraceEvent["eventData"];
+  traceLevel?: TraceEvent["traceLevel"];
+}): TraceEvent {
+  return {
+    id: opts.id,
+    eventId: opts.id,
+    appSessionId: "app-1",
+    userId: "user-1",
+    type: opts.type,
+    source: "kernel",
+    traceLevel: opts.traceLevel ?? 1,
+    eventData: opts.eventData,
+    spanId: opts.spanId,
+    parentEventId: null,
+    timestamp: opts.timestamp,
+    piSessionId: "pi-1",
+    agentId: null,
+    containerId: null,
   };
 }
 
@@ -189,6 +242,231 @@ describe("groupAgentsByContainer routes by explicit container_id, ignoring times
     const cp1Children = cp1?.children ?? [];
     expect(cp1Children.find((c) => c.id === "pi:orphan")).toBeDefined();
     expect(result.find((s) => s.id === "pi:orphan")).toBeUndefined();
+  });
+});
+
+describe("groupContextInputsByBuild", () => {
+  it("nests resolved inputs under their matching context build span", () => {
+    const prompt = makeEventSpan({
+      id: "prompt",
+      eventType: EventType.SYSTEM_PROMPT_RESOLVED,
+      start: t100,
+    });
+    const build = makeEventSpan({
+      id: "context-build",
+      eventType: EventType.CONTEXT_BUILD_STARTED,
+      start: t110,
+      end: t150,
+    });
+    const inputA = makeEventSpan({
+      id: "input-a",
+      eventType: EventType.CONTEXT_INPUT_RESOLVED,
+      start: t150,
+    });
+    const inputB = makeEventSpan({
+      id: "input-b",
+      eventType: EventType.CONTEXT_INPUT_RESOLVED,
+      start: t200,
+    });
+
+    const typeById = new Map<string, string>([
+      [prompt.id, EventType.SYSTEM_PROMPT_RESOLVED],
+      [build.id, EventType.CONTEXT_BUILD_STARTED],
+      [inputA.id, EventType.CONTEXT_INPUT_RESOLVED],
+      [inputB.id, EventType.CONTEXT_INPUT_RESOLVED],
+    ]);
+    const protocolSpanIdById = new Map<string, string>([
+      [prompt.id, "spawn-1"],
+      [build.id, "spawn-1"],
+      [inputA.id, "spawn-1"],
+      [inputB.id, "spawn-1"],
+    ]);
+
+    const result = groupContextInputsByBuild(
+      [prompt, build, inputA, inputB],
+      typeById,
+      protocolSpanIdById,
+    );
+
+    expect(result.map((s) => s.id)).toEqual(["prompt", "context-build"]);
+    expect(result[1]!.children?.map((s) => s.id)).toEqual(["input-a", "input-b"]);
+    expect(result[1]!.endTime).toEqual(t200);
+  });
+
+  it("keeps context inputs as siblings when no matching context build exists", () => {
+    const input = makeEventSpan({
+      id: "input",
+      eventType: EventType.CONTEXT_INPUT_RESOLVED,
+      start: t100,
+    });
+    const result = groupContextInputsByBuild(
+      [input],
+      new Map([[input.id, EventType.CONTEXT_INPUT_RESOLVED]]),
+      new Map([[input.id, "spawn-1"]]),
+    );
+
+    expect(result.map((s) => s.id)).toEqual(["input"]);
+  });
+});
+
+describe("groupProvisioningSpans", () => {
+  it("wraps system prompt and context build spans in prompt-first provisioning order", () => {
+    const build = makeEventSpan({
+      id: "context-build",
+      eventType: EventType.CONTEXT_BUILD_STARTED,
+      start: t100,
+      end: t200,
+    });
+    const prompt = makeEventSpan({
+      id: "prompt",
+      eventType: EventType.SYSTEM_PROMPT_RESOLVED,
+      start: t110,
+    });
+    const runStart = makeEventSpan({
+      id: "run-start",
+      eventType: EventType.AGENT_RUN_START,
+      start: t300,
+    });
+
+    const typeById = new Map<string, string>([
+      [build.id, EventType.CONTEXT_BUILD_STARTED],
+      [prompt.id, EventType.SYSTEM_PROMPT_RESOLVED],
+      [runStart.id, EventType.AGENT_RUN_START],
+    ]);
+    const protocolSpanIdById = new Map<string, string>([
+      [build.id, "spawn-1"],
+      [prompt.id, "spawn-1"],
+      [runStart.id, "run-1"],
+    ]);
+
+    const result = groupProvisioningSpans(
+      [build, prompt, runStart],
+      typeById,
+      protocolSpanIdById,
+    );
+
+    expect(result.map((s) => s.id)).toEqual(["provisioning:spawn-1", "run-start"]);
+    expect(result[0]!.children?.map((s) => s.id)).toEqual(["prompt", "context-build"]);
+    expect(result[0]!.startTime).toEqual(t100);
+    expect(result[0]!.endTime).toEqual(t200);
+  });
+});
+
+describe("buildTraceSpans context provisioning", () => {
+  it("renders context input resolution as children of the context build span", () => {
+    const piSession: PiAgentSession = {
+      id: "pi-1",
+      appSessionId: "app-1",
+      parentId: null,
+      agentName: "Research",
+      model: "test-model",
+      status: "running",
+      phase: null,
+      containerId: null,
+      displayLabel: null,
+      startedAt: t100.toISOString(),
+      completedAt: null,
+      createdAt: t100.toISOString(),
+      updatedAt: t300.toISOString(),
+    };
+    const events: TraceEvent[] = [
+      makeTraceEvent({
+        id: "prompt",
+        type: EventType.SYSTEM_PROMPT_RESOLVED,
+        timestamp: t100.toISOString(),
+        spanId: "spawn-1",
+        eventData: {
+          agent_name: "Research",
+          rendered_prompt: "Research prompt",
+          tools_allowlist: [],
+          tools_disallowlist: [],
+          extensions: true,
+          domain_rules_installed: false,
+          variables_resolved: {},
+        },
+      }),
+      makeTraceEvent({
+        id: "context-start",
+        type: EventType.CONTEXT_BUILD_STARTED,
+        timestamp: t110.toISOString(),
+        spanId: "spawn-1",
+        eventData: {
+          agent_name: "Research",
+          declared_inputs: [
+            { kind: "file", ref: "brief.md" },
+            { kind: "directory", ref: "sources" },
+          ],
+        },
+      }),
+      makeTraceEvent({
+        id: "input-brief",
+        type: EventType.CONTEXT_INPUT_RESOLVED,
+        timestamp: t150.toISOString(),
+        spanId: "spawn-1",
+        eventData: {
+          loader_kind: "file",
+          input_ref: "brief.md",
+          status: "ok",
+          bytes: 12,
+          from_cache: false,
+          content_hash: "hash-brief",
+        },
+        traceLevel: 3,
+      }),
+      makeTraceEvent({
+        id: "input-sources",
+        type: EventType.CONTEXT_INPUT_RESOLVED,
+        timestamp: t200.toISOString(),
+        spanId: "spawn-1",
+        eventData: {
+          loader_kind: "directory",
+          input_ref: "sources",
+          status: "ok",
+          bytes: 24,
+          from_cache: false,
+          content_hash: "hash-sources",
+        },
+        traceLevel: 3,
+      }),
+      makeTraceEvent({
+        id: "context-end",
+        type: EventType.CONTEXT_BUILD_COMPLETED,
+        timestamp: t300.toISOString(),
+        spanId: "spawn-1",
+        eventData: {
+          inputs: [
+            {
+              loader_kind: "file",
+              input_ref: "brief.md",
+              status: "ok",
+              bytes: 12,
+            },
+            {
+              loader_kind: "directory",
+              input_ref: "sources",
+              status: "ok",
+              bytes: 24,
+            },
+          ],
+          rendered_context: "Rendered context",
+          total_bytes: 36,
+        },
+      }),
+    ];
+
+    const [agentSpan] = buildTraceSpans(events, [piSession], []);
+    const children = agentSpan?.children ?? [];
+    const provisioning = children.find((span) => span.id === "provisioning:spawn-1");
+    const provisioningChildren = provisioning?.children ?? [];
+    const contextBuild = provisioningChildren.find((span) => span.id === "context-start");
+
+    expect(children.map((span) => span.id)).toEqual(["provisioning:spawn-1"]);
+    expect(provisioningChildren.map((span) => span.id)).toEqual(["prompt", "context-start"]);
+    expect(contextBuild).toBeDefined();
+    expect(contextBuild!.children?.map((span) => span.id)).toEqual([
+      "input-brief",
+      "input-sources",
+    ]);
   });
 });
 

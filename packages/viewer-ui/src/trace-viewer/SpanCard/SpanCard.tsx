@@ -86,6 +86,10 @@ function getSpanDisplay(data: TraceSpan): SpanDisplay {
     return { type: "container", label: data.title };
   }
 
+  if (eventType === "provisioning_container") {
+    return { type: "lifecycle", label: "Provisioning" };
+  }
+
   if (eventType === "context_build_started" || eventType === "context_build_completed") {
     return { type: "system", label: "Context Built" };
   }

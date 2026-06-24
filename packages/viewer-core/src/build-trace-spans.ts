@@ -23,7 +23,12 @@ import type { PiAgentSession } from "./types";
 import { pairEvents } from "./trace-builder/pairEvents";
 import { toAgentSpan, toEventSpan, toRunSpan } from "./trace-builder/spanFactories";
 import { bucketSpansByRun, sortRunsByStart } from "./trace-builder/runBucketing";
-import { findToolCallSpanByToolUseId, groupSpansByUserMessage } from "./trace-builder/nesting";
+import {
+  findToolCallSpanByToolUseId,
+  groupContextInputsByBuild,
+  groupProvisioningSpans,
+  groupSpansByUserMessage,
+} from "./trace-builder/nesting";
 import { extractPhaseSpans, groupAgentsByPhase } from "./trace-builder/phaseGrouping";
 import { extractContainerSpans, groupAgentsByContainer } from "./trace-builder/containerGrouping";
 
@@ -62,6 +67,7 @@ export function buildTraceSpans(
   const eventsByPi = new Map<string, TraceSpan[]>();
   const orphanSpans: TraceSpan[] = [];
   const typeById = new Map<string, string>();
+  const protocolSpanIdById = new Map<string, string>();
 
   for (const p of paired) {
     const sourceEvent = p.kind === "pair" ? p.start : p.event;
@@ -75,6 +81,7 @@ export function buildTraceSpans(
     }
     const span = toEventSpan(p);
     typeById.set(span.id, sourceEvent.type);
+    if (sourceEvent.spanId) protocolSpanIdById.set(span.id, sourceEvent.spanId);
     if (!sourceEvent.piSessionId) {
       orphanSpans.push(span);
       continue;
@@ -89,7 +96,13 @@ export function buildTraceSpans(
   }
 
   for (const [piId, list] of eventsByPi.entries()) {
-    eventsByPi.set(piId, groupSpansByUserMessage(list, typeById));
+    const contextGrouped = groupContextInputsByBuild(list, typeById, protocolSpanIdById);
+    const provisioningGrouped = groupProvisioningSpans(
+      contextGrouped,
+      typeById,
+      protocolSpanIdById,
+    );
+    eventsByPi.set(piId, groupSpansByUserMessage(provisioningGrouped, typeById));
   }
 
   const runsByPi = new Map<string, AgentRun[]>();

@@ -1,4 +1,4 @@
-# Pi Agent Kernel
+# Agent Kernel
 
 - An opinionated system for building **problem-specific agent harnesses** on top of the Pi Agent SDK
 - Designed for high-volume multi-agent systems that do one class of work extremely well
@@ -16,7 +16,7 @@
   - Cut or reroute work that does not earn its cost.
 - General tools like Codex and Claude Code are useful execution environments, but they do not give a purpose-built harness deep observability into spawned agents, token budgets, trace lineage, and model effectiveness.
 
-- Pi Agent Kernel is opinionated about that layer:
+- Agent Kernel is opinionated about that layer:
 
   - **Extreme observability.** 
     - Every prompt, context load, tool call, subagent spawn, and lifecycle event is captured as a durable, explicitly-linked trace. 
@@ -50,8 +50,6 @@
 - A host application (the harness) consumes the kernel through a thin adapter.
 - The harness owns workflow sessions, phase semantics, domain tools, app-specific loaders, app DB tables, and custom viewer panels.
 - The kernel owns spawning, context assembly, observability storage, trace reading, and viewer primitives.
-- **Spectre** is the reference harness — a coding-workflow application built on the kernel.
-- Spectre exists to show how to extend the kernel for a real problem-specific harness, not to define what the kernel is.
 - For the longer-term service model, see [ARCHITECTURE_UPDATE.md](ARCHITECTURE_UPDATE.md).
 - `ARCHITECTURE_UPDATE.md` describes the centralized local DB/tailer plane, kernel registration, app-embedded viewers, and optional central observer.
 
@@ -68,7 +66,7 @@
 
 ## Examples
 
-- `examples/simple-research-kernel` is a runnable non-Spectre Simple Research Kernel.
+- `examples/simple-research-kernel` is a runnable standalone Simple Research Kernel.
 - The example defines agents in a catalog, loads context sidecars, spawns scout subagents, waits for their reports, reviews gaps, queues a report writer, writes working memory, persists kernel observability rows to Postgres, and renders traces through the viewer shell.
 - Start shared services with `bun run dev:services`.
 - Start the Simple Research Kernel with `bun run dev:simple-research`.

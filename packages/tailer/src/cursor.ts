@@ -5,18 +5,22 @@ import type { TailerConfig } from "./config";
 export class CursorStore {
   private cursors: Map<string, number> = new Map();
   private snapshotTimer: ReturnType<typeof setInterval> | null = null;
-  private readonly config: Pick<TailerConfig, "snapshotPath" | "snapshotIntervalMs">;
+  private readonly config: Pick<TailerConfig, "snapshotPath" | "snapshotIntervalMs"> &
+    Partial<Pick<TailerConfig, "watchDir">>;
 
-  constructor(config: Pick<TailerConfig, "snapshotPath" | "snapshotIntervalMs">) {
+  constructor(
+    config: Pick<TailerConfig, "snapshotPath" | "snapshotIntervalMs"> &
+      Partial<Pick<TailerConfig, "watchDir">>,
+  ) {
     this.config = config;
   }
 
   get(filePath: string): number {
-    return this.cursors.get(filePath) ?? 0;
+    return this.cursors.get(this.cursorKey(filePath)) ?? 0;
   }
 
   set(filePath: string, offset: number): void {
-    this.cursors.set(filePath, offset);
+    this.cursors.set(this.cursorKey(filePath), offset);
   }
 
   entries(): [string, number][] {
@@ -28,7 +32,7 @@ export class CursorStore {
   }
 
   hasFile(filePath: string): boolean {
-    return this.cursors.has(filePath);
+    return this.cursors.has(this.cursorKey(filePath));
   }
 
   async saveSnapshot(): Promise<void> {
@@ -45,7 +49,9 @@ export class CursorStore {
       const raw = await fs.readFile(this.config.snapshotPath, "utf-8");
       const data = JSON.parse(raw) as Record<string, number>;
       for (const [filePath, offset] of Object.entries(data)) {
-        this.cursors.set(filePath, offset);
+        const key = this.cursorKey(filePath);
+        const previous = this.cursors.get(key) ?? 0;
+        this.cursors.set(key, Math.max(previous, offset));
       }
     } catch (err: unknown) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") {
@@ -70,5 +76,26 @@ export class CursorStore {
     }
     await this.saveSnapshot();
   }
-}
 
+  private cursorKey(filePath: string): string {
+    if (!this.config.watchDir) return filePath;
+
+    const watchDir = path.resolve(this.config.watchDir);
+    const absolutePath = path.isAbsolute(filePath) ? path.normalize(filePath) : filePath;
+
+    if (!path.isAbsolute(absolutePath)) return path.normalize(absolutePath);
+
+    const relativePath = path.relative(watchDir, absolutePath);
+    if (relativePath && !relativePath.startsWith("..") && !path.isAbsolute(relativePath)) {
+      return path.normalize(relativePath);
+    }
+
+    const anchor = `${path.sep}${path.basename(watchDir)}${path.sep}`;
+    const anchorIndex = absolutePath.lastIndexOf(anchor);
+    if (anchorIndex >= 0) {
+      return path.normalize(absolutePath.slice(anchorIndex + anchor.length));
+    }
+
+    return absolutePath;
+  }
+}
