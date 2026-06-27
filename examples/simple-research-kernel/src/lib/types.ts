@@ -1,3 +1,5 @@
+import type { PromptDocument } from "@codecaine-ai/prompt-kit";
+
 export type WorkspaceId = "research" | "trace" | "agents";
 
 export type ResearchArtifactSummary = {
@@ -25,6 +27,8 @@ export type ResearchAgentSummary = {
 	hasContext: boolean;
 	contextModule: string | null;
 	agentFile: string;
+	source: "typed" | "markdown";
+	promptDocument: PromptDocument | null;
 	promptTemplate: string;
 	warnings: string[];
 };

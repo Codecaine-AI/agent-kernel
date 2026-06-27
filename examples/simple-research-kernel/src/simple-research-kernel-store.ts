@@ -52,6 +52,7 @@ import type {
 	TraceEventRow
 } from "@agent-kernel/viewer-core";
 import type { ExtensionAPI, ExtensionContext, ExtensionFactory } from "@mariozechner/pi-coding-agent";
+import type { PromptDocument } from "@codecaine-ai/prompt-kit";
 import type {
 	SimpleResearchAgentRegisterFn,
 	SimpleResearchToolRuntime,
@@ -114,6 +115,8 @@ type ResearchAgentSummary = {
 	hasContext: boolean;
 	contextModule: string | null;
 	agentFile: string;
+	source: "typed" | "markdown";
+	promptDocument: PromptDocument | null;
 	promptTemplate: string;
 	warnings: string[];
 };
@@ -551,7 +554,7 @@ export class SimpleResearchKernelStore {
 				},
 				loadAgentResolver: async (name) => {
 					const agent = registry.get(name);
-					return agent.contextModulePath ? this.loadContextResolver(agent) : null;
+					return agent.contextResolver ?? (agent.contextModulePath ? this.loadContextResolver(agent) : null);
 				},
 				buildPrivateRegisterFactory: async (name) => {
 					const agent = registry.get(name);
@@ -599,13 +602,13 @@ export class SimpleResearchKernelStore {
 
 	private variablesFor(agentName: string, prompt: string): Record<string, unknown> {
 		const common = {
-			research_memory_dir: "research-memory",
+			researchMemoryDir: "research-memory",
 			phase: PHASE
 		};
 		if (agentName === "research-coordinator") {
 			return {
 				...common,
-				user_prompt: prompt
+				userPrompt: prompt
 			};
 		}
 		return {
@@ -647,6 +650,9 @@ export class SimpleResearchKernelStore {
 	}
 
 	private async loadPrivateRegisterFactory(agent: AgentDefinition): Promise<ExtensionFactory | null> {
+		if (agent.privateTools) {
+			return (pi) => agent.privateTools?.(pi, this.toolRuntime);
+		}
 		if (!agent.indexModulePath) return null;
 		const imported = (await import(pathToFileURL(agent.indexModulePath).href)) as {
 			default?: { register?: SimpleResearchAgentRegisterFn };
@@ -901,6 +907,7 @@ export class SimpleResearchKernelStore {
 	}
 
 	private async loadContextResolver(agent: AgentDefinition): Promise<AgentContextResolver> {
+		if (agent.contextResolver) return agent.contextResolver;
 		if (!agent.contextModulePath) {
 			return {
 				loaders: [],
@@ -1099,10 +1106,18 @@ export class SimpleResearchKernelStore {
 
 	private summarizeAgent(agent: AgentDefinition): ResearchAgentSummary {
 		const fm = agent.parsed.frontmatter;
+		const promptDocument =
+			agent.typedDefinition?.prompt &&
+			typeof agent.typedDefinition.prompt === "object" &&
+			(agent.typedDefinition.prompt as { kind?: unknown }).kind === "prompt"
+				? (agent.typedDefinition.prompt as PromptDocument)
+				: null;
 		return {
 			name: agent.name,
 			description: fm.description,
 			model: this.model,
+			source: agent.source,
+			promptDocument,
 			tools: fm.tools,
 			disallowedTools: fm.disallowed_tools ?? [],
 			extensions: fm.extensions ?? true,

@@ -1,18 +1,19 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { defineTools } from "@agent-kernel/kernel/agent-definition";
+
 import {
 	registerQueueReportWriterTool,
 	registerReadContextTool,
 	registerReviewReportsTool,
 	registerSpawnScoutsTool,
-	type SimpleResearchToolRuntime
+	type SimpleResearchToolRuntime,
 } from "../tool-runtime";
 
-export function register(pi: ExtensionAPI, runtime?: SimpleResearchToolRuntime): void {
+export const tools = defineTools<SimpleResearchToolRuntime>((pi, runtime) => {
 	registerReadContextTool(pi, runtime);
 	registerSpawnScoutsTool(pi, "spawn_research_scouts", runtime);
 	registerReviewReportsTool(pi, runtime);
 	registerSpawnScoutsTool(pi, "spawn_followup_scouts", runtime);
 	registerQueueReportWriterTool(pi, runtime);
-}
+});
 
-export default { register };
+export default tools;

@@ -39,7 +39,9 @@ The harness exercises the core package path:
     text loader
     file/directory loaders
     working-memory loader registered by the host app
-  per-agent index.ts private tool sidecars
+  typed agent.ts definitions
+  prompt-kit prompt.ts documents
+  per-agent tools.ts private tool sidecars
 
 @agent-kernel/protocol
   trace event factories
@@ -65,9 +67,9 @@ The harness exercises the core package path:
 
 `src/server.ts` owns the Elysia API, DB bootstrap, kernel registration, persistence adapter, and read API factory.
 
-`src/simple-research-kernel-store.ts` owns the kernel instance, live research runtime, container/session/run event production, subagent fan-out, and the custom `working-memory` context loader. It loads each agent's private tool sidecar through the registry's `indexModulePath` and passes an app-owned tool runtime into the sidecar. Its persistence adapter writes the emitted rows to Postgres.
+`src/simple-research-kernel-store.ts` owns the kernel instance, live research runtime, container/session/run event production, subagent fan-out, and the custom `working-memory` context loader. It binds each agent's typed private tools through the registry and passes an app-owned tool runtime into the sidecar. Its persistence adapter writes the emitted rows to Postgres.
 
-`src/agent-catalog/*/agent.md` defines the coordinator, source scout, and report writer agents. Each agent has a colocated `context.ts` sidecar that declares loader inputs and assembles model-facing context, plus an `index.ts` sidecar that registers that agent's private tools.
+`src/agent-catalog/*/agent.ts` defines the coordinator, source scout, and report writer agents. Each agent imports a colocated `prompt.ts` prompt-kit document, `context.ts` resolver, and `tools.ts` private tool registration sidecar.
 
 `src/agent-catalog/tool-runtime.ts` contains the shared tool registration helpers and the runtime contract that lets agent sidecars call back into app-owned working memory and subagent orchestration without moving those concerns into the kernel package.
 
@@ -82,7 +84,7 @@ The harness exercises the core package path:
 This example is deliberately not a Spectre adapter. It proves the extracted kernel can stand up a host harness with:
 
 - a kernel instance
-- filesystem agent definitions
+- typed filesystem agent definitions
 - app-defined context loaders
 - per-agent private tool sidecars
 - subagent orchestration

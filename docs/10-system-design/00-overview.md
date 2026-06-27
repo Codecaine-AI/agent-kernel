@@ -26,3 +26,6 @@ How viewer-core, viewer-ui, and viewer-shell turn trace data into a base UI.
 
 ### [50-app-adapter-model.md](50-app-adapter-model.md)
 How apps such as Spectre mount and extend the kernel without moving workflow semantics into it.
+
+### [60-prompt-system-model.md](60-prompt-system-model.md)
+How prompt authoring should produce kernel-ready agent definitions, context resolvers, and prompt skills.

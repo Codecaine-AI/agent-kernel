@@ -2,6 +2,7 @@
 
 import cn from "classnames";
 import { useMemo, useState, type ReactNode } from "react";
+import { createPromptPreviewModel } from "@codecaine-ai/prompt-kit/ui";
 import { estimateTokenCount } from "tokenx";
 
 import { PromptView, type PromptViewSize } from "../trace-viewer/detail-panel/PromptView";
@@ -206,7 +207,7 @@ export function AgentCatalogViewer({
 	}
 
 	return (
-		<div className={cn("flex min-h-0 w-full gap-3 font-mono", className)}>
+		<div className={cn("@container flex min-h-0 w-full gap-3 font-mono", className)}>
 			{/* ── Catalog ─────────────────────────────────────────── */}
 			<Panel className="w-60 shrink-0">
 				<div className="min-h-0 flex-1 overflow-auto">
@@ -270,7 +271,7 @@ export function AgentCatalogViewer({
 			</Panel>
 
 			{/* ── Inspector ───────────────────────────────────────── */}
-			<Panel className="hidden w-[30rem] shrink-0 lg:flex">
+			<Panel className="hidden w-[30rem] shrink-0 @[78rem]:flex">
 				<AgentInspectorSidebar agent={selectedAgent} tab={sidebarTab} onTabChange={setSidebarTab} />
 			</Panel>
 		</div>
@@ -374,8 +375,10 @@ function resolvePromptContent(
 	scope: Scope,
 	form: Form,
 ): { content: string; tokens: number } {
-	const systemRendered = agent.renderedPrompt?.content ?? substituteDefaults(agent.body, agent.variables);
-	const systemRaw = agent.body;
+	const sourcePreview = agent.prompt ? createPromptPreviewModel(agent.prompt).rendered : null;
+	const sourceBody = sourcePreview ?? agent.body;
+	const systemRendered = agent.renderedPrompt?.content ?? substituteDefaults(sourceBody, agent.variables);
+	const systemRaw = sourceBody;
 	const contextRendered = agent.context?.renderedContext ?? "";
 	const contextRaw = collapseContextFiles(contextRendered);
 	const system = form === "rendered" ? systemRendered : systemRaw;
@@ -573,6 +576,10 @@ function ToolsSidebarTab({ agent }: { agent: AgentViewerDefinition }) {
 			<InspectorSection title="Runtime">
 				<div className="flex flex-col">
 					<MiniField label="model" value={agent.model} />
+					<MiniField label="source" value={agent.source ?? "markdown"} />
+					{agent.prompt?.schemaVersion && (
+						<MiniField label="schema" value={agent.prompt.schemaVersion} />
+					)}
 					{agent.maxTurns !== null && (
 						<MiniField label="max turns" value={agent.maxTurns.toString()} />
 					)}

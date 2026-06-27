@@ -1,10 +1,22 @@
 import type { ParsedAgent } from "../parsing/types";
+import type {
+	AgentPrivateTools,
+	TypedAgentDefinition,
+} from "../../agent-definition";
+import type { AgentContextResolver } from "../../context";
 
 export interface AgentDefinition {
 	name: string;
 	parsed: ParsedAgent;
+	source: "typed" | "markdown";
+	typedDefinition: TypedAgentDefinition | null;
+	contextResolver: AgentContextResolver | null;
 	contextModulePath: string | null;
+	toolsModulePath: string | null;
 	indexModulePath: string | null;
+	privateTools: AgentPrivateTools | null;
+	privateToolNames: string[];
+	coreTools: string[];
 	agentFile: string;
 	warnings: string[];
 }

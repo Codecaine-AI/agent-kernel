@@ -19,14 +19,14 @@ The spawn pipeline is portable because app-specific operations are injected:
 |---|---|
 | `loadAgent` | App controls catalog roots and agent names |
 | `loadAgentResolver` | App controls where `context.ts` sidecars live |
-| `buildPrivateRegisterFactory` | App loads per-agent `index.ts` private tool sidecars and binds app-owned dependencies |
+| `buildPrivateRegisterFactory` | App binds per-agent private tools from typed `tools.ts` definitions or legacy sidecars |
 | `buildToolFactories` | App controls shared tools and allowlists |
 | `createContextCatalog` | App can register custom loaders |
 | `createSpawnContext` | App can attach app session snapshots and paths |
 | `getDb` | Host app owns DB connection lifecycle |
 | `createAppSessionBinding` | App controls JSONL metadata used by the tailer |
 
-Private tools should be declared in `agent.md` and implemented in the same agent directory's `index.ts`. The adapter usually resolves the agent through the registry, imports `agent.indexModulePath`, and returns an `ExtensionFactory` that calls the sidecar `register()` function with any app-owned runtime services it needs.
+Private tools should be defined in the same agent directory's `tools.ts` and imported by `agent.ts`. The registry harvests private tool names and includes them in the normalized tool allowlist. The adapter usually resolves the agent through the registry and returns an `ExtensionFactory` that calls the typed private tool registration function with any app-owned runtime services it needs. Legacy `index.ts` sidecars remain loadable for older catalogs.
 
 ## Sequence
 
@@ -36,7 +36,7 @@ Private tools should be declared in `agent.md` and implemented in the same agent
 4. Load the parsed agent definition.
 5. Resolve variables and render the static system prompt.
 6. Build or reuse a Pi session manager.
-7. Load context and private tool sidecars.
+7. Load context and private tool bindings.
 8. Build the scoped tool factory list.
 9. Create a Pi `AgentSession`.
 10. Pre-insert `pi_agent_sessions` and `agent_runs`.

@@ -3,8 +3,9 @@ import type {
 	LoadedMap,
 	SpawnContext
 } from "@agent-kernel/kernel/context";
+import { defineContext } from "@agent-kernel/kernel/agent-definition";
 
-export const loaders: AgentContextResolver["loaders"] = [
+const loaders: AgentContextResolver["loaders"] = [
 	{
 		kind: "text",
 		label: "runtime mode",
@@ -27,10 +28,10 @@ export const loaders: AgentContextResolver["loaders"] = [
 	}
 ];
 
-export function assemble(loaded: LoadedMap, ctx: SpawnContext): string {
+function assemble(loaded: LoadedMap, ctx: SpawnContext): string {
 	return [
 		"<research_coordinator_context>",
-		`<request>${ctx.variables.user_prompt ?? ""}</request>`,
+		`<request>${ctx.variables.userPrompt ?? ""}</request>`,
 		...loaded.map((input) => {
 			return [
 				`<input kind="${input.decl.kind}" status="${input.status}" bytes="${input.bytes}">`,
@@ -41,3 +42,6 @@ export function assemble(loaded: LoadedMap, ctx: SpawnContext): string {
 		"</research_coordinator_context>"
 	].join("\n\n");
 }
+
+export const context = defineContext({ loaders, assemble });
+export default context;

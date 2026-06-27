@@ -155,17 +155,19 @@ Agent-specific private tools should live beside the agent definition:
 
 ```text
 src/agent-catalog/report-writer/
-  agent.md
+  agent.ts
+  prompt.ts
   context.ts
-  index.ts
+  tools.ts
 ```
 
-`agent.md` declares the allowlist. `index.ts` implements the tools for that one agent:
+`agent.ts` declares the durable agent config and imports the prompt, context, and private tools. `tools.ts` implements the tools for that one agent:
 
 ```ts
 import { Type } from "@mariozechner/pi-ai";
+import { defineTools } from "@agent-kernel/kernel/agent-definition";
 
-export function register(pi, runtime) {
+export const tools = defineTools((pi, runtime) => {
   pi.registerTool({
     name: "write_report",
     label: "Write report",
@@ -174,7 +176,7 @@ export function register(pi, runtime) {
       return runtime.writeReport(params);
     },
   });
-}
+});
 ```
 
 The spawn adapter loads the sidecar through the registry and binds app-owned runtime services:
@@ -182,17 +184,12 @@ The spawn adapter loads the sidecar through the registry and binds app-owned run
 ```ts
 buildPrivateRegisterFactory: async (name) => {
   const agent = registry.get(name);
-  if (!agent.indexModulePath) return null;
-
-  const mod = await import(pathToFileURL(agent.indexModulePath).href);
-  const register = mod.default?.register ?? mod.register;
-  if (!register) return null;
-
-  return (pi) => register(pi, appToolRuntime);
+  if (!agent.privateTools) return null;
+  return (pi) => agent.privateTools?.(pi, appToolRuntime);
 };
 ```
 
-Shared tools that should be available across many agents can still come from `buildToolFactories()`. Tools that only make sense for one agent should use the colocated `index.ts` path so the implementation, allowlist, and prompt stay together.
+Shared tools that should be available across many agents can still come from `buildToolFactories()`. Tools that only make sense for one agent should use the colocated `tools.ts` path so the implementation, prompt, and typed manifest stay together.
 
 ## Step 5: Define App Session And Container Mapping
 
@@ -317,7 +314,7 @@ This turns the adapter boundary into a testable contract instead of a convention
 - Create app workflow/session tables.
 - Create a small app kernel adapter with `createKernel()`.
 - Provide a spawn adapter and trace writer.
-- Colocate per-agent private tools in agent `index.ts` sidecars and load them from the spawn adapter.
+- Colocate per-agent private tools in agent `tools.ts` sidecars and bind them from the spawn adapter.
 - Register app-owned custom loaders.
 - Wrap the tailer if JSONL ingestion is needed.
 - Mount the kernel read API.

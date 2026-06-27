@@ -1,3 +1,5 @@
+import type { PromptDocument } from "@codecaine-ai/prompt-kit";
+
 export interface AgentVariableDeclaration {
 	default: unknown;
 	description?: string | null;
@@ -29,6 +31,8 @@ export interface AgentViewerDefinition {
 	name: string;
 	description: string;
 	model: string;
+	source?: "typed" | "markdown";
+	prompt?: PromptDocument | null;
 	tools: string[];
 	disallowedTools: string[];
 	extensions: true | string[] | false;

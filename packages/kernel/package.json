@@ -7,6 +7,7 @@
   "types": "src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./agent-definition": "./src/agent-definition/index.ts",
     "./agent-registry": "./src/agent-registry/index.ts",
     "./agent-registry/parsing": "./src/agent-registry/parsing/index.ts",
     "./agent-registry/registry": "./src/agent-registry/registry/index.ts",
@@ -31,6 +32,7 @@
     "@agent-kernel/db": "workspace:*",
     "@agent-kernel/protocol": "workspace:*",
     "@agent-kernel/viewer-core": "workspace:*",
+    "@codecaine-ai/prompt-kit": "workspace:*",
     "@mariozechner/pi-ai": "^0.70.6",
     "@mariozechner/pi-coding-agent": "^0.70.6",
     "elysia": "^1.2.0",

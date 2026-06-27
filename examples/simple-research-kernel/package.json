@@ -17,6 +17,7 @@
     "@agent-kernel/viewer-core": "workspace:*",
     "@agent-kernel/viewer-shell": "workspace:*",
     "@agent-kernel/viewer-ui": "workspace:*",
+    "@codecaine-ai/prompt-kit": "workspace:*",
     "@mariozechner/pi-ai": "^0.70.6",
     "@mariozechner/pi-coding-agent": "^0.70.6",
     "@vitejs/plugin-react": "^4.3.0",

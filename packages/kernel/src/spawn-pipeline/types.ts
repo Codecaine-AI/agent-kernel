@@ -1,8 +1,10 @@
 import type { RuntimeState } from "../context";
 
 export interface VariableDeclaration {
-	default: unknown;
+	default?: unknown;
 	description?: string;
+	optional?: boolean;
+	required?: boolean;
 }
 
 export interface DomainRule {

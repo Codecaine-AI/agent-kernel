@@ -3,8 +3,9 @@ import type {
 	LoadedMap,
 	SpawnContext
 } from "@agent-kernel/kernel/context";
+import { defineContext } from "@agent-kernel/kernel/agent-definition";
 
-export const loaders: AgentContextResolver["loaders"] = [
+const loaders: AgentContextResolver["loaders"] = [
 	{
 		kind: "file",
 		path: "research-memory/brief.md"
@@ -21,7 +22,7 @@ export const loaders: AgentContextResolver["loaders"] = [
 	}
 ];
 
-export function assemble(loaded: LoadedMap, ctx: SpawnContext): string {
+function assemble(loaded: LoadedMap, ctx: SpawnContext): string {
 	return [
 		"<synthesis_writer_context>",
 		`<focus>${ctx.variables.focus ?? ""}</focus>`,
@@ -35,3 +36,6 @@ export function assemble(loaded: LoadedMap, ctx: SpawnContext): string {
 		"</synthesis_writer_context>"
 	].join("\n\n");
 }
+
+export const context = defineContext({ loaders, assemble });
+export default context;

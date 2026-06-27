@@ -3,8 +3,9 @@ import type {
 	LoadedMap,
 	SpawnContext
 } from "@agent-kernel/kernel/context";
+import { defineContext } from "@agent-kernel/kernel/agent-definition";
 
-export const loaders: AgentContextResolver["loaders"] = [
+const loaders: AgentContextResolver["loaders"] = [
 	{
 		kind: "text",
 		label: "scout assignment",
@@ -26,7 +27,7 @@ export const loaders: AgentContextResolver["loaders"] = [
 	}
 ];
 
-export function assemble(loaded: LoadedMap, ctx: SpawnContext): string {
+function assemble(loaded: LoadedMap, ctx: SpawnContext): string {
 	return [
 		"<source_scout_context>",
 		`<focus>${ctx.variables.focus ?? ""}</focus>`,
@@ -40,3 +41,6 @@ export function assemble(loaded: LoadedMap, ctx: SpawnContext): string {
 		"</source_scout_context>"
 	].join("\n\n");
 }
+
+export const context = defineContext({ loaders, assemble });
+export default context;

@@ -18,6 +18,8 @@ export function toAgentViewerDefinitions(
 			name: agent.name,
 			description: agent.description,
 			model: agent.model,
+			source: agent.source,
+			prompt: agent.promptDocument,
 			tools: agent.tools,
 			disallowedTools: agent.disallowedTools,
 			extensions: agent.extensions,

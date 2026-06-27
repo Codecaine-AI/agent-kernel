@@ -1,5 +1,6 @@
 import { pathToFileURL } from "node:url";
 
+import type { AgentPrivateTools } from "../../agent-definition";
 import type { AgentRegisterFn } from "../parsing/types";
 
 interface StubPi {
@@ -23,5 +24,18 @@ export async function harvestPrivateToolNamesFromPath(
 		},
 	};
 	await reg(stubPi as unknown as Parameters<AgentRegisterFn>[0]);
+	return names;
+}
+
+export async function harvestPrivateToolNamesFromRegister(
+	register: AgentPrivateTools,
+): Promise<string[]> {
+	const names: string[] = [];
+	const stubPi: StubPi = {
+		registerTool(tool) {
+			names.push(tool.name);
+		},
+	};
+	await register(stubPi as unknown as Parameters<AgentPrivateTools>[0]);
 	return names;
 }
