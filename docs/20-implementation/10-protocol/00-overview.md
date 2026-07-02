@@ -17,13 +17,15 @@ depends-on: [../../10-system-design/30-event-protocol.md]
 | File | Purpose |
 |---|---|
 | `src/envelope.ts` | `TraceEvent`, `TraceSource`, and source constants |
-| `src/types.ts` | trace levels, event type catalog, event data interfaces |
-| `src/factories.ts` | helpers that construct correctly shaped events |
+| `src/types.ts` | trace levels, event type catalog, event data interfaces, `TurnUsage` |
+| `src/factories.ts` | helpers that construct correctly shaped events (`TraceEventIds` first) |
+| `src/ids.ts` | deterministic event-id derivation shared by emitter and backfill |
+| `src/usage.ts` | `TurnUsage` extraction from Pi message usage |
 | `src/index.ts` | public package export |
 
 ## Envelope Details
 
-`TraceEvent` stores app correlation (`appSessionId`), optional kernel grouping (`containerId`), event identity, source, trace level, typed payload, timestamp, and optional span/parent ids.
+`TraceEvent` stores required kernel grouping (`containerId`), event identity, source, trace level, typed payload, timestamp, and optional run linkage (`runId`), actor correlation (`userId`), and span/parent ids. Host correlation happens through container kind + app key, not an envelope field.
 
 `TraceSource` exposes kernel, app, and agent constants, but the type is open-string compatible so host apps can pass custom sources if needed.
 
@@ -33,14 +35,14 @@ depends-on: [../../10-system-design/30-event-protocol.md]
 
 Kernel-core event families include:
 
-- agent and Pi lifecycle
+- agent and Pi lifecycle (including `run_steered` and per-turn usage)
 - prompt and context build lifecycle
 - conversation messages
 - tool lifecycle
 - phases and containers
 - warnings and errors
 
-The current package still includes UI ask event data because ask events existed before extraction. Spectre-specific ask storage remains app-side.
+UI ask event types were removed from the core catalog; apps that need them register them as open-string types, and ask storage remains app-side.
 
 ## Factory Use
 

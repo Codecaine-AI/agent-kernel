@@ -1,69 +1,57 @@
 ---
-covers: "Implementation of @agent-kernel/db: Drizzle schema and query helpers for kernel registrations, containers, Pi agent sessions, agent runs, trace events, bootstrap, and kernel trace reads."
+covers: "Implementation of @agent-kernel/db: SQLite-first client and bootstrap, kernel manifest, Drizzle schema for containers, Pi agent sessions, agent runs, trace events, prompt revisions, usage rollups, the Postgres mirror, and container-first read helpers."
 type: overview
-concepts: [db, drizzle, kernel-registration, containers, pi-agent-sessions, agent-runs, trace-events, bootstrap, read-api-helpers]
-code-ref: packages/db/src/schema/, packages/db/src/actions/
+concepts: [db, sqlite, drizzle, kernel-manifest, containers, pi-agent-sessions, agent-runs, trace-events, prompt-revisions, usage-rollups, bootstrap, read-api-helpers, pg-mirror]
+code-ref: packages/db/src/client.ts, packages/db/src/manifest.ts, packages/db/src/bootstrap.ts, packages/db/src/schema/, packages/db/src/actions/
 depends-on: [../../10-system-design/20-observability-model.md]
 ---
 
 # Database Package
 
-`@agent-kernel/db` owns the kernel observability schema and server-side query helpers. Apps compose these table definitions into their own Drizzle setup.
+`@agent-kernel/db` owns the kernel observability storage: one local SQLite database per kernel, plus the schema, write actions, and container-first read helpers over it.
 
 ---
+
+## Client And Manifest
+
+`openKernelDatabase({ path })` opens (creating if needed) the kernel database — standard path `<root>/.agent-kernel/trace.db` via `kernelDatabasePath(rootDir)` — enables WAL mode so viewer reads never block the kernel writer, and returns a Drizzle handle plus `close()`. `KernelDatabase` is the Bun-SQLite Drizzle handle every action is typed against.
+
+`writeKernelManifest(dir, manifest)` / `readKernelManifest(dir)` manage `<root>/.agent-kernel/kernel.json` — the local manifest that replaced the old `kernel_registrations` table. With one database per kernel there is no shared plane to register with; the manifest records `kernelId`, `displayName`, `piSessionsDir`, and an optional viewer link.
 
 ## Schema
 
 | Table | Purpose |
 |---|---|
-| `kernel_registrations` | Host-kernel discovery row for shared local infrastructure |
-| `containers` | Generic grouping unit for app work and viewer navigation |
-| `pi_agent_sessions` | Pi SDK session identity, parent Pi session linkage, agent status, model, phase/container labels |
-| `agent_runs` | One run inside a Pi session, including agent, container, phase, parent run, status, and parent tool call |
-| `trace_events` | Event stream rows typed by the protocol envelope |
+| `containers` | The single grouping primitive: derived id, `kernel_id`, `kind`, `app_key` (JSON key segments, unique per kernel+kind), label, status, parent container, phase, working dir, metadata, usage rollup columns |
+| `pi_agent_sessions` | Pi SDK session identity: container linkage, parent session + `parent_tool_use_id`, agent name, model, `prompt_hash`, status, usage rollups |
+| `agent_runs` | One run inside a Pi session: session/container linkage, parent run, `trigger`, `inbound_event_id`/`outbound_event_id`, status, usage rollup columns |
+| `trace_events` | Event stream rows typed by the protocol envelope (`container_id` required, `run_id` optional, open `type`/`source` strings) |
+| `prompt_revisions` | Content-addressed prompt snapshots: `hash` (`pk1-<sha256>`) primary key, agent name, schema version, canonical document, rendered text, `source` (`registry-boot` \| `lab-save`) |
 
-## Kernel Registrations
+Usage rollup columns (`usage_input_tokens`, `usage_output_tokens`, `usage_cache_read`, `usage_cache_write`, `usage_cost_estimate`) live on runs and containers; sessions carry input/output totals. `actions/usage.ts` provides the additive increment helpers the emitter uses to fold turn usage into run, session, and container rows.
 
-Each host app can upsert one `kernel_registrations` row on startup. The row tells shared infrastructure which Pi sessions directory to watch and tells viewers where to link back into the app.
+## Container Identity
 
-Use `upsertKernelRegistration(db, data)` with:
-
-- `kernelId`
-- `displayName`
-- `workingDir`
-- `piSessionsDir`
-- app/generic trace URL templates
-- marker names for session binding, lifecycle, and subagent links
-
-## Containers
-
-Containers are the kernel's portable grouping primitive. They carry label, status, parent container, working paths, phase label, phase vocabulary, metadata, and timestamps.
-
-Apps can map their domain work units to containers without the kernel learning app workflow semantics.
-
-## Pi Agent Sessions
-
-Pi agent sessions track the durable Pi conversation identity for each agent. The table stores parent-child relationships, app-session correlation, container/phase labels, display labels, agent names, status, model, and timestamps.
-
-## Agent Runs
-
-An agent run represents one processing loop. Runs link to Pi sessions and carry explicit structural fields such as `agentName`, `containerId`, `phase`, `parentRunId`, `displayLabel`, and `parentToolUseId`.
+Container ids are derived, never minted: `kernel.container({ kind, key })` in the kernel package computes `uuidv5` over `(kernelId, kind, key)` and calls `upsertContainer` here — the same inputs always resolve to the same row. Apps map their domain work units to containers through kind vocabulary without the kernel learning app workflow semantics.
 
 ## Trace Events
 
-Trace events store the protocol envelope as DB rows. The `type` and `source` columns are open strings so app-specific events can pass through.
-
-`insertTraceEventsBatch()` is idempotent by event id. This lets tailer retry/replay paths tolerate overlap.
+Trace events store the protocol envelope as rows. `insertTraceEventsBatch()` is idempotent by event id (`INSERT OR IGNORE`), which is what lets the in-process emitter and a later JSONL backfill of the same session coexist without duplicates.
 
 ## Bootstrap
 
-`ensureKernelObservabilitySchema(db)` creates the current Postgres schema and indexes when a host app does not yet have a migration path. It is used by `examples/simple-research-kernel` and is intentionally small: production apps should still fold the exported Drizzle schema into their own migrations once contracts settle.
+`ensureKernelObservabilitySchema(db)` runs idempotent `CREATE TABLE IF NOT EXISTS` statements mirroring the Drizzle schema. There is no migration tooling: the schema is created on kernel start against the local `trace.db`.
+
+## Postgres Mirror
+
+`@agent-kernel/db/schema/pg` exports a Postgres mirror of the schema for shared-plane deployments — column names, row shapes, and constraints match SQLite (timestamps stay ISO-8601 TEXT). The caveat: the actions layer is SQLite-first and typed against the bun-sqlite handle; Postgres deployments query the mirrored tables directly until actions go dual-dialect. The mirror is exported only through the `schema/pg` subpath so the default entrypoint stays SQLite-only.
 
 ## Read Helpers
 
-`actions/read-api.ts` provides:
+`actions/read-api.ts` is container-first — all reads are keyed by `containerId`, and there is no app-session identity in this package:
 
-- `listContainerTree(db, rootContainerId)`
-- `getKernelTraceReadRows(db, identity, opts)`
+- `getKernelTraceReadRows(db, containerId, opts)` — one container subtree: root container, child containers, Pi sessions with event counts, runs, events
+- `listSessionContainersWithStats(db, ...)` — containers of kind `"session"` with session/event stats for list views
+- `deleteKernelTraceRows(db, containerId)` — cascade delete of one container subtree
 
-These are lower-level helpers used by app-mounted read API adapters. They prefer container identity and use app-session identity as a compatibility bridge when supplied.
+These are the helpers behind the kernel's default `readApiService`.

@@ -14,16 +14,12 @@ An app adapter turns the generic kernel into a product-specific agent system. It
 
 An app adapter typically provides:
 
-- kernel instance configuration
-- spawn adapters and DB handles
-- app session to kernel container mapping
-- agent catalog roots
-- shared tool factories
-- private tool sidecar loading
+- kernel instance configuration (`createKernel` config: catalog roots, db handle, model aliases and prices, tool profiles)
+- app domain to kernel container mapping (kind + key vocabulary)
+- shared tool factories and an app tool runtime for private sidecars
 - custom context loaders
-- run-context app state
-- app-specific event emitters
-- tailer watch paths and custom marker names
+- run-context app state through `appContext`
+- app-specific event emission through the trace writer
 - read API mount and response mapping
 - viewer plugins and custom payload renderers
 
@@ -32,7 +28,7 @@ An app adapter typically provides:
 | Kernel Concept | Spectre Adapter Mapping |
 |---|---|
 | Container | Spectre session/workflow grouping, with app state kept in Spectre tables |
-| App session identity | Spectre session id, slug, and session directory |
+| Container kind + key | Spectre session id mapped through `kernel.container({ kind: "session", key })` |
 | Phase label | `spec`, `plan`, `build`, `docs`, or other Spectre workflow labels |
 | Custom loader | `checkpoint-slice`, which reads Spectre plan/build state |
 | App state manager | `SessionStateManager` passed through run context |

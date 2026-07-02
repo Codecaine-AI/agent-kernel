@@ -15,12 +15,14 @@ This repository is a Bun workspace containing the portable kernel packages extra
 
 ```text
 packages/
-  protocol/      Trace event envelope, event catalog, factories
-  db/            Kernel observability Drizzle schema and query helpers
-  kernel/        Kernel instance, spawn runtime, registry, context, subagents, read API
-  tailer/        Pi JSONL ingestion primitives
-  viewer-core/   Read API DTOs and trace span transforms
-  viewer-ui/     Trace tree and detail UI components
+  protocol/      Trace event envelope, event catalog, factories, deterministic ids
+  db/            Per-kernel SQLite store, schema (+ pg mirror), manifest, query helpers
+  kernel/        Kernel instance, containers, spawn runtime, emitter, registry,
+                 context, subagents, doctor, read API
+  tailer/        Pi JSONL backfill/import tool
+  prompt-kit/    Prompt document model, canonicalization/hash, renderers (submodule)
+  viewer-core/   Read/catalog API DTOs, trace span transforms, prompt diff
+  viewer-ui/     Trace tree, detail, and prompt lab UI components
   viewer-shell/  Mountable KernelTraceViewer shell
 ```
 
@@ -46,12 +48,13 @@ Kernel packages must not import Spectre packages, Spectre paths, or Spectre nami
 
 ```text
 examples/simple-research-kernel
-  Postgres-backed kernel registrations, containers, sessions, runs, and trace events
+  single local SQLite trace database (.agent-kernel/trace.db) + kernel manifest
+  containers, sessions, runs, trace events, prompt revisions, usage rollups
   DB-backed read API
   app-embedded viewer
 ```
 
-Use `bun run dev:services` to start the shared Postgres service, then `bun run dev:simple-research` to run the Simple Research Kernel.
+Run `bun run dev:simple-research` — no Docker and no service processes. `bun run dev:services` remains only for optional shared-Postgres experiments.
 
 ## Child Nodes
 
@@ -59,13 +62,13 @@ Use `bun run dev:services` to start the shared Postgres service, then `bun run d
 Trace protocol types and event factories.
 
 ### [20-kernel/](20-kernel/00-overview.md)
-Runtime package: kernel instance, registry, spawn pipeline, context, subagents, run context.
+Runtime package: kernel instance, containers, registry, spawn pipeline, emitter, context, subagents, run context, doctor.
 
 ### [30-db/](30-db/00-overview.md)
-Drizzle schema and query helpers for containers, Pi sessions, agent runs, and trace events.
+SQLite client, kernel manifest, and Drizzle schema/query helpers for containers, Pi sessions, agent runs, trace events, and prompt revisions.
 
 ### [40-tailer/](40-tailer/00-overview.md)
-JSONL ingestion pieces: mapper, cursor store, file reader, watcher, queue, health.
+JSONL backfill/import tool: mapper, deterministic ids, runBackfill, CLI.
 
 ### [50-read-api/](50-read-api/00-overview.md)
 Elysia route factory and DB read helpers consumed by viewer-core.

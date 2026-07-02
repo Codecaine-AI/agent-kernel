@@ -10,6 +10,10 @@ The kernel docs were promoted from Spectre docs, but they were not copied verbat
 
 ---
 
+## 2026-07 Overhaul
+
+The kernel-overhaul (identity + SQLite storage, usage tracing, prompt revisions, runtime consolidation, prompt lab) superseded parts of the originally promoted docs. The docs in this tree describe the post-overhaul state; for the plan that drove the change and the identity contract it introduced, read [docs/.drafts/agent-kernel-overhaul.plan.md](../../.drafts/agent-kernel-overhaul.plan.md) and [docs/10-system-design/15-identity-model.md](../../10-system-design/15-identity-model.md). Pre-overhaul concepts referenced below (app-session identity, `agent.md` frontmatter, kernel registration rows, the tailer daemon) are historical.
+
 ## Promoted Into Kernel Docs
 
 | Original Spectre Doc | Kernel Destination |
@@ -47,7 +51,7 @@ Those should be documented as Spectre adapters on top of the kernel.
 
 | Spectre Term | Kernel Term |
 |---|---|
-| Spectre session id | `appSessionId` when referring to host correlation |
+| Spectre session id | container `kind` + `key` (originally `appSessionId`, deleted in the 2026-07 overhaul) |
 | Spectre session grouping | container |
 | Spectre phase | opaque `phase` label |
 | Spectre checkpoint/task group | app workflow metadata |

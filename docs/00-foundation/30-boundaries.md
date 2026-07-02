@@ -14,15 +14,16 @@ The kernel owns the reusable runtime and observability foundation. A host applic
 
 | Area | Kernel Responsibility |
 |---|---|
-| Protocol | Trace event envelope, core event types, trace levels, factories, source conventions |
-| Runtime | `createKernel`, spawn adapter surface, run context, spawn pipeline, turn limits |
-| Agent definitions | Typed agent manifests, registry, prompt rendering, variable validation, sidecar loading |
+| Protocol | Trace event envelope, core event types, trace levels, factories, deterministic event ids, source conventions |
+| Runtime | `createKernel` config surface, container identity, run context, spawn pipeline, in-process emitter, turn limits |
+| Agent definitions | `agent.json` manifests, registry, prompt rendering, variable validation, sidecar loading |
+| Prompt system | Canonical `prompt.json` documents, content-addressed prompt revisions, rendered snapshots, revision registration |
 | Context | Base loader catalog and context assembly contract |
-| Subagents | In-process agent manager, queueing, parent tool-call linkage |
-| Observability DB | Containers, Pi agent sessions, agent runs, trace events, read helpers |
-| Tailer | Pi JSONL reading, cursoring, event mapping, queueing, health primitives |
-| Read API | Versioned trace read routes that viewer-core can target |
-| Viewer | Trace DTOs, trace span transforms, reusable tree/detail UI, base viewer shell |
+| Subagents | In-process agent manager, queueing, parent tool-call linkage, steering events |
+| Observability DB | Per-kernel SQLite database, local kernel manifest, containers, Pi agent sessions, agent runs, trace events, prompt revisions, usage rollups, read helpers |
+| Tailer | JSONL backfill/import: whole-file reading, event mapping, idempotent insert with emitter id parity |
+| Read API | Versioned trace read routes and catalog routes that viewer-core can target |
+| Viewer | Trace DTOs, catalog DTOs, trace span transforms, prompt diffing, reusable tree/detail UI, prompt lab, base viewer shell |
 
 ## Apps Own
 

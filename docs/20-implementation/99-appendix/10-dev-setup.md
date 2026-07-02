@@ -1,6 +1,6 @@
 ---
 covers: "Development setup and validation commands for the pi-agent-kernel repository."
-concepts: [dev-setup, bun, typecheck, tests, boundary-check]
+concepts: [dev-setup, bun, typecheck, tests, boundary-check, trace-doctor, sqlite]
 depends-on: [../00-overview.md]
 ---
 
@@ -31,6 +31,7 @@ bun run test
 ```bash
 bun run typecheck:protocol
 bun run typecheck:db
+bun run typecheck:prompt-kit
 bun run typecheck:kernel
 bun run typecheck:tailer
 bun run typecheck:viewer-core
@@ -41,13 +42,7 @@ bun run typecheck:examples
 
 ## Simple Research Kernel Demo
 
-Start the shared Postgres service:
-
-```bash
-bun run dev:services
-```
-
-In another terminal, run the Simple Research Kernel:
+No Docker and no service processes — the example runs against a single local SQLite file:
 
 ```bash
 bun run dev:simple-research
@@ -55,13 +50,23 @@ bun run dev:simple-research
 
 Defaults:
 
-- DB: `postgres://agent_kernel:agent_kernel@127.0.0.1:55432/agent_kernel`
+- DB: `examples/simple-research-kernel/.agent-kernel/trace.db` (WAL mode, created on boot)
 - Viewer: `http://127.0.0.1:5174`
 - API: `http://127.0.0.1:8788`
 
-Use it when checking that agent definitions, context sidecars, subagent orchestration, scout-report review, working-memory writes, protocol events, DB persistence, read API, viewer-core transforms, and viewer shell still work together.
+Use it when checking that agent bundles, context sidecars, subagent orchestration, scout-report review, working-memory writes, protocol events, SQLite persistence, usage rollups, read API, viewer-core transforms, and viewer shell still work together.
 
-Set `AGENT_KERNEL_DATABASE_URL` to point the kernel at a different Postgres instance.
+`bun run dev:services` still exists, but only for optional shared-Postgres experiments against the `@agent-kernel/db/schema/pg` mirror — the example does not need it.
+
+## Trace Doctor
+
+Check a kernel database against the linkage and usage invariants:
+
+```bash
+bun run packages/kernel/src/doctor-cli.ts <db-path>
+```
+
+Without an argument it defaults to `.agent-kernel/trace.db` under the current directory. Non-zero exit means violations. The example API also exposes the same report at `GET /api/doctor`, and `POST /api/backfill` re-imports Pi JSONL transcripts (idempotent by event id).
 
 ## Current Recommended Manual Check
 

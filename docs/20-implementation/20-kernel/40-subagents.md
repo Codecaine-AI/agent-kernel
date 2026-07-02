@@ -36,14 +36,16 @@ Background agents enter a FIFO queue when the concurrency limit is reached. The 
 
 When a subagent is spawned from a tool call, the manager forwards:
 
-- current app session identity from `RunContext`
-- current container id
+- the current `containerId` from `RunContext`
 - current phase
 - `parentToolUseId`
 - optional parent run id
+- the run `trigger`, defaulting to `parent-tool`
 
-It also writes a custom parent/child Pi session marker to the parent Pi session when both session ids are known. The tailer uses that marker to link Pi sessions into a tree.
+It also writes a custom parent/child Pi session marker to the parent Pi session when both session ids are known. The backfill mapper uses that marker to link Pi sessions into a tree.
 
 ## Steering
 
 The manager can store steering messages before a subagent session exists and flush them once the session is created. This lets callers interact with long-running subagents without breaking the runtime abstraction.
+
+Steering is a control action, so it is observable: each steering message emits exactly one `run_steered` trace event, with `delivery: "delivered"` when it steered a live session or `delivery: "queued"` when it was held until the session existed. Queued emissions wait for the run's trace identity and flush with it.

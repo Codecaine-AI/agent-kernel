@@ -1,14 +1,16 @@
 ---
-covers: "Implementation of @agent-kernel/tailer: Pi JSONL mapping, session binding, lifecycle custom events, cursoring, queueing, file reading, directory watching, backpressure, and health."
+covers: "Implementation of @agent-kernel/tailer as a backfill/import tool: Pi JSONL mapping, session binding, deterministic event ids, emitter id parity, runBackfill, and the CLI."
 type: overview
-concepts: [tailer, jsonl, event-mapper, cursor-store, event-queue, file-reader, directory-watcher, health]
-code-ref: packages/tailer/src/
+concepts: [tailer, backfill, jsonl, event-mapper, deterministic-ids, session-binding, idempotent-insert]
+code-ref: packages/tailer/src/backfill.ts, packages/tailer/src/mapper.ts, packages/tailer/src/backfill-cli.ts
 depends-on: [../../10-system-design/20-observability-model.md, ../10-protocol/00-overview.md]
 ---
 
 # Tailer Package
 
-`@agent-kernel/tailer` contains reusable Pi JSONL ingestion primitives. A host app or shared service wraps these primitives with DB inserts, registered watch paths, and app-specific marker names.
+`@agent-kernel/tailer` is a backfill/import tool, not a daemon. The primary trace path is the kernel's in-process emitter; this package reads complete Pi JSONL transcripts and imports them into a kernel trace database for crash recovery and for sessions that ran outside the kernel.
+
+The old daemon posture — directory watcher loop, cursor snapshots, health port, registration-row discovery — is gone.
 
 ---
 
@@ -16,54 +18,31 @@ depends-on: [../../10-system-design/20-observability-model.md, ../10-protocol/00
 
 | Component | Purpose |
 |---|---|
-| `createTailerConfig` | Normalizes watch path, cursor path, batch sizes, retry limits, and health port |
-| `EventMapper` | Maps Pi JSONL events to protocol `TraceEvent`s |
-| `EventQueue` | Batches trace events and retries failed inserts |
-| `CursorStore` | Tracks byte offsets and writes crash-recovery snapshots |
-| `FileReader` | Reads appended JSONL lines from a file |
-| `DirectoryWatcher` | Watches a directory tree and manages readers |
-| health route | Exposes queue, reader, pressure, DB, and uptime state |
+| `runBackfill(options)` | Scans a JSONL directory (or explicit file list), maps whole files, batch-inserts idempotently, returns a summary |
+| `EventMapper` | Maps Pi JSONL entries to protocol `TraceEvent`s |
+| `readJsonlFile` | Reads and parses one JSONL transcript |
+| `createTailerConfig` | Normalizes batch size and retry limits |
+| `backfill-cli.ts` | CLI entry over `runBackfill` |
 
 ## Event Mapping
 
-The mapper understands Pi events such as:
+The mapper understands Pi entries such as `session`, `message`, `model_change`, and `custom`, and emits protocol events for user messages, assistant messages, tool call starts/ends, agent session starts, turn boundaries with `TurnUsage`, and lifecycle custom events.
 
-- `session`
-- `message`
-- `model_change`
-- `custom`
-- skipped informational events
+## Deterministic Ids And Emitter Parity
 
-It emits protocol events for user messages, assistant messages, tool call starts/ends, agent session starts, and lifecycle custom events.
+Event ids are derived deterministically from `(piSessionUuid, JSONL entry id, ordinal, type)` via the shared `piEntryEventId` helper in `@agent-kernel/protocol`. The kernel's in-process emitter derives the identical ids at emit time, so live emission followed by a backfill of the same session produces the same id set — `insertTraceEventsBatch` is `INSERT OR IGNORE` on `event_id`, and replays insert zero new rows. The backfill summary reports mapped, inserted, and skipped (already present) counts.
 
 ## Session Binding
 
-Pi JSONL starts with Pi's own session id. The kernel mapper can hold events until it sees an app session binding marker. Once an app session id is known, pending events are stamped and released.
+Pi JSONL starts with Pi's own session id. Envelope identity — required `containerId` and optional `runId` — arrives through the session-binding marker the kernel's spawn pipeline writes into every transcript. The mapper holds events pending until it sees the marker, then stamps and releases them.
 
-The marker name and field names are configurable through `EventMapperOptions.sessionBinding`. Spectre can use its compatibility marker while new apps can use kernel-native marker names.
+Marker and lifecycle custom types are configurable through `EventMapperOptions`; the kernel defaults are `agent-kernel:session-binding`, `agent-kernel:pi-lifecycle`, and `agent-kernel:subagent-link`.
 
-## Registered Watch Roots
+## CLI Usage
 
-Host apps using the local observability setup upsert `kernel_registrations` rows in Postgres. A central tailer daemon can use those rows to discover:
+```bash
+bun run packages/tailer/src/backfill-cli.ts <jsonl-dir> --db <db-path> \
+  [--batch-size <n>] [--binding-type <t>] [--lifecycle-type <t>] [--subagent-type <t>]
+```
 
-- kernel id and display name
-- Pi sessions directory
-- marker names for session binding, lifecycle, and subagent links
-- app and generic viewer URL templates
-
-The first repo implementation starts only the shared Postgres service with `bun run dev:services`; `@agent-kernel/tailer` remains the primitive package used by future app or central daemon wrappers.
-
-## Lifecycle Custom Events
-
-The mapper defaults to:
-
-- `agent-kernel:pi-lifecycle`
-- `agent-kernel:subagent-link`
-
-Apps may override these to support existing JSONL streams.
-
-## Backpressure And Recovery
-
-The queue has a bounded capacity. When full, callers can pause reading and resume once the queue drains.
-
-Cursor snapshots let the tailer recover from process restarts. Re-read overlap is expected and handled by idempotent event insertion on the app side.
+The CLI opens the database (ensuring the schema), scans the directory recursively for `.jsonl` files, and prints the backfill summary. `runBackfill` also accepts an already-open `db` handle for embedding — the example app mounts it behind a dev `/api/backfill` endpoint.

@@ -36,7 +36,7 @@ Timestamps order events. They do not prove parentage.
 
 ## App Identity Is Generic
 
-The kernel can carry an `appSessionId`, an app slug, app paths, and app metadata because every host needs to correlate kernel work with its own domain rows. Those fields are generic host-app identity. They must not imply Spectre's database structure.
+Host correlation happens through containers: an app maps its domain rows to container `kind` + `key` vocabulary, and the kernel derives stable ids from them. Containers can carry app labels, paths, and opaque metadata because every host needs to correlate kernel work with its own domain rows — but there is no separate app-session identity, and nothing may imply one host app's database structure.
 
 ## Adapters Are Allowed To Be Specific
 
@@ -58,6 +58,7 @@ The current packages are:
 - `@agent-kernel/db`
 - `@agent-kernel/kernel`
 - `@agent-kernel/tailer`
+- `@codecaine-ai/prompt-kit`
 - `@agent-kernel/viewer-core`
 - `@agent-kernel/viewer-ui`
 - `@agent-kernel/viewer-shell`
