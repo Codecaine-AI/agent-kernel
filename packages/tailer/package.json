@@ -9,8 +9,8 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@agent-kernel/protocol": "workspace:*",
-    "elysia": "^1.2.0"
+    "@agent-kernel/db": "workspace:*",
+    "@agent-kernel/protocol": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest"

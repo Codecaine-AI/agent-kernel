@@ -1,3 +1,15 @@
+/**
+ * EventMapper — maps Pi JSONL entries to protocol TraceEvents for backfill.
+ *
+ * Identity: `containerId` (required on the envelope) and optional `runId`
+ * arrive through a session-binding marker written into the JSONL by the
+ * kernel. Events mapped before the marker is seen are held pending and
+ * stamped on release.
+ *
+ * Idempotency: event ids are derived deterministically from
+ * (piSessionUuid, JSONL entry id, ordinal), so re-mapping the same file
+ * always yields the same event ids and `INSERT OR IGNORE` de-duplicates.
+ */
 import {
   createAgentSessionStartEvent,
   createAssistantMessageEvent,
@@ -8,19 +20,20 @@ import {
   createToolCallEndEvent,
   createToolCallStartEvent,
   createUserMessageEvent,
-  newEventId,
-  SYSTEM_USER_ID,
   TraceLevel,
 } from "@agent-kernel/protocol";
-import type { TraceEvent } from "@agent-kernel/protocol";
-import type { MapperResult, PiEvent, PiMessageEvent } from "./types";
+import type { TraceEvent, TraceEventIds, TurnUsage } from "@agent-kernel/protocol";
+import type { MapperResult, PiEvent, PiMessage, PiMessageEvent } from "./types";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface EventMapperSessionBindingOptions {
   customType: string;
-  appSessionIdField?: string;
+  /** Field in the marker payload carrying the container id. Default: "containerId". */
+  containerIdField?: string;
+  /** Field in the marker payload carrying the run id. Default: "runId". */
+  runIdField?: string;
   slugField?: string;
   dirField?: string;
 }
@@ -36,16 +49,36 @@ const DEFAULT_MAPPER_OPTIONS = Object.freeze({
   subagentLinkCustomType: "agent-kernel:subagent-link",
 } satisfies Required<Omit<EventMapperOptions, "sessionBinding">>);
 
+/**
+ * Deterministic UUID-shaped id from a seed string (sha-256 truncated).
+ * Replaying the same JSONL entry always produces the same event id.
+ */
+export function deterministicEventId(seed: string): string {
+  const hasher = new Bun.CryptoHasher("sha256");
+  hasher.update(seed);
+  const hex = hasher.digest("hex");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+interface EntryContext {
+  entryId: string;
+  ordinal: number;
+}
+
 export class EventMapper {
   private readonly options: Required<Omit<EventMapperOptions, "sessionBinding">> &
     Pick<EventMapperOptions, "sessionBinding">;
   private model = "unknown";
-  private appSessionId: string | null = null;
+  private containerId: string | null = null;
+  private runId: string | null = null;
   private piSessionUuid: string | null = null;
   private pending: TraceEvent[] = [];
   private pendingSince: number | null = null;
-  private lastActivityAt = Date.now();
-  private markedCompleted = false;
+  private entry: EntryContext | null = null;
+  /** Usage from the assistant message of the current turn, if any. */
+  private currentTurnUsage: TurnUsage | null = null;
+  /** Aggregate usage across all turns since agent_start. */
+  private aggregateUsage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
 
   constructor(options: EventMapperOptions = {}) {
     this.options = {
@@ -54,25 +87,48 @@ export class EventMapper {
     };
   }
 
+  private ids(): TraceEventIds {
+    return {
+      containerId: this.containerId ?? "",
+      runId: this.runId ?? undefined,
+      piSessionUuid: this.piSessionUuid ?? undefined,
+    };
+  }
+
+  /**
+   * Re-stamp a factory-built event as an agent-sourced backfill event:
+   * JSONL timestamp, deterministic event id, current pi session uuid.
+   */
   private asAgentEvent(evt: TraceEvent, timestamp: string): TraceEvent {
+    const entry = this.entry;
+    const ordinal = entry ? entry.ordinal++ : 0;
     return {
       ...evt,
+      eventId: deterministicEventId(
+        `${this.piSessionUuid ?? ""}\n${entry?.entryId ?? ""}\n${ordinal}\n${evt.type}`,
+      ),
       source: "agent",
       timestamp,
       piSessionUuid: this.piSessionUuid ?? undefined,
     };
   }
 
-  setAppSessionId(id: string): TraceEvent[] {
-    if (!UUID_RE.test(id)) {
-      console.error(`[mapper] setAppSessionId rejected non-uuid: ${id}`);
+  /**
+   * Bind container (and optionally run) identity, releasing any pending
+   * events with the identity stamped on.
+   */
+  setContainerBinding(containerId: string, runId?: string): TraceEvent[] {
+    if (!UUID_RE.test(containerId)) {
+      console.error(`[mapper] setContainerBinding rejected non-uuid: ${containerId}`);
       return [];
     }
-    this.appSessionId = id;
+    this.containerId = containerId;
+    this.runId = runId ?? this.runId;
     const piUuid = this.piSessionUuid ?? undefined;
     const flushed = this.pending.map((e) => ({
       ...e,
-      appSessionId: id,
+      containerId,
+      runId: e.runId ?? runId,
       piSessionUuid: e.piSessionUuid ?? piUuid,
     }));
     this.pending = [];
@@ -88,8 +144,8 @@ export class EventMapper {
     this.piSessionUuid = uuid;
   }
 
-  hasAppSessionId(): boolean {
-    return this.appSessionId !== null;
+  hasContainerBinding(): boolean {
+    return this.containerId !== null;
   }
 
   hasPending(): boolean {
@@ -108,40 +164,27 @@ export class EventMapper {
     return this.piSessionUuid;
   }
 
-  getAppSessionId(): string | null {
-    return this.appSessionId;
+  getContainerId(): string | null {
+    return this.containerId;
+  }
+
+  getRunId(): string | null {
+    return this.runId;
   }
 
   getModel(): string {
     return this.model;
   }
 
-  idleMs(): number {
-    return Date.now() - this.lastActivityAt;
-  }
-
-  isCompletable(): boolean {
-    return this.appSessionId !== null && !this.markedCompleted;
-  }
-
-  markCompleted(): void {
-    this.markedCompleted = true;
-  }
-
   map(event: PiEvent): MapperResult {
-    this.lastActivityAt = Date.now();
+    this.entry = { entryId: event.id, ordinal: 0 };
     switch (event.type) {
       case "session":
         this.setPiSessionUuid(event.id);
         return this.gate({
           traceEvents: [
             this.asAgentEvent(
-              createAgentSessionStartEvent(
-                this.stampId(),
-                SYSTEM_USER_ID,
-                "pi-agent",
-                this.model,
-              ),
+              createAgentSessionStartEvent(this.ids(), "pi-agent", this.model),
               event.timestamp,
             ),
           ],
@@ -165,23 +208,33 @@ export class EventMapper {
     }
   }
 
-  private stampId(): string {
-    return this.appSessionId ?? "";
-  }
-
+  /** Hold events until the container binding is known, then release stamped. */
   private gate(result: MapperResult): MapperResult {
-    if (this.appSessionId !== null) return result;
+    if (this.containerId !== null) return result;
     if (result.traceEvents.length > 0) {
       this.pending.push(...result.traceEvents);
       this.pendingSince ??= Date.now();
     }
-    return { traceEvents: [], metadata: result.metadata };
+    return { traceEvents: [], warnings: result.warnings, metadata: result.metadata };
+  }
+
+  private extractUsage(message: PiMessage): TurnUsage | null {
+    const usage = message.usage;
+    if (!usage) return null;
+    return {
+      inputTokens: usage.input ?? 0,
+      outputTokens: usage.output ?? 0,
+      cacheReadTokens: usage.cacheRead ?? 0,
+      cacheWriteTokens: usage.cacheWrite ?? 0,
+      model: message.model ?? this.model,
+      ...(usage.cost?.total !== undefined ? { costEstimate: usage.cost.total } : {}),
+    };
   }
 
   private mapMessage(event: PiMessageEvent, timestamp: string): MapperResult {
     const results: TraceEvent[] = [];
     const { role, content } = event.message;
-    const sid = this.stampId();
+    const ids = this.ids();
 
     if (role === "toolResult") {
       const toolName = event.message.toolName ?? "unknown";
@@ -192,7 +245,7 @@ export class EventMapper {
         .slice(0, 10000);
       results.push(
         this.asAgentEvent(
-          createToolCallEndEvent(sid, SYSTEM_USER_ID, toolName, toolCallId, {
+          createToolCallEndEvent(ids, toolName, toolCallId, {
             toolOutput: output || undefined,
             spanId: toolCallId,
           }),
@@ -202,11 +255,22 @@ export class EventMapper {
       return { traceEvents: results };
     }
 
+    if (role === "assistant") {
+      const usage = this.extractUsage(event.message);
+      if (usage) {
+        this.currentTurnUsage = usage;
+        this.aggregateUsage.input += usage.inputTokens;
+        this.aggregateUsage.output += usage.outputTokens;
+        this.aggregateUsage.cacheRead += usage.cacheReadTokens;
+        this.aggregateUsage.cacheWrite += usage.cacheWriteTokens;
+      }
+    }
+
     for (const block of content) {
       if (role === "user" && block.type === "text") {
         results.push(
           this.asAgentEvent(
-            createUserMessageEvent(sid, SYSTEM_USER_ID, block.text, "unknown"),
+            createUserMessageEvent(ids, block.text, "unknown"),
             timestamp,
           ),
         );
@@ -215,7 +279,7 @@ export class EventMapper {
       if (role === "assistant" && block.type === "text") {
         results.push(
           this.asAgentEvent(
-            createAssistantMessageEvent(sid, SYSTEM_USER_ID, block.text, "text"),
+            createAssistantMessageEvent(ids, block.text, "text"),
             timestamp,
           ),
         );
@@ -230,7 +294,7 @@ export class EventMapper {
         }
         results.push(
           this.asAgentEvent(
-            createToolCallStartEvent(sid, SYSTEM_USER_ID, block.name, block.id, {
+            createToolCallStartEvent(ids, block.name, block.id, {
               toolInput,
               spanId: block.id,
             }),
@@ -246,18 +310,20 @@ export class EventMapper {
   private mapCustom(event: PiEvent & { type: "custom" }): MapperResult {
     const binding = this.options.sessionBinding;
     if (binding && event.customType === binding.customType) {
-      const appSessionId = event.data[binding.appSessionIdField ?? "appSessionId"] as
+      const containerId = event.data[binding.containerIdField ?? "containerId"] as
         | string
         | undefined;
+      const runId = event.data[binding.runIdField ?? "runId"] as string | undefined;
       const slug = event.data[binding.slugField ?? "appSessionSlug"] as string | undefined;
       const dir = event.data[binding.dirField ?? "appSessionDir"] as string | undefined;
-      const flushed = appSessionId ? this.setAppSessionId(appSessionId) : [];
+      const flushed = containerId ? this.setContainerBinding(containerId, runId) : [];
 
       return {
         traceEvents: flushed,
         metadata: {
-          appSession: {
-            appSessionId,
+          containerBinding: {
+            containerId,
+            runId,
             slug,
             dir,
             customType: event.customType,
@@ -268,7 +334,7 @@ export class EventMapper {
     }
 
     if (event.customType === this.options.lifecycleCustomType) {
-      return this.gate({ traceEvents: this.mapPiLifecycle(event, event.timestamp) });
+      return this.gate(this.mapPiLifecycle(event, event.timestamp));
     }
 
     if (event.customType === this.options.subagentLinkCustomType) {
@@ -290,9 +356,9 @@ export class EventMapper {
       traceEvents: [
         this.asAgentEvent(
           {
-            eventId: newEventId(),
-            appSessionId: this.stampId(),
-            userId: SYSTEM_USER_ID,
+            eventId: "",
+            containerId: this.containerId ?? "",
+            runId: this.runId ?? undefined,
             type: "custom_event" as TraceEvent["type"],
             source: "agent",
             traceLevel: TraceLevel.PROCESSING as TraceEvent["traceLevel"],
@@ -311,43 +377,75 @@ export class EventMapper {
   private mapPiLifecycle(
     event: PiEvent & { type: "custom" },
     timestamp: string,
-  ): TraceEvent[] {
-    const sid = this.stampId();
+  ): MapperResult {
+    const ids = this.ids();
     const phase = event.data.phase as string | undefined;
     switch (phase) {
       case "agent_start":
-        return [this.asAgentEvent(createPiAgentStartEvent(sid, SYSTEM_USER_ID), timestamp)];
-      case "agent_end":
-        return [
-          this.asAgentEvent(
-            createPiAgentEndEvent(sid, SYSTEM_USER_ID, "ok", {
-              inputTokens: event.data.inputTokens as number | undefined,
-              outputTokens: event.data.outputTokens as number | undefined,
-            }),
-            timestamp,
-          ),
-        ];
+        this.currentTurnUsage = null;
+        this.aggregateUsage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+        return {
+          traceEvents: [
+            this.asAgentEvent(createPiAgentStartEvent(ids), timestamp),
+          ],
+        };
+      case "agent_end": {
+        // Prefer the aggregate of observed per-message usage; fall back to
+        // the marker's own (last-message) token fields.
+        const agg = this.aggregateUsage;
+        const hasAggregate = agg.input > 0 || agg.output > 0;
+        return {
+          traceEvents: [
+            this.asAgentEvent(
+              createPiAgentEndEvent(ids, "ok", {
+                inputTokens: hasAggregate
+                  ? agg.input
+                  : (event.data.inputTokens as number | undefined),
+                outputTokens: hasAggregate
+                  ? agg.output
+                  : (event.data.outputTokens as number | undefined),
+              }),
+              timestamp,
+            ),
+          ],
+        };
+      }
       case "turn_start":
-        return [
-          this.asAgentEvent(
-            createPiTurnStartEvent(sid, SYSTEM_USER_ID, {
-              turnNumber: event.data.turnIndex as number | undefined,
-            }),
-            timestamp,
-          ),
-        ];
-      case "turn_end":
-        return [
-          this.asAgentEvent(
-            createPiTurnEndEvent(sid, SYSTEM_USER_ID, {
-              turnNumber: event.data.turnIndex as number | undefined,
-              stopReason: event.data.stopReason as string | undefined,
-            }),
-            timestamp,
-          ),
-        ];
+        this.currentTurnUsage = null;
+        return {
+          traceEvents: [
+            this.asAgentEvent(
+              createPiTurnStartEvent(ids, {
+                turnNumber: event.data.turnIndex as number | undefined,
+              }),
+              timestamp,
+            ),
+          ],
+        };
+      case "turn_end": {
+        const usage = this.currentTurnUsage;
+        this.currentTurnUsage = null;
+        const warnings = usage
+          ? undefined
+          : [
+              `turn_end (turn ${String(event.data.turnIndex ?? "?")}) without observed assistant usage in pi session ${this.piSessionUuid ?? "unknown"}; usage omitted`,
+            ];
+        return {
+          traceEvents: [
+            this.asAgentEvent(
+              createPiTurnEndEvent(ids, {
+                turnNumber: event.data.turnIndex as number | undefined,
+                stopReason: event.data.stopReason as string | undefined,
+                ...(usage ? { usage } : {}),
+              }),
+              timestamp,
+            ),
+          ],
+          warnings,
+        };
+      }
       default:
-        return [];
+        return { traceEvents: [] };
     }
   }
 }

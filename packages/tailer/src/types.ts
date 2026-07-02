@@ -106,8 +106,9 @@ export type PiEvent =
   | PiCustomEvent
   | PiSessionInfoEvent;
 
-export interface MapperSessionBindingMetadata {
-  appSessionId?: string;
+export interface MapperContainerBindingMetadata {
+  containerId?: string;
+  runId?: string;
   slug?: string;
   dir?: string;
   customType: string;
@@ -124,9 +125,11 @@ export interface MapperSubagentLinkMetadata {
 
 export interface MapperResult {
   traceEvents: TraceEvent[];
+  /** Non-fatal diagnostics raised while mapping (e.g. missing turn usage). */
+  warnings?: string[];
   metadata?: {
-    /** App-level session/container identity discovered from a custom JSONL event. */
-    appSession?: MapperSessionBindingMetadata;
+    /** Container/run identity discovered from a binding-marker JSONL event. */
+    containerBinding?: MapperContainerBindingMetadata;
     /** Pi session UUID from a session event. */
     piSessionUuid?: string;
     /** Parent-child sub-agent link data from a configured custom event. */
