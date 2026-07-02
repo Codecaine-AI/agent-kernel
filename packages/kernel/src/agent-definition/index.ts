@@ -1,4 +1,3 @@
-import type { PromptDocument } from "@codecaine-ai/prompt-kit";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 import type { AgentContextResolver } from "../context";
@@ -25,6 +24,11 @@ export interface AgentVariantDefinition {
 	displayLabel?: string;
 }
 
+/**
+ * Typed agent manifest authored in `agent.ts`. The system prompt is NOT part
+ * of this config: the registry pairs the definition with a sibling
+ * `prompt.json` (canonical PromptDocument) by convention (D70).
+ */
 export interface AgentDefinitionConfig<TRuntime = unknown> {
 	name: string;
 	description: string;
@@ -37,7 +41,6 @@ export interface AgentDefinitionConfig<TRuntime = unknown> {
 	maxTurns?: number;
 	runInBackground?: boolean;
 	thinking?: string;
-	prompt: PromptDocument | string;
 	context?: AgentContextResolver | null;
 	tools?: AgentPrivateTools<TRuntime> | null;
 	variants?: Record<string, AgentVariantDefinition>;

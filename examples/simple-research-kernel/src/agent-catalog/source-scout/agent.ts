@@ -1,7 +1,6 @@
 import { defineAgent } from "@agent-kernel/kernel/agent-definition";
 
 import { context } from "./context";
-import { prompt } from "./prompt";
 import { tools } from "./tools";
 
 export default defineAgent({
@@ -23,7 +22,6 @@ export default defineAgent({
 			description: "Focus assigned by the coordinator.",
 		},
 	},
-	prompt,
 	context,
 	tools,
 });

@@ -31,6 +31,12 @@ export interface AgentFrontmatter {
 export interface ParsedAgent {
 	frontmatter: AgentFrontmatter;
 	body: string;
+	/**
+	 * Content address ("pk1-<sha256>") of the canonical prompt.json the body
+	 * was rendered from. Absent for markdown-sourced agents. Stamped onto
+	 * pi_agent_sessions.prompt_hash at session creation (D72).
+	 */
+	promptHash?: string;
 }
 
 export type PiToolResultBlock =

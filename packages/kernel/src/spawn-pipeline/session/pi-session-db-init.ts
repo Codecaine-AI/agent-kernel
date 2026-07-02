@@ -15,6 +15,11 @@ export interface SetupPiSessionAndRunArgs {
 	/** What opened the run: operator | parent-tool | steer | resume | system. */
 	trigger: RunTrigger;
 	model?: string;
+	/**
+	 * Prompt revision ("pk1-<sha256>") frozen at Pi session creation. All runs
+	 * in a session share this hash (D72 — revisions bind to sessions).
+	 */
+	promptHash?: string;
 	parentPiSessionUuid?: string;
 	parentRunId?: string;
 	phase?: string;
@@ -43,6 +48,7 @@ export async function setupPiSessionAndRun(
 		agentName: args.agentName,
 		status: "active",
 		model: args.model,
+		promptHash: args.promptHash,
 		createdAt: now,
 		parentSessionId: args.parentPiSessionUuid,
 		parentToolUseId: args.parentToolUseId,

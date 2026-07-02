@@ -1,7 +1,6 @@
 import { defineAgent } from "@agent-kernel/kernel/agent-definition";
 
 import { context } from "./context";
-import { prompt } from "./prompt";
 import { tools } from "./tools";
 
 export default defineAgent({
@@ -27,7 +26,6 @@ export default defineAgent({
 			description: "Current operator request.",
 		},
 	},
-	prompt,
 	context,
 	tools,
 });

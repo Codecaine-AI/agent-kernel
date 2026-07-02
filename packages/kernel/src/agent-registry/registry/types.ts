@@ -1,3 +1,5 @@
+import type { PromptDocument } from "@codecaine-ai/prompt-kit";
+
 import type { ParsedAgent } from "../parsing/types";
 import type {
 	AgentPrivateTools,
@@ -10,6 +12,12 @@ export interface AgentDefinition {
 	parsed: ParsedAgent;
 	source: "typed" | "markdown";
 	typedDefinition: TypedAgentDefinition | null;
+	/** Canonical prompt document loaded from the sibling prompt.json (typed agents). */
+	promptDocument: PromptDocument | null;
+	/** Content address of the prompt: "pk1-" + sha256(canonical bytes). */
+	promptHash: string | null;
+	/** Absolute path of the prompt.json the document was loaded from. */
+	promptFile: string | null;
 	contextResolver: AgentContextResolver | null;
 	contextModulePath: string | null;
 	toolsModulePath: string | null;

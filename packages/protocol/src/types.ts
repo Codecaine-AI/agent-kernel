@@ -165,6 +165,12 @@ export interface PiTurnEndData {
 
 export interface SystemPromptResolvedData {
   agent_name: string;
+  /**
+   * Content address ("pk1-<sha256>") of the canonical prompt.json revision
+   * the system prompt was rendered from; null for prompt sources that are
+   * not content-addressed (e.g. markdown agents).
+   */
+  prompt_hash?: string | null;
   rendered_prompt: string;
   tools_allowlist: string[];
   tools_disallowlist: string[];

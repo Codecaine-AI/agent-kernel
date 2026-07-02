@@ -1,9 +1,11 @@
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
+	hashPrompt,
 	renderXmlMarkdown,
 	validatePrompt,
+	validatePromptDocumentShape,
 	type PromptDocument,
 } from "@codecaine-ai/prompt-kit";
 import { isTypedAgentDefinition, type TypedAgentDefinition } from "../../agent-definition";
@@ -51,12 +53,41 @@ async function importTypedAgent(
 	return candidate;
 }
 
-function isPromptDocument(value: unknown): value is PromptDocument {
-	return (
-		typeof value === "object" &&
-		value !== null &&
-		(value as { kind?: unknown }).kind === "prompt"
-	);
+interface LoadedPromptJson {
+	document: PromptDocument;
+	promptFile: string;
+}
+
+/**
+ * Load and shape-validate the sibling `prompt.json` (the canonical prompt
+ * artifact per D70). Throws RegistryError on a missing file, unparseable
+ * JSON, or a document that fails the PromptDocument shape check.
+ */
+function loadPromptJson(agentFilePath: string): LoadedPromptJson {
+	const agentDir = dirname(agentFilePath);
+	const promptFile = join(agentDir, "prompt.json");
+	if (!existsSync(promptFile)) {
+		throw new RegistryError(agentFilePath, [
+			`missing prompt.json: an agent directory must contain a canonical PromptDocument at ${promptFile}`,
+		]);
+	}
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(readFileSync(promptFile, "utf8"));
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
+		throw new RegistryError(agentFilePath, [
+			`invalid prompt.json (parse error): ${msg}`,
+		]);
+	}
+	const shape = validatePromptDocumentShape(parsed);
+	if (!shape.valid) {
+		throw new RegistryError(
+			agentFilePath,
+			shape.errors.map((error) => `invalid prompt.json: ${error}`),
+		);
+	}
+	return { document: parsed as PromptDocument, promptFile };
 }
 
 async function loadTypedOne(agentFilePath: string): Promise<LoadOne> {
@@ -66,11 +97,11 @@ async function loadTypedOne(agentFilePath: string): Promise<LoadOne> {
 	try {
 		const typed = await importTypedAgent(agentFilePath);
 		const variables = typed.variables ?? {};
-		const promptValidation = isPromptDocument(typed.prompt)
-			? validatePrompt(typed.prompt, {
-					declaredVariables: Object.keys(variables),
-				})
-			: { ok: true, diagnostics: [] };
+		const { document: promptDocument, promptFile } =
+			loadPromptJson(agentFilePath);
+		const promptValidation = validatePrompt(promptDocument, {
+			declaredVariables: Object.keys(variables),
+		});
 		const errors = promptValidation.diagnostics.filter(
 			(diagnostic) => diagnostic.severity === "error",
 		);
@@ -90,9 +121,8 @@ async function loadTypedOne(agentFilePath: string): Promise<LoadOne> {
 			: [];
 		const coreTools = typed.coreTools ?? [];
 		const tools = [...new Set([...coreTools, ...privateToolNames])];
-		const body = isPromptDocument(typed.prompt)
-			? renderXmlMarkdown(typed.prompt)
-			: typed.prompt;
+		const body = renderXmlMarkdown(promptDocument);
+		const promptHash = hashPrompt(promptDocument);
 		const parsed = {
 			frontmatter: {
 				name: typed.name,
@@ -108,6 +138,7 @@ async function loadTypedOne(agentFilePath: string): Promise<LoadOne> {
 				thinking: typed.thinking,
 			},
 			body,
+			promptHash,
 		};
 		const result = validateVariables(parsed.body, parsed.frontmatter.variables);
 
@@ -133,6 +164,9 @@ async function loadTypedOne(agentFilePath: string): Promise<LoadOne> {
 				parsed,
 				source: "typed",
 				typedDefinition: typed,
+				promptDocument,
+				promptHash,
+				promptFile,
 				contextResolver: typed.context ?? null,
 				contextModulePath: existsSync(contextFileAbs) ? contextFileAbs : null,
 				toolsModulePath: existsSync(toolsFileAbs) ? toolsFileAbs : null,
@@ -146,6 +180,9 @@ async function loadTypedOne(agentFilePath: string): Promise<LoadOne> {
 			error: null,
 		};
 	} catch (err) {
+		if (err instanceof RegistryError) {
+			return { def: null, error: err };
+		}
 		const msg = err instanceof Error ? err.message : String(err);
 		return { def: null, error: new RegistryError(agentFilePath, [msg]) };
 	}
@@ -192,6 +229,9 @@ async function loadMarkdownOne(agentFilePath: string): Promise<LoadOne> {
 				parsed,
 				source: "markdown",
 				typedDefinition: null,
+				promptDocument: null,
+				promptHash: null,
+				promptFile: null,
 				contextResolver: null,
 				contextModulePath,
 				toolsModulePath: null,

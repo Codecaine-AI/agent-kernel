@@ -12,6 +12,8 @@ export interface ResolvedAgent {
 	resolvedBody: string;
 	systemPrompt: string;
 	variables: ResolvedVariables;
+	/** Content address of the canonical prompt.json this prompt renders (D72). */
+	promptHash?: string;
 }
 
 export interface ResolveAgentInput {
@@ -74,10 +76,11 @@ export function resolveSystemPrompt(input: ResolveAgentInput): ResolvedAgent {
 	const systemPrompt = substitutedBody.trim();
 
 	return {
-		parsed: { frontmatter: parsed.frontmatter, body: substitutedBody },
+		parsed: { ...parsed, body: substitutedBody },
 		frontmatter: parsed.frontmatter,
 		resolvedBody: substitutedBody,
 		systemPrompt,
 		variables,
+		promptHash: parsed.promptHash,
 	};
 }

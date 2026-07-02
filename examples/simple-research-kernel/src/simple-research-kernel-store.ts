@@ -16,6 +16,7 @@ import {
 	buildRegistry,
 	createKernel,
 	getRunContext,
+	registerPromptRevisions,
 	type AgentDefinition,
 	type AgentRegistry,
 	type KernelExtensionContext,
@@ -245,7 +246,15 @@ export class SimpleResearchKernelStore {
 		mkdirSync(PI_AGENT_DIR, { recursive: true });
 		mkdirSync(this.piSessionsDir, { recursive: true });
 		this.toolRuntime = this.createToolRuntime();
-		this.registryPromise = buildRegistry({ catalogRoot: AGENT_CATALOG_DIR });
+		// Registry boot: discover prompt.json bundles, then upsert one
+		// content-addressed prompt_revisions row per agent (source
+		// "registry-boot") so session prompt_hash values always resolve.
+		this.registryPromise = buildRegistry({ catalogRoot: AGENT_CATALOG_DIR }).then(
+			async (registry) => {
+				await registerPromptRevisions(this.db, registry);
+				return registry;
+			}
+		);
 
 		this.kernel = createKernel<
 			KernelExtensionContext | null,
@@ -857,12 +866,7 @@ export class SimpleResearchKernelStore {
 
 	private summarizeAgent(agent: AgentDefinition): ResearchAgentSummary {
 		const fm = agent.parsed.frontmatter;
-		const promptDocument =
-			agent.typedDefinition?.prompt &&
-			typeof agent.typedDefinition.prompt === "object" &&
-			(agent.typedDefinition.prompt as { kind?: unknown }).kind === "prompt"
-				? (agent.typedDefinition.prompt as PromptDocument)
-				: null;
+		const promptDocument = agent.promptDocument;
 		return {
 			name: agent.name,
 			description: fm.description,

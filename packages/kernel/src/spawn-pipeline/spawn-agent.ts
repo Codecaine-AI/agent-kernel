@@ -232,6 +232,7 @@ export function createSpawnAgent(
 			agentName: name,
 			trigger,
 			model: resolvedModelLabel,
+			promptHash: resolved.promptHash,
 			parentPiSessionUuid: opts.parentPiSessionUuid,
 			parentRunId: opts.parentRunId,
 			phase: opts.phase,
@@ -279,6 +280,7 @@ export function createSpawnAgent(
 		});
 		emitter?.systemPromptResolved({
 			agent_name: name,
+			prompt_hash: resolved.promptHash ?? null,
 			rendered_prompt: resolved.systemPrompt,
 			tools_allowlist: resolved.frontmatter.tools ?? [],
 			tools_disallowlist: resolved.frontmatter.disallowed_tools ?? [],
