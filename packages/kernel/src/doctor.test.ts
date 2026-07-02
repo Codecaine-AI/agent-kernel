@@ -7,8 +7,11 @@ import { sql } from "drizzle-orm";
 import {
 	createAgentRun,
 	ensureKernelObservabilitySchema,
+	incrementContainerUsage,
+	incrementSessionUsage,
 	insertTraceEventsBatch,
 	openKernelDatabase,
+	updateRunUsage,
 	upsertContainer,
 	upsertPiAgentSession,
 	type KernelDatabaseHandle,
@@ -132,9 +135,7 @@ describe("runTraceDoctor", () => {
 			agentRuns: 2,
 			traceEvents: 4,
 		});
-		expect(report.skipped).toEqual([
-			expect.objectContaining({ invariant: 8 }),
-		]);
+		expect(report.skipped).toEqual([]);
 		expect(formatDoctorReport(report)).toContain("OK");
 	});
 
@@ -324,6 +325,60 @@ describe("runTraceDoctor", () => {
 		const report = await runTraceDoctor(handle.db);
 		expect(violationInvariants(report)).toEqual([7]);
 		expect(report.violations[0].sampleIds).toEqual(["evt-ghost-run"]);
+	});
+
+	test("8: passes when run sums match session and container rollups", async () => {
+		await insertHealthyBaseline();
+		await updateRunUsage(handle.db, "run-1", {
+			inputTokens: 100,
+			outputTokens: 20,
+			cacheReadTokens: 5,
+			cacheWriteTokens: 2,
+			costEstimate: 0.01,
+		});
+		await incrementSessionUsage(handle.db, "session-1", {
+			inputTokens: 100,
+			outputTokens: 20,
+		});
+		await incrementContainerUsage(handle.db, "container-1", {
+			inputTokens: 100,
+			outputTokens: 20,
+			cacheReadTokens: 5,
+			cacheWriteTokens: 2,
+			costEstimate: 0.01,
+		});
+		const report = await runTraceDoctor(handle.db);
+		expect(report.violations).toEqual([]);
+		expect(report.ok).toBe(true);
+	});
+
+	test("8: flags session and container rollup drift", async () => {
+		await insertHealthyBaseline();
+		// Runs carry usage but nothing was folded into the rollups.
+		await updateRunUsage(handle.db, "run-1", {
+			inputTokens: 100,
+			outputTokens: 20,
+			cacheReadTokens: 0,
+			cacheWriteTokens: 0,
+		});
+		const report = await runTraceDoctor(handle.db);
+		expect(violationInvariants(report)).toEqual([8, 8]);
+		expect(report.violations.map((v) => v.name).sort()).toEqual([
+			"container-usage-rollup",
+			"session-usage-rollup",
+		]);
+		expect(report.violations.find((v) => v.name === "session-usage-rollup")?.sampleIds).toEqual([
+			"session-1",
+		]);
+		expect(
+			report.violations.find((v) => v.name === "container-usage-rollup")?.sampleIds,
+		).toEqual(["container-1"]);
+	});
+
+	test("8: tolerates pre-Phase-2 rows with zero usage everywhere", async () => {
+		await insertHealthyBaseline();
+		const report = await runTraceDoctor(handle.db);
+		expect(report.violations).toEqual([]);
 	});
 
 	test("formatDoctorReport renders violations readably", async () => {

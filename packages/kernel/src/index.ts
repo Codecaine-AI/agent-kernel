@@ -139,3 +139,4 @@ export * from "./events";
 export * from "./agent-definition";
 export * from "./agent-registry";
 export * from "./spawn-pipeline";
+export * from "./emitter";

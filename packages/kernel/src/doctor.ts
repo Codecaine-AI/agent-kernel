@@ -11,7 +11,10 @@
  *   5. Every tool_call_start has a matching end, or its run ended abnormally
  *   6. The container tree has no cycles; every container has a kind
  *   7. Every trace_events.run_id resolves to an existing run
- *   8. (Phase 2 — skipped) turn usage sums == run == session == container
+ *   8. Usage consistency: the sum of run usage per session equals the
+ *      session rollup, and the sum per container equals the container
+ *      rollup. Rows written before Phase 2 carry all-zero usage on both
+ *      sides and pass trivially.
  */
 
 import {
@@ -81,6 +84,11 @@ export async function runTraceDoctor(db: KernelDatabase): Promise<DoctorReport> 
 			id: containers.id,
 			kind: containers.kind,
 			parentContainerId: containers.parentContainerId,
+			usageInputTokens: containers.usageInputTokens,
+			usageOutputTokens: containers.usageOutputTokens,
+			usageCacheRead: containers.usageCacheRead,
+			usageCacheWrite: containers.usageCacheWrite,
+			usageCostEstimate: containers.usageCostEstimate,
 		})
 		.from(containers);
 	const sessionRows = await db
@@ -89,6 +97,8 @@ export async function runTraceDoctor(db: KernelDatabase): Promise<DoctorReport> 
 			parentSessionId: piAgentSessions.parentSessionId,
 			parentToolUseId: piAgentSessions.parentToolUseId,
 			status: piAgentSessions.status,
+			usageInputTokens: piAgentSessions.usageInputTokens,
+			usageOutputTokens: piAgentSessions.usageOutputTokens,
 		})
 		.from(piAgentSessions);
 	const runRows = await db
@@ -97,6 +107,11 @@ export async function runTraceDoctor(db: KernelDatabase): Promise<DoctorReport> 
 			containerId: agentRuns.containerId,
 			piSessionId: agentRuns.piSessionId,
 			status: agentRuns.status,
+			usageInputTokens: agentRuns.usageInputTokens,
+			usageOutputTokens: agentRuns.usageOutputTokens,
+			usageCacheRead: agentRuns.usageCacheRead,
+			usageCacheWrite: agentRuns.usageCacheWrite,
+			usageCostEstimate: agentRuns.usageCostEstimate,
 		})
 		.from(agentRuns);
 	const eventRows = await db
@@ -240,15 +255,77 @@ export async function runTraceDoctor(db: KernelDatabase): Promise<DoctorReport> 
 			.map((e) => e.eventId),
 	});
 
-	// 8. TODO(Phase 2): turn usage sums == run rollup == session rollup ==
-	// container rollup. Usage is not populated until the in-process emitter
-	// lands; the check is skipped so healthy Phase 1 databases stay green.
-	const skipped: DoctorSkippedCheck[] = [
-		{
-			invariant: 8,
-			reason: "usage rollups land in Phase 2 (emitter) — check not yet active",
-		},
-	];
+	// 8. Usage consistency: run sums per session == session rollup; run sums
+	// per container == container rollup. Pre-Phase-2 rows carry zero usage on
+	// both sides and pass trivially; only actual drift is reported.
+	const COST_EPSILON = 1e-6;
+	const sessionSums = new Map<string, { input: number; output: number }>();
+	const containerSums = new Map<
+		string,
+		{ input: number; output: number; cacheRead: number; cacheWrite: number; cost: number | null }
+	>();
+	for (const r of runRows) {
+		const s = sessionSums.get(r.piSessionId) ?? { input: 0, output: 0 };
+		s.input += r.usageInputTokens;
+		s.output += r.usageOutputTokens;
+		sessionSums.set(r.piSessionId, s);
+
+		const c = containerSums.get(r.containerId) ?? {
+			input: 0,
+			output: 0,
+			cacheRead: 0,
+			cacheWrite: 0,
+			cost: null,
+		};
+		c.input += r.usageInputTokens;
+		c.output += r.usageOutputTokens;
+		c.cacheRead += r.usageCacheRead;
+		c.cacheWrite += r.usageCacheWrite;
+		if (r.usageCostEstimate != null) c.cost = (c.cost ?? 0) + r.usageCostEstimate;
+		containerSums.set(r.containerId, c);
+	}
+	collect(violations, {
+		invariant: 8,
+		name: "session-usage-rollup",
+		description:
+			"sum of run usage per session must equal the pi_agent_sessions usage rollup",
+		ids: sessionRows
+			.filter((s) => {
+				const sums = sessionSums.get(s.id) ?? { input: 0, output: 0 };
+				return (
+					sums.input !== s.usageInputTokens || sums.output !== s.usageOutputTokens
+				);
+			})
+			.map((s) => s.id),
+	});
+	collect(violations, {
+		invariant: 8,
+		name: "container-usage-rollup",
+		description:
+			"sum of run usage per container must equal the containers usage rollup",
+		ids: containerRows
+			.filter((c) => {
+				const sums = containerSums.get(c.id) ?? {
+					input: 0,
+					output: 0,
+					cacheRead: 0,
+					cacheWrite: 0,
+					cost: null,
+				};
+				if (
+					sums.input !== c.usageInputTokens ||
+					sums.output !== c.usageOutputTokens ||
+					sums.cacheRead !== c.usageCacheRead ||
+					sums.cacheWrite !== c.usageCacheWrite
+				) {
+					return true;
+				}
+				return Math.abs((sums.cost ?? 0) - (c.usageCostEstimate ?? 0)) > COST_EPSILON;
+			})
+			.map((c) => c.id),
+	});
+
+	const skipped: DoctorSkippedCheck[] = [];
 
 	return {
 		checkedAt: new Date().toISOString(),

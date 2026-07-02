@@ -93,6 +93,24 @@ export async function updateAgentRunStatus(
   return row;
 }
 
+/**
+ * Record the message event that opened the run. With the in-process emitter,
+ * the inbound user_message id is only known once the emitter observes it —
+ * after the run row was inserted.
+ */
+export async function updateAgentRunInboundEvent(
+  db: KernelDatabase,
+  runId: string,
+  inboundEventId: string,
+): Promise<AgentRun | undefined> {
+  const [row] = await db
+    .update(agentRuns)
+    .set({ inboundEventId })
+    .where(eq(agentRuns.id, runId))
+    .returning();
+  return row;
+}
+
 export async function getAgentRun(
   db: KernelDatabase,
   runId: string,

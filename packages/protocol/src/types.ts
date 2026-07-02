@@ -32,6 +32,7 @@ export const EventType = {
   AGENT_SESSION_END: "agent_session_end",
   AGENT_RUN_START: "agent_run_start",
   AGENT_RUN_END: "agent_run_end",
+  RUN_STEERED: "run_steered",
 
   // Pi Lifecycle (tailer-emitted, mirrors Pi SDK agent/turn boundaries)
   PI_AGENT_START: "pi_agent_start",
@@ -122,6 +123,18 @@ export interface AgentRunEndData {
   error_message?: string;
   /** Usage rolled up across the run's turns (populated from Phase 2). */
   usage?: TurnUsage;
+}
+
+/**
+ * A steering message injected into a running run. Steering is a control
+ * action; without this event it would be invisible in the trace.
+ */
+export interface RunSteeredData {
+  run_id: string;
+  agent_name: string;
+  message: string;
+  /** "delivered" — steered a live session; "queued" — held until the session exists. */
+  delivery: "delivered" | "queued";
 }
 
 // ─── Pi Lifecycle ───────────────────────────────────────────────────────────
@@ -275,6 +288,7 @@ export type KnownEventData =
   | AgentSessionEndData
   | AgentRunStartData
   | AgentRunEndData
+  | RunSteeredData
   | PiAgentStartData
   | PiAgentEndData
   | PiTurnStartData

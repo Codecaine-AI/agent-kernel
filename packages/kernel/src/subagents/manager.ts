@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { RunTrigger } from "@agent-kernel/db";
+import { createRunSteeredEvent } from "@agent-kernel/protocol";
 
 import { runContextStore } from "../run-context";
 import type {
@@ -11,6 +12,7 @@ import type {
 	OnAgentStart,
 	SpawnOptions,
 	SubagentType,
+	TraceWriterSink,
 } from "./types";
 
 const DEFAULT_MAX_CONCURRENT = 4;
@@ -47,6 +49,8 @@ export interface AgentSpawnOptions {
 	onTextDelta?: (delta: string) => void;
 	onSessionCreated?: (session: AgentSpawnResult["session"]) => void;
 	onTurnEnd?: (turnCount: number) => void;
+	/** Fired by the spawn pipeline as soon as the run's identity exists. */
+	onRunStarted?: (info: { runId: string; containerId: string }) => void;
 }
 
 export type SpawnAgentAdapter = (
@@ -59,6 +63,8 @@ export type SpawnAgentAdapter = (
 export interface AgentManagerDeps {
 	spawnAgent: SpawnAgentAdapter;
 	subagentLinkCustomType?: string;
+	/** When present, steering control actions emit run_steered trace events. */
+	traceWriter?: TraceWriterSink;
 }
 
 interface SpawnArgs {
@@ -77,6 +83,12 @@ export class AgentManager {
 	private maxConcurrent: number;
 	private spawnAgent: SpawnAgentAdapter;
 	private subagentLinkCustomType: string;
+	private traceWriter?: TraceWriterSink;
+	/** run_steered emissions waiting for the run's trace identity. */
+	private deferredSteerEvents = new Map<
+		string,
+		{ message: string; delivery: "delivered" | "queued" }[]
+	>();
 	private queue: { id: string; args: SpawnArgs }[] = [];
 	private runningBackground = 0;
 
@@ -95,6 +107,7 @@ export class AgentManager {
 		this.spawnAgent = deps.spawnAgent;
 		this.subagentLinkCustomType =
 			deps.subagentLinkCustomType ?? DEFAULT_SUBAGENT_LINK_CUSTOM_TYPE;
+		this.traceWriter = deps.traceWriter;
 		this.cleanupInterval = setInterval(() => this.cleanup(), 60_000);
 	}
 
@@ -200,8 +213,15 @@ export class AgentManager {
 				options.onToolActivity?.(activity.toolName);
 			},
 			onTextDelta: options.onTextDelta,
+			onRunStarted: (info) => {
+				record.traceIds = { ...info };
+				this.flushDeferredSteerEvents(record);
+			},
 			onSessionCreated: (session) => {
 				record.session = session;
+				if (record.traceIds && session.sessionId) {
+					record.traceIds.piSessionUuid = session.sessionId;
+				}
 				if (record.pendingSteers?.length) {
 					for (const msg of record.pendingSteers) {
 						session.steer(msg).catch(() => {});
@@ -273,6 +293,66 @@ export class AgentManager {
 		return this.agents.get(id);
 	}
 
+	/**
+	 * Steer a spawned agent. Delivered immediately when its session exists;
+	 * otherwise stored and flushed on session creation. Every accepted
+	 * steering message emits exactly one run_steered trace event (steering is
+	 * a control action — without the event it would be invisible in traces).
+	 */
+	steer(id: string, message: string): boolean {
+		const record = this.agents.get(id);
+		if (!record) return false;
+		if (record.status !== "running" && record.status !== "queued") return false;
+		if (record.session) {
+			record.session.steer(message).catch(() => {});
+			this.emitRunSteered(record, message, "delivered");
+		} else {
+			record.pendingSteers = [...(record.pendingSteers ?? []), message];
+			this.emitRunSteered(record, message, "queued");
+		}
+		return true;
+	}
+
+	private emitRunSteered(
+		record: AgentRecord,
+		message: string,
+		delivery: "delivered" | "queued",
+	): void {
+		if (!this.traceWriter) return;
+		const trace = record.traceIds;
+		if (!trace) {
+			// The run's identity isn't known yet — defer until onRunStarted.
+			const list = this.deferredSteerEvents.get(record.id) ?? [];
+			list.push({ message, delivery });
+			this.deferredSteerEvents.set(record.id, list);
+			return;
+		}
+		this.traceWriter.submit(
+			createRunSteeredEvent(
+				{
+					containerId: trace.containerId,
+					runId: trace.runId,
+					...(trace.piSessionUuid ? { piSessionUuid: trace.piSessionUuid } : {}),
+				},
+				record.type,
+				message,
+				{ delivery },
+			),
+		);
+	}
+
+	private flushDeferredSteerEvents(record: AgentRecord): void {
+		const list = this.deferredSteerEvents.get(record.id);
+		if (!list?.length) {
+			this.deferredSteerEvents.delete(record.id);
+			return;
+		}
+		this.deferredSteerEvents.delete(record.id);
+		for (const item of list) {
+			this.emitRunSteered(record, item.message, item.delivery);
+		}
+	}
+
 	listAgents(): AgentRecord[] {
 		return [...this.agents.values()].sort(
 			(a, b) => b.startedAt - a.startedAt,
@@ -342,6 +422,7 @@ export class AgentManager {
 			if (record.status === "running" || record.status === "queued") continue;
 			record.session?.dispose?.();
 			this.agents.delete(id);
+			this.deferredSteerEvents.delete(id);
 		}
 	}
 
@@ -352,6 +433,7 @@ export class AgentManager {
 			if ((record.completedAt ?? 0) >= cutoff) continue;
 			record.session?.dispose?.();
 			this.agents.delete(id);
+			this.deferredSteerEvents.delete(id);
 		}
 	}
 
@@ -362,5 +444,6 @@ export class AgentManager {
 			record.session?.dispose?.();
 		}
 		this.agents.clear();
+		this.deferredSteerEvents.clear();
 	}
 }

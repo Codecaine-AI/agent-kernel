@@ -39,6 +39,8 @@ export interface AgentRecord {
 	notificationTimeout?: ReturnType<typeof setTimeout>;
 	pendingSteers?: string[];
 	isBackground?: boolean;
+	/** Trace identity of the spawned run, once the pipeline reports it. */
+	traceIds?: { containerId: string; runId: string; piSessionUuid?: string };
 }
 
 export type OnAgentComplete = (record: AgentRecord) => void;

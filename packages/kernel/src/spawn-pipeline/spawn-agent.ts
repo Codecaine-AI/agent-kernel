@@ -5,17 +5,20 @@ import type {
 	SessionManager,
 } from "@mariozechner/pi-coding-agent";
 import {
+	updateAgentRunInboundEvent,
 	updateAgentRunStatus,
 	updatePiAgentSessionStatus,
 	type KernelDatabase,
 	type RunStatus,
 	type RunTrigger,
 } from "@agent-kernel/db";
+import type { RunTraceEventIds } from "@agent-kernel/protocol";
+
 import {
-	createAssistantMessageEvent,
-	createUserMessageEvent,
-	type RunTraceEventIds,
-} from "@agent-kernel/protocol";
+	createKernelEmitter,
+	type EmitterSessionManagerLike,
+	type KernelEmitter,
+} from "../emitter";
 
 import {
 	buildContext as v2BuildContext,
@@ -38,6 +41,7 @@ import { setupPiSessionAndRun } from "./session/pi-session-db-init";
 import { triggerRun } from "./session/turn-trigger";
 import { subscribeToSession } from "./streaming/session-event-subscriber";
 import { emitAgentRunEnd, emitAgentRunStart } from "./trace/agent-run-trace";
+import { createRunUsageRecorder, type RunUsageRecorder } from "./trace/usage-rollup";
 import { getLastAssistantError } from "./trace/assistant-message-inspection";
 import type { DomainRule, ParsedAgent, PiToolResultBlock } from "./types";
 import { resolveSystemPrompt } from "./system-prompt-resolver";
@@ -56,6 +60,12 @@ export interface KernelSpawnOptions {
 	onTextDelta?: (delta: string) => void;
 	onSessionCreated?: (session: AgentSession) => void;
 	onTurnEnd?: (turnCount: number) => void;
+	/**
+	 * Fired as soon as the run's identity exists (before the Pi session is
+	 * created) — lets callers (e.g. AgentManager) attribute later control
+	 * actions such as steering to this run.
+	 */
+	onRunStarted?: (info: { runId: string; containerId: string }) => void;
 	sessionManager?: SessionManager;
 	/**
 	 * Primary grouping identity — required (directly or inherited from the
@@ -156,6 +166,7 @@ export function createSpawnAgent(
 		const trigger: RunTrigger =
 			opts.trigger ?? (opts.parentToolUseId ? "parent-tool" : "operator");
 		const runId = crypto.randomUUID();
+		opts.onRunStarted?.({ runId, containerId });
 		log.info(`spawning "${name}"`, { cwd, hasParentCtx: Boolean(ctx) });
 		const runtime = makeRuntimeState(cwd, containerId, opts.sessionDir);
 
@@ -213,14 +224,6 @@ export function createSpawnAgent(
 			...(opts.userId !== undefined && { userId: opts.userId }),
 		};
 
-		// The inbound message opens the run; record its event id on the run row.
-		let inboundEventId: string | undefined;
-		if (traceWriter) {
-			const inbound = createUserMessageEvent(ids, prompt, opts.phase ?? "");
-			traceWriter.submit(inbound);
-			inboundEventId = inbound.eventId;
-		}
-
 		const db = adapters.getDb();
 		await setupPiSessionAndRun(db, {
 			piSessionUuid: session.sessionId,
@@ -234,8 +237,40 @@ export function createSpawnAgent(
 			phase: opts.phase,
 			displayLabel: opts.displayLabel,
 			parentToolUseId: opts.parentToolUseId,
-			inboundEventId,
 		});
+
+		// In-process emitter (Phase 2): owns user/assistant message, tool call
+		// and pi lifecycle emission for this run. The inbound user_message is
+		// observed from the live session, so its event id lands on the run row
+		// via updateAgentRunInboundEvent once the emitter sees it.
+		const usageRecorder: RunUsageRecorder | undefined = traceWriter
+			? createRunUsageRecorder(
+					db,
+					{ runId, piSessionUuid: session.sessionId, containerId },
+					log,
+				)
+			: undefined;
+		const kernelEmitter: KernelEmitter | undefined = traceWriter
+			? createKernelEmitter({
+					traceWriter,
+					ids: { ...ids, piSessionUuid: session.sessionId },
+					agentName: name,
+					model: resolvedModelLabel,
+					phase: opts.phase,
+					lifecycleCustomType: adapters.piLifecycleCustomType,
+					sessionManager: session.sessionManager as unknown as EmitterSessionManagerLike,
+					logger: log,
+					onTurnUsage: (usage) => usageRecorder?.recordTurn(usage),
+					onInboundEvent: (eventId) => {
+						updateAgentRunInboundEvent(db, runId, eventId).catch((e) =>
+							log.warn("updateAgentRunInboundEvent failed", {
+								error: (e as Error).message,
+							}),
+						);
+					},
+				})
+			: undefined;
+		kernelEmitter?.emitSessionStart();
 
 		const emitter = resolveLifecycleEmitter(name, {
 			traceWriter,
@@ -271,7 +306,7 @@ export function createSpawnAgent(
 		const maxTurns = normalizeMaxTurns(
 			opts.maxTurns ?? resolved.frontmatter.max_turns ?? getDefaultMaxTurns(),
 		);
-		const sub = subscribeToSession(session, opts, maxTurns);
+		const sub = subscribeToSession(session, opts, maxTurns, kernelEmitter);
 
 		const stateManager = opts.stateManager ?? null;
 		const runCtx = buildRunContext(
@@ -312,13 +347,14 @@ export function createSpawnAgent(
 				throw new Error(turnErr.errorMessage);
 			}
 			const result = sub.readResult();
-			// The final assistant response closes the run; record its event id.
-			let outboundEventId: string | undefined;
+			// The final assistant response closes the run; the emitter owns
+			// assistant_message emission, so the outbound event id is sourced
+			// from the emitter's deterministic id.
+			await kernelEmitter?.settle();
+			const runUsage = kernelEmitter?.runUsage();
+			const outboundEventId = kernelEmitter?.outboundEventId();
 			if (traceWriter) {
-				const outbound = createAssistantMessageEvent(ids, result.responseText, "text");
-				traceWriter.submit(outbound);
-				outboundEventId = outbound.eventId;
-				emitAgentRunEnd(traceWriter, ids, name, "ok");
+				emitAgentRunEnd(traceWriter, ids, name, "ok", undefined, runUsage);
 			}
 			const status: RunStatus = sub.turnLimitReached()
 				? "turn-limit"
@@ -326,6 +362,9 @@ export function createSpawnAgent(
 					? "aborted"
 					: "done";
 			const endedAt = new Date().toISOString();
+			// Fold run usage totals into the session and container rollups
+			// before the status writes settle the run.
+			await usageRecorder?.finalize();
 			await Promise.all([
 				updateAgentRunStatus(db, runId, status, { endedAt, outboundEventId }).catch((e) =>
 					log.warn("updateAgentRunStatus failed", { error: (e as Error).message })
@@ -339,6 +378,7 @@ export function createSpawnAgent(
 			log.error(`spawn failed for "${name}"`, {
 				error: err instanceof Error ? err.message : String(err),
 			});
+			await kernelEmitter?.settle().catch(() => {});
 			if (traceWriter) {
 				emitAgentRunEnd(
 					traceWriter,
@@ -346,10 +386,13 @@ export function createSpawnAgent(
 					name,
 					"error",
 					(err as Error)?.message ?? String(err),
+					kernelEmitter?.runUsage(),
 				);
 			}
 			const status: RunStatus = opts.signal?.aborted ? "aborted" : "error";
 			const endedAt = new Date().toISOString();
+			// Usage observed before the failure still counts toward rollups.
+			await usageRecorder?.finalize().catch(() => {});
 			await Promise.all([
 				updateAgentRunStatus(db, runId, status, { endedAt }).catch((e) =>
 					log.warn("updateAgentRunStatus failed", { error: (e as Error).message })

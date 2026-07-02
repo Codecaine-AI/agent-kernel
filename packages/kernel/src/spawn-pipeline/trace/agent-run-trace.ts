@@ -2,6 +2,7 @@ import {
 	createAgentRunEndEvent,
 	createAgentRunStartEvent,
 	type RunTraceEventIds,
+	type TurnUsage,
 } from "@agent-kernel/protocol";
 
 import type { TraceWriterSink } from "../../subagents/types";
@@ -33,13 +34,15 @@ export function emitAgentRunEnd(
 	agentName: string,
 	status: "ok" | "error",
 	errorMessage?: string,
+	usage?: TurnUsage,
 ): void {
 	traceWriter.submit(
 		status === "error"
 			? createAgentRunEndEvent(ids, agentName, "error", {
 					errorMessage: errorMessage ?? "",
+					...(usage ? { usage } : {}),
 				})
-			: createAgentRunEndEvent(ids, agentName, "ok"),
+			: createAgentRunEndEvent(ids, agentName, "ok", usage ? { usage } : undefined),
 	);
 }
 

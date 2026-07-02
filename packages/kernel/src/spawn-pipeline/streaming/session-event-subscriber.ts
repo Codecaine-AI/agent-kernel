@@ -1,3 +1,4 @@
+import type { KernelEmitter } from "../../emitter";
 import { getGraceTurns } from "../config/turn-limits";
 import { getLastAssistantText } from "../trace/assistant-message-inspection";
 import type {
@@ -19,6 +20,8 @@ export function subscribeToSession<TSession extends KernelAgentSessionLike>(
 	session: TSession,
 	opts: KernelSpawnRuntimeOptions,
 	maxTurns: number | undefined,
+	/** In-process kernel emitter fed from this same subscription (Phase 2). */
+	emitter?: KernelEmitter,
 ): SessionSubscription<TSession> {
 	let turnCount = 0;
 	let softLimitReached = false;
@@ -28,6 +31,9 @@ export function subscribeToSession<TSession extends KernelAgentSessionLike>(
 	let lastAssistantText = "";
 
 	const unsub = session.subscribe((event: KernelAgentSessionEventLike) => {
+		// The emitter observes the event before any control action (turn-limit
+		// steer/abort) mutates the session.
+		emitter?.handleEvent(event);
 		if (event.type === "turn_end") {
 			turnCount++;
 			opts.onTurnEnd?.(turnCount);

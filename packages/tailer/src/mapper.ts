@@ -20,6 +20,9 @@ import {
   createToolCallEndEvent,
   createToolCallStartEvent,
   createUserMessageEvent,
+  deterministicEventId,
+  piEntryEventId,
+  turnUsageFromPiMessage,
   TraceLevel,
 } from "@agent-kernel/protocol";
 import type { TraceEvent, TraceEventIds, TurnUsage } from "@agent-kernel/protocol";
@@ -52,13 +55,10 @@ const DEFAULT_MAPPER_OPTIONS = Object.freeze({
 /**
  * Deterministic UUID-shaped id from a seed string (sha-256 truncated).
  * Replaying the same JSONL entry always produces the same event id.
+ * Re-exported from @agent-kernel/protocol — the kernel's in-process emitter
+ * derives the same ids so live emission + backfill never duplicate rows.
  */
-export function deterministicEventId(seed: string): string {
-  const hasher = new Bun.CryptoHasher("sha256");
-  hasher.update(seed);
-  const hex = hasher.digest("hex");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
-}
+export { deterministicEventId };
 
 interface EntryContext {
   entryId: string;
@@ -104,8 +104,11 @@ export class EventMapper {
     const ordinal = entry ? entry.ordinal++ : 0;
     return {
       ...evt,
-      eventId: deterministicEventId(
-        `${this.piSessionUuid ?? ""}\n${entry?.entryId ?? ""}\n${ordinal}\n${evt.type}`,
+      eventId: piEntryEventId(
+        this.piSessionUuid ?? "",
+        entry?.entryId ?? "",
+        ordinal,
+        String(evt.type),
       ),
       source: "agent",
       timestamp,
@@ -219,21 +222,19 @@ export class EventMapper {
   }
 
   private extractUsage(message: PiMessage): TurnUsage | null {
-    const usage = message.usage;
-    if (!usage) return null;
-    return {
-      inputTokens: usage.input ?? 0,
-      outputTokens: usage.output ?? 0,
-      cacheReadTokens: usage.cacheRead ?? 0,
-      cacheWriteTokens: usage.cacheWrite ?? 0,
-      model: message.model ?? this.model,
-      ...(usage.cost?.total !== undefined ? { costEstimate: usage.cost.total } : {}),
-    };
+    return turnUsageFromPiMessage(message, this.model);
   }
 
   private mapMessage(event: PiMessageEvent, timestamp: string): MapperResult {
     const results: TraceEvent[] = [];
-    const { role, content } = event.message;
+    const { role } = event.message;
+    // Pi persists user prompts as either a plain string or content blocks;
+    // normalize so string prompts still map to a user_message event.
+    const rawContent = event.message.content as unknown;
+    const content: PiMessage["content"] =
+      typeof rawContent === "string"
+        ? [{ type: "text", text: rawContent }]
+        : (event.message.content ?? []);
     const ids = this.ids();
 
     if (role === "toolResult") {

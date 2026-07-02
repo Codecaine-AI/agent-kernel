@@ -45,6 +45,7 @@ import {
   type PiTurnStartData,
   type PostToolHookData,
   type PreToolHookData,
+  type RunSteeredData,
   type SystemPromptResolvedData,
   type ToolCallEndData,
   type ToolCallStartData,
@@ -226,6 +227,33 @@ export function createAgentRunEndEvent(
     eventData: data,
     source: TraceSource.KERNEL,
     traceLevel: TraceLevel.DEBUG,
+    spanId: opts?.spanId,
+    parentEventId: opts?.parentEventId,
+  });
+}
+
+export function createRunSteeredEvent(
+  ids: RunTraceEventIds,
+  agentName: string,
+  message: string,
+  opts?: {
+    delivery?: "delivered" | "queued";
+    spanId?: string;
+    parentEventId?: string;
+  },
+): TraceEvent {
+  const data: RunSteeredData = {
+    run_id: ids.runId,
+    agent_name: agentName,
+    message,
+    delivery: opts?.delivery ?? "delivered",
+  };
+  return createEvent({
+    type: EventType.RUN_STEERED,
+    ids,
+    eventData: data,
+    source: TraceSource.KERNEL,
+    traceLevel: TraceLevel.PROCESSING,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
   });
