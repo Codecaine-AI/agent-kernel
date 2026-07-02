@@ -14,7 +14,6 @@
     "./containers": "./src/containers.ts",
     "./doctor": "./src/doctor.ts",
     "./agent-registry": "./src/agent-registry/index.ts",
-    "./agent-registry/parsing": "./src/agent-registry/parsing/index.ts",
     "./agent-registry/registry": "./src/agent-registry/registry/index.ts",
     "./context": "./src/context/index.ts",
     "./context/loaders": "./src/context/loaders/index.ts",
@@ -27,7 +26,6 @@
     "./spawn-pipeline/pi-session-factory": "./src/spawn-pipeline/pi-session-factory/index.ts",
     "./spawn-pipeline/runtime": "./src/spawn-pipeline/runtime/index.ts",
     "./spawn-pipeline/session": "./src/spawn-pipeline/session/index.ts",
-    "./spawn-pipeline/spawn-agent": "./src/spawn-pipeline/spawn-agent.ts",
     "./spawn-pipeline/streaming": "./src/spawn-pipeline/streaming/index.ts",
     "./spawn-pipeline/system-prompt-resolver": "./src/spawn-pipeline/system-prompt-resolver/index.ts",
     "./spawn-pipeline/trace": "./src/spawn-pipeline/trace/index.ts",
@@ -39,12 +37,10 @@
     "@codecaine-ai/prompt-kit": "workspace:*",
     "@mariozechner/pi-ai": "^0.70.6",
     "@mariozechner/pi-coding-agent": "^0.70.6",
-    "elysia": "^1.2.0",
-    "js-yaml": "^4.1.0"
+    "elysia": "^1.2.0"
   },
   "devDependencies": {
     "@agent-kernel/tailer": "workspace:*",
-    "@types/js-yaml": "^4.0.9",
     "@types/bun": "latest",
     "drizzle-orm": "^0.45.0"
   }

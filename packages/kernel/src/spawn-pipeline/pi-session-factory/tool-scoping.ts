@@ -1,4 +1,4 @@
-import type { AgentFrontmatter } from "../types";
+import type { AgentConfig } from "../types";
 
 export const SUBAGENT_TOOL_NAMES = ["Agent", "get_subagent_result", "steer_subagent"];
 
@@ -9,12 +9,12 @@ export interface ToolScopedSessionLike {
 
 export function applyToolScoping(
 	session: ToolScopedSessionLike,
-	fm: AgentFrontmatter,
+	config: AgentConfig,
 ): void {
-	const extraDisallowed = fm.can_spawn_subagent ? [] : SUBAGENT_TOOL_NAMES;
-	const disallowlist = [...(fm.disallowed_tools ?? []), ...extraDisallowed];
-	const allowlist = fm.tools ?? [];
-	const extensions = fm.extensions ?? true;
+	const extraDisallowed = config.canSpawnSubagent ? [] : SUBAGENT_TOOL_NAMES;
+	const disallowlist = [...(config.disallowedTools ?? []), ...extraDisallowed];
+	const allowlist = config.tools ?? [];
+	const extensions = config.extensions ?? true;
 
 	const disallowedSet = disallowlist.length ? new Set(disallowlist) : undefined;
 	const toolsAllowlist = allowlist.length ? new Set(allowlist) : undefined;

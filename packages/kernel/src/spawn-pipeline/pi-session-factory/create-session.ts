@@ -15,7 +15,7 @@ import {
 } from "@mariozechner/pi-coding-agent";
 
 import { checkDomainAccess, mapToolToOperation } from "../hooks";
-import type { AgentFrontmatter, DomainRule } from "../types";
+import type { AgentConfig, DomainRule } from "../types";
 import type { ResolvedAgent } from "../system-prompt-resolver";
 import { resolveModel as fuzzyResolveModel } from "./model-resolver";
 import { attachPiLifecycleLogger } from "./pi-lifecycle-logger";
@@ -93,11 +93,11 @@ export async function createPiSession(
 ): Promise<CreatePiSessionResult> {
 	const { resolved, ctx, cwd, domain, thinkingLevel } = input;
 	const log = input.logger ?? noopLogger;
-	const agentName = resolved.frontmatter.name;
+	const agentName = resolved.config.name;
 	log.info(`creating session for "${agentName}"`, {
 		cwd,
 		hasParentCtx: Boolean(ctx),
-		frontmatterModel: resolved.frontmatter.model || "(none)",
+		configModel: resolved.config.model || "(none)",
 	});
 
 	const extensionFactories: ExtensionFactory[] = [
@@ -132,9 +132,9 @@ export async function createPiSession(
 		ctx?.modelRegistry ?? ModelRegistry.create(authStorage, join(piAgentDir, "models.json"));
 
 	let model: Model<any> | undefined;
-	const fm: AgentFrontmatter = resolved.frontmatter;
-	if (fm.model) {
-		const resolvedModel = fuzzyResolveModel(fm.model, modelRegistry);
+	const config: AgentConfig = resolved.config;
+	if (config.model) {
+		const resolvedModel = fuzzyResolveModel(config.model, modelRegistry);
 		if (typeof resolvedModel === "string") {
 			log.warn(`model fuzzy resolve failed for "${agentName}": ${resolvedModel}`);
 			model = ctx?.model;
@@ -142,9 +142,9 @@ export async function createPiSession(
 			model = resolvedModel;
 		}
 		if (!model) {
-			model = resolveModelFromString(fm.model);
+			model = resolveModelFromString(config.model);
 			if (!model) {
-				log.warn(`model "${fm.model}" not found in built-in catalog for "${agentName}"`);
+				log.warn(`model "${config.model}" not found in built-in catalog for "${agentName}"`);
 			}
 		}
 	}
@@ -183,7 +183,7 @@ export async function createPiSession(
 
 	attachPiLifecycleLogger(session, input.piLifecycleCustomType);
 
-	applyToolScoping(session, fm);
+	applyToolScoping(session, config);
 	log.info(`session created for "${agentName}"`, {
 		activeTools: session.getActiveToolNames().length,
 	});

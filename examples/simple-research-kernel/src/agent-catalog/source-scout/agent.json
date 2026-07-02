@@ -1,0 +1,19 @@
+{
+	"$schema": "agent-kernel/agent-v1",
+	"name": "source-scout",
+	"description": "Investigates one focused angle, reads local evidence, and writes a durable research note.",
+	"model": "research-default",
+	"thinking": "low",
+	"canSpawnSubagent": false,
+	"extensions": false,
+	"variables": {
+		"researchMemoryDir": {
+			"default": "research-memory",
+			"description": "Directory inside the active research session where scout reports are stored."
+		},
+		"focus": {
+			"default": "",
+			"description": "Focus assigned by the coordinator."
+		}
+	}
+}

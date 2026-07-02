@@ -1,32 +1,14 @@
-import { pathToFileURL } from "node:url";
-
 import type { AgentPrivateTools } from "../../agent-definition";
-import type { AgentRegisterFn } from "../parsing/types";
 
 interface StubPi {
 	registerTool(tool: { name: string }): void;
 }
 
-export async function harvestPrivateToolNamesFromPath(
-	indexModulePath: string,
-): Promise<string[]> {
-	const mod = (await import(pathToFileURL(indexModulePath).href)) as {
-		default?: { register?: AgentRegisterFn };
-		register?: AgentRegisterFn;
-	};
-	const reg = mod.default?.register ?? mod.register;
-	if (!reg) return [];
-
-	const names: string[] = [];
-	const stubPi: StubPi = {
-		registerTool(tool) {
-			names.push(tool.name);
-		},
-	};
-	await reg(stubPi as unknown as Parameters<AgentRegisterFn>[0]);
-	return names;
-}
-
+/**
+ * Dry-run an agent's tools.ts register function against a stub Pi API to
+ * collect the private tool names it registers (used to build the full tool
+ * allowlist at registry boot).
+ */
 export async function harvestPrivateToolNamesFromRegister(
 	register: AgentPrivateTools,
 ): Promise<string[]> {

@@ -86,7 +86,36 @@ export interface KernelEmitterOptions {
 	onTurnUsage?: (usage: TurnUsage) => void;
 	/** Called when the first user_message of the run is emitted. */
 	onInboundEvent?: (eventId: string) => void;
+	/**
+	 * Model price table keyed by resolved model string. When the provider does
+	 * not report a cost, per-turn costEstimate is derived from these prices.
+	 */
+	prices?: ModelPriceTable;
 	logger?: KernelEmitterLoggerLike;
+}
+
+export type ModelPriceTable = Record<
+	string,
+	{ inputPerMTok?: number; outputPerMTok?: number }
+>;
+
+/**
+ * Fill usage.costEstimate from a price table when the provider did not
+ * report a cost. Returns the input unchanged when a cost is already present
+ * or no price entry matches the turn's model.
+ */
+export function applyPriceEstimate(
+	usage: TurnUsage,
+	prices: ModelPriceTable | undefined,
+): TurnUsage {
+	if (usage.costEstimate !== undefined) return usage;
+	const price = prices?.[usage.model];
+	if (!price) return usage;
+	const cost =
+		(usage.inputTokens * (price.inputPerMTok ?? 0) +
+			usage.outputTokens * (price.outputPerMTok ?? 0)) /
+		1_000_000;
+	return { ...usage, costEstimate: cost };
 }
 
 export interface KernelEmitter {
@@ -287,7 +316,7 @@ export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
 				message as { usage?: PiMessageLike["usage"]; model?: string },
 				model,
 			);
-			if (usage) currentTurnUsage = usage;
+			if (usage) currentTurnUsage = applyPriceEstimate(usage, opts.prices);
 		}
 
 		// Defer one microtask: AgentSession persists the message right after

@@ -9,51 +9,21 @@ import {
 	writeFileSync
 } from "node:fs";
 import { basename, extname, join, relative, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 
 import {
-	AgentManager,
-	buildRegistry,
 	createKernel,
 	getRunContext,
-	registerPromptRevisions,
 	type AgentDefinition,
-	type AgentRegistry,
 	type KernelExtensionContext,
 	type KernelInstance
 } from "@agent-kernel/kernel";
-import {
-	createSpawnContext,
-	createDefaultCatalog,
-	type AgentContextResolver,
-	type Loader,
-	type LoaderDeclaration,
-	type LoaderResult
-} from "@agent-kernel/kernel/context";
-import {
-	createSpawnAgent,
-	type KernelSpawnAgent,
-	type KernelSpawnAgentResult,
-	type KernelSpawnOptions
-} from "@agent-kernel/kernel/spawn-pipeline";
-import {
-	insertTraceEventsBatch,
-	updateContainerStatus,
-	type KernelDatabase
-} from "@agent-kernel/db";
-import {
-	createContainerStartEvent,
-	createPhaseStartEvent,
-	type TraceEvent as ProtocolTraceEvent
-} from "@agent-kernel/protocol";
+import type { Loader, LoaderDeclaration, LoaderResult } from "@agent-kernel/kernel/context";
+import { updateContainerStatus, type KernelDatabase } from "@agent-kernel/db";
+import { createContainerStartEvent, createPhaseStartEvent } from "@agent-kernel/protocol";
 import type { KernelTraceSessionSummary } from "@agent-kernel/viewer-core";
-import type { ExtensionAPI, ExtensionContext, ExtensionFactory } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import type { PromptDocument } from "@codecaine-ai/prompt-kit";
-import type {
-	SimpleResearchAgentRegisterFn,
-	SimpleResearchToolRuntime,
-	ToolResponse
-} from "./agent-catalog/tool-runtime";
+import type { SimpleResearchToolRuntime, ToolResponse } from "./agent-catalog/tool-runtime";
 
 export const KERNEL_ID = "simple-research-kernel";
 export const PHASE = "research";
@@ -67,6 +37,8 @@ const REPORTS_REL_PATH = join(RESEARCH_MEMORY_REL_PATH, "reports");
 const PI_AGENT_DIR = Bun.env.AGENT_KERNEL_PI_AGENT_DIR ?? join(EXAMPLE_ROOT, ".pi-agent");
 const DEFAULT_PI_SESSIONS_DIR = join(EXAMPLE_ROOT, ".agent-kernel", "pi-sessions");
 const DEFAULT_RESEARCH_MODEL = "codex-lb/gpt-5.5";
+/** Manifest model alias — resolved to the live model via kernel config. */
+const RESEARCH_MODEL_ALIAS = "research-default";
 
 type ResearchHarnessInfo = {
 	kernelId: string;
@@ -217,21 +189,11 @@ const workingMemoryLoader: Loader<WorkingMemoryLoaderDeclaration> = {
 };
 
 export class SimpleResearchKernelStore {
-	readonly kernel: KernelInstance<
-		KernelExtensionContext | null,
-		KernelSpawnOptions,
-		KernelSpawnAgentResult,
-		AgentManager
-	>;
+	readonly kernel: KernelInstance<SimpleResearchToolRuntime>;
 
 	private readonly db: KernelDatabase;
 	private readonly piSessionsDir: string;
 	private readonly model: string;
-	private readonly toolRuntime: SimpleResearchToolRuntime;
-	/** Serializes async trace-event inserts behind the sync TraceWriterSink. */
-	private traceWriteTail: Promise<void> = Promise.resolve();
-	private readonly registryPromise: Promise<AgentRegistry>;
-	private liveSpawnAgentPromise: Promise<KernelSpawnAgent> | null = null;
 	/** Session dir per session container, for runs started in this process. */
 	private readonly sessionDirsByContainer = new Map<string, string>();
 	private artifactCounter = 0;
@@ -245,36 +207,32 @@ export class SimpleResearchKernelStore {
 		this.ensureWorkingMemory();
 		mkdirSync(PI_AGENT_DIR, { recursive: true });
 		mkdirSync(this.piSessionsDir, { recursive: true });
-		this.toolRuntime = this.createToolRuntime();
-		// Registry boot: discover prompt.json bundles, then upsert one
-		// content-addressed prompt_revisions row per agent (source
-		// "registry-boot") so session prompt_hash values always resolve.
-		this.registryPromise = buildRegistry({ catalogRoot: AGENT_CATALOG_DIR }).then(
-			async (registry) => {
-				await registerPromptRevisions(this.db, registry);
-				return registry;
-			}
-		);
 
-		this.kernel = createKernel<
-			KernelExtensionContext | null,
-			KernelSpawnOptions,
-			KernelSpawnAgentResult,
-			AgentManager
-		>({
+		// The whole former adapter bundle (registry building, spawn pipeline
+		// assembly, trace writer, read service, prompt-revision registration)
+		// is now kernel config + instance methods.
+		this.kernel = createKernel<SimpleResearchToolRuntime>({
 			id: KERNEL_ID,
-			concurrency: { maxBackgroundAgents: 3 },
 			db: this.db,
-			spawnAgent: (name, prompt, ctx, opts) => this.runLiveResearchAgent(name, prompt, ctx, opts),
-			createAgentManager: ({ maxConcurrentBackgroundAgents, spawnAgent }) =>
-				new AgentManager(undefined, maxConcurrentBackgroundAgents, undefined, {
-					spawnAgent: (name, prompt, ctx, opts) => spawnAgent(name, prompt, ctx, opts)
-				})
+			concurrency: { maxBackgroundAgents: 3 },
+			catalog: { roots: [AGENT_CATALOG_DIR] },
+			models: { aliases: { [RESEARCH_MODEL_ALIAS]: this.model } },
+			loaders: [workingMemoryLoader],
+			toolRuntime: this.createToolRuntime(),
+			appContext: ({ cwd }) => ({
+				sessionData: {
+					workingMemoryDir: join(cwd ?? EXAMPLE_ROOT, RESEARCH_MEMORY_REL_PATH)
+				}
+			}),
+			piSessionsDir: this.piSessionsDir,
+			piAgentDir: PI_AGENT_DIR,
+			piLifecycleCustomType: "agent-kernel:pi-lifecycle",
+			logger: console
 		});
 	}
 
 	async getResearchInfo(traces: KernelTraceSessionSummary[] = []): Promise<ResearchHarnessInfo> {
-		const registry = await this.registryPromise;
+		const registry = await this.kernel.registry();
 		const trace = traces[0] ?? {
 			label: "Simple Research Kernel",
 			piSessionCount: 0,
@@ -310,7 +268,10 @@ export class SimpleResearchKernelStore {
 		};
 	}
 
-	async startResearchRun(prompt: string): Promise<ResearchRunSummary> {
+	async startResearchRun(
+		prompt: string,
+		options: { variant?: string } = {}
+	): Promise<ResearchRunSummary> {
 		const id = randomUUID();
 		const sessionSlug = `research-${safeSlug(prompt)}-${id.slice(0, 8)}`.slice(0, 90);
 		const sessionDir = this.ensureResearchSessionDir(join(RESEARCH_SESSION_ROOT, sessionSlug));
@@ -358,12 +319,13 @@ export class SimpleResearchKernelStore {
 				containerId: container.id,
 				trigger: "operator",
 				sessionDir,
-				piSessionsDir: this.piSessionsDir,
-				piAgentDir: PI_AGENT_DIR,
 				workingDir: sessionDir,
 				phase: PHASE,
-				displayLabel: this.displayLabel("research-coordinator"),
-				traceWriter: this.traceWriter()
+				// With a manifest variant selected, its displayLabel (and model/
+				// thinking/maxTurns overrides) resolve inside the kernel.
+				...(options.variant
+					? { variant: options.variant }
+					: { displayLabel: this.displayLabel("research-coordinator") })
 			})
 			.then(() => {
 				const artifactError = this.validateCompletedRun(sessionDir, artifactSnapshot);
@@ -383,83 +345,6 @@ export class SimpleResearchKernelStore {
 		return run;
 	}
 
-	private async runLiveResearchAgent(
-		agentName: string,
-		prompt: string,
-		ctx?: KernelExtensionContext | null,
-		opts: KernelSpawnOptions = {}
-	): Promise<KernelSpawnAgentResult> {
-		const spawnAgent = await this.getLiveSpawnAgent();
-		const sessionDir = this.ensureResearchSessionDir(
-			opts.sessionDir ?? this.defaultResearchSessionDir()
-		);
-		return spawnAgent(agentName, prompt, ctx as unknown as ExtensionContext | null | undefined, {
-			...opts,
-			workingDir: opts.workingDir ?? sessionDir,
-			sessionDir,
-			piSessionsDir: opts.piSessionsDir ?? this.piSessionsDir,
-			piAgentDir: opts.piAgentDir ?? PI_AGENT_DIR,
-			displayLabel: opts.displayLabel ?? this.displayLabel(agentName),
-			variables: {
-				...this.variablesFor(agentName, prompt),
-				...(opts.variables ?? {})
-			}
-		});
-	}
-
-	private async getLiveSpawnAgent(): Promise<KernelSpawnAgent> {
-		if (this.liveSpawnAgentPromise) return this.liveSpawnAgentPromise;
-		this.liveSpawnAgentPromise = this.registryPromise.then((registry) =>
-			createSpawnAgent({
-				loadAgent: (name) => {
-					const agent = registry.get(name);
-					return {
-						...agent.parsed,
-						frontmatter: {
-							...agent.parsed.frontmatter,
-							model: this.model
-						}
-					};
-				},
-				loadAgentResolver: async (name) => {
-					const agent = registry.get(name);
-					return agent.contextResolver ?? (agent.contextModulePath ? this.loadContextResolver(agent) : null);
-				},
-				buildPrivateRegisterFactory: async (name) => {
-					const agent = registry.get(name);
-					return this.loadPrivateRegisterFactory(agent);
-				},
-				buildToolFactories: () => [],
-				createContextCatalog: () => {
-					const catalog = createDefaultCatalog();
-					catalog.register(workingMemoryLoader);
-					return catalog;
-				},
-				createSpawnContext: (params) =>
-					createSpawnContext({
-						...params,
-						sessionData: {
-							workingMemoryDir: join(params.cwd ?? params.runtime.cwd, RESEARCH_MEMORY_REL_PATH)
-						}
-					}),
-				getDb: () => this.db,
-				// The pipeline merges containerId + runId into the marker payload so
-				// backfill (runBackfill) can recover kernel identity from the JSONL.
-				createSessionBinding: (opts) => ({
-					customType: "agent-kernel:session-binding",
-					data: {
-						sessionDir: opts.sessionDir,
-						phase: opts.phase
-					}
-				}),
-				piLifecycleCustomType: "agent-kernel:pi-lifecycle",
-				logger: console,
-				lifecycleLogger: console
-			})
-		);
-		return this.liveSpawnAgentPromise;
-	}
-
 	private variablesFor(agentName: string, prompt: string): Record<string, unknown> {
 		const common = {
 			researchMemoryDir: "research-memory",
@@ -477,32 +362,6 @@ export class SimpleResearchKernelStore {
 		};
 	}
 
-	/**
-	 * Trace sink for kernel-emitted lifecycle/spawn events — inserts straight
-	 * into the local SQLite trace db (idempotent by event_id). The envelope
-	 * already carries containerId + runId stamped by the spawn pipeline.
-	 */
-	private traceWriter() {
-		return {
-			submit: (event: ProtocolTraceEvent) => {
-				this.submitTraceEvent(event);
-			}
-		};
-	}
-
-	private submitTraceEvent(event: ProtocolTraceEvent): void {
-		this.traceWriteTail = this.traceWriteTail
-			.then(async () => {
-				await insertTraceEventsBatch(this.db, [event]);
-			})
-			.catch((error) => {
-				console.error(
-					"Simple Research Kernel trace write failed:",
-					error instanceof Error ? error.message : String(error)
-				);
-			});
-	}
-
 	private createToolRuntime(): SimpleResearchToolRuntime {
 		return {
 			readContextSnapshot: (paths) => this.readContextSnapshot(paths),
@@ -514,20 +373,6 @@ export class SimpleResearchKernelStore {
 			writeResearchReport: (title, content) => this.writeResearchReport(title, content),
 			writeFinalReport: (title, content) => this.writeFinalReport(title, content)
 		};
-	}
-
-	private async loadPrivateRegisterFactory(agent: AgentDefinition): Promise<ExtensionFactory | null> {
-		if (agent.privateTools) {
-			return (pi) => agent.privateTools?.(pi, this.toolRuntime);
-		}
-		if (!agent.indexModulePath) return null;
-		const imported = (await import(pathToFileURL(agent.indexModulePath).href)) as {
-			default?: { register?: SimpleResearchAgentRegisterFn };
-			register?: SimpleResearchAgentRegisterFn;
-		};
-		const register = imported.default?.register ?? imported.register;
-		if (!register) return null;
-		return (pi) => register(pi, this.toolRuntime);
 	}
 
 	private reviewResearchReports(question?: string): ToolResponse {
@@ -582,7 +427,6 @@ export class SimpleResearchKernelStore {
 				workingDir: sessionDir,
 				containerId: runCtx.containerId,
 				sessionDir,
-				piSessionsDir: this.piSessionsDir,
 				phase: runCtx.phase,
 				displayLabel: this.displayLabel("report-writer"),
 				parentRunId: runCtx.runId,
@@ -647,7 +491,6 @@ export class SimpleResearchKernelStore {
 						workingDir: sessionDir,
 						containerId: runCtx.containerId,
 						sessionDir,
-						piSessionsDir: this.piSessionsDir,
 						phase: runCtx.phase,
 						displayLabel: this.displayLabel("source-scout"),
 						parentRunId: runCtx.runId,
@@ -755,36 +598,15 @@ export class SimpleResearchKernelStore {
 		return target;
 	}
 
-	private async loadContextResolver(agent: AgentDefinition): Promise<AgentContextResolver> {
-		if (agent.contextResolver) return agent.contextResolver;
-		if (!agent.contextModulePath) {
-			return {
-				loaders: [],
-				assemble: () => ""
-			};
-		}
-
-		const imported = await import(pathToFileURL(agent.contextModulePath).href);
-		const candidate = (imported.default ?? imported) as Partial<AgentContextResolver>;
-		if (!Array.isArray(candidate.loaders) || typeof candidate.assemble !== "function") {
-			throw new Error(`Context sidecar must export loaders and assemble(): ${agent.contextModulePath}`);
-		}
-
-		return {
-			loaders: candidate.loaders,
-			assemble: candidate.assemble
-		};
-	}
-
 	/**
 	 * Seed the viewer's phase + pipeline-container grouping for a fresh
 	 * session container. These are app-level trace events keyed by the
-	 * session container id.
+	 * session container id, written through the kernel's default trace sink.
 	 */
 	private seedLifecycle(containerId: string, label: string): void {
 		const ids = { containerId };
-		this.submitTraceEvent(createPhaseStartEvent(ids, PHASE));
-		this.submitTraceEvent(
+		this.kernel.traceWriter.submit(createPhaseStartEvent(ids, PHASE));
+		this.kernel.traceWriter.submit(
 			createContainerStartEvent(ids, {
 				container_id: containerId,
 				level: "research",
@@ -865,29 +687,28 @@ export class SimpleResearchKernelStore {
 	}
 
 	private summarizeAgent(agent: AgentDefinition): ResearchAgentSummary {
-		const fm = agent.parsed.frontmatter;
-		const promptDocument = agent.promptDocument;
+		const config = agent.parsed.config;
 		return {
 			name: agent.name,
-			description: fm.description,
+			description: config.description,
 			model: this.model,
-			source: agent.source,
-			promptDocument,
-			tools: fm.tools,
-			disallowedTools: fm.disallowed_tools ?? [],
-			extensions: fm.extensions ?? true,
-			canSpawnSubagent: fm.can_spawn_subagent ?? false,
-			variables: Object.entries(fm.variables).map(([name, decl]) => ({
+			source: "typed",
+			promptDocument: agent.promptDocument,
+			tools: config.tools,
+			disallowedTools: config.disallowedTools ?? [],
+			extensions: config.extensions ?? true,
+			canSpawnSubagent: config.canSpawnSubagent ?? false,
+			variables: Object.entries(config.variables).map(([name, decl]) => ({
 				name,
 				defaultValue: decl.default,
 				description: decl.description ?? null
 			})),
-			maxTurns: fm.max_turns ?? null,
-			thinking: fm.thinking ?? null,
-			runInBackground: fm.run_in_background ?? false,
+			maxTurns: config.maxTurns ?? null,
+			thinking: config.thinking ?? null,
+			runInBackground: config.runInBackground ?? false,
 			hasContext: agent.contextModulePath !== null,
 			contextModule: agent.contextModulePath ? relative(EXAMPLE_ROOT, agent.contextModulePath) : null,
-			agentFile: relative(EXAMPLE_ROOT, agent.agentFile),
+			agentFile: relative(EXAMPLE_ROOT, agent.manifestFile),
 			promptTemplate: agent.parsed.body.trim(),
 			warnings: agent.warnings
 		};
@@ -909,15 +730,5 @@ export class SimpleResearchKernelStore {
 			.split("-")
 			.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
 			.join(" ");
-	}
-
-	/** Await all queued trace-event inserts (read paths flush before serving). */
-	async flushTraceWrites(): Promise<void> {
-		let tail = this.traceWriteTail;
-		await tail;
-		while (tail !== this.traceWriteTail) {
-			tail = this.traceWriteTail;
-			await tail;
-		}
 	}
 }

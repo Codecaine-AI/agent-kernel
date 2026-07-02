@@ -1,4 +1,4 @@
-import type { VariableDeclaration } from "../parsing/types";
+import type { VariableDeclaration } from "../../spawn-pipeline/types";
 
 export interface ValidationResult {
 	missingDeclarations: string[];

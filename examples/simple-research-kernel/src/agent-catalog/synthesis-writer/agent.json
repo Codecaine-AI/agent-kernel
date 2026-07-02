@@ -1,0 +1,19 @@
+{
+	"$schema": "agent-kernel/agent-v1",
+	"name": "report-writer",
+	"description": "Synthesizes scout reports and source context into a complete markdown research report.",
+	"model": "research-default",
+	"thinking": "low",
+	"canSpawnSubagent": false,
+	"extensions": false,
+	"variables": {
+		"researchMemoryDir": {
+			"default": "research-memory",
+			"description": "Directory inside the active research session where reports are written."
+		},
+		"focus": {
+			"default": "",
+			"description": "Report focus assigned by the coordinator."
+		}
+	}
+}

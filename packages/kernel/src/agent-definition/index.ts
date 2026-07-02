@@ -1,6 +1,14 @@
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 import type { AgentContextResolver } from "../context";
+import { validateAgentManifestShape } from "./agent-manifest-schema";
+
+export {
+	AGENT_MANIFEST_SCHEMA_ID,
+	agentManifestJsonSchema,
+	validateAgentManifestShape,
+	type AgentManifestShapeResult,
+} from "./agent-manifest-schema";
 
 export interface AgentVariableDeclaration {
 	default?: unknown;
@@ -25,47 +33,76 @@ export interface AgentVariantDefinition {
 }
 
 /**
- * Typed agent manifest authored in `agent.ts`. The system prompt is NOT part
- * of this config: the registry pairs the definition with a sibling
- * `prompt.json` (canonical PromptDocument) by convention (D70).
+ * The agent manifest — the pure-data contents of an agent directory's
+ * `agent.json` (D76). The system prompt is NOT part of the manifest: the
+ * registry pairs it with a sibling `prompt.json` (canonical PromptDocument,
+ * D70); `context.ts` and `tools.ts` attach by filename convention.
  */
-export interface AgentDefinitionConfig<TRuntime = unknown> {
+export interface AgentManifest {
+	$schema?: string;
 	name: string;
 	description: string;
+	/** Model id or a kernel-config alias resolved at spawn (D76/4b). */
 	model: string;
+	thinking?: string;
+	maxTurns?: number;
+	canSpawnSubagent?: boolean;
 	coreTools?: string[];
 	disallowedTools?: string[];
 	extensions?: AgentExtensionsConfig;
-	canSpawnSubagent?: boolean;
-	variables?: Record<string, AgentVariableDeclaration>;
-	maxTurns?: number;
 	runInBackground?: boolean;
-	thinking?: string;
-	context?: AgentContextResolver | null;
-	tools?: AgentPrivateTools<TRuntime> | null;
+	/** Named tool bundles expanded from kernel-config `toolProfiles` at boot. */
+	toolProfiles?: string[];
+	variables?: Record<string, AgentVariableDeclaration>;
+	/** Sanctioned per-spawn overrides selected via spawn `variant` option. */
 	variants?: Record<string, AgentVariantDefinition>;
 }
 
-export type TypedAgentDefinition<TRuntime = unknown> =
-	AgentDefinitionConfig<TRuntime> & {
-		readonly __agentDefinitionBrand: "agent-kernel/typed-agent";
-	};
+export type NormalizedAgentManifest = AgentManifest & {
+	coreTools: string[];
+	disallowedTools: string[];
+	extensions: AgentExtensionsConfig;
+	canSpawnSubagent: boolean;
+	runInBackground: boolean;
+	toolProfiles: string[];
+	variables: Record<string, AgentVariableDeclaration>;
+	variants: Record<string, AgentVariantDefinition>;
+};
 
-export function defineAgent<TRuntime = unknown>(
-	config: AgentDefinitionConfig<TRuntime>,
-): TypedAgentDefinition<TRuntime> {
+/** Fill manifest defaults without validating. Prefer `defineAgent`. */
+export function normalizeAgentManifest(
+	manifest: AgentManifest,
+): NormalizedAgentManifest {
 	return {
-		...config,
-		coreTools: config.coreTools ?? [],
-		disallowedTools: config.disallowedTools ?? [],
-		extensions: config.extensions ?? true,
-		canSpawnSubagent: config.canSpawnSubagent ?? false,
-		variables: config.variables ?? {},
-		runInBackground: config.runInBackground ?? false,
-		tools: config.tools ?? null,
-		context: config.context ?? null,
-		__agentDefinitionBrand: "agent-kernel/typed-agent",
+		...manifest,
+		coreTools: manifest.coreTools ?? [],
+		disallowedTools: manifest.disallowedTools ?? [],
+		extensions: manifest.extensions ?? true,
+		canSpawnSubagent: manifest.canSpawnSubagent ?? false,
+		runInBackground: manifest.runInBackground ?? false,
+		toolProfiles: manifest.toolProfiles ?? [],
+		variables: manifest.variables ?? {},
+		variants: manifest.variants ?? {},
 	};
+}
+
+/**
+ * Typed helper that validates and normalizes an agent manifest object.
+ *
+ * Since D76 the registry entry point is the `agent.json` file itself —
+ * `defineAgent` is no longer imported by agent bundles. It survives as the
+ * programmatic way to construct a valid manifest (generators, tests, tooling
+ * that writes agent.json files). Throws on a manifest that fails the shared
+ * JSON Schema shape check.
+ */
+export function defineAgent(manifest: AgentManifest): NormalizedAgentManifest {
+	const shape = validateAgentManifestShape(manifest);
+	if (!shape.valid) {
+		throw new Error(
+			`defineAgent: invalid agent manifest\n  - ${shape.errors.join("\n  - ")}`,
+		);
+	}
+	return normalizeAgentManifest(manifest);
 }
 
 export function defineContext<TResolver extends AgentContextResolver>(
@@ -78,15 +115,4 @@ export function defineTools<TRuntime = unknown>(
 	tools: AgentPrivateTools<TRuntime>,
 ): AgentPrivateTools<TRuntime> {
 	return tools;
-}
-
-export function isTypedAgentDefinition(
-	value: unknown,
-): value is TypedAgentDefinition {
-	return (
-		typeof value === "object" &&
-		value !== null &&
-		(value as { __agentDefinitionBrand?: unknown }).__agentDefinitionBrand ===
-			"agent-kernel/typed-agent"
-	);
 }

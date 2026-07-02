@@ -22,12 +22,12 @@ import {
 
 import {
 	buildContext as v2BuildContext,
+	createSpawnContext,
 	hasAgentContext,
 	injectAgentContext,
 	type AgentContextResolver,
-	type CreateSpawnContextParams,
+	type AppSessionData,
 	type LoaderCatalog,
-	type SpawnContext,
 } from "../context";
 import { runContextStore, runWithContext, type RunStateManagerLike } from "../run-context";
 import type { TraceWriterSink } from "../subagents/types";
@@ -55,6 +55,14 @@ export interface KernelSpawnOptions {
 	thinkingLevel?: string;
 	signal?: AbortSignal;
 	variables?: Record<string, unknown>;
+	/**
+	 * Named variant from the agent manifest's `variants` map — the sanctioned
+	 * per-spawn override for model/thinking/maxTurns/runInBackground/
+	 * displayLabel. Unknown names fail the spawn (D76/4b).
+	 */
+	variant?: string;
+	/** App-owned per-spawn context snapshot forwarded to context loaders. */
+	sessionData?: AppSessionData | null;
 	domain?: DomainRule[];
 	onToolActivity?: (activity: { type: "start" | "end"; toolName: string }) => void;
 	onTextDelta?: (delta: string) => void;
@@ -111,14 +119,25 @@ export interface SpawnAgentLoggerLike {
 	error(message: string, data?: Record<string, unknown>): void;
 }
 
+/**
+ * Internal adapter bundle for the spawn pipeline. Not part of the public
+ * API since Phase 4b — `createKernel` assembles it from kernel config and
+ * the catalog registry; apps never construct it directly.
+ */
 export interface CreateSpawnAgentAdapters {
-	loadAgent(name: string): ParsedAgent;
+	/**
+	 * Resolve the agent's runtime config for one spawn. The kernel applies
+	 * manifest variants and model aliases here, so the returned config
+	 * carries the RESOLVED model string.
+	 */
+	loadAgent(name: string, opts: KernelSpawnOptions): ParsedAgent;
 	loadAgentResolver(name: string): Promise<AgentContextResolver | null>;
 	buildPrivateRegisterFactory(name: string): Promise<ExtensionFactory | null>;
-	buildToolFactories(frontmatter: ParsedAgent["frontmatter"]): ExtensionFactory[];
+	buildToolFactories(config: ParsedAgent["config"]): ExtensionFactory[];
 	createContextCatalog(): LoaderCatalog;
-	createSpawnContext(params: CreateSpawnContextParams): SpawnContext;
 	getDb(): KernelDatabase;
+	/** Model price table keyed by resolved model string; powers costEstimate. */
+	modelPrices?: Record<string, { inputPerMTok?: number; outputPerMTok?: number }>;
 	/**
 	 * Optional JSONL binding marker for the new Pi session. The pipeline
 	 * always merges containerId + runId into the marker payload so Phase 2
@@ -171,7 +190,7 @@ export function createSpawnAgent(
 		const runtime = makeRuntimeState(cwd, containerId, opts.sessionDir);
 
 		const resolved = resolveSystemPrompt({
-			parsed: adapters.loadAgent(name),
+			parsed: adapters.loadAgent(name, opts),
 			callerVariables: opts.variables,
 			runtime,
 		});
@@ -187,10 +206,10 @@ export function createSpawnAgent(
 		});
 		const privateFactory = await adapters.buildPrivateRegisterFactory(name);
 		const toolFactories = [
-			...adapters.buildToolFactories(resolved.frontmatter),
+			...adapters.buildToolFactories(resolved.config),
 			...(privateFactory ? [privateFactory] : []),
 		];
-		const thinkingLevel = opts.thinkingLevel ?? resolved.frontmatter.thinking;
+		const thinkingLevel = opts.thinkingLevel ?? resolved.config.thinking;
 		const bindingBase = adapters.createSessionBinding?.(opts);
 		const sessionBinding: SessionBindingInput | undefined = bindingBase
 			? {
@@ -214,7 +233,7 @@ export function createSpawnAgent(
 		opts.onSessionCreated?.(session);
 		const resolvedModelLabel = model
 			? `${(model as any).provider}/${(model as any).id}`
-			: resolved.frontmatter.model || undefined;
+			: resolved.config.model || undefined;
 
 		const traceWriter = opts.traceWriter ?? parentCtx?.traceWriter;
 		const ids: RunTraceEventIds = {
@@ -259,6 +278,7 @@ export function createSpawnAgent(
 					model: resolvedModelLabel,
 					phase: opts.phase,
 					lifecycleCustomType: adapters.piLifecycleCustomType,
+					prices: adapters.modelPrices,
 					sessionManager: session.sessionManager as unknown as EmitterSessionManagerLike,
 					logger: log,
 					onTurnUsage: (usage) => usageRecorder?.recordTurn(usage),
@@ -282,19 +302,20 @@ export function createSpawnAgent(
 			agent_name: name,
 			prompt_hash: resolved.promptHash ?? null,
 			rendered_prompt: resolved.systemPrompt,
-			tools_allowlist: resolved.frontmatter.tools ?? [],
-			tools_disallowlist: resolved.frontmatter.disallowed_tools ?? [],
-			extensions: resolved.frontmatter.extensions ?? true,
+			tools_allowlist: resolved.config.tools ?? [],
+			tools_disallowlist: resolved.config.disallowedTools ?? [],
+			extensions: resolved.config.extensions ?? true,
 			domain_rules_installed: Boolean(opts.domain?.length),
 			variables_resolved: (resolved.variables ?? {}) as Record<string, string>,
 		});
 
 		if (resolver && !hasAgentContext(session, name)) {
-			const spawnCtx = adapters.createSpawnContext({
+			const spawnCtx = createSpawnContext({
 				agentName: name,
 				runtime,
 				variables: opts.variables,
 				cwd,
+				sessionData: opts.sessionData,
 			});
 			const result = await v2BuildContext({
 				resolver,
@@ -306,7 +327,7 @@ export function createSpawnAgent(
 		}
 
 		const maxTurns = normalizeMaxTurns(
-			opts.maxTurns ?? resolved.frontmatter.max_turns ?? getDefaultMaxTurns(),
+			opts.maxTurns ?? resolved.config.maxTurns ?? getDefaultMaxTurns(),
 		);
 		const sub = subscribeToSession(session, opts, maxTurns, kernelEmitter);
 

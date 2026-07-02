@@ -1,46 +1,172 @@
-import { describe, expect, mock, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { describe, expect, test } from "bun:test";
+import {
+	ensureKernelObservabilitySchema,
+	getPromptRevision,
+	openKernelDatabase,
+} from "@agent-kernel/db";
 
 import { createKernel, DEFAULT_MAX_BACKGROUND_AGENTS } from ".";
 
+const PROMPT_JSON = JSON.stringify({
+	kind: "prompt",
+	schemaVersion: "prompt-kit/v1",
+	id: "kernelTestPrompt",
+	nodes: [
+		{
+			type: "section",
+			tag: "task",
+			children: [{ type: "paragraph", content: ["Do the thing."] }],
+		},
+	],
+});
+
+function writeCatalog(root: string, manifest: Record<string, unknown>): void {
+	const agentDir = join(root, String(manifest.name));
+	mkdirSync(agentDir, { recursive: true });
+	writeFileSync(join(agentDir, "agent.json"), JSON.stringify(manifest));
+	writeFileSync(join(agentDir, "prompt.json"), PROMPT_JSON);
+}
+
 describe("createKernel", () => {
-	test("routes spawns through the configured adapter", async () => {
-		const spawnAgent = mock(async (name: string, prompt: string) => ({
-			name,
-			prompt,
-		}));
-		const kernel = createKernel({ spawnAgent });
-
-		const result = await kernel.spawnAgent("spec", "hello");
-
-		expect(result).toEqual({ name: "spec", prompt: "hello" });
-		expect(spawnAgent).toHaveBeenCalledTimes(1);
-		expect(kernel.concurrency.maxBackgroundAgents).toBe(
-			DEFAULT_MAX_BACKGROUND_AGENTS,
-		);
+	test("defaults concurrency and owns per-instance background limits", () => {
+		const kernel = createKernel();
+		try {
+			expect(kernel.concurrency.maxBackgroundAgents).toBe(
+				DEFAULT_MAX_BACKGROUND_AGENTS,
+			);
+			expect(kernel.agentManager.getMaxConcurrent()).toBe(
+				DEFAULT_MAX_BACKGROUND_AGENTS,
+			);
+			kernel.setMaxBackgroundAgents(3);
+			expect(kernel.concurrency.maxBackgroundAgents).toBe(3);
+			expect(kernel.agentManager.getMaxConcurrent()).toBe(3);
+		} finally {
+			kernel.dispose();
+		}
 	});
 
 	test("container() without a configured db throws a clear error", async () => {
-		const kernel = createKernel({ spawnAgent: async () => null });
-		await expect(
-			kernel.container({ kind: "session", key: ["req-1"] }),
-		).rejects.toThrow("requires a database");
+		const kernel = createKernel();
+		try {
+			await expect(
+				kernel.container({ kind: "session", key: ["req-1"] }),
+			).rejects.toThrow("requires a database");
+		} finally {
+			kernel.dispose();
+		}
 	});
 
-	test("owns per-instance background concurrency", () => {
-		const setMaxConcurrent = mock(() => {});
+	test("traceWriter / readApiService / doctor without a db throw clear errors", async () => {
+		const kernel = createKernel();
+		try {
+			expect(() => kernel.traceWriter).toThrow("requires a database");
+			expect(() => kernel.readApiService).toThrow("requires a database");
+			await expect(kernel.doctor()).rejects.toThrow("requires a database");
+		} finally {
+			kernel.dispose();
+		}
+	});
+
+	test("spawnAgent without catalog roots throws a clear error", async () => {
+		const kernel = createKernel();
+		try {
+			await expect(kernel.spawnAgent("anything", "hi")).rejects.toThrow(
+				"catalog",
+			);
+		} finally {
+			kernel.dispose();
+		}
+	});
+
+	test("registry() builds from catalog roots and registers prompt revisions", async () => {
+		const root = mkdtempSync(join(import.meta.dir, ".kernel-test-"));
+		const handle = openKernelDatabase({ path: join(root, "trace.db") });
 		const kernel = createKernel({
-			concurrency: { maxBackgroundAgents: 2 },
-			spawnAgent: async () => null,
-			createAgentManager: ({ maxConcurrentBackgroundAgents }) => ({
-				initialLimit: maxConcurrentBackgroundAgents,
-				setMaxConcurrent,
-			}),
+			id: "kernel-test",
+			db: handle.db,
+			catalog: { roots: [join(root, "catalog")] },
+			toolProfiles: { reader: ["read", "glob"] },
 		});
+		try {
+			await ensureKernelObservabilitySchema(handle.db);
+			writeCatalog(join(root, "catalog"), {
+				name: "worker",
+				description: "test worker",
+				model: "test/model",
+				toolProfiles: ["reader"],
+			});
 
-		expect(kernel.agentManager.initialLimit).toBe(2);
-		kernel.setMaxBackgroundAgents(3);
+			const registry = await kernel.registry();
+			const def = registry.get("worker");
+			expect(def.parsed.config.tools).toEqual(["read", "glob"]);
 
-		expect(kernel.concurrency.maxBackgroundAgents).toBe(3);
-		expect(setMaxConcurrent).toHaveBeenCalledWith(3);
+			// Prompt revision registered at registry build.
+			const revision = await getPromptRevision(handle.db, def.promptHash);
+			expect(revision?.agentName).toBe("worker");
+
+			// Cached: same instance on the second call.
+			expect(await kernel.registry()).toBe(registry);
+		} finally {
+			kernel.dispose();
+			handle.close();
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	test("spawnAgent rejects unknown variants before creating any session", async () => {
+		const root = mkdtempSync(join(import.meta.dir, ".kernel-test-"));
+		const handle = openKernelDatabase({ path: join(root, "trace.db") });
+		const kernel = createKernel({
+			id: "kernel-test",
+			db: handle.db,
+			catalog: { roots: [join(root, "catalog")] },
+		});
+		try {
+			await ensureKernelObservabilitySchema(handle.db);
+			writeCatalog(join(root, "catalog"), {
+				name: "worker",
+				description: "test worker",
+				model: "test/model",
+				variants: { deep: { thinking: "high" } },
+			});
+
+			await expect(
+				kernel.spawnAgent("worker", "hi", null, {
+					variant: "nope",
+					workingDir: root,
+					containerId: "c-1",
+				}),
+			).rejects.toThrow('Unknown variant "nope" for agent "worker"');
+		} finally {
+			kernel.dispose();
+			handle.close();
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	test("registry boot error surfaces unknown tool profiles", async () => {
+		const root = mkdtempSync(join(import.meta.dir, ".kernel-test-"));
+		const kernel = createKernel({
+			catalog: { roots: [join(root, "catalog")] },
+			toolProfiles: { reader: ["read"] },
+		});
+		try {
+			writeCatalog(join(root, "catalog"), {
+				name: "worker",
+				description: "test worker",
+				model: "test/model",
+				toolProfiles: ["writer"],
+			});
+
+			await expect(kernel.registry()).rejects.toThrow(
+				"Agent registry validation failed",
+			);
+		} finally {
+			kernel.dispose();
+			rmSync(root, { recursive: true, force: true });
+		}
 	});
 });

@@ -9,4 +9,4 @@ export {
 } from "./registry-singleton";
 export { validateVariables } from "./validate-variables";
 export type { ValidationResult } from "./validate-variables";
-export { harvestPrivateToolNamesFromPath } from "./harvest-private-tool-names";
+export { harvestPrivateToolNamesFromRegister } from "./harvest-private-tool-names";

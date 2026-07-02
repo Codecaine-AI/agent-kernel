@@ -2,7 +2,7 @@
  * Read API helpers — container-first. All reads are keyed by containerId;
  * there is no app-session identity in this package.
  */
-import { and, asc, count, eq, gt, inArray, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, inArray, max, type SQL } from "drizzle-orm";
 
 import type { KernelDatabase } from "../client";
 import { agentRuns } from "../schema/agent-runs";
@@ -48,6 +48,80 @@ export interface KernelTraceDeleteResult {
 function clampLimit(limit: number | undefined, fallback: number, max: number): number {
   if (limit === undefined || !Number.isFinite(limit)) return fallback;
   return Math.max(1, Math.min(Math.floor(limit), max));
+}
+
+export interface SessionContainerStatsRow {
+	container: Container;
+	piSessionCount: number;
+	eventCount: number;
+	latestEventAt: string | null;
+}
+
+export interface ListSessionContainersOptions {
+	/** Scope to one kernel's containers. */
+	kernelId?: string;
+	/** Container kind to list; defaults to "session". */
+	kind?: string;
+	limit?: number;
+}
+
+/**
+ * Containers of kind "session" (newest first) with the per-container pi
+ * session count, event count, and latest event timestamp — the rows behind
+ * the trace-sessions index.
+ */
+export async function listSessionContainersWithStats(
+	db: KernelDatabase,
+	opts: ListSessionContainersOptions = {},
+): Promise<SessionContainerStatsRow[]> {
+	const limit = clampLimit(opts.limit, 100, 500);
+	const kind = opts.kind ?? "session";
+	const conditions: SQL[] = [eq(containers.kind, kind)];
+	if (opts.kernelId) conditions.push(eq(containers.kernelId, opts.kernelId));
+
+	const rows = await db
+		.select()
+		.from(containers)
+		.where(and(...conditions))
+		.orderBy(desc(containers.createdAt))
+		.limit(limit);
+	if (rows.length === 0) return [];
+
+	const containerIds = rows.map((row) => row.id);
+	const piCounts = await db
+		.select({ containerId: piAgentSessions.containerId, count: count() })
+		.from(piAgentSessions)
+		.where(inArray(piAgentSessions.containerId, containerIds))
+		.groupBy(piAgentSessions.containerId);
+	const eventStats = await db
+		.select({
+			containerId: traceEvents.containerId,
+			count: count(),
+			latestEventAt: max(traceEvents.timestamp),
+		})
+		.from(traceEvents)
+		.where(inArray(traceEvents.containerId, containerIds))
+		.groupBy(traceEvents.containerId);
+
+	const piCountByContainer = new Map(
+		piCounts.map((row) => [row.containerId, Number(row.count ?? 0)]),
+	);
+	const eventStatsByContainer = new Map(
+		eventStats.map((row) => [
+			row.containerId,
+			{ count: Number(row.count ?? 0), latestEventAt: row.latestEventAt ?? null },
+		]),
+	);
+
+	return rows.map((container) => {
+		const stats = eventStatsByContainer.get(container.id);
+		return {
+			container,
+			piSessionCount: piCountByContainer.get(container.id) ?? 0,
+			eventCount: stats?.count ?? 0,
+			latestEventAt: stats?.latestEventAt ?? null,
+		};
+	});
 }
 
 /** Breadth-first walk of a container subtree, root first. */

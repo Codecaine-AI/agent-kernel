@@ -14,27 +14,32 @@ export interface DomainRule {
 	delete: boolean;
 }
 
-export interface AgentFrontmatter {
+/**
+ * Runtime agent configuration resolved from the agent.json manifest (D76).
+ * `tools` is the fully expanded allowlist: manifest coreTools + expanded
+ * toolProfiles + harvested private tool names.
+ */
+export interface AgentConfig {
 	name: string;
 	description: string;
 	model: string;
 	tools: string[];
-	disallowed_tools?: string[];
+	disallowedTools?: string[];
 	extensions?: true | string[] | false;
-	can_spawn_subagent?: boolean;
+	canSpawnSubagent?: boolean;
 	variables: Record<string, VariableDeclaration>;
-	max_turns?: number;
-	run_in_background?: boolean;
+	maxTurns?: number;
+	runInBackground?: boolean;
 	thinking?: string;
 }
 
 export interface ParsedAgent {
-	frontmatter: AgentFrontmatter;
+	config: AgentConfig;
 	body: string;
 	/**
 	 * Content address ("pk1-<sha256>") of the canonical prompt.json the body
-	 * was rendered from. Absent for markdown-sourced agents. Stamped onto
-	 * pi_agent_sessions.prompt_hash at session creation (D72).
+	 * was rendered from. Stamped onto pi_agent_sessions.prompt_hash at
+	 * session creation (D72).
 	 */
 	promptHash?: string;
 }
