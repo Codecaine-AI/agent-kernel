@@ -7,14 +7,14 @@
  * (trace_events inserts are keyed by event_id with INSERT OR IGNORE).
  */
 
-import { createHash } from "node:crypto";
+import { sha256Hex } from "./sha256";
 
 /**
  * Deterministic UUID-shaped id from a seed string (sha-256 truncated).
  * The same seed always produces the same event id.
  */
 export function deterministicEventId(seed: string): string {
-  const hex = createHash("sha256").update(seed).digest("hex");
+  const hex = sha256Hex(seed);
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 

@@ -1,0 +1,11 @@
+{
+	"version": "0.0.1",
+	"configurations": [
+		{
+			"name": "simple-research-kernel",
+			"runtimeExecutable": "env",
+			"runtimeArgs": ["PORT=8790", "FRONTEND_PORT=5180", "bun", "run", "dev:simple-research"],
+			"port": 5180
+		}
+	]
+}
