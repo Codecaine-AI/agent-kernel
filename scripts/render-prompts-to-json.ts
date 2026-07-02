@@ -1,8 +1,8 @@
 /**
  * Prompt migration / snapshot regeneration for agent catalogs.
  *
- * For each agent directory (containing agent.ts) under the given catalog
- * root(s):
+ * For each agent directory (containing an agent.json manifest) under the
+ * given catalog root(s):
  *   1. If a legacy prompt.ts exists, import its exported `prompt` document
  *      and write the canonical prompt.json (canonicalizePrompt output, so the
  *      committed file is already canonical bytes). One-time Phase 3 migration;
@@ -47,7 +47,7 @@ function collectAgentDirs(dir: string): string[] {
 	for (const entry of readdirSync(dir, { withFileTypes: true })) {
 		const full = join(dir, entry.name);
 		if (entry.isDirectory()) out.push(...collectAgentDirs(full));
-		else if (entry.name === "agent.ts") out.push(dirname(full));
+		else if (entry.name === "agent.json") out.push(dirname(full));
 	}
 	return out.sort();
 }
