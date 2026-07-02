@@ -16,6 +16,12 @@ import type { PairedEvent } from "./pairEvents";
 import type { ContainerRange } from "./containerGrouping";
 import { categoryFor, extractSpanPayload, pushAttr, statusFor, titleFor } from "./spanAttributes";
 
+function containerStatusFor(status: string | null | undefined): TraceSpanStatus {
+  if (status === "error" || status === "failed" || status === "blocked") return "error";
+  if (status === "running" || status === "queued") return "pending";
+  return "success";
+}
+
 export function toEventSpan(paired: PairedEvent): TraceSpan {
   const payload = extractSpanPayload(paired);
   if (paired.kind === "pair") {
@@ -91,7 +97,7 @@ export function toContainerSpan(range: ContainerRange, children: TraceSpan[]): T
     endTime,
     duration: endTime.getTime() - range.start.getTime(),
     type: "agent_invocation",
-    status: "success",
+    status: containerStatusFor(range.status),
     raw: JSON.stringify(range),
     attributes: attrs,
     children,

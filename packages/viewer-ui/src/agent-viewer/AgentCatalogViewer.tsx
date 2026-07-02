@@ -6,6 +6,7 @@ import { createPromptPreviewModel } from "@codecaine-ai/prompt-kit/ui";
 import { estimateTokenCount } from "tokenx";
 
 import { PromptView, type PromptViewSize } from "../trace-viewer/detail-panel/PromptView";
+import { PromptInlineLab } from "./PromptInlineLab";
 import type { AgentContextInputSummary, AgentViewerDefinition } from "./types";
 
 const GROUP_ORDER = ["intake", "spec", "plan", "build", "docs", "research", "other"] as const;
@@ -296,6 +297,10 @@ function AgentDetail({
 	onFontScaleChange: (scale: FontScale) => void;
 }) {
 	const size = FONT_SCALE_TO_SIZE[fontScale];
+	const hasPromptAst = Boolean(agent.prompt);
+	const inlinePrompt = form === "rendered" && scope === "system" ? agent.prompt : null;
+	const declaredVariableNames = useMemo(() => Object.keys(agent.variables), [agent]);
+	const editorVariables = useMemo(() => resolveEditorVariables(agent), [agent]);
 	const { content, tokens } = useMemo(
 		() => resolvePromptContent(agent, scope, form),
 		[agent, scope, form],
@@ -325,9 +330,23 @@ function AgentDetail({
 					fontScale={fontScale}
 					onFontScaleChange={onFontScaleChange}
 					tokens={tokens}
+					hasPromptAst={hasPromptAst}
 				/>
-				<div className="min-h-0 flex-1 overflow-auto rounded-[3px] border border-border bg-muted/20">
-					{hasContent ? (
+				<div
+					className={cn(
+						"min-h-0 flex-1 rounded-[3px] border border-border bg-muted/20",
+						inlinePrompt ? "overflow-hidden" : "overflow-auto",
+					)}
+				>
+					{inlinePrompt ? (
+						<PromptInlineLab
+							key={agent.name}
+							prompt={inlinePrompt}
+							declaredVariables={declaredVariableNames}
+							renderVariables={editorVariables}
+							className="h-full"
+						/>
+					) : hasContent ? (
 						<PromptView bare content={content} title="Prompt" size={size} />
 					) : (
 						<div className="p-4">
@@ -394,6 +413,18 @@ function resolvePromptContent(
 	return { content, tokens: estimateTokenCount(content) };
 }
 
+function resolveEditorVariables(agent: AgentViewerDefinition): Record<string, unknown> {
+	return {
+		...Object.fromEntries(
+			Object.entries(agent.variables).map(([name, declaration]) => [
+				name,
+				declaration.default,
+			]),
+		),
+		...(agent.renderedPrompt?.resolvedVariables ?? {}),
+	};
+}
+
 function ScopeTabBar({
 	scope,
 	onScopeChange,
@@ -402,6 +433,7 @@ function ScopeTabBar({
 	fontScale,
 	onFontScaleChange,
 	tokens,
+	hasPromptAst,
 }: {
 	scope: Scope;
 	onScopeChange: (scope: Scope) => void;
@@ -410,6 +442,7 @@ function ScopeTabBar({
 	fontScale: FontScale;
 	onFontScaleChange: (scale: FontScale) => void;
 	tokens: number;
+	hasPromptAst: boolean;
 }) {
 	return (
 		<div className="flex shrink-0 items-stretch overflow-hidden rounded-[3px] border border-border bg-background">
@@ -420,7 +453,9 @@ function ScopeTabBar({
 					<BarCell active={scope === "combined"} onClick={() => onScopeChange("combined")}>Sys + Ctx</BarCell>
 				</div>
 				<div className="flex border-t border-border">
-					<BarCell active={form === "rendered"} onClick={() => onFormChange("rendered")}>Rendered</BarCell>
+					<BarCell active={form === "rendered"} onClick={() => onFormChange("rendered")}>
+						{hasPromptAst && scope === "system" ? "Inline" : "Rendered"}
+					</BarCell>
 					<BarCell active={form === "raw"} onClick={() => onFormChange("raw")}>Raw</BarCell>
 				</div>
 			</div>

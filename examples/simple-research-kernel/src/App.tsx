@@ -19,6 +19,13 @@ import {
 	collectLatestContextPreviews,
 	collectLatestRenderedPrompts
 } from "./lib/trace-selectors";
+import {
+	loadResearchStyleSettings,
+	mergeResearchStyleSettings,
+	saveResearchStyleSettings,
+	type ResearchStyleSettings,
+	type ResearchStyleSettingsPatch
+} from "./lib/style-settings";
 import { useWorkspaceRoute, workspaceFromPathname } from "./lib/use-workspace-route";
 import type { ResearchHarnessInfo, ResearchRunSummary } from "./lib/types";
 
@@ -54,7 +61,12 @@ export function App() {
 	const [startingRun, setStartingRun] = useState(false);
 	const [deletingTraceId, setDeletingTraceId] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [styleSettings, setStyleSettingsState] = useState<ResearchStyleSettings>(loadResearchStyleSettings);
 	const requestIdRef = useRef(0);
+
+	const setStyleSettings = useCallback((updates: ResearchStyleSettingsPatch) => {
+		setStyleSettingsState((current) => mergeResearchStyleSettings(current, updates));
+	}, []);
 
 	const applyState = useCallback((next: Awaited<ReturnType<typeof fetchResearchKernelState>>) => {
 		setDetail(next.detail);
@@ -95,6 +107,10 @@ export function App() {
 			replaceTraceIdInUrl(null);
 		}
 	}, [activeWorkspace]);
+
+	useEffect(() => {
+		saveResearchStyleSettings(styleSettings);
+	}, [styleSettings]);
 
 	useEffect(() => {
 		function handlePopState() {
@@ -259,6 +275,8 @@ export function App() {
 		<ResearchKernelLayout
 			activeWorkspace={activeWorkspace}
 			onWorkspaceChange={navigate}
+			styleSettings={styleSettings}
+			onStyleSettingsChange={setStyleSettings}
 		>
 			{error && (
 				<div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-3 text-sm text-destructive">

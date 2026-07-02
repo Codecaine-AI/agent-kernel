@@ -20,11 +20,11 @@ Viewer-core owns browser-safe data contracts and trace transforms:
 - `KERNEL_OBSERVER_READ_PATHS`
 - kernel trace DTOs
 - registered kernel DTOs
-- `buildTraceSpans(events, piSessions, agentRuns)`
+- `buildTraceSpans(events, piSessions, agentRuns, containers)`
 - event pairing
 - run bucketing
 - phase grouping
-- container grouping
+- container grouping from explicit `containerId` values and persisted container summaries
 - parent tool-call nesting
 - span attributes and factories
 

@@ -26,6 +26,7 @@ App-embedded viewers and a future central observer should both read through APIs
 ```text
 kernel read API response
   session/container metadata
+  container summaries
   Pi sessions
   agent runs
   trace events
@@ -39,6 +40,11 @@ viewer-ui TreeView + SpanDetailPanel
         v
 viewer-shell KernelTraceViewer
 ```
+
+Container summaries are part of the trace shape, not decoration. Events and
+agent spans with explicit `containerId` values should render under the matching
+container lineage even when persisted container timestamps tie or app workflow
+events have no Pi session.
 
 ## Base Shell
 

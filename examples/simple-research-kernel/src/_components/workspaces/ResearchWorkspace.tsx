@@ -93,9 +93,9 @@ export function ResearchWorkspace({
 	}
 
 	return (
-		<section className="grid h-[calc(100vh-2rem)] min-h-[680px] min-w-0 grid-cols-[minmax(0,1fr)] overflow-hidden rounded-lg border border-border bg-card xl:grid-cols-[440px_minmax(0,1fr)]">
+		<section className="grid h-[var(--research-workspace-height)] min-h-[var(--research-workspace-min-height)] min-w-0 grid-cols-[minmax(0,1fr)] overflow-hidden rounded-lg border border-border bg-card xl:grid-cols-[440px_minmax(0,1fr)]">
 			<aside className="flex min-h-0 min-w-0 flex-col border-b border-border xl:border-b-0 xl:border-r">
-				<div className="flex h-[72px] items-center border-b border-border px-4">
+				<div className="flex h-[var(--research-header-height)] items-center border-b border-border px-4">
 					<div className="flex w-full items-center justify-between gap-3">
 						<div className="min-w-0">
 							<h2 className="font-display text-lg font-bold leading-tight">Research Run</h2>

@@ -23,6 +23,7 @@ export {
 	type AgentPrismToken,
 } from "./trace-viewer/theme";
 export { AgentCatalogViewer } from "./agent-viewer/AgentCatalogViewer";
+export { PromptInlineLab } from "./agent-viewer/PromptInlineLab";
 export type {
 	AgentRenderedPrompt,
 	AgentVariableDeclaration,

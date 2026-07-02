@@ -17,7 +17,7 @@
 
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 
-import { EventType, type AgentRun, type TraceEvent } from "./types";
+import { EventType, type AgentRun, type KernelContainerSummary, type TraceEvent } from "./types";
 import type { PiAgentSession } from "./types";
 
 import { pairEvents } from "./trace-builder/pairEvents";
@@ -30,7 +30,7 @@ import {
   groupSpansByUserMessage,
 } from "./trace-builder/nesting";
 import { extractPhaseSpans, groupAgentsByPhase } from "./trace-builder/phaseGrouping";
-import { extractContainerSpans, groupAgentsByContainer } from "./trace-builder/containerGrouping";
+import { containerSummariesToRanges, extractContainerSpans, groupAgentsByContainer } from "./trace-builder/containerGrouping";
 
 function debugEnabled(): boolean {
   if (typeof window === "undefined") return false;
@@ -50,6 +50,7 @@ export function buildTraceSpans(
   events: TraceEvent[],
   piSessions: PiAgentSession[],
   agentRuns: AgentRun[] = [],
+  containers: KernelContainerSummary[] = [],
 ): TraceSpan[] {
   const nullPiCount = events.reduce(
     (n, e) => n + (e.piSessionId ? 0 : 1),
@@ -59,6 +60,7 @@ export function buildTraceSpans(
     events: events.length,
     piSessions: piSessions.length,
     agentRuns: agentRuns.length,
+    containers: containers.length,
     eventsWithNullPi: nullPiCount,
   });
 
@@ -184,6 +186,19 @@ export function buildTraceSpans(
 
   const phaseMap = extractPhaseSpans(events);
   const containerMap = extractContainerSpans(events);
+  for (const [id, range] of containerSummariesToRanges(containers)) {
+    if (!containerMap.has(id)) {
+      containerMap.set(id, range);
+      continue;
+    }
+    const existing = containerMap.get(id)!;
+    containerMap.set(id, {
+      ...range,
+      start: existing.start,
+      end: existing.end ?? range.end,
+      phase: existing.phase ?? range.phase,
+    });
+  }
   let final = phaseMap.size > 0 ? groupAgentsByPhase(roots, phaseMap) : roots;
 
   if (containerMap.size > 0) {

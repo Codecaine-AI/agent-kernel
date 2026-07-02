@@ -110,6 +110,12 @@ export function statusFor(paired: PairedEvent): TraceSpanStatus {
   ) {
     return "pending";
   }
+  const status = (event.eventData as { status?: unknown } | null)?.status;
+  if (typeof status === "string") {
+    if (status === "failed" || status === "error" || status === "blocked") return "error";
+    if (status === "warning") return "warning";
+    if (status === "started" || status === "running" || status === "queued") return "pending";
+  }
   return "success";
 }
 
@@ -166,6 +172,8 @@ export function titleFor(paired: PairedEvent): string {
       const name = data.tool_name as string | undefined;
       if (name) return `post-hook: ${name}`;
     }
+    const operation = data.operation as string | undefined;
+    if (operation) return operation;
   }
   return event.type;
 }
@@ -345,6 +353,13 @@ function fillPoint(ev: TraceEvent, attrs: TraceSpanAttribute[]): {
     const data = ev.eventData as WarningData | null;
     pushAttr(attrs, "warning_type", data?.warning_type);
     pushAttr(attrs, "message", data?.message);
+  } else {
+    const data = ev.eventData as Record<string, unknown> | null;
+    pushAttr(attrs, "operation", typeof data?.operation === "string" ? data.operation : null);
+    pushAttr(attrs, "status", typeof data?.status === "string" ? data.status : null);
+    pushAttr(attrs, "detail", typeof data?.detail === "string" ? data.detail : null);
+    pushAttr(attrs, "phase", typeof data?.phase === "string" ? data.phase : null);
+    pushAttr(attrs, "container_kind", typeof data?.containerKind === "string" ? data.containerKind : null);
   }
 
   return { input, output };
@@ -355,6 +370,7 @@ export function extractSpanPayload(paired: PairedEvent): SpanPayload {
   const sourceEvent = paired.kind === "pair" ? paired.start : paired.event;
   pushAttr(attrs, "trace_level", sourceEvent.traceLevel);
   pushAttr(attrs, "event_type", sourceEvent.type);
+  pushAttr(attrs, "container_id", sourceEvent.containerId);
 
   const { input, output } =
     paired.kind === "pair" ? fillPaired(paired, attrs) : fillPoint(paired.event, attrs);

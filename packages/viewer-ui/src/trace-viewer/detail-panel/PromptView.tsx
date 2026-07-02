@@ -73,6 +73,9 @@ const PROMPT_VIEW_SIZE_CLASS: Record<PromptViewSize, string> = {
 	lg: "text-base",
 };
 
+const PROMPT_ROW_BORDER = "1px solid color-mix(in srgb, var(--color-border) 42%, transparent)";
+const PROMPT_GUTTER_BORDER = "color-mix(in srgb, var(--color-border) 62%, transparent)";
+
 export function PromptView({
 	content,
 	title,
@@ -108,24 +111,36 @@ export function PromptView({
 	return (
 		<div className="relative w-full overflow-hidden">
 			<div className={cn("w-full overflow-auto", bare ? undefined : "rounded-[3px] border border-border bg-muted/20")}>
-				<table className={cn("w-full table-auto border-collapse font-mono", PROMPT_VIEW_SIZE_CLASS[size])}>
+				<table className={cn("w-full table-auto border-separate border-spacing-0 font-mono", PROMPT_VIEW_SIZE_CLASS[size])}>
 					<tbody>
-						{lines.map((line, index) => (
-							<tr key={index} className="hover:bg-muted/40">
-								<td
-									className="sticky left-0 select-none border-r border-border !border-b-0 !bg-muted/40 px-3 py-0.5 text-right align-top tabular-nums text-muted-foreground/70"
-									style={{ minWidth: `${lineNumberWidth + 2}ch` }}
-								>
-									{startLine + index}
-								</td>
-								<td
-									className="w-full !border-b-0 !bg-transparent py-0.5 pl-3 pr-4"
-									style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
-								>
-									{hasXmlTags ? highlightXmlLine(line) : line || "\u00A0"}
-								</td>
-							</tr>
-						))}
+						{lines.map((line, index) => {
+							const isLastLine = index === lines.length - 1;
+							const rowBorder = isLastLine ? "0" : PROMPT_ROW_BORDER;
+							return (
+								<tr key={index} className="hover:bg-muted/30">
+									<td
+										className="sticky left-0 select-none border-r border-border !bg-muted/40 px-3 py-0.5 text-right align-top tabular-nums text-muted-foreground/70"
+										style={{
+											minWidth: `${lineNumberWidth + 2}ch`,
+											borderBottom: rowBorder,
+											borderRightColor: PROMPT_GUTTER_BORDER,
+										}}
+									>
+										{startLine + index}
+									</td>
+									<td
+										className="w-full !bg-transparent py-0.5 pl-3 pr-4"
+										style={{
+											borderBottom: rowBorder,
+											whiteSpace: "pre-wrap",
+											wordBreak: "break-word",
+										}}
+									>
+										{hasXmlTags ? highlightXmlLine(line) : line || "\u00A0"}
+									</td>
+								</tr>
+							);
+						})}
 					</tbody>
 				</table>
 			</div>

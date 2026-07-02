@@ -3,7 +3,7 @@ import { describe, expect, it } from "bun:test";
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 
 import { buildTraceSpans } from "../build-trace-spans";
-import { EventType, type PiAgentSession, type TraceEvent } from "../types";
+import { EventType, type KernelContainerSummary, type PiAgentSession, type TraceEvent } from "../types";
 
 import {
   groupAgentsByContainer,
@@ -132,6 +132,8 @@ function makeTraceEvent(opts: {
   spanId?: string;
   eventData: TraceEvent["eventData"];
   traceLevel?: TraceEvent["traceLevel"];
+  containerId?: string | null;
+  piSessionId?: string | null;
 }): TraceEvent {
   return {
     id: opts.id,
@@ -145,9 +147,35 @@ function makeTraceEvent(opts: {
     spanId: opts.spanId,
     parentEventId: null,
     timestamp: opts.timestamp,
-    piSessionId: "pi-1",
+    piSessionId: opts.piSessionId === undefined ? "pi-1" : opts.piSessionId,
     agentId: null,
-    containerId: null,
+    containerId: opts.containerId ?? null,
+  };
+}
+
+function makeContainerSummary(opts: {
+  id: string;
+  parentContainerId?: string | null;
+  label: string;
+  phase: string;
+  status?: string;
+  startedAt: string;
+  completedAt?: string | null;
+}): KernelContainerSummary {
+  return {
+    id: opts.id,
+    parentContainerId: opts.parentContainerId ?? null,
+    label: opts.label,
+    status: opts.status ?? "running",
+    workingDir: "/repo",
+    worktreePath: null,
+    phase: opts.phase,
+    phaseVocabulary: ["session", "prepare", "setup"],
+    metadata: {},
+    startedAt: opts.startedAt,
+    completedAt: opts.completedAt ?? null,
+    createdAt: opts.startedAt,
+    updatedAt: opts.completedAt ?? opts.startedAt,
   };
 }
 
@@ -242,6 +270,106 @@ describe("groupAgentsByContainer routes by explicit container_id, ignoring times
     const cp1Children = cp1?.children ?? [];
     expect(cp1Children.find((c) => c.id === "pi:orphan")).toBeDefined();
     expect(result.find((s) => s.id === "pi:orphan")).toBeUndefined();
+  });
+});
+
+describe("buildTraceSpans container summaries", () => {
+  it("nests app workflow events under persisted session and prepare containers", () => {
+    const sharedContainerStart = "2026-01-01T00:00:05.000Z";
+    const containers = [
+      makeContainerSummary({
+        id: "melee:app:session",
+        label: "Project session run-1",
+        phase: "session",
+        startedAt: sharedContainerStart,
+      }),
+      makeContainerSummary({
+        id: "melee:app:session:prepare",
+        parentContainerId: "melee:app:session",
+        label: "Prepare",
+        phase: "prepare",
+        startedAt: sharedContainerStart,
+      }),
+      makeContainerSummary({
+        id: "melee:app:session:prepare:sync-intake",
+        parentContainerId: "melee:app:session:prepare",
+        label: "Sync and intake",
+        phase: "setup",
+        startedAt: sharedContainerStart,
+        completedAt: "2026-01-01T00:00:05.000Z",
+        status: "completed",
+      }),
+    ];
+    const events = [
+      makeTraceEvent({
+        id: "event-session-started",
+        type: "melee:session_started" as TraceEvent["type"],
+        timestamp: "2026-01-01T00:00:00.000Z",
+        piSessionId: null,
+        containerId: "melee:app:session",
+        eventData: { operation: "New session started", status: "started" },
+      }),
+      makeTraceEvent({
+        id: "event-prepare-started",
+        type: "melee:prepare_started" as TraceEvent["type"],
+        timestamp: "2026-01-01T00:00:01.000Z",
+        piSessionId: null,
+        containerId: "melee:app:session:prepare",
+        eventData: { operation: "prepareSession", status: "started" },
+      }),
+      makeTraceEvent({
+        id: "event-sync-completed",
+        type: "melee:setup_completed" as TraceEvent["type"],
+        timestamp: "2026-01-01T00:00:05.000Z",
+        piSessionId: null,
+        containerId: "melee:app:session:prepare:sync-intake",
+        eventData: { operation: "freshRun.syncUpstream", status: "completed" },
+      }),
+    ];
+
+    const spans = buildTraceSpans(events, [], [], containers);
+    expect(spans).toHaveLength(1);
+    expect(spans[0]!.id).toBe("container:melee:app:session");
+    expect((spans[0]!.children ?? []).map((child) => child.id)).toEqual([
+      "event-session-started",
+      "container:melee:app:session:prepare",
+    ]);
+
+    const prepare = (spans[0]!.children ?? []).find((child) => child.id === "container:melee:app:session:prepare");
+    expect(prepare).toBeDefined();
+    expect((prepare!.children ?? []).map((child) => child.id)).toEqual([
+      "event-prepare-started",
+      "container:melee:app:session:prepare:sync-intake",
+    ]);
+    const sync = (prepare!.children ?? []).find((child) => child.id === "container:melee:app:session:prepare:sync-intake");
+    expect(sync).toBeDefined();
+    expect((sync!.children ?? []).map((child) => child.id)).toEqual(["event-sync-completed"]);
+    expect(sync!.children![0]!.title).toBe("freshRun.syncUpstream");
+  });
+
+  it("labels generic app workflow events by operation and status", () => {
+    const spans = buildTraceSpans(
+      [
+        makeTraceEvent({
+          id: "event-sync-failed",
+          type: "melee:setup_failed" as TraceEvent["type"],
+          timestamp: "2026-01-01T00:00:05.000Z",
+          piSessionId: null,
+          eventData: {
+            operation: "prepare.syncGitHub",
+            status: "failed",
+            detail: "unable to create worktree",
+          },
+        }),
+      ],
+      [],
+      [],
+    );
+
+    expect(spans).toHaveLength(1);
+    expect(spans[0]!.title).toBe("prepare.syncGitHub");
+    expect(spans[0]!.status).toBe("error");
+    expect(spans[0]!.attributes?.some((attr) => attr.key === "detail")).toBe(true);
   });
 });
 

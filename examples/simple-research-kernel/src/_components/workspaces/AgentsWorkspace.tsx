@@ -12,7 +12,7 @@ export function AgentsWorkspace({
 	onAgentSelect
 }: AgentsWorkspaceProps) {
 	return (
-		<div className="h-[calc(100vh-2rem)] min-h-[620px] w-full">
+		<div className="h-[var(--research-workspace-height)] min-h-[var(--research-workspace-min-height)] w-full">
 			<AgentCatalogViewer
 				agents={agents}
 				selectedName={selectedAgentName}
