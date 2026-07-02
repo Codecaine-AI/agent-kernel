@@ -22,12 +22,13 @@ import type {
 } from "@codecaine-ai/prompt-kit";
 import {
 	createPromptBlockTemplate,
-	insertPromptBlockNode,
-	movePromptBlockNodeById,
-	removePromptBlockNodeById,
-	updatePromptBlockNodeById,
+	insertPromptBlockNodeWithStep,
+	movePromptBlockNodeByIdWithStep,
+	removePromptBlockNodeByIdWithStep,
+	updatePromptBlockNodeByIdWithStep,
 	type PromptBlockNodeType,
 	type PromptEditorTreeEntry,
+	type PromptStep,
 } from "@codecaine-ai/prompt-kit/ui";
 
 import type { PromptFlowViewProps } from "./types";
@@ -63,12 +64,25 @@ export function usePromptFlowInteractions({
 
 	function insertBlock(type: PromptBlockNodeType, targetId: string | null, position: "after" | "child" = "after") {
 		const node = createPromptBlockTemplate(type, prompt);
-		onPromptChange(insertPromptBlockNode(prompt, targetId, node, position), node.id);
+		const result = insertPromptBlockNodeWithStep(prompt, targetId, node, position);
+		if (result.step) {
+			// The inserted id may differ from the template's when ids collide.
+			const insertedId =
+				result.step.op === "insert" ? result.step.node.id : node.id;
+			onPromptChange(result.prompt, insertedId, [result.step]);
+		}
 		setInsertAfterId(null);
 	}
 
 	function removeBlock(entry: PromptEditorTreeEntry) {
-		onPromptChange(removePromptBlockNodeById(prompt, entry.id), getNextSelectionAfterRemove(model.tree, entry));
+		const result = removePromptBlockNodeByIdWithStep(prompt, entry.id);
+		if (result.step) {
+			onPromptChange(
+				result.prompt,
+				getNextSelectionAfterRemove(model.tree, entry),
+				[result.step],
+			);
+		}
 		setInsertAfterId(null);
 		setDraggingId(null);
 		setDropTarget(null);
@@ -84,19 +98,24 @@ export function usePromptFlowInteractions({
 		let nextPrompt = prompt;
 		let currentIndex = source.index;
 		let targetIndex = desiredIndex;
+		const steps: PromptStep[] = [];
 
 		if (source.index < desiredIndex) targetIndex -= 1;
 
 		while (currentIndex < targetIndex) {
-			nextPrompt = movePromptBlockNodeById(nextPrompt, source.id, "down");
+			const result = movePromptBlockNodeByIdWithStep(nextPrompt, source.id, "down");
+			nextPrompt = result.prompt;
+			if (result.step) steps.push(result.step);
 			currentIndex += 1;
 		}
 		while (currentIndex > targetIndex) {
-			nextPrompt = movePromptBlockNodeById(nextPrompt, source.id, "up");
+			const result = movePromptBlockNodeByIdWithStep(nextPrompt, source.id, "up");
+			nextPrompt = result.prompt;
+			if (result.step) steps.push(result.step);
 			currentIndex -= 1;
 		}
 
-		onPromptChange(nextPrompt, source.id);
+		if (steps.length > 0) onPromptChange(nextPrompt, source.id, steps);
 	}
 
 	function canDropOn(entry: PromptEditorTreeEntry) {
@@ -325,7 +344,9 @@ export function updateNode(
 	onPromptChange: PromptFlowViewProps["onPromptChange"],
 	updater: (node: PromptBlockNode) => PromptBlockNode,
 ) {
-	onPromptChange(updatePromptBlockNodeById(prompt, entry.id, updater), entry.id);
+	const result = updatePromptBlockNodeByIdWithStep(prompt, entry.id, updater);
+	if (!result.step) return;
+	onPromptChange(result.prompt, entry.id, [result.step]);
 }
 
 export function canHaveChildren(node: PromptBlockNode): boolean {

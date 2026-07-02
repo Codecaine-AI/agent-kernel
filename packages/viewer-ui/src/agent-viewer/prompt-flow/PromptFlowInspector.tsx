@@ -1,7 +1,7 @@
 "use client";
 
 import cn from "classnames";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type {
 	CodeBlockNode,
 	ContextUsageNode,
@@ -13,18 +13,21 @@ import type {
 	SectionNode,
 } from "@codecaine-ai/prompt-kit";
 import {
+	applySteps,
 	inlineToEditableText,
-	renamePromptNodeId,
-	updatePromptBlockNodeById,
+	updatePromptBlockNodeByIdWithStep,
 	type PromptEditorModel,
 	type PromptEditorTreeEntry,
+	type PromptStep,
 } from "@codecaine-ai/prompt-kit/ui";
+
+import type { PromptFlowChangeHandler } from "./types";
 
 export interface PromptFlowInspectorProps {
 	prompt: PromptDocument;
 	model: PromptEditorModel;
 	selectedEntry?: PromptEditorTreeEntry;
-	onPromptChange: (prompt: PromptDocument, selectedNodeId?: string) => void;
+	onPromptChange: PromptFlowChangeHandler;
 }
 
 export function PromptFlowInspector({
@@ -66,23 +69,11 @@ export function PromptFlowInspector({
 						</InspectorSection>
 
 						<InspectorSection title="Identity">
-							<label className="flex flex-col gap-1.5">
-								<span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-									node id
-								</span>
-								<input
-									value={selectedEntry.node.id ?? ""}
-									onChange={(event) => {
-										const nextId = event.target.value.trim() || undefined;
-										onPromptChange(
-											renamePromptNodeId(prompt, selectedEntry.id, nextId),
-											nextId,
-										);
-									}}
-									className="h-8 rounded-[2px] border border-border bg-background px-2 text-[12px] text-foreground outline-none focus:border-status-success"
-									spellCheck={false}
-								/>
-							</label>
+							<NodeIdField
+								entry={selectedEntry}
+								prompt={prompt}
+								onPromptChange={onPromptChange}
+							/>
 						</InspectorSection>
 
 						<NodeDetails
@@ -272,7 +263,65 @@ function updateNode(
 	onPromptChange: PromptFlowInspectorProps["onPromptChange"],
 	updater: (node: PromptBlockNode) => PromptBlockNode,
 ) {
-	onPromptChange(updatePromptBlockNodeById(prompt, entry.id, updater), entry.id);
+	const result = updatePromptBlockNodeByIdWithStep(prompt, entry.id, updater);
+	if (!result.step) return;
+	onPromptChange(result.prompt, entry.id, [result.step]);
+}
+
+/**
+ * Node-id editing commits on blur/Enter as a remove+insert step pair at the
+ * same path. An update-step keyed by node id cannot invert an id change (the
+ * inverse lookup would miss), while path-addressed remove/insert steps undo
+ * and redo cleanly. Empty ids are rejected — editor surfaces require ids.
+ */
+function NodeIdField({
+	entry,
+	prompt,
+	onPromptChange,
+}: {
+	entry: PromptEditorTreeEntry;
+	prompt: PromptDocument;
+	onPromptChange: PromptFlowInspectorProps["onPromptChange"];
+}) {
+	const [draftId, setDraftId] = useState(entry.node.id ?? "");
+
+	useEffect(() => {
+		setDraftId(entry.node.id ?? "");
+	}, [entry.id, entry.node.id]);
+
+	function commitRename() {
+		const nextId = draftId.trim();
+		if (!nextId || nextId === entry.node.id) {
+			setDraftId(entry.node.id ?? "");
+			return;
+		}
+		const steps: PromptStep[] = [
+			{ op: "remove", path: entry.path, removed: entry.node },
+			{ op: "insert", path: entry.path, node: { ...entry.node, id: nextId } },
+		];
+		onPromptChange(applySteps(prompt, steps), nextId, steps);
+	}
+
+	return (
+		<label className="flex flex-col gap-1.5">
+			<span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+				node id
+			</span>
+			<input
+				value={draftId}
+				onChange={(event) => setDraftId(event.target.value)}
+				onBlur={commitRename}
+				onKeyDown={(event) => {
+					if (event.key === "Enter") {
+						event.preventDefault();
+						commitRename();
+					}
+				}}
+				className="h-8 rounded-[2px] border border-border bg-background px-2 text-[12px] text-foreground outline-none focus:border-status-success"
+				spellCheck={false}
+			/>
+		</label>
+	);
 }
 
 function previewText(node: PromptBlockNode): string {

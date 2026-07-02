@@ -15,6 +15,29 @@ export const KERNEL_TRACE_READ_PATHS = {
 } as const;
 
 /**
+ * Routes owned by the kernel catalog API (Phase 5): registry listing, agent
+ * detail (manifest + prompt + validation), prompt writes, revision history,
+ * and per-revision run stats. The write route (`PUT .../prompt`) is only
+ * mounted when the kernel runs in dev mode; the paths are defined here so
+ * browser hosts and the server agree on the URL shape.
+ */
+export const KERNEL_CATALOG_PATHS = {
+	listAgents: "/kernel/catalog/agents",
+	agentDetail(name: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}`;
+	},
+	agentPrompt(name: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/prompt`;
+	},
+	agentRevisions(name: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/revisions`;
+	},
+	revisionStats(name: string, hash: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/revisions/${encodeURIComponent(hash)}/stats`;
+	},
+} as const;
+
+/**
  * Cross-kernel observer routes (a viewer plane over many kernel manifests).
  * Container-first; the tailer daemon routes are gone with D75 (tailer is a
  * backfill tool, not a service).

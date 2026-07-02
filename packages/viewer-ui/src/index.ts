@@ -23,7 +23,28 @@ export {
 	type AgentPrismToken,
 } from "./trace-viewer/theme";
 export { AgentCatalogViewer } from "./agent-viewer/AgentCatalogViewer";
-export { PromptInlineLab } from "./agent-viewer/PromptInlineLab";
+export {
+	PromptInlineLab,
+	type PromptInlineLabProps,
+	type PromptSaveOutcome,
+} from "./agent-viewer/PromptInlineLab";
+export {
+	AgentPromptLabContainer,
+	type AgentPromptLabContainerProps,
+} from "./agent-viewer/AgentPromptLabContainer";
+export {
+	RevisionHistoryPanel,
+	type RevisionHistoryPanelProps,
+} from "./agent-viewer/RevisionHistoryPanel";
+export {
+	RevisionStatsStrip,
+	type RevisionStatsStripProps,
+} from "./agent-viewer/RevisionStatsStrip";
+export {
+	createPromptLabHistory,
+	type PromptLabHistory,
+	type PromptLabMetaPatch,
+} from "./agent-viewer/prompt-lab-history";
 export type {
 	AgentRenderedPrompt,
 	AgentVariableDeclaration,

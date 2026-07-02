@@ -1,5 +1,11 @@
 export * from "./types";
 export * from "./api";
+export * from "./catalog-types";
+export {
+	diffPromptDocuments,
+	type PromptBlockDiffEntry,
+	type PromptBlockDiffKind,
+} from "./prompt-diff";
 export { buildTraceSpans } from "./build-trace-spans";
 export {
 	extractContainerSpans,
