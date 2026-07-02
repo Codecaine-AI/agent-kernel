@@ -15,6 +15,8 @@ import type {
 
 import {
   EventType,
+  UI_ASK_ANSWERED,
+  UI_ASK_REQUESTED,
   type TraceEvent,
   type AgentSessionEndData,
   type AgentRunEndData,
@@ -76,8 +78,8 @@ export function categoryFor(eventType: string): TraceSpanCategory {
       return "tool_execution";
     case EventType.ASSISTANT_MESSAGE:
       return "llm_call";
-    case EventType.UI_ASK_REQUESTED:
-    case EventType.UI_ASK_ANSWERED:
+    case UI_ASK_REQUESTED:
+    case UI_ASK_ANSWERED:
       return "event";
     default:
       return "event";
@@ -105,7 +107,7 @@ export function statusFor(paired: PairedEvent): TraceSpanStatus {
     event.type === EventType.AGENT_RUN_START ||
     event.type === EventType.TOOL_CALL_START ||
     event.type === EventType.AGENT_SESSION_START ||
-    event.type === EventType.UI_ASK_REQUESTED ||
+    event.type === UI_ASK_REQUESTED ||
     event.type === EventType.CONTEXT_BUILD_STARTED
   ) {
     return "pending";
@@ -160,7 +162,7 @@ export function titleFor(paired: PairedEvent): string {
       const loader = data.loader_kind as string | undefined;
       if (loader) return `input: ${loader}`;
     }
-    if (event.type === EventType.UI_ASK_REQUESTED || event.type === EventType.UI_ASK_ANSWERED) {
+    if (event.type === UI_ASK_REQUESTED || event.type === UI_ASK_ANSWERED) {
       const kind = data.kind as string | undefined;
       return kind ? `ui ask: ${kind}` : "ui ask";
     }
@@ -220,7 +222,7 @@ function fillPaired(paired: PairedEvent & { kind: "pair" }, attrs: TraceSpanAttr
     pushAttr(attrs, "agent_name", startData?.agent_name);
     pushAttr(attrs, "total_bytes", endData?.total_bytes ?? null);
     pushAttr(attrs, "inputs_count", endData?.inputs?.length ?? null);
-  } else if (startType === EventType.UI_ASK_REQUESTED) {
+  } else if (startType === UI_ASK_REQUESTED) {
     const startData = paired.start.eventData as UIAskRequestedData | null;
     const endData = paired.end.eventData as UIAskAnsweredData | null;
     if (startData?.payload !== undefined && startData?.payload !== null) {
@@ -320,14 +322,14 @@ function fillPoint(ev: TraceEvent, attrs: TraceSpanAttribute[]): {
     pushAttr(attrs, "from_cache", data?.from_cache);
     pushAttr(attrs, "error", data?.error);
     pushAttr(attrs, "content_hash", data?.content_hash);
-  } else if (ev.type === EventType.UI_ASK_REQUESTED) {
+  } else if (ev.type === UI_ASK_REQUESTED) {
     const data = ev.eventData as UIAskRequestedData | null;
     if (data?.payload !== undefined && data?.payload !== null) {
       input = JSON.stringify(data.payload);
     }
     pushAttr(attrs, "kind", data?.kind);
     pushAttr(attrs, "tool_use_id", data?.tool_use_id);
-  } else if (ev.type === EventType.UI_ASK_ANSWERED) {
+  } else if (ev.type === UI_ASK_ANSWERED) {
     const data = ev.eventData as UIAskAnsweredData | null;
     if (data?.exchanges !== undefined && data?.exchanges !== null) {
       output = JSON.stringify(data.exchanges);

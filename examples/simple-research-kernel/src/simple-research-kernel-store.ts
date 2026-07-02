@@ -27,8 +27,7 @@ import {
 	type AgentContextResolver,
 	type Loader,
 	type LoaderDeclaration,
-	type LoaderResult,
-	type SpawnContext
+	type LoaderResult
 } from "@agent-kernel/kernel/context";
 import {
 	createSpawnAgent,
@@ -37,20 +36,16 @@ import {
 	type KernelSpawnOptions
 } from "@agent-kernel/kernel/spawn-pipeline";
 import {
+	insertTraceEventsBatch,
+	updateContainerStatus,
+	type KernelDatabase
+} from "@agent-kernel/db";
+import {
 	createContainerStartEvent,
 	createPhaseStartEvent,
-	SYSTEM_USER_ID,
-	TraceSource,
 	type TraceEvent as ProtocolTraceEvent
 } from "@agent-kernel/protocol";
-import type {
-	AgentRun,
-	KernelContainerSummary,
-	KernelTraceSessionDetail,
-	KernelTraceSessionListResponse,
-	PiSessionWithCount,
-	TraceEventRow
-} from "@agent-kernel/viewer-core";
+import type { KernelTraceSessionSummary } from "@agent-kernel/viewer-core";
 import type { ExtensionAPI, ExtensionContext, ExtensionFactory } from "@mariozechner/pi-coding-agent";
 import type { PromptDocument } from "@codecaine-ai/prompt-kit";
 import type {
@@ -59,10 +54,8 @@ import type {
 	ToolResponse
 } from "./agent-catalog/tool-runtime";
 
-export const APP_SESSION_ID = "11111111-1111-4111-8111-111111111111";
-export const ROOT_CONTAINER_ID = "simple-research-kernel";
+export const KERNEL_ID = "simple-research-kernel";
 export const PHASE = "research";
-export const APP_SESSION_SLUG = "simple-research-kernel";
 export const EXAMPLE_ROOT = resolve(import.meta.dir, "..");
 const AGENT_CATALOG_DIR = join(import.meta.dir, "agent-catalog");
 export const WORKING_MEMORY_DIR = join(EXAMPLE_ROOT, "research-memory");
@@ -73,8 +66,6 @@ const REPORTS_REL_PATH = join(RESEARCH_MEMORY_REL_PATH, "reports");
 const PI_AGENT_DIR = Bun.env.AGENT_KERNEL_PI_AGENT_DIR ?? join(EXAMPLE_ROOT, ".pi-agent");
 const DEFAULT_PI_SESSIONS_DIR = join(EXAMPLE_ROOT, ".agent-kernel", "pi-sessions");
 const DEFAULT_RESEARCH_MODEL = "codex-lb/gpt-5.5";
-const DEFAULT_RESEARCH_PROMPT =
-	"Research how the Simple Research Kernel should present agents, context loading, subagents, and working memory.";
 
 type ResearchHarnessInfo = {
 	kernelId: string;
@@ -82,11 +73,6 @@ type ResearchHarnessInfo = {
 	memoryDir: string;
 	agents: ResearchAgentSummary[];
 	activeRuns: ResearchRunSummary[];
-	dummySession: {
-		id: string;
-		label: string;
-		description: string;
-	};
 	trace: {
 		label: string;
 		piSessionCount: number;
@@ -129,25 +115,14 @@ type ResearchArtifactSummary = {
 
 type ResearchRunSummary = {
 	id: string;
-	appSessionId: string;
-	appSessionSlug: string;
+	/** The session container (kind "session") this run's trace lives under. */
 	containerId: string;
+	sessionSlug: string;
 	prompt: string;
-	kind: "dummy" | "user";
 	status: "running" | "completed" | "error";
 	startedAt: string;
 	completedAt: string | null;
 	error: string | null;
-};
-
-type ResearchTraceIdentity = {
-	appSessionId: string;
-	appSessionSlug: string;
-	containerId: string;
-	label: string;
-	topic: string;
-	kind: ResearchRunSummary["kind"];
-	prompt: string;
 };
 
 type ArtifactSnapshot = {
@@ -161,16 +136,8 @@ type WorkingMemoryLoaderDeclaration = LoaderDeclaration & {
 	scope?: string;
 };
 
-export interface SimpleResearchKernelPersistence {
-	upsertContainer?(container: KernelContainerSummary): Promise<void>;
-	upsertPiSession?(session: PiSessionWithCount): Promise<void>;
-	upsertAgentRun?(run: AgentRun): Promise<void>;
-	insertTraceEvent?(event: ProtocolTraceEvent): Promise<void>;
-}
-
 type ResearchStoreOptions = {
-	persistence?: SimpleResearchKernelPersistence;
-	db?: unknown;
+	db: KernelDatabase;
 	piSessionsDir?: string;
 	model?: string;
 };
@@ -179,40 +146,12 @@ function hashContent(input: string): string {
 	return createHash("sha256").update(input, "utf8").digest("hex");
 }
 
-function iso(ms: number): string {
-	return new Date(ms).toISOString();
-}
-
-function nowRounded(): number {
-	return Math.floor(Date.now() / 1000) * 1000;
-}
-
 function safeSlug(input: string): string {
 	return input
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, "-")
 		.replace(/^-+|-+$/g, "")
 		.slice(0, 54) || "note";
-}
-
-function traceMetadata(trace: ResearchTraceIdentity): Record<string, unknown> {
-	return {
-		kernelId: "simple-research-kernel",
-		app: "simple-research-kernel",
-		appSessionId: trace.appSessionId,
-		appSessionSlug: trace.appSessionSlug,
-		appSessionDir: join(RESEARCH_SESSION_ROOT, trace.appSessionSlug),
-		appSessionType: "example",
-		topic: trace.topic,
-		prompt: trace.prompt,
-		kind: trace.kind,
-		description:
-			"A simple research kernel that fans out to scouts, reads their reports, optionally spawns follow-up scouts, and queues a final report writer."
-	};
-}
-
-function isSeedTrace(trace: { appSessionId?: string; containerId?: string }): boolean {
-	return trace.appSessionId === APP_SESSION_ID || trace.containerId === ROOT_CONTAINER_ID;
 }
 
 function collectFiles(dir: string, extensions: Set<string>): string[] {
@@ -284,27 +223,21 @@ export class SimpleResearchKernelStore {
 		AgentManager
 	>;
 
-	private readonly persistence?: SimpleResearchKernelPersistence;
-	private readonly db?: unknown;
+	private readonly db: KernelDatabase;
 	private readonly piSessionsDir: string;
 	private readonly model: string;
 	private readonly toolRuntime: SimpleResearchToolRuntime;
-	private persistenceTail: Promise<void> = Promise.resolve();
+	/** Serializes async trace-event inserts behind the sync TraceWriterSink. */
+	private traceWriteTail: Promise<void> = Promise.resolve();
 	private readonly registryPromise: Promise<AgentRegistry>;
 	private liveSpawnAgentPromise: Promise<KernelSpawnAgent> | null = null;
-	private readonly startedAt = nowRounded() - 90_000;
-	private readonly containers = new Map<string, KernelContainerSummary>();
-	private readonly traceIdentities = new Map<string, ResearchTraceIdentity>();
-	private readonly piSessions: PiSessionWithCount[] = [];
-	private readonly agentRuns: AgentRun[] = [];
-	private readonly events: TraceEventRow[] = [];
-	private eventCounter = 0;
+	/** Session dir per session container, for runs started in this process. */
+	private readonly sessionDirsByContainer = new Map<string, string>();
 	private artifactCounter = 0;
 	private latestReportText = "";
 	private readonly researchRuns = new Map<string, ResearchRunSummary>();
 
-	constructor(options: ResearchStoreOptions = {}) {
-		this.persistence = options.persistence;
+	constructor(options: ResearchStoreOptions) {
 		this.db = options.db;
 		this.piSessionsDir = options.piSessionsDir ?? DEFAULT_PI_SESSIONS_DIR;
 		this.model = options.model ?? Bun.env.AGENT_KERNEL_RESEARCH_MODEL ?? DEFAULT_RESEARCH_MODEL;
@@ -320,8 +253,9 @@ export class SimpleResearchKernelStore {
 			KernelSpawnAgentResult,
 			AgentManager
 		>({
-			id: "simple-research-kernel",
+			id: KERNEL_ID,
 			concurrency: { maxBackgroundAgents: 3 },
+			db: this.db,
 			spawnAgent: (name, prompt, ctx, opts) => this.runLiveResearchAgent(name, prompt, ctx, opts),
 			createAgentManager: ({ maxConcurrentBackgroundAgents, spawnAgent }) =>
 				new AgentManager(undefined, maxConcurrentBackgroundAgents, undefined, {
@@ -330,91 +264,8 @@ export class SimpleResearchKernelStore {
 		});
 	}
 
-	listTraceSessions(): KernelTraceSessionListResponse {
-		return {
-			trace_sessions: [...this.traceIdentities.values()]
-				.map((trace) => {
-					const container = this.containers.get(trace.containerId);
-					if (!container) return null;
-					const piSessions = this.piSessions.filter(
-						(session) =>
-							session.appSessionId === trace.appSessionId ||
-							session.containerId === trace.containerId
-					);
-					const events = this.events.filter(
-						(event) =>
-							event.appSessionId === trace.appSessionId ||
-							event.containerId === trace.containerId
-					);
-					return {
-						id: trace.appSessionId,
-						containerId: trace.containerId,
-						label: container.label,
-						appSessionSlug: trace.appSessionSlug,
-						topic: trace.topic,
-						status: container.status,
-						appSessionType: "example",
-						phase: container.phase ?? PHASE,
-						createdAt: container.createdAt,
-						updatedAt: container.updatedAt,
-						piSessionCount: piSessions.length,
-						eventCount: events.length,
-						latestEventAt: events.at(-1)?.timestamp ?? null,
-						metadata: container.metadata
-					};
-				})
-				.filter((trace) => trace !== null)
-				.sort((a, b) => {
-					const seedDelta = Number(isSeedTrace(a)) - Number(isSeedTrace(b));
-					if (seedDelta !== 0) return seedDelta;
-					return (b.updatedAt ?? "").localeCompare(a.updatedAt ?? "");
-				}),
-			unlinked: null
-		};
-	}
-
-	getTraceSessionDetail(id = APP_SESSION_ID): KernelTraceSessionDetail | null {
-		const trace = this.resolveTraceIdentity(id);
-		if (!trace) return null;
-		const container = this.containers.get(trace.containerId);
-		if (!container) return null;
-		const piSessions = this.piSessions.filter(
-			(session) =>
-				session.appSessionId === trace.appSessionId ||
-				session.containerId === trace.containerId
-		);
-		const agentRuns = this.agentRuns.filter(
-			(run) =>
-				run.containerId === trace.containerId ||
-				piSessions.some((session) => session.id === run.piSessionId)
-		);
-		const events = this.events.filter(
-			(event) =>
-				event.appSessionId === trace.appSessionId ||
-				event.containerId === trace.containerId
-		);
-		return {
-			session: {
-				id: trace.appSessionId,
-				containerId: trace.containerId,
-				appSessionSlug: trace.appSessionSlug,
-				topic: trace.topic,
-				status: container.status,
-				appSessionType: "example",
-				createdAt: container.createdAt,
-				updatedAt: events.at(-1)?.timestamp ?? container.updatedAt
-			},
-			container,
-			containers: [container],
-			pi_sessions: piSessions,
-			agent_runs: agentRuns,
-			events
-		};
-	}
-
-	async getResearchInfo(): Promise<ResearchHarnessInfo> {
+	async getResearchInfo(traces: KernelTraceSessionSummary[] = []): Promise<ResearchHarnessInfo> {
 		const registry = await this.registryPromise;
-		const traces = this.listTraceSessions().trace_sessions;
 		const trace = traces[0] ?? {
 			label: "Simple Research Kernel",
 			piSessionCount: 0,
@@ -422,7 +273,7 @@ export class SimpleResearchKernelStore {
 			latestEventAt: null
 		};
 		const artifactSessionDir =
-			"id" in trace ? this.artifactSessionDirForTraceId(trace.id) : null;
+			"containerId" in trace ? this.sessionDirForTrace(trace) : null;
 		return {
 			kernelId: this.kernel.id,
 			concurrency: this.kernel.concurrency,
@@ -434,12 +285,6 @@ export class SimpleResearchKernelStore {
 			),
 			agents: registry.list().map((agent) => this.summarizeAgent(agent)),
 			activeRuns: [...this.researchRuns.values()].filter((run) => run.status === "running"),
-			dummySession: {
-				id: APP_SESSION_ID,
-				label: "No seed research session",
-				description:
-					"Research traces are created only when a user starts a run."
-			},
 			trace: {
 				label: trace.label,
 				piSessionCount: trace.piSessionCount,
@@ -456,27 +301,43 @@ export class SimpleResearchKernelStore {
 		};
 	}
 
-	async startResearchRun(
-		prompt: string,
-		kind: ResearchRunSummary["kind"] = "user"
-	): Promise<ResearchRunSummary> {
+	async startResearchRun(prompt: string): Promise<ResearchRunSummary> {
 		const id = randomUUID();
-		const trace = this.createTraceIdentity(id, prompt, kind);
-		this.ensureTraceContainer(trace, {
-			startedAt: kind === "dummy" ? iso(this.startedAt) : new Date().toISOString()
+		const sessionSlug = `research-${safeSlug(prompt)}-${id.slice(0, 8)}`.slice(0, 90);
+		const sessionDir = this.ensureResearchSessionDir(join(RESEARCH_SESSION_ROOT, sessionSlug));
+		const startedAt = new Date().toISOString();
+
+		// One research request = one root container of kind "session".
+		// Identity is derived, never minted: same (kind, key) upserts the same row.
+		const container = await this.kernel.container({
+			kind: "session",
+			key: [id],
+			label: `Research: ${prompt.slice(0, 72)}`,
+			phase: PHASE,
+			phaseVocabulary: [PHASE],
+			workingDir: EXAMPLE_ROOT,
+			metadata: {
+				app: KERNEL_ID,
+				topic: prompt,
+				prompt,
+				sessionSlug,
+				sessionDir,
+				description:
+					"A simple research kernel that fans out to scouts, reads their reports, optionally spawns follow-up scouts, and queues a final report writer."
+			}
 		});
-		const appSessionDir = this.ensureResearchSession(trace);
-		this.seedLifecycle(trace);
-		const artifactSnapshot = this.snapshotArtifacts(appSessionDir);
+		this.sessionDirsByContainer.set(container.id, sessionDir);
+		await updateContainerStatus(this.db, container.id, "active", { startedAt });
+		this.seedLifecycle(container.id, container.label ?? prompt);
+
+		const artifactSnapshot = this.snapshotArtifacts(sessionDir);
 		const run: ResearchRunSummary = {
 			id,
-			appSessionId: trace.appSessionId,
-			appSessionSlug: trace.appSessionSlug,
-			containerId: trace.containerId,
+			containerId: container.id,
+			sessionSlug,
 			prompt,
-			kind,
 			status: "running",
-			startedAt: new Date().toISOString(),
+			startedAt,
 			completedAt: null,
 			error: null
 		};
@@ -485,29 +346,28 @@ export class SimpleResearchKernelStore {
 		void this.kernel
 			.spawnAgent("research-coordinator", prompt, null, {
 				variables: this.variablesFor("research-coordinator", prompt),
-				appSessionId: trace.appSessionId,
-				appSessionSlug: trace.appSessionSlug,
-				appSessionDir,
+				containerId: container.id,
+				trigger: "operator",
+				sessionDir,
 				piSessionsDir: this.piSessionsDir,
 				piAgentDir: PI_AGENT_DIR,
-				workingDir: appSessionDir,
-				containerId: trace.containerId,
+				workingDir: sessionDir,
 				phase: PHASE,
 				displayLabel: this.displayLabel("research-coordinator"),
-				traceWriter: this.createTraceWriter(trace)
+				traceWriter: this.traceWriter()
 			})
 			.then(() => {
-				const artifactError = this.validateCompletedRun(appSessionDir, artifactSnapshot);
+				const artifactError = this.validateCompletedRun(sessionDir, artifactSnapshot);
 				if (artifactError) throw new Error(artifactError);
 				run.status = "completed";
 				run.completedAt = new Date().toISOString();
-				this.markTraceContainer(trace.containerId, "completed", run.completedAt);
+				this.markSessionContainer(container.id, "done", run.completedAt);
 			})
 			.catch((err) => {
 				run.status = "error";
 				run.completedAt = new Date().toISOString();
 				run.error = err instanceof Error ? err.message : String(err);
-				this.markTraceContainer(trace.containerId, "error", run.completedAt);
+				this.markSessionContainer(container.id, "error", run.completedAt);
 				console.error("Failed to run Simple Research Kernel", err);
 			});
 
@@ -521,13 +381,13 @@ export class SimpleResearchKernelStore {
 		opts: KernelSpawnOptions = {}
 	): Promise<KernelSpawnAgentResult> {
 		const spawnAgent = await this.getLiveSpawnAgent();
-		const appSessionDir = this.ensureResearchSessionDir(
-			opts.appSessionDir ?? this.defaultResearchSessionDir()
+		const sessionDir = this.ensureResearchSessionDir(
+			opts.sessionDir ?? this.defaultResearchSessionDir()
 		);
 		return spawnAgent(agentName, prompt, ctx as unknown as ExtensionContext | null | undefined, {
 			...opts,
-			workingDir: opts.workingDir ?? appSessionDir,
-			appSessionDir,
+			workingDir: opts.workingDir ?? sessionDir,
+			sessionDir,
 			piSessionsDir: opts.piSessionsDir ?? this.piSessionsDir,
 			piAgentDir: opts.piAgentDir ?? PI_AGENT_DIR,
 			displayLabel: opts.displayLabel ?? this.displayLabel(agentName),
@@ -573,25 +433,16 @@ export class SimpleResearchKernelStore {
 							workingMemoryDir: join(params.cwd ?? params.runtime.cwd, RESEARCH_MEMORY_REL_PATH)
 						}
 					}),
-				getDb: () => {
-					if (!this.db) {
-						throw new Error("Simple Research Kernel requires a database-backed spawn adapter.");
+				getDb: () => this.db,
+				// The pipeline merges containerId + runId into the marker payload so
+				// backfill (runBackfill) can recover kernel identity from the JSONL.
+				createSessionBinding: (opts) => ({
+					customType: "agent-kernel:session-binding",
+					data: {
+						sessionDir: opts.sessionDir,
+						phase: opts.phase
 					}
-					return this.db;
-				},
-				createAppSessionBinding: (opts) =>
-					opts.appSessionId
-						? {
-								customType: "agent-kernel:session-binding",
-								data: {
-									appSessionId: opts.appSessionId,
-									appSessionSlug: opts.appSessionSlug,
-									appSessionDir: opts.appSessionDir,
-									containerId: opts.containerId,
-									phase: opts.phase
-								}
-							}
-						: undefined,
+				}),
 				piLifecycleCustomType: "agent-kernel:pi-lifecycle",
 				logger: console,
 				lifecycleLogger: console
@@ -617,23 +468,30 @@ export class SimpleResearchKernelStore {
 		};
 	}
 
-	private createTraceWriter(trace: ResearchTraceIdentity) {
+	/**
+	 * Trace sink for kernel-emitted lifecycle/spawn events — inserts straight
+	 * into the local SQLite trace db (idempotent by event_id). The envelope
+	 * already carries containerId + runId stamped by the spawn pipeline.
+	 */
+	private traceWriter() {
 		return {
 			submit: (event: ProtocolTraceEvent) => {
-				const timestamp = Date.parse(event.timestamp);
-				this.addEvent(
-					{
-						...event,
-						containerId: event.containerId ?? trace.containerId
-					},
-					Number.isFinite(timestamp) ? timestamp : Date.now(),
-					{
-						piSessionId: event.piSessionUuid,
-						containerId: event.containerId ?? trace.containerId
-					}
-				);
+				this.submitTraceEvent(event);
 			}
 		};
+	}
+
+	private submitTraceEvent(event: ProtocolTraceEvent): void {
+		this.traceWriteTail = this.traceWriteTail
+			.then(async () => {
+				await insertTraceEventsBatch(this.db, [event]);
+			})
+			.catch((error) => {
+				console.error(
+					"Simple Research Kernel trace write failed:",
+					error instanceof Error ? error.message : String(error)
+				);
+			});
 	}
 
 	private createToolRuntime(): SimpleResearchToolRuntime {
@@ -664,10 +522,10 @@ export class SimpleResearchKernelStore {
 	}
 
 	private reviewResearchReports(question?: string): ToolResponse {
-		const appSessionDir = this.currentRunSessionDir();
-		const files = this.listScoutReportFiles(appSessionDir);
+		const sessionDir = this.currentRunSessionDir();
+		const files = this.listScoutReportFiles(sessionDir);
 		const reports = files.map((file) => ({
-			path: relative(appSessionDir, file),
+			path: relative(sessionDir, file),
 			content: readFileSync(file, "utf8")
 		}));
 		const reportList =
@@ -701,7 +559,10 @@ export class SimpleResearchKernelStore {
 		signal?: AbortSignal
 	) {
 		const runCtx = getRunContext();
-		const appSessionDir = this.currentRunSessionDir();
+		const sessionDir = this.currentRunSessionDir();
+		// Subagent identity is inherited from the parent run context: same
+		// containerId, parentRunId = the coordinator's run, trigger defaults to
+		// "parent-tool", and parentToolUseId flows from toolCallId.
 		return this.kernel.agentManager.spawnAndWait(
 			pi,
 			ctx as unknown as KernelExtensionContext,
@@ -709,12 +570,10 @@ export class SimpleResearchKernelStore {
 			focus,
 			{
 				description: "Write the final research report",
-				workingDir: appSessionDir,
-				appSessionId: runCtx.appSessionId,
-				appSessionSlug: runCtx.appSessionSlug,
-				appSessionDir,
-				piSessionsDir: this.piSessionsDir,
+				workingDir: sessionDir,
 				containerId: runCtx.containerId,
+				sessionDir,
+				piSessionsDir: this.piSessionsDir,
 				phase: runCtx.phase,
 				displayLabel: this.displayLabel("report-writer"),
 				parentRunId: runCtx.runId,
@@ -728,32 +587,32 @@ export class SimpleResearchKernelStore {
 	}
 
 	private writeResearchReport(title: string | undefined, content: string): ToolResponse {
-		const appSessionDir = this.currentRunSessionDir();
+		const sessionDir = this.currentRunSessionDir();
 		const reportPath = this.writeArtifact(
-			this.scoutReportsDirForSession(appSessionDir),
+			this.scoutReportsDirForSession(sessionDir),
 			title ?? "scout-report",
 			content
 		);
 		return {
-			text: `Wrote scout report to ${relative(appSessionDir, reportPath)}.`,
+			text: `Wrote scout report to ${relative(sessionDir, reportPath)}.`,
 			details: {
-				path: relative(appSessionDir, reportPath)
+				path: relative(sessionDir, reportPath)
 			}
 		};
 	}
 
 	private writeFinalReport(title: string | undefined, content: string): ToolResponse {
-		const appSessionDir = this.currentRunSessionDir();
+		const sessionDir = this.currentRunSessionDir();
 		const reportPath = this.writeArtifact(
-			this.reportsDirForSession(appSessionDir),
+			this.reportsDirForSession(sessionDir),
 			title ?? "research-report",
 			content
 		);
 		this.latestReportText = content;
 		return {
-			text: `Wrote final report to ${relative(appSessionDir, reportPath)}.`,
+			text: `Wrote final report to ${relative(sessionDir, reportPath)}.`,
 			details: {
-				path: relative(appSessionDir, reportPath)
+				path: relative(sessionDir, reportPath)
 			}
 		};
 	}
@@ -766,7 +625,7 @@ export class SimpleResearchKernelStore {
 		signal?: AbortSignal
 	) {
 		const runCtx = getRunContext();
-		const appSessionDir = this.currentRunSessionDir();
+		const sessionDir = this.currentRunSessionDir();
 		return Promise.all(
 			assignments.map((assignment) =>
 				this.kernel.agentManager.spawnAndWait(
@@ -776,12 +635,10 @@ export class SimpleResearchKernelStore {
 					assignment.prompt,
 					{
 						description: assignment.focus,
-						workingDir: appSessionDir,
-						appSessionId: runCtx.appSessionId,
-						appSessionSlug: runCtx.appSessionSlug,
-						appSessionDir,
-						piSessionsDir: this.piSessionsDir,
+						workingDir: sessionDir,
 						containerId: runCtx.containerId,
+						sessionDir,
+						piSessionsDir: this.piSessionsDir,
 						phase: runCtx.phase,
 						displayLabel: this.displayLabel("source-scout"),
 						parentRunId: runCtx.runId,
@@ -796,16 +653,16 @@ export class SimpleResearchKernelStore {
 		);
 	}
 
-	private snapshotArtifacts(appSessionDir: string): ArtifactSnapshot {
+	private snapshotArtifacts(sessionDir: string): ArtifactSnapshot {
 		return {
-			scoutReports: this.listScoutReportFiles(appSessionDir).length,
-			finalReports: this.listReportFiles(appSessionDir).length
+			scoutReports: this.listScoutReportFiles(sessionDir).length,
+			finalReports: this.listReportFiles(sessionDir).length
 		};
 	}
 
-	private validateCompletedRun(appSessionDir: string, snapshot: ArtifactSnapshot): string | null {
-		const scoutReportsWritten = this.listScoutReportFiles(appSessionDir).length - snapshot.scoutReports;
-		const finalReportsWritten = this.listReportFiles(appSessionDir).length - snapshot.finalReports;
+	private validateCompletedRun(sessionDir: string, snapshot: ArtifactSnapshot): string | null {
+		const scoutReportsWritten = this.listScoutReportFiles(sessionDir).length - snapshot.scoutReports;
+		const finalReportsWritten = this.listReportFiles(sessionDir).length - snapshot.finalReports;
 		if (scoutReportsWritten < 2) {
 			return [
 				"Research coordinator finished without completing the required scout fan-out.",
@@ -826,8 +683,8 @@ export class SimpleResearchKernelStore {
 		text: string;
 		files: Array<{ path: string; bytes: number; truncated: boolean }>;
 	} {
-		const appSessionDir = this.currentRunSessionDir();
-		const files = this.resolveContextFiles(appSessionDir, paths);
+		const sessionDir = this.currentRunSessionDir();
+		const files = this.resolveContextFiles(sessionDir, paths);
 		const fileSummaries: Array<{ path: string; bytes: number; truncated: boolean }> = [];
 		let remainingBytes = 60_000;
 		const blocks = files.map((file) => {
@@ -837,7 +694,7 @@ export class SimpleResearchKernelStore {
 			const content = raw.slice(0, budget);
 			remainingBytes -= Buffer.byteLength(content, "utf8");
 			const truncated = content.length < raw.length;
-			const relPath = relative(appSessionDir, file);
+			const relPath = relative(sessionDir, file);
 			fileSummaries.push({ path: relPath, bytes, truncated });
 			return `<file path="${relPath}" bytes="${bytes}" truncated="${truncated}">\n${content}\n</file>`;
 		});
@@ -847,7 +704,7 @@ export class SimpleResearchKernelStore {
 		};
 	}
 
-	private resolveContextFiles(appSessionDir: string, paths?: string[]): string[] {
+	private resolveContextFiles(sessionDir: string, paths?: string[]): string[] {
 		const requested =
 			paths && paths.length > 0
 				? paths
@@ -859,7 +716,7 @@ export class SimpleResearchKernelStore {
 					];
 		const files: string[] = [];
 		for (const requestedPath of requested) {
-			const fullPath = this.resolveSessionPath(appSessionDir, requestedPath);
+			const fullPath = this.resolveSessionPath(sessionDir, requestedPath);
 			if (!existsSync(fullPath)) continue;
 			const stats = statSync(fullPath);
 			if (stats.isDirectory()) {
@@ -871,9 +728,9 @@ export class SimpleResearchKernelStore {
 		return [...new Set(files)].sort();
 	}
 
-	private resolveSessionPath(appSessionDir: string, requestedPath: string): string {
-		const fullPath = resolve(appSessionDir, requestedPath);
-		if (fullPath !== appSessionDir && !fullPath.startsWith(`${appSessionDir}/`)) {
+	private resolveSessionPath(sessionDir: string, requestedPath: string): string {
+		const fullPath = resolve(sessionDir, requestedPath);
+		if (fullPath !== sessionDir && !fullPath.startsWith(`${sessionDir}/`)) {
 			throw new Error(`Path escapes the research session: ${requestedPath}`);
 		}
 		return fullPath;
@@ -887,23 +744,6 @@ export class SimpleResearchKernelStore {
 		const normalized = content.endsWith("\n") ? content : `${content}\n`;
 		writeFileSync(target, normalized);
 		return target;
-	}
-
-	private readMarkdownSummaries(files: string[]): Array<{ path: string; bytes: number; title: string }> {
-		return files.map((file) => {
-			const content = readFileSync(file, "utf8");
-			const title =
-				content
-					.split("\n")
-					.find((line) => line.startsWith("# "))
-					?.replace(/^#\s+/, "")
-					.trim() || basename(file, extname(file));
-			return {
-				path: relative(EXAMPLE_ROOT, file),
-				bytes: Buffer.byteLength(content, "utf8"),
-				title
-			};
-		});
 	}
 
 	private async loadContextResolver(agent: AgentDefinition): Promise<AgentContextResolver> {
@@ -927,113 +767,35 @@ export class SimpleResearchKernelStore {
 		};
 	}
 
-	private seedLifecycle(trace: ResearchTraceIdentity): void {
-		const container = this.containers.get(trace.containerId);
-		const base = Date.parse(container?.startedAt ?? new Date().toISOString());
-		this.addEvent(createPhaseStartEvent(trace.appSessionId, SYSTEM_USER_ID, PHASE), base + 100, {
-			containerId: trace.containerId
-		});
-		this.addEvent(
-			createContainerStartEvent(trace.appSessionId, SYSTEM_USER_ID, {
-				container_id: trace.containerId,
-				level: "foundation",
+	/**
+	 * Seed the viewer's phase + pipeline-container grouping for a fresh
+	 * session container. These are app-level trace events keyed by the
+	 * session container id.
+	 */
+	private seedLifecycle(containerId: string, label: string): void {
+		const ids = { containerId };
+		this.submitTraceEvent(createPhaseStartEvent(ids, PHASE));
+		this.submitTraceEvent(
+			createContainerStartEvent(ids, {
+				container_id: containerId,
+				level: "research",
 				checkpoint_id: null,
 				task_group_id: null,
 				parent_container_id: null,
-				label: container?.label ?? trace.label,
+				label,
 				producer_stage: "docs",
 				phase: PHASE
-			}),
-			base + 200,
-			{ containerId: trace.containerId }
+			})
 		);
 	}
 
-	private createTraceIdentity(
-		runId: string,
-		prompt: string,
-		kind: ResearchRunSummary["kind"]
-	): ResearchTraceIdentity {
-		if (kind === "dummy") {
-			const trace = {
-				appSessionId: APP_SESSION_ID,
-				appSessionSlug: APP_SESSION_SLUG,
-				containerId: ROOT_CONTAINER_ID,
-				label: "Seed Research Trace",
-				topic: "Simple Research Kernel demo",
-				kind,
-				prompt
-			};
-			this.traceIdentities.set(trace.appSessionId, trace);
-			return trace;
-		}
-
-		const slug = safeSlug(prompt);
-		const suffix = runId.slice(0, 8);
-		const trace = {
-			appSessionId: runId,
-			appSessionSlug: `research-${slug}-${suffix}`.slice(0, 90),
-			containerId: `simple-research-kernel-${suffix}`,
-			label: `Research: ${prompt.slice(0, 72)}`,
-			topic: prompt,
-			kind,
-			prompt
-		};
-		this.traceIdentities.set(trace.appSessionId, trace);
-		return trace;
-	}
-
-	private resolveTraceIdentity(id: string | null | undefined): ResearchTraceIdentity | null {
-		if (!id) return null;
-		for (const trace of this.traceIdentities.values()) {
-			if (trace.appSessionId === id || trace.appSessionSlug === id || trace.containerId === id) {
-				return trace;
-			}
-		}
-		return null;
-	}
-
-	private ensureTraceContainer(
-		trace: ResearchTraceIdentity,
-		opts: { startedAt: string }
-	): KernelContainerSummary {
-		const existing = this.containers.get(trace.containerId);
-		if (existing) return existing;
-
-		const container: KernelContainerSummary = {
-			id: trace.containerId,
-			parentContainerId: null,
-			label: trace.label,
-			status: "running",
-			workingDir: EXAMPLE_ROOT,
-			worktreePath: null,
-			phase: PHASE,
-			phaseVocabulary: [PHASE],
-			metadata: traceMetadata(trace),
-			startedAt: opts.startedAt,
-			completedAt: null,
-			createdAt: opts.startedAt,
-			updatedAt: opts.startedAt
-		};
-		this.containers.set(container.id, container);
-		this.persistContainer(container);
-		return container;
-	}
-
-	private touchTraceContainer(containerId: string, updatedAt: string): void {
-		const container = this.containers.get(containerId);
-		if (!container) return;
-		container.updatedAt = updatedAt;
-		this.persistContainer(container);
-	}
-
-	private markTraceContainer(containerId: string, status: string, completedAt: string): void {
-		const container = this.containers.get(containerId);
-		if (!container) return;
-		container.status = status;
-		container.completedAt = completedAt;
-		container.updatedAt = completedAt;
-		this.persistContainer(container);
+	private markSessionContainer(containerId: string, status: string, endedAt: string): void {
+		void updateContainerStatus(this.db, containerId, status, { endedAt }).catch((error) => {
+			console.error(
+				"Simple Research Kernel container status update failed:",
+				error instanceof Error ? error.message : String(error)
+			);
+		});
 	}
 
 	private ensureWorkingMemory(): void {
@@ -1043,63 +805,52 @@ export class SimpleResearchKernelStore {
 	}
 
 	private defaultResearchSessionDir(): string {
-		return join(RESEARCH_SESSION_ROOT, APP_SESSION_SLUG);
+		return join(RESEARCH_SESSION_ROOT, KERNEL_ID);
 	}
 
-	private appSessionDirForTrace(trace: ResearchTraceIdentity): string {
-		return join(RESEARCH_SESSION_ROOT, trace.appSessionSlug);
+	private sessionDirForTrace(trace: KernelTraceSessionSummary): string | null {
+		const local = this.sessionDirsByContainer.get(trace.containerId);
+		if (local) return local;
+		const fromMetadata = trace.metadata?.sessionDir;
+		return typeof fromMetadata === "string" && fromMetadata.length > 0 ? fromMetadata : null;
 	}
 
-	private artifactSessionDirForTraceId(traceId: string): string | null {
-		const trace = this.resolveTraceIdentity(traceId);
-		if (!trace || isSeedTrace(trace)) return null;
-		return this.appSessionDirForTrace(trace);
+	private workingMemoryDirForSession(sessionDir: string): string {
+		return join(sessionDir, RESEARCH_MEMORY_REL_PATH);
 	}
 
-	private workingMemoryDirForSession(appSessionDir: string): string {
-		return join(appSessionDir, RESEARCH_MEMORY_REL_PATH);
+	private scoutReportsDirForSession(sessionDir: string): string {
+		return join(sessionDir, SCOUT_REPORTS_REL_PATH);
 	}
 
-	private scoutReportsDirForSession(appSessionDir: string): string {
-		return join(appSessionDir, SCOUT_REPORTS_REL_PATH);
+	private reportsDirForSession(sessionDir: string): string {
+		return join(sessionDir, REPORTS_REL_PATH);
 	}
 
-	private reportsDirForSession(appSessionDir: string): string {
-		return join(appSessionDir, REPORTS_REL_PATH);
-	}
-
-	private ensureResearchSession(trace: ResearchTraceIdentity): string {
-		return this.ensureResearchSessionDir(this.appSessionDirForTrace(trace));
-	}
-
-	private ensureResearchSessionDir(appSessionDir: string): string {
-		const workingMemoryDir = this.workingMemoryDirForSession(appSessionDir);
+	private ensureResearchSessionDir(sessionDir: string): string {
+		const workingMemoryDir = this.workingMemoryDirForSession(sessionDir);
 		mkdirSync(workingMemoryDir, { recursive: true });
 		copySeedPath(join(WORKING_MEMORY_DIR, "brief.md"), join(workingMemoryDir, "brief.md"));
 		copySeedPath(join(WORKING_MEMORY_DIR, "sources"), join(workingMemoryDir, "sources"));
-		mkdirSync(this.scoutReportsDirForSession(appSessionDir), { recursive: true });
-		mkdirSync(this.reportsDirForSession(appSessionDir), { recursive: true });
-		return appSessionDir;
+		mkdirSync(this.scoutReportsDirForSession(sessionDir), { recursive: true });
+		mkdirSync(this.reportsDirForSession(sessionDir), { recursive: true });
+		return sessionDir;
 	}
 
 	private currentRunSessionDir(): string {
 		const runCtx = getRunContext();
-		const appSessionDir =
-			runCtx.appSessionDir ??
-			(runCtx.appSessionSlug
-				? join(RESEARCH_SESSION_ROOT, runCtx.appSessionSlug)
-				: this.defaultResearchSessionDir());
-		return this.ensureResearchSessionDir(appSessionDir);
+		const sessionDir = runCtx.sessionDir ?? this.defaultResearchSessionDir();
+		return this.ensureResearchSessionDir(sessionDir);
 	}
 
-	private listScoutReportFiles(appSessionDir: string): string[] {
-		return collectFiles(this.scoutReportsDirForSession(appSessionDir), new Set([".md"])).filter(
+	private listScoutReportFiles(sessionDir: string): string[] {
+		return collectFiles(this.scoutReportsDirForSession(sessionDir), new Set([".md"])).filter(
 			(file) => basename(file) !== "README.md"
 		);
 	}
 
-	private listReportFiles(appSessionDir: string): string[] {
-		return collectFiles(this.reportsDirForSession(appSessionDir), new Set([".md"])).filter(
+	private listReportFiles(sessionDir: string): string[] {
+		return collectFiles(this.reportsDirForSession(sessionDir), new Set([".md"])).filter(
 			(file) => basename(file) !== "README.md"
 		);
 	}
@@ -1156,80 +907,13 @@ export class SimpleResearchKernelStore {
 			.join(" ");
 	}
 
-	async flushPersistence(): Promise<void> {
-		let tail = this.persistenceTail;
+	/** Await all queued trace-event inserts (read paths flush before serving). */
+	async flushTraceWrites(): Promise<void> {
+		let tail = this.traceWriteTail;
 		await tail;
-		while (tail !== this.persistenceTail) {
-			tail = this.persistenceTail;
+		while (tail !== this.traceWriteTail) {
+			tail = this.traceWriteTail;
 			await tail;
 		}
-	}
-
-	private persist(operation: () => Promise<void> | void): void {
-		if (!this.persistence) return;
-		this.persistenceTail = this.persistenceTail
-			.then(async () => {
-				await operation();
-			})
-			.catch((error) => {
-				console.error(
-					"Simple Research Kernel persistence failed:",
-					error instanceof Error ? error.message : String(error)
-				);
-			});
-	}
-
-	private persistContainer(container: KernelContainerSummary): void {
-		if (!this.persistence?.upsertContainer) return;
-		this.persist(() => this.persistence!.upsertContainer!({ ...container }));
-	}
-
-	private persistPiSession(session: PiSessionWithCount): void {
-		if (!this.persistence?.upsertPiSession) return;
-		this.persist(() => this.persistence!.upsertPiSession!({ ...session }));
-	}
-
-	private persistAgentRun(run: AgentRun): void {
-		if (!this.persistence?.upsertAgentRun) return;
-		this.persist(() => this.persistence!.upsertAgentRun!({ ...run }));
-	}
-
-	private persistTraceEvent(row: TraceEventRow, event: ProtocolTraceEvent): void {
-		if (!this.persistence?.insertTraceEvent) return;
-		const persistedEvent: ProtocolTraceEvent = {
-			...event,
-			source: row.source,
-			timestamp: row.timestamp,
-			...(row.containerId ? { containerId: row.containerId } : {}),
-			...(row.piSessionId ? { piSessionUuid: row.piSessionId } : {})
-		};
-		this.persist(() => this.persistence!.insertTraceEvent!(persistedEvent));
-	}
-
-	private addEvent(
-		event: ProtocolTraceEvent,
-		timestampMs: number,
-		opts: { piSessionId?: string; containerId?: string | null } = {}
-	): void {
-		this.eventCounter += 1;
-		const row: TraceEventRow = {
-			id: `event-${String(this.eventCounter).padStart(4, "0")}`,
-			eventId: event.eventId,
-			appSessionId: event.appSessionId,
-			containerId: opts.containerId ?? event.containerId ?? null,
-			userId: event.userId,
-			type: event.type,
-			source: event.source ?? TraceSource.KERNEL,
-			traceLevel: event.traceLevel,
-			eventData: event.eventData,
-			spanId: event.spanId ?? null,
-			parentEventId: event.parentEventId ?? null,
-			timestamp: iso(timestampMs),
-			piSessionId: opts.piSessionId ?? null,
-			agentId: event.agentId ?? null
-		};
-		this.events.push(row);
-		this.events.sort((a, b) => a.timestamp.localeCompare(b.timestamp) || a.id.localeCompare(b.id));
-		this.persistTraceEvent(row, event);
 	}
 }

@@ -42,25 +42,21 @@ export function ResearchWorkspace({
 		return (
 			info.activeRuns.find(
 				(run) =>
-					run.appSessionId === selectedTraceSessionId ||
 					run.containerId === selectedTraceSessionId ||
-					run.appSessionId === detail?.session.id
+					run.containerId === detail?.session.id
 			) ?? info.activeRuns[0]
 		);
 	}, [currentResearchRun, detail?.session.id, info?.activeRuns, selectedTraceSessionId]);
 	const selectedTrace = useMemo(() => {
 		if (!activeRun) return null;
 		return (
-			traceSessions.find(
-				(trace) =>
-					trace.id === activeRun.appSessionId || trace.containerId === activeRun.containerId
-			) ?? null
+			traceSessions.find((trace) => trace.containerId === activeRun.containerId) ?? null
 		);
 	}, [activeRun, traceSessions]);
 	const activeDetail = useMemo(() => {
 		if (!activeRun || !detail) return null;
 		const matchesRun =
-			detail.session.id === activeRun.appSessionId ||
+			detail.session.id === activeRun.containerId ||
 			detail.container?.id === activeRun.containerId;
 		return matchesRun ? detail : null;
 	}, [activeRun, detail]);
@@ -147,7 +143,7 @@ export function ResearchWorkspace({
 								<div className="rounded-md border border-border bg-background/25 px-3.5 py-3.5">
 									<div className="line-clamp-2 text-sm font-bold leading-5">{selectedTrace.label}</div>
 									<div className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-										{selectedTrace.topic ?? selectedTrace.appSessionSlug}
+										{selectedTrace.topic ?? selectedTrace.containerId}
 									</div>
 									<div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
 										<span>{selectedTrace.piSessionCount} sessions</span>

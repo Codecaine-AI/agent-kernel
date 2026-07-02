@@ -70,6 +70,9 @@ export function buildTraceSpans(
   const orphanSpans: TraceSpan[] = [];
   const typeById = new Map<string, string>();
   const protocolSpanIdById = new Map<string, string>();
+  // Explicit run linkage from the envelope: span id → runId. Preferred over
+  // timestamp reconstruction wherever the emitter stamped it.
+  const runIdBySpanId = new Map<string, string>();
 
   for (const p of paired) {
     const sourceEvent = p.kind === "pair" ? p.start : p.event;
@@ -84,6 +87,7 @@ export function buildTraceSpans(
     const span = toEventSpan(p);
     typeById.set(span.id, sourceEvent.type);
     if (sourceEvent.spanId) protocolSpanIdById.set(span.id, sourceEvent.spanId);
+    if (sourceEvent.runId) runIdBySpanId.set(span.id, sourceEvent.runId);
     if (!sourceEvent.piSessionId) {
       orphanSpans.push(span);
       continue;
@@ -116,10 +120,7 @@ export function buildTraceSpans(
 
   const firstRunByPi = new Map<string, AgentRun>();
   for (const [piId, runs] of runsByPi.entries()) {
-    let first: AgentRun | null = null;
-    for (const r of runs) {
-      if (!first || r.runNumber < first.runNumber) first = r;
-    }
+    const first = sortRunsByStart(runs)[0] ?? null;
     if (first) firstRunByPi.set(piId, first);
   }
 
@@ -144,9 +145,11 @@ export function buildTraceSpans(
       });
       return children;
     }
-    const { runBuckets, orphans } = bucketSpansByRun(children, runs);
+    const { runBuckets, orphans } = bucketSpansByRun(children, runs, runIdBySpanId);
     const sorted = sortRunsByStart(runs);
-    const wrapped = sorted.map((r) => toRunSpan(r, runBuckets.get(r.id) ?? []));
+    const wrapped = sorted.map((r, index) =>
+      toRunSpan(r, runBuckets.get(r.id) ?? [], index + 1),
+    );
     debugLog("wrapChildrenInRuns", {
       piId,
       runCount: sorted.length,
@@ -168,9 +171,12 @@ export function buildTraceSpans(
   for (const pi of piSessions) {
     const span = agentSpansById.get(pi.id);
     if (!span) continue;
-    if (pi.parentId && agentSpansById.has(pi.parentId)) {
-      const parentSpan = agentSpansById.get(pi.parentId)!;
-      const parentToolUseId = firstRunByPi.get(pi.id)?.parentToolUseId ?? null;
+    if (pi.parentSessionId && agentSpansById.has(pi.parentSessionId)) {
+      const parentSpan = agentSpansById.get(pi.parentSessionId)!;
+      // Explicit linkage: the session row carries parent_tool_use_id; the
+      // first run's parent_tool_use_id remains as a fallback for older rows.
+      const parentToolUseId =
+        pi.parentToolUseId ?? firstRunByPi.get(pi.id)?.parentToolUseId ?? null;
       const host = parentToolUseId
         ? (findToolCallSpanByToolUseId(parentSpan, parentToolUseId, typeById) ?? parentSpan)
         : parentSpan;

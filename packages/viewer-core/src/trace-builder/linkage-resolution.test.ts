@@ -3,7 +3,7 @@ import { describe, expect, it } from "bun:test";
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 
 import { buildTraceSpans } from "../build-trace-spans";
-import { EventType, type KernelContainerSummary, type PiAgentSession, type TraceEvent } from "../types";
+import { EventType, type AgentRun, type KernelContainerSummary, type PiAgentSession, type TraceEvent } from "../types";
 
 import {
   groupAgentsByContainer,
@@ -132,13 +132,14 @@ function makeTraceEvent(opts: {
   spanId?: string;
   eventData: TraceEvent["eventData"];
   traceLevel?: TraceEvent["traceLevel"];
-  containerId?: string | null;
+  containerId?: string;
+  runId?: string | null;
   piSessionId?: string | null;
 }): TraceEvent {
   return {
-    id: opts.id,
     eventId: opts.id,
-    appSessionId: "app-1",
+    containerId: opts.containerId ?? "container-root",
+    runId: opts.runId ?? null,
     userId: "user-1",
     type: opts.type,
     source: "kernel",
@@ -149,7 +150,6 @@ function makeTraceEvent(opts: {
     timestamp: opts.timestamp,
     piSessionId: opts.piSessionId === undefined ? "pi-1" : opts.piSessionId,
     agentId: null,
-    containerId: opts.containerId ?? null,
   };
 }
 
@@ -160,22 +160,21 @@ function makeContainerSummary(opts: {
   phase: string;
   status?: string;
   startedAt: string;
-  completedAt?: string | null;
+  endedAt?: string | null;
 }): KernelContainerSummary {
   return {
     id: opts.id,
+    kind: "session",
     parentContainerId: opts.parentContainerId ?? null,
     label: opts.label,
     status: opts.status ?? "running",
     workingDir: "/repo",
-    worktreePath: null,
     phase: opts.phase,
     phaseVocabulary: ["session", "prepare", "setup"],
     metadata: {},
     startedAt: opts.startedAt,
-    completedAt: opts.completedAt ?? null,
+    endedAt: opts.endedAt ?? null,
     createdAt: opts.startedAt,
-    updatedAt: opts.completedAt ?? opts.startedAt,
   };
 }
 
@@ -296,7 +295,7 @@ describe("buildTraceSpans container summaries", () => {
         label: "Sync and intake",
         phase: "setup",
         startedAt: sharedContainerStart,
-        completedAt: "2026-01-01T00:00:05.000Z",
+        endedAt: "2026-01-01T00:00:05.000Z",
         status: "completed",
       }),
     ];
@@ -484,18 +483,16 @@ describe("buildTraceSpans context provisioning", () => {
   it("renders context input resolution as children of the context build span", () => {
     const piSession: PiAgentSession = {
       id: "pi-1",
-      appSessionId: "app-1",
-      parentId: null,
+      containerId: "container-root",
+      parentSessionId: null,
+      parentToolUseId: null,
       agentName: "Research",
       model: "test-model",
-      status: "running",
+      status: "active",
       phase: null,
-      containerId: null,
       displayLabel: null,
-      startedAt: t100.toISOString(),
-      completedAt: null,
       createdAt: t100.toISOString(),
-      updatedAt: t300.toISOString(),
+      endedAt: t300.toISOString(),
     };
     const events: TraceEvent[] = [
       makeTraceEvent({
@@ -745,5 +742,69 @@ describe("findToolCallSpanByToolUseId resolves host by parent_tool_use_id, ignor
     const found = findToolCallSpanByToolUseId(parent, "tu-inner", typeById);
     expect(found).not.toBeNull();
     expect(found!.id).toBe("span:tool-inner");
+  });
+});
+
+describe("buildTraceSpans envelope runId bucketing", () => {
+  function makeAgentRun(opts: {
+    id: string;
+    startedAt: Date;
+    endedAt?: Date | null;
+  }): AgentRun {
+    return {
+      id: opts.id,
+      piSessionId: "pi-1",
+      containerId: "container-root",
+      parentRunId: null,
+      parentToolUseId: null,
+      agentName: "Research",
+      trigger: "operator",
+      status: "done",
+      startedAt: opts.startedAt.toISOString(),
+      endedAt: opts.endedAt ? opts.endedAt.toISOString() : null,
+    };
+  }
+
+  it("prefers the envelope runId over timestamp containment", () => {
+    const piSession: PiAgentSession = {
+      id: "pi-1",
+      containerId: "container-root",
+      agentName: "Research",
+      model: "test-model",
+      status: "active",
+      createdAt: t100.toISOString(),
+      endedAt: t400.toISOString(),
+    };
+    const runs = [
+      makeAgentRun({ id: "run-1", startedAt: t100, endedAt: t200 }),
+      makeAgentRun({ id: "run-2", startedAt: t300, endedAt: t400 }),
+    ];
+    const events: TraceEvent[] = [
+      // Timestamp falls inside run-1's window, but the emitter stamped run-2.
+      makeTraceEvent({
+        id: "event-explicit",
+        type: EventType.ASSISTANT_MESSAGE,
+        timestamp: t110.toISOString(),
+        runId: "run-2",
+        eventData: { content: "explicit", block_type: "text" },
+      }),
+      // No runId: falls back to timestamp containment (run-1).
+      makeTraceEvent({
+        id: "event-legacy",
+        type: EventType.ASSISTANT_MESSAGE,
+        timestamp: t150.toISOString(),
+        eventData: { content: "legacy", block_type: "text" },
+      }),
+    ];
+
+    const [agentSpan] = buildTraceSpans(events, [piSession], runs);
+    const children = agentSpan?.children ?? [];
+    const run1 = children.find((span) => span.id === "run:run-1");
+    const run2 = children.find((span) => span.id === "run:run-2");
+
+    expect(run1).toBeDefined();
+    expect(run2).toBeDefined();
+    expect((run2!.children ?? []).map((c) => c.id)).toEqual(["event-explicit"]);
+    expect((run1!.children ?? []).map((c) => c.id)).toEqual(["event-legacy"]);
   });
 });

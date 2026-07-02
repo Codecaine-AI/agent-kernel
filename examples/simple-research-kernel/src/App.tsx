@@ -86,14 +86,14 @@ export function App() {
 		const effectiveTraceSessionId =
 			traceSessionId === undefined
 				? activeWorkspace === "research"
-					? (currentResearchRun?.appSessionId ?? null)
+					? (currentResearchRun?.containerId ?? null)
 					: selectedTraceSessionId
 				: traceSessionId;
 		const next = await fetchResearchKernelState(effectiveTraceSessionId, options);
 		if (requestId !== requestIdRef.current) return next.info;
 		applyState(next);
 		return next.info;
-	}, [activeWorkspace, applyState, currentResearchRun?.appSessionId, selectedTraceSessionId]);
+	}, [activeWorkspace, applyState, currentResearchRun?.containerId, selectedTraceSessionId]);
 
 	useEffect(() => {
 		setLoading(true);
@@ -141,7 +141,6 @@ export function App() {
 		const refreshedActiveRun = info?.activeRuns.find(
 			(run) =>
 				run.id === currentResearchRun.id ||
-				run.appSessionId === currentResearchRun.appSessionId ||
 				run.containerId === currentResearchRun.containerId
 		);
 		if (refreshedActiveRun) {
@@ -150,13 +149,15 @@ export function App() {
 		}
 		const detailMatchesRun =
 			detail &&
-			(detail.session.id === currentResearchRun.appSessionId ||
+			(detail.session.id === currentResearchRun.containerId ||
 				detail.container?.id === currentResearchRun.containerId);
 		if (!detailMatchesRun) return;
-		if (detail.session.status === "completed" || detail.session.status === "error") {
+		// Session containers close with "done" | "error" (container status
+		// vocabulary); the run summary uses "completed" | "error".
+		if (detail.session.status === "done" || detail.session.status === "error") {
 			setCurrentResearchRun({
 				...currentResearchRun,
-				status: detail.session.status,
+				status: detail.session.status === "done" ? "completed" : "error",
 				completedAt: detail.session.updatedAt
 			});
 		}
@@ -247,7 +248,7 @@ export function App() {
 			setError(null);
 			try {
 				const result = await startResearchRun(prompt);
-				const nextTraceId = result.trace?.id ?? result.run.appSessionId;
+				const nextTraceId = result.trace?.id ?? result.run.containerId;
 				setCurrentResearchRun(result.run);
 				setSelectedTraceSessionId(nextTraceId);
 				if (activeWorkspace === "research") {

@@ -2,7 +2,7 @@
  * spanFactories.ts — PairedEvent / PiAgentSession / AgentRun → TraceSpan constructors.
  *
  * Keeps container identity conventions in one place:
- *   - toEventSpan: `id` = TraceEvent.id (flows back to page selectedId)
+ *   - toEventSpan: `id` = TraceEvent.eventId (flows back to page selectedId)
  *   - toAgentSpan: `id` = `pi:<piSessionUuid>` — attributes include event_type=pi_agent_container
  *   - toRunSpan:   `id` = `run:<agentRunUuid>` — attributes include event_type=run_container
  */
@@ -28,7 +28,7 @@ export function toEventSpan(paired: PairedEvent): TraceSpan {
     const start = new Date(paired.start.timestamp);
     const end = new Date(paired.end.timestamp);
     return {
-      id: paired.start.id,
+      id: paired.start.eventId,
       title: titleFor(paired),
       startTime: start,
       endTime: end,
@@ -41,7 +41,7 @@ export function toEventSpan(paired: PairedEvent): TraceSpan {
   }
   const ts = new Date(paired.event.timestamp);
   return {
-    id: paired.event.id,
+    id: paired.event.eventId,
     title: titleFor(paired),
     startTime: ts,
     endTime: ts,
@@ -54,8 +54,8 @@ export function toEventSpan(paired: PairedEvent): TraceSpan {
 }
 
 export function toAgentSpan(pi: PiAgentSession, children: TraceSpan[]): TraceSpan {
-  const start = new Date(pi.startedAt ?? pi.createdAt);
-  const end = new Date(pi.completedAt ?? pi.updatedAt);
+  const start = new Date(pi.createdAt);
+  const end = new Date(pi.endedAt ?? pi.createdAt);
   const attrs: TraceSpanAttribute[] = [];
   pushAttr(attrs, "piSessionUuid", pi.id);
   pushAttr(attrs, "status", pi.status);
@@ -63,6 +63,7 @@ export function toAgentSpan(pi: PiAgentSession, children: TraceSpan[]): TraceSpa
   pushAttr(attrs, "event_type", "pi_agent_container");
   pushAttr(attrs, "container_id", pi.containerId);
   pushAttr(attrs, "phase", pi.phase);
+  pushAttr(attrs, "parent_tool_use_id", pi.parentToolUseId);
   return {
     id: `pi:${pi.id}`,
     title: pi.displayLabel ?? pi.agentName,
@@ -104,23 +105,28 @@ export function toContainerSpan(range: ContainerRange, children: TraceSpan[]): T
   };
 }
 
-export function toRunSpan(run: AgentRun, children: TraceSpan[]): TraceSpan {
-  const startedAt = run.startedAt ?? run.createdAt;
-  const startTime = new Date(startedAt);
-  const endTime = run.completedAt
-    ? new Date(run.completedAt)
+export function toRunSpan(
+  run: AgentRun,
+  children: TraceSpan[],
+  runNumber?: number,
+): TraceSpan {
+  const startTime = new Date(run.startedAt);
+  const endTime = run.endedAt
+    ? new Date(run.endedAt)
     : (children.at(-1)?.endTime ?? new Date());
-  const duration = run.completedAt ? endTime.getTime() - startTime.getTime() : 0;
+  const duration = run.endedAt ? endTime.getTime() - startTime.getTime() : 0;
   const status: TraceSpanStatus = run.status === "error" ? "error" : "success";
   const attrs: TraceSpanAttribute[] = [];
   pushAttr(attrs, "event_type", "run_container");
   pushAttr(attrs, "trace_level", 1);
-  pushAttr(attrs, "run_number", run.runNumber);
+  pushAttr(attrs, "run_id", run.id);
+  if (runNumber !== undefined) pushAttr(attrs, "run_number", runNumber);
+  pushAttr(attrs, "run_trigger", run.trigger);
   pushAttr(attrs, "run_status", run.status);
   pushAttr(attrs, "parent_tool_use_id", run.parentToolUseId);
   return {
     id: `run:${run.id}`,
-    title: `Run #${run.runNumber}`,
+    title: runNumber !== undefined ? `Run #${runNumber}` : (run.displayLabel ?? "Run"),
     startTime,
     endTime,
     duration,

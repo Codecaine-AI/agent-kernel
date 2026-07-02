@@ -111,9 +111,8 @@ export function containerSummariesToRanges(
     const start =
       parseDate(container.startedAt) ??
       parseDate(container.createdAt) ??
-      parseDate(container.updatedAt) ??
       new Date(0);
-    const end = parseDate(container.completedAt);
+    const end = parseDate(container.endedAt);
     ranges.set(container.id, {
       containerId: container.id,
       level: summaryLevel(containerDepth(container, byId)),

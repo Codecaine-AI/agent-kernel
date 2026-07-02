@@ -12,6 +12,8 @@
 
 import {
   EventType,
+  UI_ASK_ANSWERED,
+  UI_ASK_REQUESTED,
   type TraceEvent,
   type AgentRunEndData,
   type ToolCallEndData,
@@ -112,12 +114,12 @@ export function pairEvents(events: TraceEvent[]): PairedEvent[] {
       } else {
         result.push({ kind: "point", event });
       }
-    } else if (event.type === EventType.UI_ASK_REQUESTED) {
+    } else if (event.type === UI_ASK_REQUESTED) {
       const data = event.eventData as UIAskRequestedData | null;
       const idx = result.length;
       result.push({ kind: "point", event });
       if (data?.tool_use_id) uiAskStarts.set(data.tool_use_id, idx);
-    } else if (event.type === EventType.UI_ASK_ANSWERED) {
+    } else if (event.type === UI_ASK_ANSWERED) {
       const data = event.eventData as UIAskAnsweredData | null;
       const startIdx = data?.tool_use_id
         ? uiAskStarts.get(data.tool_use_id)

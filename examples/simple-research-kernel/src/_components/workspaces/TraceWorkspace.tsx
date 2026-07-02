@@ -22,7 +22,7 @@ function shortId(value: string): string {
 }
 
 function isActiveTrace(status: string): boolean {
-	return status === "queued" || status === "running";
+	return status === "active" || status === "queued" || status === "running";
 }
 
 export function TraceWorkspace({
@@ -69,7 +69,11 @@ export function TraceWorkspace({
 							{traceSessions.map((trace) => {
 								const selected = isSelectedTrace(trace, selectedTraceSessionId, detail);
 								const researchTitle = trace.topic ?? trace.label;
-								const sessionLabel = trace.appSessionSlug || shortId(trace.id);
+								const metadataSlug = trace.metadata?.sessionSlug;
+								const sessionLabel =
+									typeof metadataSlug === "string" && metadataSlug.length > 0
+										? metadataSlug
+										: shortId(trace.containerId);
 								const deleting = deletingTraceId === trace.id || deletingTraceId === trace.containerId;
 								const deleteDisabled = loading || deleting || isActiveTrace(trace.status);
 

@@ -1,3 +1,9 @@
+/**
+ * Routes owned by the kernel trace read API (see
+ * packages/kernel/src/read-api.ts). Trace sessions are container-backed —
+ * the detail route serves the container trace for a container of kind
+ * "session"; the container route is the primary read.
+ */
 export const KERNEL_TRACE_READ_PATHS = {
 	listTraceSessions: "/kernel/trace-sessions",
 	traceSessionDetail(id: string): string {
@@ -8,6 +14,11 @@ export const KERNEL_TRACE_READ_PATHS = {
 	},
 } as const;
 
+/**
+ * Cross-kernel observer routes (a viewer plane over many kernel manifests).
+ * Container-first; the tailer daemon routes are gone with D75 (tailer is a
+ * backfill tool, not a service).
+ */
 export const KERNEL_OBSERVER_READ_PATHS = {
 	listKernels: "/kernels",
 	kernel(kernelId: string): string {
@@ -22,9 +33,4 @@ export const KERNEL_OBSERVER_READ_PATHS = {
 	containerTrace(containerId: string): string {
 		return `/containers/${encodeURIComponent(containerId)}/trace`;
 	},
-	listTailers: "/tailers",
-	tailerHealth(tailerId: string): string {
-		return `/tailers/${encodeURIComponent(tailerId)}/health`;
-	},
-	orphanEvents: "/events/orphans",
 } as const;

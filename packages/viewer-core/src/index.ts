@@ -55,8 +55,6 @@ export type {
 	SystemPromptResolvedData,
 	ToolCallEndData,
 	ToolCallStartData,
-	UIAskAnsweredData,
-	UIAskRequestedData,
 	UserMessageData,
 	WarningData,
 } from "@agent-kernel/protocol";
