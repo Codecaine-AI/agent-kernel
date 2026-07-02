@@ -19,6 +19,13 @@ describe("createKernel", () => {
 		);
 	});
 
+	test("container() without a configured db throws a clear error", async () => {
+		const kernel = createKernel({ spawnAgent: async () => null });
+		await expect(
+			kernel.container({ kind: "session", key: ["req-1"] }),
+		).rejects.toThrow("requires a database");
+	});
+
 	test("owns per-instance background concurrency", () => {
 		const setMaxConcurrent = mock(() => {});
 		const kernel = createKernel({

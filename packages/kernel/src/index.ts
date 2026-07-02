@@ -1,3 +1,7 @@
+import type { KernelDatabase } from "@agent-kernel/db";
+
+import { createContainerApi, type KernelContainerApi } from "./containers";
+
 export const DEFAULT_MAX_BACKGROUND_AGENTS = 4;
 
 export interface KernelConcurrencyConfig {
@@ -42,6 +46,11 @@ export interface KernelConfig<
 > {
 	id?: string;
 	concurrency?: KernelConcurrencyConfig;
+	/**
+	 * Kernel trace database handle (SQLite by default — see
+	 * @agent-kernel/db openKernelDatabase). Required for kernel.container().
+	 */
+	db?: KernelDatabase;
 	spawnAgent: KernelSpawnAdapter<TContext, TOptions, TResult>;
 	createAgentManager?: (
 		input: CreateAgentManagerInput<TContext, TOptions, TResult>,
@@ -57,7 +66,13 @@ export interface KernelInstance<
 	readonly id: string;
 	readonly concurrency: ResolvedKernelConcurrencyConfig;
 	readonly agentManager: TAgentManager;
+	readonly db: KernelDatabase | undefined;
 	spawnAgent: KernelSpawnAdapter<TContext, TOptions, TResult>;
+	/**
+	 * Deterministic, idempotent container upsert: same (kind, key) always
+	 * resolves to the same container id. Requires `db` in the kernel config.
+	 */
+	container: KernelContainerApi;
 	setMaxBackgroundAgents(limit: number): void;
 	dispose(): void;
 }
@@ -94,13 +109,17 @@ export function createKernel<
 		spawnAgent,
 	}) as TAgentManager;
 
+	const container = createContainerApi({ kernelId: id, db: config.db });
+
 	return {
 		id,
 		get concurrency() {
 			return { maxBackgroundAgents };
 		},
 		agentManager,
+		db: config.db,
 		spawnAgent,
+		container,
 		setMaxBackgroundAgents(limit: number) {
 			maxBackgroundAgents = normalizeBackgroundAgentLimit(limit);
 			agentManager?.setMaxConcurrent?.(maxBackgroundAgents);
@@ -111,6 +130,8 @@ export function createKernel<
 	};
 }
 
+export * from "./containers";
+export * from "./doctor";
 export * from "./run-context";
 export * from "./subagents";
 export * from "./context";

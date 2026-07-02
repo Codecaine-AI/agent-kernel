@@ -12,12 +12,14 @@ import type { LoaderDeclaration } from "./loaders/types";
 
 export interface RuntimeState {
 	cwd: string;
-	appSessionId?: string;
+	/** Primary grouping identity for the spawn (container kind + key tree). */
+	containerId?: string;
 	platform?: string;
 	topic?: string;
 	phase?: string;
 	status?: string;
-	appSessionDir?: string;
+	/** Session working directory (app-provided file layout root). */
+	sessionDir?: string;
 	priorSessions?: string[];
 }
 

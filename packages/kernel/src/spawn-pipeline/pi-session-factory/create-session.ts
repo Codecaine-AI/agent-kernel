@@ -26,9 +26,14 @@ export interface PiSessionFactoryLoggerLike {
 	warn(message: string, data?: Record<string, unknown>): void;
 }
 
-export interface AppSessionBindingInput {
+/**
+ * JSONL session-binding marker appended as the session's first custom entry.
+ * The spawn pipeline merges containerId + runId into `data` so Phase 2
+ * backfill can resolve kernel identity from the transcript alone.
+ */
+export interface SessionBindingInput {
 	customType: string;
-	data: unknown;
+	data?: Record<string, unknown>;
 }
 
 export interface CreatePiSessionInput {
@@ -39,7 +44,7 @@ export interface CreatePiSessionInput {
 	thinkingLevel?: string;
 	sessionManager?: SessionManager;
 	toolFactories?: ExtensionFactory[];
-	appSessionBinding?: AppSessionBindingInput;
+	sessionBinding?: SessionBindingInput;
 	piLifecycleCustomType?: string;
 	piAgentDir?: string;
 	logger?: PiSessionFactoryLoggerLike;
@@ -164,15 +169,15 @@ export async function createPiSession(
 		sessionOpts as Parameters<typeof createAgentSession>[0],
 	);
 
-	if (input.appSessionBinding) {
+	if (input.sessionBinding) {
 		(session.sessionManager as unknown as {
 			appendCustomEntry(customType: string, data?: unknown): string;
 		}).appendCustomEntry(
-			input.appSessionBinding.customType,
-			input.appSessionBinding.data,
+			input.sessionBinding.customType,
+			input.sessionBinding.data,
 		);
-		log.info(`emitted app session binding for "${agentName}"`, {
-			customType: input.appSessionBinding.customType,
+		log.info(`emitted session binding for "${agentName}"`, {
+			customType: input.sessionBinding.customType,
 		});
 	}
 

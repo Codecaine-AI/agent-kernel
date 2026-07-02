@@ -5,9 +5,14 @@
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
+  "bin": {
+    "agent-kernel-doctor": "./src/doctor-cli.ts"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./agent-definition": "./src/agent-definition/index.ts",
+    "./containers": "./src/containers.ts",
+    "./doctor": "./src/doctor.ts",
     "./agent-registry": "./src/agent-registry/index.ts",
     "./agent-registry/parsing": "./src/agent-registry/parsing/index.ts",
     "./agent-registry/registry": "./src/agent-registry/registry/index.ts",
@@ -31,7 +36,6 @@
   "dependencies": {
     "@agent-kernel/db": "workspace:*",
     "@agent-kernel/protocol": "workspace:*",
-    "@agent-kernel/viewer-core": "workspace:*",
     "@codecaine-ai/prompt-kit": "workspace:*",
     "@mariozechner/pi-ai": "^0.70.6",
     "@mariozechner/pi-coding-agent": "^0.70.6",
@@ -40,6 +44,7 @@
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "drizzle-orm": "^0.45.0"
   }
 }

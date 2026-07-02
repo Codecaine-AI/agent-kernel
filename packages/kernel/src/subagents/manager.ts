@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 
+import type { RunTrigger } from "@agent-kernel/db";
+
 import { runContextStore } from "../run-context";
 import type {
 	AgentRecord,
@@ -27,14 +29,16 @@ export interface AgentSpawnResult {
 
 export interface AgentSpawnOptions {
 	workingDir?: string;
-	appSessionId?: string;
-	appSessionSlug?: string;
-	appSessionDir?: string;
+	/** Primary grouping identity forwarded to the spawn pipeline. */
+	containerId?: string;
+	/** What opened the run — the manager forwards "parent-tool" for subagents. */
+	trigger?: RunTrigger;
+	/** Session working directory for Pi session storage. */
+	sessionDir?: string;
 	piSessionsDir?: string;
 	variables?: Record<string, unknown>;
 	parentRunId?: string;
 	parentPiSessionUuid?: string;
-	containerId?: string;
 	phase?: string;
 	displayLabel?: string;
 	parentToolUseId?: string;
@@ -176,27 +180,17 @@ export class AgentManager {
 		}
 
 		const parentRunCtx = runContextStore.getStore();
-		const appSessionId =
-			options.appSessionId ??
-			parentRunCtx?.appSessionId;
-		const appSessionSlug =
-			options.appSessionSlug ??
-			parentRunCtx?.appSessionSlug;
-		const appSessionDir =
-			options.appSessionDir ??
-			parentRunCtx?.appSessionDir;
 		const parentPiSessionUuid =
 			options.parentPiSessionUuid ?? ctx.sessionManager.getSessionId();
 		const adapterOptions: AgentSpawnOptions = {
 			workingDir: options.workingDir,
-			appSessionId,
-			appSessionSlug,
-			appSessionDir,
-			piSessionsDir: options.piSessionsDir,
-			variables: options.variables,
-			parentRunId: options.parentRunId,
-			parentPiSessionUuid,
 			containerId: options.containerId ?? parentRunCtx?.containerId,
+			trigger: options.trigger ?? "parent-tool",
+			sessionDir: options.sessionDir ?? parentRunCtx?.sessionDir,
+			piSessionsDir: options.piSessionsDir ?? parentRunCtx?.piSessionsDir,
+			variables: options.variables,
+			parentRunId: options.parentRunId ?? parentRunCtx?.runId,
+			parentPiSessionUuid,
 			phase: options.phase ?? parentRunCtx?.phase,
 			displayLabel: options.displayLabel,
 			parentToolUseId: options.toolCallId,

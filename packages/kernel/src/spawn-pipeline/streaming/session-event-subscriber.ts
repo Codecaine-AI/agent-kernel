@@ -11,6 +11,8 @@ export interface SessionSubscription<TSession extends KernelAgentSessionLike> {
 	unsub(): void;
 	cleanupAbort(): void;
 	readResult(): KernelSpawnResult<TSession>;
+	/** True when the run was hard-aborted after exhausting maxTurns + grace. */
+	turnLimitReached(): boolean;
 }
 
 export function subscribeToSession<TSession extends KernelAgentSessionLike>(
@@ -20,6 +22,7 @@ export function subscribeToSession<TSession extends KernelAgentSessionLike>(
 ): SessionSubscription<TSession> {
 	let turnCount = 0;
 	let softLimitReached = false;
+	let turnLimitAborted = false;
 	let aborted = false;
 	let currentText = "";
 	let lastAssistantText = "";
@@ -36,6 +39,7 @@ export function subscribeToSession<TSession extends KernelAgentSessionLike>(
 					);
 				} else if (softLimitReached && turnCount >= maxTurns + getGraceTurns()) {
 					aborted = true;
+					turnLimitAborted = true;
 					session.abort();
 				}
 			}
@@ -73,5 +77,6 @@ export function subscribeToSession<TSession extends KernelAgentSessionLike>(
 			session,
 			aborted,
 		}),
+		turnLimitReached: () => turnLimitAborted,
 	};
 }

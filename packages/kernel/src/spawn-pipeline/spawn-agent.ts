@@ -4,7 +4,18 @@ import type {
 	ExtensionFactory,
 	SessionManager,
 } from "@mariozechner/pi-coding-agent";
-import { updateAgentRunStatus, updatePiAgentSessionStatus } from "@agent-kernel/db/actions";
+import {
+	updateAgentRunStatus,
+	updatePiAgentSessionStatus,
+	type KernelDatabase,
+	type RunStatus,
+	type RunTrigger,
+} from "@agent-kernel/db";
+import {
+	createAssistantMessageEvent,
+	createUserMessageEvent,
+	type RunTraceEventIds,
+} from "@agent-kernel/protocol";
 
 import {
 	buildContext as v2BuildContext,
@@ -18,7 +29,7 @@ import {
 import { runContextStore, runWithContext, type RunStateManagerLike } from "../run-context";
 import type { TraceWriterSink } from "../subagents/types";
 import { getDefaultMaxTurns, normalizeMaxTurns } from "./config/turn-limits";
-import { createPiSession, type AppSessionBindingInput } from "./pi-session-factory";
+import { createPiSession, type SessionBindingInput } from "./pi-session-factory";
 import { resolveLifecycleEmitter } from "./runtime/lifecycle-emitter";
 import { buildRunContext } from "./runtime/run-context-builder";
 import { makeRuntimeState } from "./runtime/runtime-state";
@@ -46,16 +57,26 @@ export interface KernelSpawnOptions {
 	onSessionCreated?: (session: AgentSession) => void;
 	onTurnEnd?: (turnCount: number) => void;
 	sessionManager?: SessionManager;
-	appSessionId?: string;
-	appSessionSlug?: string;
-	appSessionDir?: string;
+	/**
+	 * Primary grouping identity — required (directly or inherited from the
+	 * parent run context). Derive one with kernel.container({ kind, key }).
+	 */
+	containerId?: string;
+	/**
+	 * What opened the run. Defaults to "parent-tool" when parentToolUseId is
+	 * present, else "operator".
+	 */
+	trigger?: RunTrigger;
+	/** Session working directory for Pi session storage (was appSessionDir). */
+	sessionDir?: string;
 	traceWriter?: TraceWriterSink;
 	piSessionsDir?: string;
 	piAgentDir?: string;
 	stateManager?: RunStateManagerLike | null;
 	parentRunId?: string;
 	parentPiSessionUuid?: string;
-	containerId?: string;
+	/** Optional actor correlation stamped onto emitted events. */
+	userId?: string;
 	phase?: string;
 	displayLabel?: string;
 	parentToolUseId?: string;
@@ -87,8 +108,13 @@ export interface CreateSpawnAgentAdapters {
 	buildToolFactories(frontmatter: ParsedAgent["frontmatter"]): ExtensionFactory[];
 	createContextCatalog(): LoaderCatalog;
 	createSpawnContext(params: CreateSpawnContextParams): SpawnContext;
-	getDb(): any;
-	createAppSessionBinding?(opts: KernelSpawnOptions): AppSessionBindingInput | undefined;
+	getDb(): KernelDatabase;
+	/**
+	 * Optional JSONL binding marker for the new Pi session. The pipeline
+	 * always merges containerId + runId into the marker payload so Phase 2
+	 * backfill can recover kernel identity from the transcript.
+	 */
+	createSessionBinding?(opts: KernelSpawnOptions): SessionBindingInput | undefined;
 	piLifecycleCustomType?: string;
 	logger?: SpawnAgentLoggerLike;
 	lifecycleLogger?: KernelLoggerLike;
@@ -120,11 +146,18 @@ export function createSpawnAgent(
 	): Promise<KernelSpawnAgentResult> {
 		const cwd = opts.workingDir ?? ctx?.cwd;
 		if (!cwd) throw new Error("spawnAgent requires opts.workingDir or ctx.cwd");
-		if (!opts.appSessionId) {
-			throw new Error("spawnAgent requires opts.appSessionId for DB-backed run tracking");
+		const parentCtx = runContextStore.getStore();
+		const containerId = opts.containerId ?? parentCtx?.containerId;
+		if (!containerId) {
+			throw new Error(
+				"spawnAgent requires opts.containerId — derive one with kernel.container({ kind, key })",
+			);
 		}
+		const trigger: RunTrigger =
+			opts.trigger ?? (opts.parentToolUseId ? "parent-tool" : "operator");
+		const runId = crypto.randomUUID();
 		log.info(`spawning "${name}"`, { cwd, hasParentCtx: Boolean(ctx) });
-		const runtime = makeRuntimeState(cwd, opts.appSessionId);
+		const runtime = makeRuntimeState(cwd, containerId, opts.sessionDir);
 
 		const resolved = resolveSystemPrompt({
 			parsed: adapters.loadAgent(name),
@@ -135,8 +168,8 @@ export function createSpawnAgent(
 		const resolver = await adapters.loadAgentResolver(name);
 		const sessionManager = await buildSessionManager(name, {
 			sessionManager: opts.sessionManager,
-			appSessionId: opts.appSessionId,
-			appSessionDir: opts.appSessionDir,
+			containerId,
+			sessionDir: opts.sessionDir,
 			piSessionsDir: opts.piSessionsDir,
 			reuseExistingSession: opts.reuseExistingSession,
 			resumeFromToolResult: opts.resumeFromToolResult,
@@ -147,6 +180,13 @@ export function createSpawnAgent(
 			...(privateFactory ? [privateFactory] : []),
 		];
 		const thinkingLevel = opts.thinkingLevel ?? resolved.frontmatter.thinking;
+		const bindingBase = adapters.createSessionBinding?.(opts);
+		const sessionBinding: SessionBindingInput | undefined = bindingBase
+			? {
+					customType: bindingBase.customType,
+					data: { ...(bindingBase.data ?? {}), containerId, runId },
+				}
+			: undefined;
 		const { session, model } = await createPiSession({
 			resolved,
 			ctx,
@@ -155,7 +195,7 @@ export function createSpawnAgent(
 			thinkingLevel,
 			sessionManager,
 			toolFactories,
-			appSessionBinding: adapters.createAppSessionBinding?.(opts),
+			sessionBinding,
 			piLifecycleCustomType: adapters.piLifecycleCustomType,
 			piAgentDir: opts.piAgentDir,
 			logger: log,
@@ -165,28 +205,43 @@ export function createSpawnAgent(
 			? `${(model as any).provider}/${(model as any).id}`
 			: resolved.frontmatter.model || undefined;
 
-		const db = adapters.getDb();
-		const { runId } = await setupPiSessionAndRun(db!, {
+		const traceWriter = opts.traceWriter ?? parentCtx?.traceWriter;
+		const ids: RunTraceEventIds = {
+			containerId,
+			runId,
 			piSessionUuid: session.sessionId,
-			appSessionId: opts.appSessionId,
+			...(opts.userId !== undefined && { userId: opts.userId }),
+		};
+
+		// The inbound message opens the run; record its event id on the run row.
+		let inboundEventId: string | undefined;
+		if (traceWriter) {
+			const inbound = createUserMessageEvent(ids, prompt, opts.phase ?? "");
+			traceWriter.submit(inbound);
+			inboundEventId = inbound.eventId;
+		}
+
+		const db = adapters.getDb();
+		await setupPiSessionAndRun(db, {
+			piSessionUuid: session.sessionId,
+			containerId,
+			runId,
 			agentName: name,
+			trigger,
 			model: resolvedModelLabel,
 			parentPiSessionUuid: opts.parentPiSessionUuid,
 			parentRunId: opts.parentRunId,
-			containerId: opts.containerId,
 			phase: opts.phase,
 			displayLabel: opts.displayLabel,
 			parentToolUseId: opts.parentToolUseId,
+			inboundEventId,
 		});
 
-		const emitter = resolveLifecycleEmitter(
-			name,
-			opts.traceWriter,
-			opts.appSessionId,
-			session.sessionId,
-			opts.containerId,
-			adapters.lifecycleLogger,
-		);
+		const emitter = resolveLifecycleEmitter(name, {
+			traceWriter,
+			ids,
+			logger: adapters.lifecycleLogger,
+		});
 		emitter?.systemPromptResolved({
 			agent_name: name,
 			rendered_prompt: resolved.systemPrompt,
@@ -222,37 +277,27 @@ export function createSpawnAgent(
 		const runCtx = buildRunContext(
 			name,
 			{
-				appSessionId: opts.appSessionId,
-				appSessionSlug: opts.appSessionSlug,
-				traceWriter: opts.traceWriter,
+				containerId,
+				trigger,
+				traceWriter,
 				parentRunId: opts.parentRunId,
-				appSessionDir: opts.appSessionDir,
+				sessionDir: opts.sessionDir,
 				piSessionsDir: opts.piSessionsDir,
-				containerId: opts.containerId,
 				phase: opts.phase,
+				userId: opts.userId,
 			},
 			cwd,
 			stateManager,
 			runId,
 			session.sessionId,
 		);
-		const traceWriter = opts.traceWriter ?? runContextStore.getStore()?.traceWriter;
-		const appSessionId =
-			opts.appSessionId ??
-			runContextStore.getStore()?.appSessionId;
-		if (traceWriter && appSessionId) {
-			emitAgentRunStart(
-				traceWriter,
-				appSessionId,
-				name,
-				runId,
-				opts.parentRunId,
-				session.sessionId,
-				opts.containerId,
-				opts.phase,
-				opts.parentToolUseId,
-				opts.displayLabel,
-			);
+		if (traceWriter) {
+			emitAgentRunStart(traceWriter, ids, name, {
+				parentRunId: opts.parentRunId,
+				phase: opts.phase,
+				parentToolUseId: opts.parentToolUseId,
+				displayLabel: opts.displayLabel,
+			});
 		}
 
 		try {
@@ -266,50 +311,50 @@ export function createSpawnAgent(
 				});
 				throw new Error(turnErr.errorMessage);
 			}
-			if (traceWriter && appSessionId) {
-				emitAgentRunEnd(
-					traceWriter,
-					appSessionId,
-					name,
-					runId,
-					"ok",
-					undefined,
-					session.sessionId,
-					opts.containerId,
-				);
+			const result = sub.readResult();
+			// The final assistant response closes the run; record its event id.
+			let outboundEventId: string | undefined;
+			if (traceWriter) {
+				const outbound = createAssistantMessageEvent(ids, result.responseText, "text");
+				traceWriter.submit(outbound);
+				outboundEventId = outbound.eventId;
+				emitAgentRunEnd(traceWriter, ids, name, "ok");
 			}
-			const completedAt = new Date().toISOString();
+			const status: RunStatus = sub.turnLimitReached()
+				? "turn-limit"
+				: result.aborted || opts.signal?.aborted
+					? "aborted"
+					: "done";
+			const endedAt = new Date().toISOString();
 			await Promise.all([
-				updateAgentRunStatus(db!, runId, "completed", { completedAt }).catch((e) =>
+				updateAgentRunStatus(db, runId, status, { endedAt, outboundEventId }).catch((e) =>
 					log.warn("updateAgentRunStatus failed", { error: (e as Error).message })
 				),
-				updatePiAgentSessionStatus(db!, session.sessionId, "completed", completedAt).catch((e) =>
+				updatePiAgentSessionStatus(db, session.sessionId, "ended", endedAt).catch((e) =>
 					log.warn("updatePiAgentSessionStatus failed", { error: (e as Error).message })
 				)
 			]);
-			log.info(`spawn complete for "${name}"`, { aborted: false });
+			log.info(`spawn complete for "${name}"`, { aborted: result.aborted });
 		} catch (err) {
 			log.error(`spawn failed for "${name}"`, {
 				error: err instanceof Error ? err.message : String(err),
 			});
-			if (traceWriter && appSessionId) {
+			if (traceWriter) {
 				emitAgentRunEnd(
 					traceWriter,
-					appSessionId,
+					ids,
 					name,
-					runId,
 					"error",
 					(err as Error)?.message ?? String(err),
-					session.sessionId,
-					opts.containerId,
 				);
 			}
-			const completedAt = new Date().toISOString();
+			const status: RunStatus = opts.signal?.aborted ? "aborted" : "error";
+			const endedAt = new Date().toISOString();
 			await Promise.all([
-				updateAgentRunStatus(db!, runId, "error", { completedAt }).catch((e) =>
+				updateAgentRunStatus(db, runId, status, { endedAt }).catch((e) =>
 					log.warn("updateAgentRunStatus failed", { error: (e as Error).message })
 				),
-				updatePiAgentSessionStatus(db!, session.sessionId, "error", completedAt).catch((e) =>
+				updatePiAgentSessionStatus(db, session.sessionId, "error", endedAt).catch((e) =>
 					log.warn("updatePiAgentSessionStatus failed", { error: (e as Error).message })
 				)
 			]);

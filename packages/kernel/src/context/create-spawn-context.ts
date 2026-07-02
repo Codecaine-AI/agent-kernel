@@ -42,7 +42,7 @@ export function toLoaderResolveContext(ctx: SpawnContext): LoaderResolveContext 
 	return {
 		cwd: ctx.paths.workingDir,
 		activeSessionDir: ctx.paths.activeSessionDir,
-		appSessionId: ctx.runtime.appSessionId || undefined,
+		containerId: ctx.runtime.containerId || undefined,
 		sessionData: ctx.sessionData ?? undefined,
 	};
 }

@@ -1,10 +1,10 @@
 import {
-	SYSTEM_USER_ID,
 	createContextBuildCompletedEvent,
 	createContextBuildStartedEvent,
 	createContextInputResolvedEvent,
 	createSystemPromptResolvedEvent,
 	type TraceEvent,
+	type TraceEventIds,
 } from "@agent-kernel/protocol";
 
 import type { TraceWriterSink } from "../subagents/types";
@@ -21,15 +21,16 @@ export interface KernelLoggerLike {
 }
 
 export interface LifecycleEmitterOptions {
-	appSessionId: string;
+	/**
+	 * Envelope identity for every event this emitter submits. Built in one
+	 * place (currentTraceIds() / the spawn pipeline's run identity) — call
+	 * sites never assemble identity by hand.
+	 */
+	ids: TraceEventIds;
 	agentName: string;
 	traceWriter: TraceWriterSink;
 	spawnSpanId: string;
 	parentEventId?: string;
-	agentId?: string;
-	containerId?: string;
-	userId?: string;
-	piSessionUuid?: string;
 	logger?: KernelLoggerLike;
 }
 
@@ -38,8 +39,8 @@ export class LifecycleEmitter {
 	private _lastEventId: string | null = null;
 
 	constructor(opts: LifecycleEmitterOptions) {
-		if (!opts.appSessionId) {
-			throw new Error("LifecycleEmitter requires appSessionId");
+		if (!opts.ids?.containerId) {
+			throw new Error("LifecycleEmitter requires ids.containerId");
 		}
 		this.opts = opts;
 	}
@@ -54,27 +55,13 @@ export class LifecycleEmitter {
 	}
 
 	private factoryOpts(): {
-		agentId?: string;
 		spanId: string;
 		parentEventId?: string;
-		containerId?: string;
-		piSessionUuid?: string;
 	} {
 		return {
-			agentId: this.opts.agentId,
 			spanId: this.opts.spawnSpanId,
 			parentEventId: this.currentParentEventId(),
-			containerId: this.opts.containerId,
-			piSessionUuid: this.opts.piSessionUuid,
 		};
-	}
-
-	private userId(): string {
-		return this.opts.userId ?? SYSTEM_USER_ID;
-	}
-
-	private appSessionId(): string {
-		return this.opts.appSessionId;
 	}
 
 	systemPromptResolved(input: SystemPromptResolvedInput): void {
@@ -83,12 +70,7 @@ export class LifecycleEmitter {
 			domain_guard: input.domain_rules_installed,
 		});
 		this.submit(
-			createSystemPromptResolvedEvent(
-				this.appSessionId(),
-				this.userId(),
-				input,
-				this.factoryOpts(),
-			),
+			createSystemPromptResolvedEvent(this.opts.ids, input, this.factoryOpts()),
 		);
 	}
 
@@ -98,12 +80,7 @@ export class LifecycleEmitter {
 			kinds: input.declared_inputs.map((i) => i.kind),
 		});
 		this.submit(
-			createContextBuildStartedEvent(
-				this.appSessionId(),
-				this.userId(),
-				input,
-				this.factoryOpts(),
-			),
+			createContextBuildStartedEvent(this.opts.ids, input, this.factoryOpts()),
 		);
 	}
 
@@ -116,12 +93,7 @@ export class LifecycleEmitter {
 			},
 		);
 		this.submit(
-			createContextInputResolvedEvent(
-				this.appSessionId(),
-				this.userId(),
-				input,
-				this.factoryOpts(),
-			),
+			createContextInputResolvedEvent(this.opts.ids, input, this.factoryOpts()),
 		);
 	}
 
@@ -131,12 +103,7 @@ export class LifecycleEmitter {
 			inputs: input.inputs.length,
 		});
 		this.submit(
-			createContextBuildCompletedEvent(
-				this.appSessionId(),
-				this.userId(),
-				input,
-				this.factoryOpts(),
-			),
+			createContextBuildCompletedEvent(this.opts.ids, input, this.factoryOpts()),
 		);
 	}
 }

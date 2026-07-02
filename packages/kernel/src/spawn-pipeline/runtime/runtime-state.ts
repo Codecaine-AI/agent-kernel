@@ -2,15 +2,16 @@ import type { RuntimeState } from "../../context";
 
 export function makeRuntimeState(
 	workingDir: string,
-	appSessionId?: string,
+	containerId?: string,
+	sessionDir?: string,
 ): RuntimeState {
 	return {
-		appSessionId,
+		containerId,
 		platform: process.platform,
 		topic: "",
 		phase: "",
 		status: "",
-		appSessionDir: "",
+		sessionDir: sessionDir ?? "",
 		cwd: workingDir,
 		priorSessions: [],
 	};

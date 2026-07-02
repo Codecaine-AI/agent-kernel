@@ -1,3 +1,4 @@
+import type { RunTrigger } from "@agent-kernel/db";
 import type { TraceEvent } from "@agent-kernel/protocol";
 
 export interface KernelAgentSession {
@@ -50,11 +51,13 @@ export interface SpawnOptions {
 	toolCallId?: string;
 	parentPi?: KernelExtensionAPI;
 	parentRunId?: string;
-	appSessionId?: string;
-	appSessionSlug?: string;
-	appSessionDir?: string;
-	piSessionsDir?: string;
+	/** Primary grouping identity; inherited from the parent run context when omitted. */
 	containerId?: string;
+	/** What opened the run — subagent spawns default to "parent-tool". */
+	trigger?: RunTrigger;
+	/** Session working directory for Pi session storage. */
+	sessionDir?: string;
+	piSessionsDir?: string;
 	phase?: string;
 	displayLabel?: string;
 	variables?: Record<string, unknown>;

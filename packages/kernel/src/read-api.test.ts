@@ -3,17 +3,13 @@ import { describe, expect, test } from "bun:test";
 import { createKernelTraceReadApi, parseKernelTraceLimit } from "./read-api";
 
 const detail = {
-	session: {
-		id: "session-1",
-		containerId: "container-1",
-		appSessionSlug: "demo-session",
-		topic: "Demo",
-		status: "running",
-		appSessionType: "full",
-		createdAt: "2026-01-01T00:00:00.000Z",
-		updatedAt: "2026-01-01T00:00:00.000Z",
+	container: {
+		id: "container-1",
+		kind: "session",
+		appKey: ["req-1"],
+		label: "Demo",
+		status: "active",
 	},
-	container: null,
 	containers: [],
 	pi_sessions: [],
 	agent_runs: [],
@@ -29,38 +25,91 @@ describe("parseKernelTraceLimit", () => {
 });
 
 describe("createKernelTraceReadApi", () => {
-	test("serves trace-session detail through the injected service", async () => {
+	test("serves container trace through the injected service", async () => {
 		const calls: Array<{ id: string; after?: string | null; limit?: number }> = [];
 		const app = createKernelTraceReadApi({
-			async getTraceSessionDetail(id, query) {
-				calls.push({ id, ...query });
+			async getContainerTrace(containerId, query) {
+				calls.push({ id: containerId, ...query });
 				return detail;
 			},
 		});
 
 		const response = await app.handle(
-			new Request("http://localhost/kernel/trace-sessions/session-1?after=2026&limit=12"),
+			new Request(
+				"http://localhost/kernel/containers/container-1/trace?after=2026&limit=12",
+			),
 		);
 		const body = await response.json();
 
 		expect(response.status).toBe(200);
-		expect(body.session.id).toBe("session-1");
-		expect(calls).toEqual([{ id: "session-1", after: "2026", limit: 12 }]);
+		expect(body.container.id).toBe("container-1");
+		expect(calls).toEqual([{ id: "container-1", after: "2026", limit: 12 }]);
 	});
 
-	test("returns 404 when the service cannot resolve detail", async () => {
+	test("trace-sessions detail is container-backed", async () => {
+		const calls: string[] = [];
 		const app = createKernelTraceReadApi({
-			async getTraceSessionDetail() {
+			async getContainerTrace(containerId) {
+				calls.push(containerId);
+				return detail;
+			},
+		});
+
+		const response = await app.handle(
+			new Request("http://localhost/kernel/trace-sessions/container-1"),
+		);
+
+		expect(response.status).toBe(200);
+		expect(calls).toEqual(["container-1"]);
+	});
+
+	test("returns 404 when the service cannot resolve a container", async () => {
+		const app = createKernelTraceReadApi({
+			async getContainerTrace() {
 				return null;
 			},
 		});
 
 		const response = await app.handle(
-			new Request("http://localhost/kernel/trace-sessions/missing"),
+			new Request("http://localhost/kernel/containers/missing/trace"),
 		);
 		const body = await response.json();
 
 		expect(response.status).toBe(404);
 		expect(body.error).toContain("missing");
+	});
+
+	test("lists session containers when the service provides list support", async () => {
+		const app = createKernelTraceReadApi({
+			async getContainerTrace() {
+				return detail;
+			},
+			async listSessionContainers(query) {
+				return { sessions: [{ id: "container-1", kind: "session" }], query };
+			},
+		});
+
+		const response = await app.handle(
+			new Request("http://localhost/kernel/trace-sessions?limit=3"),
+		);
+		const body = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(body.sessions[0].id).toBe("container-1");
+		expect(body.query.limit).toBe(3);
+	});
+
+	test("returns 404 for the list route when list support is absent", async () => {
+		const app = createKernelTraceReadApi({
+			async getContainerTrace() {
+				return detail;
+			},
+		});
+
+		const response = await app.handle(
+			new Request("http://localhost/kernel/trace-sessions"),
+		);
+
+		expect(response.status).toBe(404);
 	});
 });
