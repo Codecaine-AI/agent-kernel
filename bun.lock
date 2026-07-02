@@ -26,7 +26,6 @@
         "@vitejs/plugin-react": "^4.3.0",
         "drizzle-orm": "^0.45.0",
         "elysia": "^1.2.0",
-        "postgres": "^3.4.7",
         "react": "19.2.3",
         "react-dom": "19.2.3",
         "vite": "^5.4.0",
@@ -55,10 +54,12 @@
     "packages/kernel": {
       "name": "@agent-kernel/kernel",
       "version": "0.1.0",
+      "bin": {
+        "agent-kernel-doctor": "./src/doctor-cli.ts",
+      },
       "dependencies": {
         "@agent-kernel/db": "workspace:*",
         "@agent-kernel/protocol": "workspace:*",
-        "@agent-kernel/viewer-core": "workspace:*",
         "@codecaine-ai/prompt-kit": "workspace:*",
         "@mariozechner/pi-ai": "^0.70.6",
         "@mariozechner/pi-coding-agent": "^0.70.6",
@@ -66,8 +67,10 @@
         "js-yaml": "^4.1.0",
       },
       "devDependencies": {
+        "@agent-kernel/tailer": "workspace:*",
         "@types/bun": "latest",
         "@types/js-yaml": "^4.0.9",
+        "drizzle-orm": "^0.45.0",
       },
     },
     "packages/prompt-kit": {
@@ -88,8 +91,8 @@
       "name": "@agent-kernel/tailer",
       "version": "0.1.0",
       "dependencies": {
+        "@agent-kernel/db": "workspace:*",
         "@agent-kernel/protocol": "workspace:*",
-        "elysia": "^1.2.0",
       },
       "devDependencies": {
         "@types/bun": "latest",
