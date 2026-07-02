@@ -20,7 +20,7 @@ import type { SpanCardConnectorType } from "./SpanCardConnector";
 
 import { SpanCardConnector } from "./SpanCardConnector";
 import { SpanCardToggle } from "./SpanCardToggle";
-import { UserMessageCard, AssistantMessageCard, ToolCard, UIAskCard, AgentCard, LifecycleCard, SystemCard, ContainerCard } from "./variants";
+import { UserMessageCard, AssistantMessageCard, ToolCard, SpawnerCard, UIAskCard, AgentCard, LifecycleCard, SystemCard, ContainerCard } from "./variants";
 import { getSpanStyle, readStringAttr } from "../span-style";
 
 const LAYOUT_CONSTANTS = {
@@ -34,6 +34,7 @@ type SpanDisplay =
   | { type: "user"; content: string }
   | { type: "assistant"; content: string }
   | { type: "tool"; name: string; detail?: string }
+  | { type: "spawner"; name: string; spawns: string[]; detail?: string }
   | { type: "ui_ask"; kind: string }
   | { type: "agent"; name: string }
   | { type: "lifecycle"; label: string }
@@ -69,6 +70,12 @@ function getSpanDisplay(data: TraceSpan): SpanDisplay {
           detail = parsed.raw.command;
         }
       } catch {}
+    }
+    // Spawner tool calls (D77) read as agent dispatch, not a generic tool.
+    if (readStringAttr(data, "tool_kind") === "spawner") {
+      const spawnsAttr = readStringAttr(data, "spawns");
+      const spawns = spawnsAttr ? spawnsAttr.split(",").filter(Boolean) : [];
+      return { type: "spawner", name: toolName, spawns, detail };
     }
     return { type: "tool", name: toolName, detail };
   }
@@ -489,6 +496,14 @@ export const SpanCard: FC<SpanCardProps> = ({
 
             {spanDisplay?.type === "tool" && (
               <ToolCard name={spanDisplay.name} detail={spanDisplay.detail} />
+            )}
+
+            {spanDisplay?.type === "spawner" && (
+              <SpawnerCard
+                name={spanDisplay.name}
+                spawns={spanDisplay.spawns}
+                detail={spanDisplay.detail}
+              />
             )}
 
             {spanDisplay?.type === "ui_ask" && (

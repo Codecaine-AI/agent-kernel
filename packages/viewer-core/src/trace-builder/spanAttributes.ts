@@ -137,6 +137,40 @@ function asCsv(list: string[] | null | undefined): string | null {
   return list ? list.join(",") : null;
 }
 
+// ─── Spawner tool helpers (D77) ─────────────────────────────────────────────
+// A tool call whose eventData.toolKind === "spawner" dispatches subagents. It
+// pairs / times / statuses exactly like an ordinary tool; these helpers only
+// add the distinguishing attributes and a dispatch-flavored title. Absent /
+// unknown toolKind falls through untouched (characterization snapshot proves it).
+
+type ToolCallData = { tool_name?: string; toolKind?: string; spawns?: string[] };
+
+function isSpawner(data: ToolCallData | null): boolean {
+  return data?.toolKind === "spawner";
+}
+
+/**
+ * Title for a spawner call: "Dispatch: <agents>" using the declared agent
+ * list, e.g. "Dispatch: source-scout" or "Dispatch: scout-a, scout-b". A
+ * wildcard (["*"]) or absent list falls back to the tool name so the row still
+ * reads as a dispatch: "Dispatch: spawn_research_scouts".
+ */
+function spawnerTitle(data: ToolCallData): string {
+  const spawns = data.spawns;
+  const named = spawns?.filter((s) => s && s !== "*") ?? [];
+  if (named.length > 0) return `Dispatch: ${named.join(", ")}`;
+  return `Dispatch: ${data.tool_name ?? "agents"}`;
+}
+
+/** Spawner-only attributes appended to a tool span (dropped for ordinary tools). */
+function spawnerAttrs(data: ToolCallData | null): AttrEntry[] {
+  if (!isSpawner(data)) return [];
+  return [
+    ["tool_kind", "spawner"],
+    ["spawns", asCsv(data?.spawns)],
+  ];
+}
+
 function stringField(data: JsonObject | null, key: string): string | null {
   const value = data?.[key];
   return typeof value === "string" ? value : null;
@@ -313,13 +347,14 @@ const EVENT_SPECS: Record<string, EventSpec> = {
   }),
   [EventType.TOOL_CALL_START]: spec<ToolCallStartData, ToolCallEndData>({
     category: "tool_execution",
-    title: (d) => d.tool_name,
+    title: (d) => (isSpawner(d) ? spawnerTitle(d) : d.tool_name),
     status: "pending",
     point: (d) => ({
       input: asJson(d?.tool_input),
       attrs: [
         ["tool_name", d?.tool_name],
         ["tool_use_id", d?.tool_use_id],
+        ...spawnerAttrs(d),
       ],
     }),
     pair: (start, end) => ({
@@ -329,18 +364,20 @@ const EVENT_SPECS: Record<string, EventSpec> = {
         ["tool_name", start?.tool_name ?? end?.tool_name],
         ["tool_use_id", start?.tool_use_id ?? end?.tool_use_id],
         ["duration_ms", end?.duration_ms],
+        ...spawnerAttrs(start ?? end),
       ],
     }),
   }),
   [EventType.TOOL_CALL_END]: spec<ToolCallEndData>({
     category: "tool_execution",
-    title: (d) => d.tool_name,
+    title: (d) => (isSpawner(d) ? spawnerTitle(d) : d.tool_name),
     point: (d) => ({
       output: asText(d?.tool_output),
       attrs: [
         ["tool_name", d?.tool_name],
         ["tool_use_id", d?.tool_use_id],
         ["duration_ms", d?.duration_ms],
+        ...spawnerAttrs(d),
       ],
     }),
   }),
