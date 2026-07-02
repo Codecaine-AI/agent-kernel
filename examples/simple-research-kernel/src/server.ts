@@ -9,6 +9,7 @@
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { createKernelCatalogApi } from "@agent-kernel/kernel/catalog-api";
 import { createKernelTraceReadApi } from "@agent-kernel/kernel/read-api";
 import {
 	deleteKernelTraceRows,
@@ -118,8 +119,16 @@ const readApi = createKernelTraceReadApi<KernelTraceSessionDetail, KernelTraceSe
 		readService.listSessionContainers(query) as Promise<KernelTraceSessionListResponse>
 });
 
+// Catalog API (Phase 5): registry listing, agent detail, prompt lab saves,
+// revision history + per-revision stats. This is the dev harness, so catalog
+// writes (PUT .../prompt mutates prompt.json on disk) are enabled.
+const catalogApi = createKernelCatalogApi(
+	kernel.catalogApiService({ allowWrites: true })
+);
+
 new Elysia()
 	.use(readApi)
+	.use(catalogApi)
 	.get("/api/research", async () => {
 		const traces = await listTraceSessions();
 		return store.getResearchInfo(traces.trace_sessions);

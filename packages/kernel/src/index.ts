@@ -11,6 +11,10 @@ import type { ExtensionContext, ExtensionFactory } from "@mariozechner/pi-coding
 import type { KernelDatabase } from "@agent-kernel/db";
 
 import { buildRegistry, registerPromptRevisions, type AgentRegistry } from "./agent-registry";
+import {
+	createKernelCatalogService,
+	type KernelCatalogService,
+} from "./catalog-service";
 import { createContainerApi, type KernelContainerApi } from "./containers";
 import {
 	createDefaultCatalog,
@@ -128,6 +132,14 @@ export interface KernelInstance<TToolRuntime = unknown> {
 	readonly traceWriter: KernelTraceWriter;
 	/** Container-backed default read service for createKernelTraceReadApi. */
 	readonly readApiService: KernelReadApiService;
+	/**
+	 * Catalog service for createKernelCatalogApi (Phase 5): registry listing,
+	 * agent detail, prompt saves, revision history, per-revision run stats.
+	 * The save path mutates catalog files on disk — pass `allowWrites: true`
+	 * only when the kernel runs in dev mode; production harnesses ship
+	 * read-only catalogs (the PUT route answers 403).
+	 */
+	catalogApiService(opts?: { allowWrites?: boolean }): KernelCatalogService;
 	/**
 	 * Spawn a catalog agent. Builds the registry from catalog.roots on first
 	 * use. `opts.variant` selects a manifest variant; model aliases resolve
@@ -322,6 +334,13 @@ export function createKernel<TToolRuntime = unknown>(
 		get readApiService() {
 			return readApiService();
 		},
+		catalogApiService(opts = {}) {
+			return createKernelCatalogService({
+				registry: () => runtime().then((r) => r.registry),
+				db: () => requireDb("catalogApiService"),
+				allowWrites: opts.allowWrites ?? false,
+			});
+		},
 		spawnAgent,
 		container,
 		registry: () => runtime().then((r) => r.registry),
@@ -353,3 +372,4 @@ export * from "./emitter";
 export * from "./spawn-config";
 export * from "./trace-writer";
 export * from "./read-service";
+export * from "./catalog-service";

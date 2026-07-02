@@ -37,6 +37,14 @@ export interface AgentRegistry {
 	tryGet(name: string): AgentDefinition | null;
 	list(): AgentDefinition[];
 	roots(): string[];
+	/**
+	 * Re-read an agent's prompt.json from disk, re-validate it against the
+	 * cached manifest, and hot-swap the registry entry (Phase 5 lab save).
+	 * The manifest and code sidecars are untouched; subsequent spawns render
+	 * and stamp the new prompt revision without a process restart. Throws
+	 * RegistryError when the on-disk document fails validation.
+	 */
+	reloadAgentPrompt(name: string): AgentDefinition;
 }
 
 export class RegistryError extends Error {

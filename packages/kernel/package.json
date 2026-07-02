@@ -15,6 +15,7 @@
     "./doctor": "./src/doctor.ts",
     "./agent-registry": "./src/agent-registry/index.ts",
     "./agent-registry/registry": "./src/agent-registry/registry/index.ts",
+    "./catalog-api": "./src/catalog-api.ts",
     "./context": "./src/context/index.ts",
     "./context/loaders": "./src/context/loaders/index.ts",
     "./events": "./src/events/index.ts",

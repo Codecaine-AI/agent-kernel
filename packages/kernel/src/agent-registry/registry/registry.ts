@@ -183,6 +183,61 @@ function expandToolProfiles(
 	return expanded;
 }
 
+/** Derived prompt state: rendered body, content hash, non-fatal warnings. */
+export interface AgentPromptState {
+	body: string;
+	promptHash: string;
+	warnings: string[];
+}
+
+/**
+ * Validate a PromptDocument against a manifest and compute the derived
+ * prompt state. Shared by registry boot (loadOne) and the catalog write
+ * path (reloadAgentPrompt / lab save), so a document accepted by a save is
+ * exactly a document the next boot accepts. Throws RegistryError when the
+ * document fails prompt validation or references undeclared variables.
+ */
+export function buildAgentPromptState(
+	manifest: NormalizedAgentManifest,
+	document: PromptDocument,
+	manifestFile: string,
+): AgentPromptState {
+	const promptValidation = validatePrompt(document, {
+		declaredVariables: Object.keys(manifest.variables),
+	});
+	const errors = promptValidation.diagnostics.filter(
+		(diagnostic) => diagnostic.severity === "error",
+	);
+	if (errors.length > 0) {
+		throw new RegistryError(
+			manifestFile,
+			errors.map((diagnostic) => `${diagnostic.code}: ${diagnostic.message}`),
+		);
+	}
+
+	const body = renderXmlMarkdown(document);
+	const promptHash = hashPrompt(document);
+	const result = validateVariables(body, manifest.variables);
+	if (result.missingDeclarations.length > 0) {
+		throw new RegistryError(
+			manifestFile,
+			result.missingDeclarations.map(
+				(v) => `undeclared variable reference: {{${v}}}`,
+			),
+		);
+	}
+
+	const warnings = [
+		...promptValidation.diagnostics
+			.filter((diagnostic) => diagnostic.severity === "warning")
+			.map((diagnostic) => `${diagnostic.code}: ${diagnostic.message}`),
+		...result.unusedDeclarations.map(
+			(v) => `unused variable declaration: ${v}`,
+		),
+	];
+	return { body, promptHash, warnings };
+}
+
 async function loadOne(
 	manifestFile: string,
 	toolProfiles: Record<string, string[]>,
@@ -194,21 +249,7 @@ async function loadOne(
 		const manifest = loadManifest(manifestFile);
 		const profileTools = expandToolProfiles(manifest, toolProfiles, manifestFile);
 		const { document: promptDocument, promptFile } = loadPromptJson(manifestFile);
-		const promptValidation = validatePrompt(promptDocument, {
-			declaredVariables: Object.keys(manifest.variables),
-		});
-		const errors = promptValidation.diagnostics.filter(
-			(diagnostic) => diagnostic.severity === "error",
-		);
-		if (errors.length > 0) {
-			return {
-				def: null,
-				error: new RegistryError(
-					manifestFile,
-					errors.map((diagnostic) => `${diagnostic.code}: ${diagnostic.message}`),
-				),
-			};
-		}
+		const promptState = buildAgentPromptState(manifest, promptDocument, manifestFile);
 
 		const contextModulePath = existsSync(contextFileAbs) ? contextFileAbs : null;
 		const toolsModulePath = existsSync(toolsFileAbs) ? toolsFileAbs : null;
@@ -223,8 +264,6 @@ async function loadOne(
 			: [];
 		const coreTools = manifest.coreTools;
 		const tools = [...new Set([...coreTools, ...profileTools, ...privateToolNames])];
-		const body = renderXmlMarkdown(promptDocument);
-		const promptHash = hashPrompt(promptDocument);
 		const parsed = {
 			config: {
 				name: manifest.name,
@@ -239,26 +278,9 @@ async function loadOne(
 				runInBackground: manifest.runInBackground,
 				thinking: manifest.thinking,
 			},
-			body,
-			promptHash,
+			body: promptState.body,
+			promptHash: promptState.promptHash,
 		};
-		const result = validateVariables(parsed.body, parsed.config.variables);
-
-		if (result.missingDeclarations.length > 0) {
-			const violations = result.missingDeclarations.map(
-				(v) => `undeclared variable reference: {{${v}}}`,
-			);
-			return { def: null, error: new RegistryError(manifestFile, violations) };
-		}
-
-		const warnings = [
-			...promptValidation.diagnostics
-				.filter((diagnostic) => diagnostic.severity === "warning")
-				.map((diagnostic) => `${diagnostic.code}: ${diagnostic.message}`),
-			...result.unusedDeclarations.map(
-				(v) => `unused variable declaration: ${v}`,
-			),
-		];
 
 		return {
 			def: {
@@ -266,7 +288,7 @@ async function loadOne(
 				parsed,
 				manifest,
 				promptDocument,
-				promptHash,
+				promptHash: promptState.promptHash,
 				promptFile,
 				contextResolver,
 				contextModulePath,
@@ -275,7 +297,7 @@ async function loadOne(
 				toolsModulePath,
 				coreTools,
 				manifestFile,
-				warnings,
+				warnings: promptState.warnings,
 			},
 			error: null,
 		};
@@ -360,6 +382,30 @@ export async function buildRegistry(
 			return [...defs.values()];
 		},
 		roots: () => [...roots],
+		reloadAgentPrompt(name: string): AgentDefinition {
+			const current = defs.get(name);
+			if (!current) throw new Error(`Agent not found in registry: ${name}`);
+			const { document, promptFile } = loadPromptJson(current.manifestFile);
+			const state = buildAgentPromptState(
+				current.manifest,
+				document,
+				current.manifestFile,
+			);
+			const next: AgentDefinition = {
+				...current,
+				promptDocument: document,
+				promptHash: state.promptHash,
+				promptFile,
+				parsed: {
+					...current.parsed,
+					body: state.body,
+					promptHash: state.promptHash,
+				},
+				warnings: state.warnings,
+			};
+			defs.set(name, next);
+			return next;
+		},
 	};
 }
 
