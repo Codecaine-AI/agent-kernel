@@ -20,7 +20,7 @@ import {
   type KernelContainerSummary,
 } from "../types";
 
-import { makeAttr } from "./spanAttributes";
+import { makeAttr, readStringAttr } from "./spanAttributes";
 import { toContainerSpan } from "./spanFactories";
 
 export type ContainerRange = {
@@ -128,11 +128,6 @@ export function containerSummariesToRanges(
     });
   }
   return ranges;
-}
-
-function readStringAttr(span: TraceSpan, key: string): string | null {
-  const found = span.attributes?.find((a) => a.key === key);
-  return found?.value?.stringValue ?? null;
 }
 
 export function groupAgentsByContainer(

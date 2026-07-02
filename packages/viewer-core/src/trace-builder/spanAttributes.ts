@@ -1,10 +1,19 @@
 /**
- * spanAttributes.ts — Attribute + payload extraction for PairedEvents.
+ * spanAttributes.ts — Title / status / category / payload resolution for
+ * PairedEvents, driven by one declarative registry.
  *
- * Isolates the big switch that pulls domain-specific fields (tool_name,
- * agent_name, status, phase, block_type, etc.) off each event type and turns
- * them into TraceSpanAttribute[] + optional input/output strings. Also hosts
- * title/status/category resolution so the builder is pure orchestration.
+ * EVENT_SPECS maps event type → { category, title, status, point, pair,
+ * pairStatus }. Every field is optional and falls back to a generic rule, so
+ * adding a new event type is one table entry, not a new switch branch:
+ *
+ *   - category    → "event"
+ *   - title       → eventData.operation, else the event type string
+ *   - status      → derived from eventData.status (failed/error/blocked →
+ *                   error, warning → warning, started/running/queued →
+ *                   pending, else success)
+ *   - point       → generic operation/status/detail/phase/container_kind attrs
+ *   - pair        → no extra attrs (only types pairEvents can pair carry one)
+ *   - pairStatus  → "success" (looked up on the END event's type)
  */
 
 import type {
@@ -17,15 +26,18 @@ import {
   EventType,
   UI_ASK_ANSWERED,
   UI_ASK_REQUESTED,
-  type TraceEvent,
-  type AgentSessionEndData,
+  type JsonObject,
   type AgentRunEndData,
   type AgentRunStartData,
+  type AgentSessionEndData,
+  type AgentSessionStartData,
   type AssistantMessageData,
   type ContextBuildCompletedData,
   type ContextBuildStartedData,
   type ContextInputResolvedData,
   type ErrorData,
+  type PhaseEndData,
+  type PhaseStartData,
   type PostToolHookData,
   type PreToolHookData,
   type SystemPromptResolvedData,
@@ -38,6 +50,8 @@ import {
 } from "../types";
 
 import type { PairedEvent } from "./pairEvents";
+
+// ─── Attribute primitives ────────────────────────────────────────────────────
 
 export function makeAttr(
   key: string,
@@ -60,59 +74,91 @@ export function pushAttr(
   if (attr) attrs.push(attr);
 }
 
-export function categoryFor(eventType: string): TraceSpanCategory {
-  switch (eventType) {
-    case EventType.AGENT_RUN_START:
-    case EventType.AGENT_RUN_END:
-    case EventType.AGENT_SESSION_START:
-    case EventType.AGENT_SESSION_END:
-    case EventType.SYSTEM_PROMPT_RESOLVED:
-    case EventType.CONTEXT_BUILD_STARTED:
-    case EventType.CONTEXT_BUILD_COMPLETED:
-    case EventType.CONTEXT_INPUT_RESOLVED:
-      return "agent_invocation";
-    case EventType.TOOL_CALL_START:
-    case EventType.TOOL_CALL_END:
-    case EventType.PRE_TOOL_HOOK:
-    case EventType.POST_TOOL_HOOK:
-      return "tool_execution";
-    case EventType.ASSISTANT_MESSAGE:
-      return "llm_call";
-    case UI_ASK_REQUESTED:
-    case UI_ASK_ANSWERED:
-      return "event";
-    default:
-      return "event";
-  }
+/** Read a string attribute back off a built span (grouping stages route by these). */
+export function readStringAttr(
+  span: { attributes?: TraceSpanAttribute[] },
+  key: string,
+): string | null {
+  const found = span.attributes?.find((a) => a.key === key);
+  return found?.value?.stringValue ?? null;
 }
 
-export function statusFor(paired: PairedEvent): TraceSpanStatus {
-  if (paired.kind === "pair") {
-    if (paired.end.type === EventType.AGENT_RUN_END) {
-      const data = paired.end.eventData as AgentRunEndData | null;
-      return data?.status === "ok" ? "success" : "error";
-    }
-    return "success";
-  }
-  const event = paired.event;
-  if (event.type === EventType.ERROR) return "error";
-  if (event.type === EventType.WARNING) return "warning";
-  if (event.type === EventType.CONTEXT_INPUT_RESOLVED) {
-    const data = event.eventData as ContextInputResolvedData | null;
-    if (data?.status === "error") return "error";
-    if (data?.status === "empty") return "warning";
-    return "success";
-  }
-  if (
-    event.type === EventType.AGENT_RUN_START ||
-    event.type === EventType.TOOL_CALL_START ||
-    event.type === EventType.AGENT_SESSION_START ||
-    event.type === UI_ASK_REQUESTED ||
-    event.type === EventType.CONTEXT_BUILD_STARTED
-  ) {
-    return "pending";
-  }
-  const status = (event.eventData as { status?: unknown } | null)?.status;
+// ─── Registry types + shared extraction helpers ─────────────────────────────
+
+type AttrValue = string | number | boolean | null | undefined;
+
+/** Ordered [key, value] pairs; null/undefined/empty values are dropped. */
+type AttrEntry = readonly [key: string, value: AttrValue];
+
+interface Payload {
+  input?: string;
+  output?: string;
+  attrs?: AttrEntry[];
+}
+
+interface EventSpec {
+  category?: TraceSpanCategory;
+  /** Title from the (start) event's data; only consulted when data is non-null. */
+  title?: (data: never) => string | undefined;
+  /** Point-event status; constant or derived from data. */
+  status?: TraceSpanStatus | ((data: never) => TraceSpanStatus);
+  /** Point-event input/output/attributes. */
+  point?: (data: never) => Payload;
+  /** Pair input/output/attributes, keyed by the START event's type. */
+  pair?: (start: never, end: never) => Payload;
+  /** Pair status, keyed by the END event's type. */
+  pairStatus?: (start: never, end: never) => TraceSpanStatus;
+}
+
+/** Pins an entry's extractors to its start/end eventData types. */
+function spec<Start, End = never>(entry: {
+  category?: TraceSpanCategory;
+  title?: (data: Start & JsonObject) => string | undefined;
+  status?: TraceSpanStatus | ((data: Start | null) => TraceSpanStatus);
+  point?: (data: Start | null) => Payload;
+  pair?: (start: Start | null, end: End | null) => Payload;
+  pairStatus?: (start: Start | null, end: End | null) => TraceSpanStatus;
+}): EventSpec {
+  return entry as EventSpec;
+}
+
+/** JSON-encode any present value (objects, arrays, scalars). */
+function asJson(value: unknown): string | undefined {
+  return value !== undefined && value !== null ? JSON.stringify(value) : undefined;
+}
+
+/** Pass through non-empty strings. */
+function asText(value: string | null | undefined): string | undefined {
+  return value ? value : undefined;
+}
+
+/** Comma-join a string list (empty lists render as no attribute). */
+function asCsv(list: string[] | null | undefined): string | null {
+  return list ? list.join(",") : null;
+}
+
+function stringField(data: JsonObject | null, key: string): string | null {
+  const value = data?.[key];
+  return typeof value === "string" ? value : null;
+}
+
+/** Fallback attrs for event types without a registry entry (app events). */
+function genericPoint(data: unknown): Payload {
+  const record = data as JsonObject | null;
+  return {
+    attrs: [
+      ["operation", stringField(record, "operation")],
+      ["status", stringField(record, "status")],
+      ["detail", stringField(record, "detail")],
+      ["phase", stringField(record, "phase")],
+      ["container_kind", stringField(record, "containerKind")],
+    ],
+  };
+}
+
+/** Fallback status for event types without a status rule. */
+function genericStatus(data: unknown): TraceSpanStatus {
+  const status = (data as { status?: unknown } | null)?.status;
   if (typeof status === "string") {
     if (status === "failed" || status === "error" || status === "blocked") return "error";
     if (status === "warning") return "warning";
@@ -121,59 +167,290 @@ export function statusFor(paired: PairedEvent): TraceSpanStatus {
   return "success";
 }
 
+// ─── The registry ────────────────────────────────────────────────────────────
+
+const EVENT_SPECS: Record<string, EventSpec> = {
+  [EventType.AGENT_SESSION_START]: spec<AgentSessionStartData>({
+    category: "agent_invocation",
+    title: () => "session start",
+    status: "pending",
+    point: (d) => ({
+      attrs: [
+        ["agent_type", d?.agent_type],
+        ["model", d?.model],
+        ["model_alias", d?.model_alias],
+      ],
+    }),
+  }),
+  [EventType.AGENT_SESSION_END]: spec<AgentSessionEndData>({
+    category: "agent_invocation",
+    title: () => "session end",
+    point: (d) => ({
+      attrs: [
+        ["status", d?.status],
+        ["input_tokens", d?.input_tokens],
+        ["output_tokens", d?.output_tokens],
+        ["cost", d?.cost],
+        ["error_message", d?.error_message],
+      ],
+    }),
+  }),
+  [EventType.AGENT_RUN_START]: spec<AgentRunStartData, AgentRunEndData>({
+    category: "agent_invocation",
+    title: () => "run",
+    status: "pending",
+    point: (d) => ({
+      attrs: [
+        ["run_id", d?.run_id],
+        ["agent_name", d?.agent_name],
+        ["parent_run_id", d?.parent_run_id],
+      ],
+    }),
+    pair: (start, end) => ({
+      attrs: [
+        ["run_id", start?.run_id],
+        ["agent_name", start?.agent_name],
+        ["parent_run_id", start?.parent_run_id],
+        ["status", end?.status],
+        ["error_message", end?.error_message],
+      ],
+    }),
+  }),
+  [EventType.AGENT_RUN_END]: spec<AgentRunEndData, AgentRunEndData>({
+    category: "agent_invocation",
+    title: () => "run",
+    pairStatus: (_start, end) => (end?.status === "ok" ? "success" : "error"),
+  }),
+  [EventType.SYSTEM_PROMPT_RESOLVED]: spec<SystemPromptResolvedData>({
+    category: "agent_invocation",
+    title: (d) => (d.agent_name ? `system prompt: ${d.agent_name}` : undefined),
+    point: (d) => ({
+      output: asText(d?.rendered_prompt),
+      attrs: [
+        ["agent_name", d?.agent_name],
+        ["tools_allowlist", asCsv(d?.tools_allowlist)],
+        ["domain_rules_installed", d?.domain_rules_installed],
+        [
+          "extensions",
+          Array.isArray(d?.extensions)
+            ? d.extensions.join(",")
+            : typeof d?.extensions === "boolean"
+              ? d.extensions
+              : null,
+        ],
+      ],
+    }),
+  }),
+  [EventType.CONTEXT_BUILD_STARTED]: spec<ContextBuildStartedData, ContextBuildCompletedData>({
+    category: "agent_invocation",
+    title: () => "context build",
+    status: "pending",
+    point: (d) => ({
+      attrs: [
+        ["agent_name", d?.agent_name],
+        ["declared_inputs_count", d?.declared_inputs?.length],
+      ],
+    }),
+    pair: (start, end) => ({
+      input:
+        start?.declared_inputs && start.declared_inputs.length > 0
+          ? JSON.stringify(start.declared_inputs)
+          : undefined,
+      output: asText(end?.rendered_context),
+      attrs: [
+        ["agent_name", start?.agent_name],
+        ["total_bytes", end?.total_bytes],
+        ["inputs_count", end?.inputs?.length],
+      ],
+    }),
+  }),
+  [EventType.CONTEXT_BUILD_COMPLETED]: spec<ContextBuildCompletedData>({
+    category: "agent_invocation",
+    title: () => "context build",
+    point: (d) => ({
+      output: asText(d?.rendered_context),
+      attrs: [
+        ["total_bytes", d?.total_bytes],
+        ["inputs_count", d?.inputs?.length],
+      ],
+    }),
+  }),
+  [EventType.CONTEXT_INPUT_RESOLVED]: spec<ContextInputResolvedData>({
+    category: "agent_invocation",
+    title: (d) =>
+      d.input_ref
+        ? `input: ${d.input_ref}`
+        : d.loader_kind
+          ? `input: ${d.loader_kind}`
+          : undefined,
+    status: (d) =>
+      d?.status === "error" ? "error" : d?.status === "empty" ? "warning" : "success",
+    point: (d) => ({
+      attrs: [
+        ["loader_kind", d?.loader_kind],
+        ["input_ref", d?.input_ref],
+        ["status", d?.status],
+        ["bytes", d?.bytes],
+        ["from_cache", d?.from_cache],
+        ["error", d?.error],
+        ["content_hash", d?.content_hash],
+      ],
+    }),
+  }),
+  [EventType.USER_MESSAGE]: spec<UserMessageData>({
+    point: (d) => ({
+      input: asText(d?.content),
+      attrs: [["phase", d?.phase]],
+    }),
+  }),
+  [EventType.ASSISTANT_MESSAGE]: spec<AssistantMessageData>({
+    category: "llm_call",
+    title: (d) => d.block_type,
+    point: (d) => ({
+      output: asText(d?.content),
+      attrs: [["block_type", d?.block_type]],
+    }),
+  }),
+  [EventType.TOOL_CALL_START]: spec<ToolCallStartData, ToolCallEndData>({
+    category: "tool_execution",
+    title: (d) => d.tool_name,
+    status: "pending",
+    point: (d) => ({
+      input: asJson(d?.tool_input),
+      attrs: [
+        ["tool_name", d?.tool_name],
+        ["tool_use_id", d?.tool_use_id],
+      ],
+    }),
+    pair: (start, end) => ({
+      input: asJson(start?.tool_input),
+      output: asText(end?.tool_output),
+      attrs: [
+        ["tool_name", start?.tool_name ?? end?.tool_name],
+        ["tool_use_id", start?.tool_use_id ?? end?.tool_use_id],
+        ["duration_ms", end?.duration_ms],
+      ],
+    }),
+  }),
+  [EventType.TOOL_CALL_END]: spec<ToolCallEndData>({
+    category: "tool_execution",
+    title: (d) => d.tool_name,
+    point: (d) => ({
+      output: asText(d?.tool_output),
+      attrs: [
+        ["tool_name", d?.tool_name],
+        ["tool_use_id", d?.tool_use_id],
+        ["duration_ms", d?.duration_ms],
+      ],
+    }),
+  }),
+  [EventType.PRE_TOOL_HOOK]: spec<PreToolHookData>({
+    category: "tool_execution",
+    title: (d) => (d.tool_name ? `pre-hook: ${d.tool_name}` : undefined),
+    point: (d) => ({
+      input: asJson(d?.tool_input),
+      attrs: [["tool_name", d?.tool_name]],
+    }),
+  }),
+  [EventType.POST_TOOL_HOOK]: spec<PostToolHookData>({
+    category: "tool_execution",
+    title: (d) => (d.tool_name ? `post-hook: ${d.tool_name}` : undefined),
+    point: (d) => ({
+      output: asText(d?.tool_output),
+      attrs: [["tool_name", d?.tool_name]],
+    }),
+  }),
+  [EventType.PHASE_START]: spec<PhaseStartData>({
+    title: (d) => d.phase,
+  }),
+  [EventType.PHASE_END]: spec<PhaseEndData>({
+    title: (d) => d.phase,
+  }),
+  [EventType.ERROR]: spec<ErrorData>({
+    status: "error",
+    point: (d) => ({
+      attrs: [
+        ["error_type", d?.error_type],
+        ["error_message", d?.error_message],
+        ["stack_trace", d?.stack_trace],
+      ],
+    }),
+  }),
+  [EventType.WARNING]: spec<WarningData>({
+    status: "warning",
+    point: (d) => ({
+      attrs: [
+        ["warning_type", d?.warning_type],
+        ["message", d?.message],
+      ],
+    }),
+  }),
+  [UI_ASK_REQUESTED]: spec<UIAskRequestedData, UIAskAnsweredData>({
+    title: (d) => (d.kind ? `ui ask: ${d.kind}` : "ui ask"),
+    status: "pending",
+    point: (d) => ({
+      input: asJson(d?.payload),
+      attrs: [
+        ["kind", d?.kind],
+        ["tool_use_id", d?.tool_use_id],
+      ],
+    }),
+    pair: (start, end) => ({
+      input: asJson(start?.payload),
+      output: asJson(end?.exchanges),
+      attrs: [
+        ["kind", end?.kind ?? start?.kind],
+        ["tool_use_id", end?.tool_use_id ?? start?.tool_use_id],
+      ],
+    }),
+  }),
+  [UI_ASK_ANSWERED]: spec<UIAskAnsweredData>({
+    title: (d) => (d.kind ? `ui ask: ${d.kind}` : "ui ask"),
+    point: (d) => ({
+      output: asJson(d?.exchanges),
+      attrs: [
+        ["kind", d?.kind],
+        ["tool_use_id", d?.tool_use_id],
+      ],
+    }),
+  }),
+};
+
+// ─── Resolution API (used by spanFactories) ─────────────────────────────────
+
+export function categoryFor(eventType: string): TraceSpanCategory {
+  return EVENT_SPECS[eventType]?.category ?? "event";
+}
+
+export function statusFor(paired: PairedEvent): TraceSpanStatus {
+  if (paired.kind === "pair") {
+    const pairStatus = EVENT_SPECS[paired.end.type]?.pairStatus as
+      | ((start: unknown, end: unknown) => TraceSpanStatus)
+      | undefined;
+    return pairStatus
+      ? pairStatus(paired.start.eventData, paired.end.eventData)
+      : "success";
+  }
+  const event = paired.event;
+  const status = EVENT_SPECS[event.type]?.status as
+    | TraceSpanStatus
+    | ((data: unknown) => TraceSpanStatus)
+    | undefined;
+  if (typeof status === "string") return status;
+  if (status) return status(event.eventData);
+  return genericStatus(event.eventData);
+}
+
 export function titleFor(paired: PairedEvent): string {
   const event = paired.kind === "pair" ? paired.start : paired.event;
-  const data = event.eventData as Record<string, unknown> | null;
+  const data = event.eventData as JsonObject | null;
   if (data) {
-    if (event.type === EventType.TOOL_CALL_START || event.type === EventType.TOOL_CALL_END) {
-      const name = data.tool_name as string | undefined;
-      if (name) return name;
-    }
-    if (event.type === EventType.AGENT_RUN_START || event.type === EventType.AGENT_RUN_END) {
-      return "run";
-    }
-    if (event.type === EventType.AGENT_SESSION_START) {
-      return "session start";
-    }
-    if (event.type === EventType.AGENT_SESSION_END) {
-      return "session end";
-    }
-    if (event.type === EventType.PHASE_START || event.type === EventType.PHASE_END) {
-      const phase = data.phase as string | undefined;
-      if (phase) return phase;
-    }
-    if (event.type === EventType.ASSISTANT_MESSAGE) {
-      const blockType = data.block_type as string | undefined;
-      if (blockType) return blockType;
-    }
-    if (event.type === EventType.SYSTEM_PROMPT_RESOLVED) {
-      const name = data.agent_name as string | undefined;
-      if (name) return `system prompt: ${name}`;
-    }
-    if (
-      event.type === EventType.CONTEXT_BUILD_STARTED ||
-      event.type === EventType.CONTEXT_BUILD_COMPLETED
-    ) {
-      return "context build";
-    }
-    if (event.type === EventType.CONTEXT_INPUT_RESOLVED) {
-      const ref = data.input_ref as string | undefined;
-      if (ref) return `input: ${ref}`;
-      const loader = data.loader_kind as string | undefined;
-      if (loader) return `input: ${loader}`;
-    }
-    if (event.type === UI_ASK_REQUESTED || event.type === UI_ASK_ANSWERED) {
-      const kind = data.kind as string | undefined;
-      return kind ? `ui ask: ${kind}` : "ui ask";
-    }
-    if (event.type === EventType.PRE_TOOL_HOOK) {
-      const name = data.tool_name as string | undefined;
-      if (name) return `pre-hook: ${name}`;
-    }
-    if (event.type === EventType.POST_TOOL_HOOK) {
-      const name = data.tool_name as string | undefined;
-      if (name) return `post-hook: ${name}`;
-    }
+    const title = (
+      EVENT_SPECS[event.type]?.title as
+        | ((data: JsonObject) => string | undefined)
+        | undefined
+    )?.(data);
+    if (title) return title;
     const operation = data.operation as string | undefined;
     if (operation) return operation;
   }
@@ -186,200 +463,31 @@ export interface SpanPayload {
   attributes?: TraceSpanAttribute[];
 }
 
-function fillPaired(paired: PairedEvent & { kind: "pair" }, attrs: TraceSpanAttribute[]): {
-  input?: string;
-  output?: string;
-} {
-  const startType = paired.start.type;
-  let input: string | undefined;
-  let output: string | undefined;
-
-  if (startType === EventType.TOOL_CALL_START) {
-    const startData = paired.start.eventData as ToolCallStartData | null;
-    const endData = paired.end.eventData as ToolCallEndData | null;
-    if (startData?.tool_input !== undefined && startData?.tool_input !== null) {
-      input = JSON.stringify(startData.tool_input);
-    }
-    if (endData?.tool_output) output = endData.tool_output;
-    pushAttr(attrs, "tool_name", startData?.tool_name ?? endData?.tool_name);
-    pushAttr(attrs, "tool_use_id", startData?.tool_use_id ?? endData?.tool_use_id);
-    pushAttr(attrs, "duration_ms", endData?.duration_ms ?? null);
-  } else if (startType === EventType.AGENT_RUN_START) {
-    const startData = paired.start.eventData as AgentRunStartData | null;
-    const endData = paired.end.eventData as AgentRunEndData | null;
-    pushAttr(attrs, "run_id", startData?.run_id);
-    pushAttr(attrs, "agent_name", startData?.agent_name);
-    pushAttr(attrs, "parent_run_id", startData?.parent_run_id);
-    pushAttr(attrs, "status", endData?.status);
-    pushAttr(attrs, "error_message", endData?.error_message);
-  } else if (startType === EventType.CONTEXT_BUILD_STARTED) {
-    const startData = paired.start.eventData as ContextBuildStartedData | null;
-    const endData = paired.end.eventData as ContextBuildCompletedData | null;
-    if (startData?.declared_inputs && startData.declared_inputs.length > 0) {
-      input = JSON.stringify(startData.declared_inputs);
-    }
-    if (endData?.rendered_context) output = endData.rendered_context;
-    pushAttr(attrs, "agent_name", startData?.agent_name);
-    pushAttr(attrs, "total_bytes", endData?.total_bytes ?? null);
-    pushAttr(attrs, "inputs_count", endData?.inputs?.length ?? null);
-  } else if (startType === UI_ASK_REQUESTED) {
-    const startData = paired.start.eventData as UIAskRequestedData | null;
-    const endData = paired.end.eventData as UIAskAnsweredData | null;
-    if (startData?.payload !== undefined && startData?.payload !== null) {
-      input = JSON.stringify(startData.payload);
-    }
-    if (endData?.exchanges !== undefined && endData?.exchanges !== null) {
-      output = JSON.stringify(endData.exchanges);
-    }
-    pushAttr(attrs, "kind", endData?.kind ?? startData?.kind);
-    pushAttr(attrs, "tool_use_id", endData?.tool_use_id ?? startData?.tool_use_id);
-  }
-
-  return { input, output };
-}
-
-function fillPoint(ev: TraceEvent, attrs: TraceSpanAttribute[]): {
-  input?: string;
-  output?: string;
-} {
-  let input: string | undefined;
-  let output: string | undefined;
-
-  if (ev.type === EventType.ASSISTANT_MESSAGE) {
-    const data = ev.eventData as AssistantMessageData | null;
-    if (data?.content) output = data.content;
-    pushAttr(attrs, "block_type", data?.block_type);
-  } else if (ev.type === EventType.USER_MESSAGE) {
-    const data = ev.eventData as UserMessageData | null;
-    if (data?.content) input = data.content;
-    pushAttr(attrs, "phase", data?.phase);
-  } else if (ev.type === EventType.AGENT_SESSION_END) {
-    const data = ev.eventData as AgentSessionEndData | null;
-    pushAttr(attrs, "status", data?.status);
-    pushAttr(attrs, "input_tokens", data?.input_tokens);
-    pushAttr(attrs, "output_tokens", data?.output_tokens);
-    pushAttr(attrs, "cost", data?.cost);
-    pushAttr(attrs, "error_message", data?.error_message);
-  } else if (ev.type === EventType.AGENT_SESSION_START) {
-    const data = ev.eventData as
-      | { agent_type?: string; model?: string; model_alias?: string | null }
-      | null;
-    pushAttr(attrs, "agent_type", data?.agent_type);
-    pushAttr(attrs, "model", data?.model);
-    pushAttr(attrs, "model_alias", data?.model_alias);
-  } else if (ev.type === EventType.TOOL_CALL_START) {
-    const data = ev.eventData as ToolCallStartData | null;
-    if (data?.tool_input !== undefined && data?.tool_input !== null) {
-      input = JSON.stringify(data.tool_input);
-    }
-    pushAttr(attrs, "tool_name", data?.tool_name);
-    pushAttr(attrs, "tool_use_id", data?.tool_use_id);
-  } else if (ev.type === EventType.TOOL_CALL_END) {
-    const data = ev.eventData as ToolCallEndData | null;
-    if (data?.tool_output) output = data.tool_output;
-    pushAttr(attrs, "tool_name", data?.tool_name);
-    pushAttr(attrs, "tool_use_id", data?.tool_use_id);
-    pushAttr(attrs, "duration_ms", data?.duration_ms ?? null);
-  } else if (ev.type === EventType.AGENT_RUN_START) {
-    const data = ev.eventData as AgentRunStartData | null;
-    pushAttr(attrs, "run_id", data?.run_id);
-    pushAttr(attrs, "agent_name", data?.agent_name);
-    pushAttr(attrs, "parent_run_id", data?.parent_run_id);
-  } else if (ev.type === EventType.SYSTEM_PROMPT_RESOLVED) {
-    const data = ev.eventData as SystemPromptResolvedData | null;
-    if (data?.rendered_prompt) output = data.rendered_prompt;
-    pushAttr(attrs, "agent_name", data?.agent_name);
-    pushAttr(
-      attrs,
-      "tools_allowlist",
-      data?.tools_allowlist ? data.tools_allowlist.join(",") : null,
-    );
-    pushAttr(attrs, "domain_rules_installed", data?.domain_rules_installed);
-    pushAttr(
-      attrs,
-      "extensions",
-      Array.isArray(data?.extensions)
-        ? data.extensions.join(",")
-        : typeof data?.extensions === "boolean"
-          ? data.extensions
-          : null,
-    );
-  } else if (ev.type === EventType.CONTEXT_BUILD_STARTED) {
-    const data = ev.eventData as ContextBuildStartedData | null;
-    pushAttr(attrs, "agent_name", data?.agent_name);
-    pushAttr(attrs, "declared_inputs_count", data?.declared_inputs?.length ?? null);
-  } else if (ev.type === EventType.CONTEXT_BUILD_COMPLETED) {
-    const data = ev.eventData as ContextBuildCompletedData | null;
-    if (data?.rendered_context) output = data.rendered_context;
-    pushAttr(attrs, "total_bytes", data?.total_bytes ?? null);
-    pushAttr(attrs, "inputs_count", data?.inputs?.length ?? null);
-  } else if (ev.type === EventType.CONTEXT_INPUT_RESOLVED) {
-    const data = ev.eventData as ContextInputResolvedData | null;
-    pushAttr(attrs, "loader_kind", data?.loader_kind);
-    pushAttr(attrs, "input_ref", data?.input_ref);
-    pushAttr(attrs, "status", data?.status);
-    pushAttr(attrs, "bytes", data?.bytes ?? null);
-    pushAttr(attrs, "from_cache", data?.from_cache);
-    pushAttr(attrs, "error", data?.error);
-    pushAttr(attrs, "content_hash", data?.content_hash);
-  } else if (ev.type === UI_ASK_REQUESTED) {
-    const data = ev.eventData as UIAskRequestedData | null;
-    if (data?.payload !== undefined && data?.payload !== null) {
-      input = JSON.stringify(data.payload);
-    }
-    pushAttr(attrs, "kind", data?.kind);
-    pushAttr(attrs, "tool_use_id", data?.tool_use_id);
-  } else if (ev.type === UI_ASK_ANSWERED) {
-    const data = ev.eventData as UIAskAnsweredData | null;
-    if (data?.exchanges !== undefined && data?.exchanges !== null) {
-      output = JSON.stringify(data.exchanges);
-    }
-    pushAttr(attrs, "kind", data?.kind);
-    pushAttr(attrs, "tool_use_id", data?.tool_use_id);
-  } else if (ev.type === EventType.PRE_TOOL_HOOK) {
-    const data = ev.eventData as PreToolHookData | null;
-    if (data?.tool_input !== undefined && data?.tool_input !== null) {
-      input = JSON.stringify(data.tool_input);
-    }
-    pushAttr(attrs, "tool_name", data?.tool_name);
-  } else if (ev.type === EventType.POST_TOOL_HOOK) {
-    const data = ev.eventData as PostToolHookData | null;
-    if (data?.tool_output) output = data.tool_output;
-    pushAttr(attrs, "tool_name", data?.tool_name);
-  } else if (ev.type === EventType.ERROR) {
-    const data = ev.eventData as ErrorData | null;
-    pushAttr(attrs, "error_type", data?.error_type);
-    pushAttr(attrs, "error_message", data?.error_message);
-    pushAttr(attrs, "stack_trace", data?.stack_trace);
-  } else if (ev.type === EventType.WARNING) {
-    const data = ev.eventData as WarningData | null;
-    pushAttr(attrs, "warning_type", data?.warning_type);
-    pushAttr(attrs, "message", data?.message);
-  } else {
-    const data = ev.eventData as Record<string, unknown> | null;
-    pushAttr(attrs, "operation", typeof data?.operation === "string" ? data.operation : null);
-    pushAttr(attrs, "status", typeof data?.status === "string" ? data.status : null);
-    pushAttr(attrs, "detail", typeof data?.detail === "string" ? data.detail : null);
-    pushAttr(attrs, "phase", typeof data?.phase === "string" ? data.phase : null);
-    pushAttr(attrs, "container_kind", typeof data?.containerKind === "string" ? data.containerKind : null);
-  }
-
-  return { input, output };
-}
-
 export function extractSpanPayload(paired: PairedEvent): SpanPayload {
-  const attrs: TraceSpanAttribute[] = [];
   const sourceEvent = paired.kind === "pair" ? paired.start : paired.event;
+  const attrs: TraceSpanAttribute[] = [];
   pushAttr(attrs, "trace_level", sourceEvent.traceLevel);
   pushAttr(attrs, "event_type", sourceEvent.type);
   pushAttr(attrs, "container_id", sourceEvent.containerId);
 
-  const { input, output } =
-    paired.kind === "pair" ? fillPaired(paired, attrs) : fillPoint(paired.event, attrs);
+  let payload: Payload;
+  if (paired.kind === "pair") {
+    const pair = EVENT_SPECS[paired.start.type]?.pair as
+      | ((start: unknown, end: unknown) => Payload)
+      | undefined;
+    payload = pair ? pair(paired.start.eventData, paired.end.eventData) : {};
+  } else {
+    const point = (EVENT_SPECS[paired.event.type]?.point ?? genericPoint) as (
+      data: unknown,
+    ) => Payload;
+    payload = point(paired.event.eventData);
+  }
+
+  for (const [key, value] of payload.attrs ?? []) pushAttr(attrs, key, value);
 
   const result: SpanPayload = {};
-  if (input !== undefined) result.input = input;
-  if (output !== undefined) result.output = output;
+  if (payload.input !== undefined) result.input = payload.input;
+  if (payload.output !== undefined) result.output = payload.output;
   if (attrs.length > 0) result.attributes = attrs;
   return result;
 }

@@ -12,7 +12,7 @@ import type { TraceSpan } from "@evilmartians/agent-prism-types";
 
 import { EventType, type TraceEvent, type PhaseStartData, type PhaseEndData } from "../types";
 
-import { makeAttr } from "./spanAttributes";
+import { makeAttr, readStringAttr } from "./spanAttributes";
 
 export function formatPhaseTitle(phase: string): string {
   return phase
@@ -40,11 +40,6 @@ export function extractPhaseSpans(events: TraceEvent[]): Map<string, PhaseRange>
     }
   }
   return map;
-}
-
-function readStringAttr(span: TraceSpan, key: string): string | null {
-  const found = span.attributes?.find((a) => a.key === key);
-  return found?.value?.stringValue ?? null;
 }
 
 export function groupAgentsByPhase(

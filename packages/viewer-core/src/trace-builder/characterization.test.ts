@@ -1,0 +1,63 @@
+/**
+ * Characterization test — pins the FULL buildTraceSpans output for one real
+ * research run (examples/simple-research-kernel, exported 2026-07-02 from
+ * .agent-kernel/trace.db into __fixtures__/research-run.json).
+ *
+ * The fixture exercises: phase_start + container_start seed events with no
+ * piSessionId/runId (app-level orphans), spawned sub-agents linked by
+ * parentSessionId + parentToolUseId, provisioning (system prompt + context
+ * build + resolved inputs), tool call pairing by spanId, single-run pi
+ * sessions (run wrapper skipped), and unknown event types (pi_turn_*,
+ * pi_agent_*) hitting the generic fallback.
+ *
+ * Any snapshot diff means the builder's public output changed — refactors
+ * must keep these snapshots byte-identical.
+ */
+import { describe, expect, it } from "bun:test";
+
+import type { TraceSpan } from "@evilmartians/agent-prism-types";
+
+import { buildTraceSpans } from "../build-trace-spans";
+import type {
+  AgentRun,
+  KernelContainerSummary,
+  PiAgentSession,
+  TraceEvent,
+} from "../types";
+
+import fixture from "./__fixtures__/research-run.json";
+
+const events = fixture.events as TraceEvent[];
+const piSessions = fixture.pi_sessions as PiAgentSession[];
+const agentRuns = fixture.agent_runs as AgentRun[];
+const containers = fixture.containers as KernelContainerSummary[];
+
+/** JSON-safe deep copy of a span tree with Dates rendered as ISO strings. */
+function normalize(spans: TraceSpan[]): unknown[] {
+  return spans.map((span) => ({
+    id: span.id,
+    title: span.title,
+    type: span.type,
+    status: span.status,
+    startTime: span.startTime.toISOString(),
+    endTime: span.endTime.toISOString(),
+    duration: span.duration,
+    input: span.input,
+    output: span.output,
+    attributes: span.attributes,
+    raw: span.raw,
+    children: span.children ? normalize(span.children) : undefined,
+  }));
+}
+
+describe("buildTraceSpans characterization (research-run fixture)", () => {
+  it("matches the pinned output tree for the live-UI call shape (no containers arg)", () => {
+    const spans = buildTraceSpans(events, piSessions, agentRuns);
+    expect(normalize(spans)).toMatchSnapshot();
+  });
+
+  it("matches the pinned output tree when container summaries are provided", () => {
+    const spans = buildTraceSpans(events, piSessions, agentRuns, containers);
+    expect(normalize(spans)).toMatchSnapshot();
+  });
+});
