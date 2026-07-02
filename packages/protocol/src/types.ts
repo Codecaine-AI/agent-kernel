@@ -7,7 +7,10 @@
 
 // ─── Placeholder User ID ───────────────────────────────────────────────────
 
-/** Single-user app — no auth system yet. Replace when auth is added. */
+/**
+ * Optional actor label for single-user apps. Nothing in the protocol requires
+ * a userId; apps that want an actor correlation may use this constant.
+ */
 export const SYSTEM_USER_ID = "00000000-0000-0000-0000-000000000001";
 
 // ─── Trace Levels ───────────────────────────────────────────────────────────
@@ -60,10 +63,6 @@ export const EventType = {
   CONTAINER_START: "container_start",
   CONTAINER_END: "container_end",
 
-  // UI Asks (durable user-input asks)
-  UI_ASK_REQUESTED: "ui_ask_requested",
-  UI_ASK_ANSWERED: "ui_ask_answered",
-
   // System
   ERROR: "error",
   WARNING: "warning",
@@ -71,6 +70,24 @@ export const EventType = {
 
 export type KnownEventType = (typeof EventType)[keyof typeof EventType];
 export type EventType = KnownEventType | (string & {});
+
+// ─── Usage ──────────────────────────────────────────────────────────────────
+
+/**
+ * Per-model-call token usage. Carried on pi_turn_end.eventData.usage and
+ * rolled up onto agent_run_end.eventData.usage. Columns land in Phase 1;
+ * population happens in Phase 2 (extension emitter).
+ */
+export interface TurnUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  /** The model that actually served the turn. */
+  model: string;
+  /** From kernel-config price table, when present. */
+  costEstimate?: number;
+}
 
 // ─── Agent Lifecycle ────────────────────────────────────────────────────────
 
@@ -103,6 +120,8 @@ export interface AgentRunEndData {
   agent_name: string;
   status: "ok" | "error";
   error_message?: string;
+  /** Usage rolled up across the run's turns (populated from Phase 2). */
+  usage?: TurnUsage;
 }
 
 // ─── Pi Lifecycle ───────────────────────────────────────────────────────────
@@ -125,6 +144,8 @@ export interface PiTurnStartData {
 export interface PiTurnEndData {
   turn_number?: number;
   stop_reason?: string;
+  /** Token usage for this model call (populated from Phase 2). */
+  usage?: TurnUsage;
 }
 
 // ─── Spawn Lifecycle ────────────────────────────────────────────────────────
@@ -234,65 +255,6 @@ export interface ContainerEndData {
   phase?: string;
 }
 
-// ─── UI Asks ────────────────────────────────────────────────────────────────
-
-export interface AskQuestion {
-  type: "freeform" | "single" | "multi";
-  question: string;
-  description?: string;
-  options?: Array<{ label: string; description: string }>;
-}
-
-export interface AskAttachment {
-  mimeType: string;
-  data: string;
-}
-
-export interface AskAnswer {
-  selectedOptions: string[];
-  customInput?: string;
-  optionNotes?: Record<string, string>;
-  attachments?: AskAttachment[];
-}
-
-export interface AskExchange {
-  question: AskQuestion;
-  answer: AskAnswer;
-}
-
-export type UIAskKind = "ask" | "confirm" | "link_prior" | "approval";
-
-/** Payload shape for UI_ASK_REQUESTED with kind="approval" (plan/build/docs review gates). */
-export interface UIAskApprovalRequestPayload {
-  phase?: "plan" | "build" | "docs";
-  level: "outline" | "checkpoint" | "task_group" | "task";
-  checkpoint_id: number | null;
-  task_group_id: number | null;
-  context_summary: string;
-  actions: Array<"approve" | "feedback" | "exit_to_auto">;
-}
-
-/** Payload shape for UI_ASK_ANSWERED with kind="approval". Mirrors the user's decision at a review gate. */
-export interface UIAskApprovalResponsePayload {
-  action: "approve" | "feedback" | "exit_to_auto";
-  message: string | null;
-  oversight_mode: string | null;
-}
-
-export interface UIAskRequestedData {
-  tool_use_id: string;
-  kind: UIAskKind;
-  payload: Record<string, unknown>;
-}
-
-export interface UIAskAnsweredData {
-  tool_use_id: string;
-  kind: UIAskKind;
-  exchanges: AskExchange[];
-  /** Populated only when kind="approval" — the user's decision at a review gate. */
-  approval_response?: UIAskApprovalResponsePayload;
-}
-
 // ─── System ─────────────────────────────────────────────────────────────────
 
 export interface ErrorData {
@@ -331,8 +293,6 @@ export type KnownEventData =
   | PhaseEndData
   | ContainerStartData
   | ContainerEndData
-  | UIAskRequestedData
-  | UIAskAnsweredData
   | ErrorData
   | WarningData;
 

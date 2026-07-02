@@ -1,31 +1,29 @@
-import { foreignKey, index, integer, json, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
-import { piAgentSessions } from "./pi-agent-sessions";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-export const traceEvents = pgTable("trace_events", {
-  id: uuid().primaryKey().notNull(),
-  appSessionId: uuid("app_session_id").notNull(),
-  containerId: varchar("container_id"),
-  userId: uuid("user_id").notNull(),
-  type: varchar().notNull(),
-  source: varchar().notNull(),
-  traceLevel: integer("trace_level").notNull(),
-  eventData: json("event_data").notNull(),
-  piSessionId: uuid("pi_session_id"),
-  spanId: varchar("span_id"),
-  parentEventId: varchar("parent_event_id"),
-  timestamp: timestamp({ mode: "string" }).notNull(),
-}, (table) => [
-  index("ix_trace_events_app_session_id").using("btree", table.appSessionId.asc().nullsLast().op("uuid_ops")),
-  index("ix_trace_events_container_id").using("btree", table.containerId.asc().nullsLast().op("text_ops")),
-  index("ix_trace_events_app_session_type").using("btree", table.appSessionId.asc().nullsLast().op("uuid_ops"), table.type.asc().nullsLast().op("text_ops")),
-  index("ix_trace_events_span_id").using("btree", table.spanId.asc().nullsLast().op("text_ops")),
-  index("ix_trace_events_timestamp").using("btree", table.timestamp.asc().nullsLast().op("timestamp_ops")),
-  index("ix_trace_events_type").using("btree", table.type.asc().nullsLast().op("text_ops")),
-  index("ix_trace_events_pi_session_id").using("btree", table.piSessionId.asc().nullsLast().op("uuid_ops")),
-  foreignKey({
-    columns: [table.piSessionId],
-    foreignColumns: [piAgentSessions.id],
-    name: "trace_events_pi_session_id_fkey",
-  }),
-  index("ix_trace_events_source").using("btree", table.source.asc().nullsLast().op("text_ops")),
-]);
+/**
+ * The event log. container_id is the single required grouping identity;
+ * run/session/agent/user linkage is stamped when known at emit time.
+ * event_id is the idempotent insert key (INSERT OR IGNORE).
+ */
+export const traceEvents = sqliteTable(
+  "trace_events",
+  {
+    eventId: text("event_id").primaryKey(),
+    containerId: text("container_id").notNull(),
+    runId: text("run_id"),
+    piSessionId: text("pi_session_id"),
+    agentId: text("agent_id"),
+    userId: text("user_id"),
+    type: text("type").notNull(),
+    source: text("source").notNull(),
+    traceLevel: integer("trace_level").notNull(),
+    eventData: text("event_data", { mode: "json" }).notNull(),
+    spanId: text("span_id"),
+    parentEventId: text("parent_event_id"),
+    timestamp: text("timestamp").notNull(),
+  },
+  (table) => [
+    index("idx_events_container_ts").on(table.containerId, table.timestamp),
+    index("idx_events_run").on(table.runId),
+  ],
+);
