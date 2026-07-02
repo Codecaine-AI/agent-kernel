@@ -89,6 +89,16 @@ export class AgentManager {
 		string,
 		{ message: string; delivery: "delivered" | "queued" }[]
 	>();
+	/**
+	 * Per-record completion deferreds (D77 background handles). Created at
+	 * spawn() so `waitForAgent` works for queued records too — a queued
+	 * record has no `promise` until startAgent runs, and a queued record
+	 * aborted before starting never gets one at all.
+	 */
+	private completionWaiters = new Map<
+		string,
+		{ promise: Promise<AgentRecord>; resolve: (record: AgentRecord) => void }
+	>();
 	private queue: { id: string; args: SpawnArgs }[] = [];
 	private runningBackground = 0;
 
@@ -142,6 +152,14 @@ export class AgentManager {
 			abortController,
 		};
 		this.agents.set(id, record);
+		let resolveCompletion!: (r: AgentRecord) => void;
+		const completion = new Promise<AgentRecord>((resolve) => {
+			resolveCompletion = resolve;
+		});
+		this.completionWaiters.set(id, {
+			promise: completion,
+			resolve: resolveCompletion,
+		});
 
 		const args: SpawnArgs = { pi, ctx, agentName, prompt, options };
 
@@ -180,15 +198,19 @@ export class AgentManager {
 		if (options.isBackground) this.runningBackground++;
 		this.onStart?.(record);
 
+		// Track the abort listener so the completion path can remove it: a
+		// long-lived coordinator signal would otherwise accrue one listener
+		// (and one retained record closure) per dispatched child.
+		let detachAbortListener: (() => void) | undefined;
 		if (options.signal) {
 			if (options.signal.aborted) {
 				record.abortController?.abort();
 			} else {
-				options.signal.addEventListener(
-					"abort",
-					() => record.abortController?.abort(),
-					{ once: true },
-				);
+				const signal = options.signal;
+				const onAbort = () => record.abortController?.abort();
+				signal.addEventListener("abort", onAbort, { once: true });
+				detachAbortListener = () =>
+					signal.removeEventListener("abort", onAbort);
 			}
 		}
 
@@ -254,12 +276,14 @@ export class AgentManager {
 				record.result = responseText;
 				record.session = session;
 				record.completedAt ??= Date.now();
+				detachAbortListener?.();
 
 				if (options.isBackground) {
 					this.runningBackground--;
 					this.onComplete?.(record);
 					this.drainQueue();
 				}
+				this.settleCompletion(record);
 				return responseText;
 			})
 			.catch((err) => {
@@ -268,16 +292,42 @@ export class AgentManager {
 				}
 				record.error = err instanceof Error ? err.message : String(err);
 				record.completedAt ??= Date.now();
+				detachAbortListener?.();
 
 				if (options.isBackground) {
 					this.runningBackground--;
 					this.onComplete?.(record);
 					this.drainQueue();
 				}
+				this.settleCompletion(record);
 				return "";
 			});
 
 		record.promise = promise;
+	}
+
+	/** Resolve the record's completion deferred (idempotent). */
+	private settleCompletion(record: AgentRecord): void {
+		const waiter = this.completionWaiters.get(record.id);
+		if (!waiter) return;
+		this.completionWaiters.delete(record.id);
+		waiter.resolve(record);
+	}
+
+	/**
+	 * Resolves with the final record once the agent completes — including
+	 * queued background agents (which have no `promise` until they start)
+	 * and queued agents aborted before starting. Backs the `done` promise of
+	 * spawner-tool background dispatch handles (D77).
+	 */
+	waitForAgent(id: string): Promise<AgentRecord> {
+		const record = this.agents.get(id);
+		if (!record) {
+			return Promise.reject(new Error(`Unknown agent id: ${id}`));
+		}
+		const waiter = this.completionWaiters.get(id);
+		// No waiter left means the record already settled.
+		return waiter ? waiter.promise : Promise.resolve(record);
 	}
 
 	private drainQueue(): void {
@@ -367,6 +417,8 @@ export class AgentManager {
 			this.queue = this.queue.filter((q) => q.id !== id);
 			record.status = "stopped";
 			record.completedAt = Date.now();
+			// A queued record never starts, so its completion settles here.
+			this.settleCompletion(record);
 			return true;
 		}
 
@@ -390,6 +442,7 @@ export class AgentManager {
 			if (record) {
 				record.status = "stopped";
 				record.completedAt = Date.now();
+				this.settleCompletion(record);
 				count++;
 			}
 		}
@@ -442,8 +495,12 @@ export class AgentManager {
 		this.queue = [];
 		for (const record of this.agents.values()) {
 			record.session?.dispose?.();
+			// Settle any outstanding completion waiters so `done` promises
+			// held by background dispatch handles never hang.
+			this.settleCompletion(record);
 		}
 		this.agents.clear();
 		this.deferredSteerEvents.clear();
+		this.completionWaiters.clear();
 	}
 }

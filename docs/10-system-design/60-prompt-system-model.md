@@ -1578,3 +1578,30 @@ bundle is two data files the UI can fully edit plus two code sidecars.
 `defineAgent` survives as the typed generator/validator for these files. The
 runtime's internal `ParsedAgent.frontmatter` shape is renamed to
 `ParsedAgent.config`; the `AgentFrontmatter` type is retired.
+
+### D77. First-Class Spawner Tools (new; retires `canSpawnSubagent`)
+
+Status: decided.
+
+Decision: Spawning is granted per tool, not per agent. A tool that dispatches
+subagents is declared with `defineSpawnerTool({ ..., spawns: [agent names] })`
+in the `tools.ts` sidecar; the kernel injects a scoped `dispatch` handle at
+session build time that enforces the declared allowlist and auto-forwards
+`parentToolUseId`, `trigger: "parent-tool"`, and run-context identity. The
+manifest-level `canSpawnSubagent` boolean is removed from the schema, the
+types, and the runtime.
+
+Agent platforms default to "everything can spawn general subagents"; this
+kernel should not. The boolean was a leftover general-permission model: it
+said an agent may spawn, but not what, through which tool, or with what
+identity plumbing. Spawner declarations are harvested at registry boot —
+every non-`"*"` target must exist in the catalog or boot fails — and the
+harvested map rides on the runtime config. A deliberately general spawner
+remains possible via `spawns: ["*"]`, but it is a loud opt-in visible in the
+declaration, the harvest, and the trace.
+
+Spawner calls are distinguishable in traces: `tool_call_start` /
+`tool_call_end` eventData gains optional `toolKind: "spawner"` + `spawns`
+(additive optional fields on the existing payloads, TurnUsage-style — no new
+event types, no envelope change), so viewers can render agent dispatch
+differently from ordinary tools. Viewer rendering is a deliberate follow-up.

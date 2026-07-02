@@ -11,8 +11,10 @@ export function applyToolScoping(
 	session: ToolScopedSessionLike,
 	config: AgentConfig,
 ): void {
-	const extraDisallowed = config.canSpawnSubagent ? [] : SUBAGENT_TOOL_NAMES;
-	const disallowlist = [...(config.disallowedTools ?? []), ...extraDisallowed];
+	// D77: general subagent tools are never granted. Spawning happens only
+	// through declared spawner tools (per-tool `spawns` allowlists), so the
+	// generic Agent/steer surface is disallowed for every kernel agent.
+	const disallowlist = [...(config.disallowedTools ?? []), ...SUBAGENT_TOOL_NAMES];
 	const allowlist = config.tools ?? [];
 	const extensions = config.extensions ?? true;
 

@@ -31,7 +31,8 @@ import {
 	type NormalizedAgentManifest,
 } from "../../agent-definition";
 import type { AgentContextResolver } from "../../context";
-import { harvestPrivateToolNamesFromRegister } from "./harvest-private-tool-names";
+import { SPAWNER_WILDCARD } from "../../agent-definition/spawner-tool";
+import { harvestPrivateToolsFromRegister } from "./harvest-private-tool-names";
 import type { AgentDefinition, AgentRegistry } from "./types";
 import { RegistryError } from "./types";
 import { validateVariables } from "./validate-variables";
@@ -259,9 +260,11 @@ async function loadOne(
 		const privateTools = toolsModulePath
 			? await importToolsSidecar(toolsModulePath, manifestFile)
 			: null;
-		const privateToolNames = privateTools
-			? await harvestPrivateToolNamesFromRegister(privateTools)
-			: [];
+		const harvested = privateTools
+			? await harvestPrivateToolsFromRegister(privateTools)
+			: { names: [], spawnerTools: {} };
+		const privateToolNames = harvested.names;
+		const spawnerTools = harvested.spawnerTools;
 		const coreTools = manifest.coreTools;
 		const tools = [...new Set([...coreTools, ...profileTools, ...privateToolNames])];
 		const parsed = {
@@ -272,7 +275,7 @@ async function loadOne(
 				tools,
 				disallowedTools: manifest.disallowedTools,
 				extensions: manifest.extensions,
-				canSpawnSubagent: manifest.canSpawnSubagent,
+				spawnerTools,
 				variables: manifest.variables,
 				maxTurns: manifest.maxTurns,
 				runInBackground: manifest.runInBackground,
@@ -294,6 +297,7 @@ async function loadOne(
 				contextModulePath,
 				privateTools,
 				privateToolNames,
+				spawnerTools,
 				toolsModulePath,
 				coreTools,
 				manifestFile,
@@ -359,6 +363,27 @@ export async function buildRegistry(
 			);
 		} else {
 			defs.set(name, group[0]);
+		}
+	}
+
+	// D77: every non-wildcard spawner target must exist in the catalog.
+	const catalogNames = [...byName.keys()].sort();
+	for (const def of loaded) {
+		const violations: string[] = [];
+		for (const [toolName, spawns] of Object.entries(def.spawnerTools)) {
+			for (const target of spawns) {
+				if (target === SPAWNER_WILDCARD) continue;
+				if (!byName.has(target)) {
+					violations.push(
+						`spawner tool "${toolName}" targets unknown agent "${target}" — catalog agents: ${
+							catalogNames.length ? catalogNames.join(", ") : "(none)"
+						}`,
+					);
+				}
+			}
+		}
+		if (violations.length > 0) {
+			errors.push(new RegistryError(def.manifestFile, violations));
 		}
 	}
 

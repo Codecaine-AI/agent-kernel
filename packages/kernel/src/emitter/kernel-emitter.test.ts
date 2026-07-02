@@ -62,6 +62,7 @@ class FakeSessionManager {
 function makeHarness(opts?: {
 	onTurnUsage?: (usage: TurnUsage) => void;
 	onInboundEvent?: (eventId: string) => void;
+	spawnerTools?: Record<string, string[]>;
 }) {
 	const sm = new FakeSessionManager();
 	const submitted: TraceEvent[] = [];
@@ -77,6 +78,7 @@ function makeHarness(opts?: {
 		sessionManager: sm,
 		onTurnUsage: opts?.onTurnUsage,
 		onInboundEvent: opts?.onInboundEvent,
+		spawnerTools: opts?.spawnerTools,
 	});
 
 	// Lifecycle logger listener (mirrors attachPiLifecycleLogger).
@@ -258,6 +260,54 @@ describe("createKernelEmitter", () => {
 			tool_use_id: "toolu_1",
 			tool_name: "read",
 			tool_output: "file contents",
+		});
+	});
+
+	test("marks spawner tool calls with toolKind + spawns (D77); ordinary tools untouched", async () => {
+		const { submitted, deliver } = makeHarness({
+			spawnerTools: { spawn_scouts: ["source-scout"] },
+		});
+		const spawnerCall = {
+			role: "assistant",
+			content: [
+				{ type: "toolCall", id: "toolu_s", name: "spawn_scouts", arguments: "{}" },
+				{ type: "toolCall", id: "toolu_r", name: "read", arguments: "{}" },
+			],
+			model: "test/model-1",
+			stopReason: "toolUse",
+			timestamp: 0,
+		};
+		const spawnerResult = {
+			role: "toolResult",
+			toolCallId: "toolu_s",
+			toolName: "spawn_scouts",
+			content: [{ type: "text", text: "2 scouts done" }],
+			timestamp: 0,
+		};
+		await deliver([
+			{ type: "agent_start" },
+			{ type: "turn_start" },
+			{ type: "message_end", message: spawnerCall },
+			{ type: "turn_end", message: spawnerCall },
+			{ type: "message_end", message: spawnerResult },
+		]);
+
+		const starts = submitted.filter((e) => e.type === "tool_call_start");
+		expect(starts).toHaveLength(2);
+		expect(starts[0].eventData).toMatchObject({
+			tool_name: "spawn_scouts",
+			toolKind: "spawner",
+			spawns: ["source-scout"],
+		});
+		// The ordinary tool call carries no spawner marking.
+		expect(starts[1].eventData).not.toHaveProperty("toolKind");
+		expect(starts[1].eventData).not.toHaveProperty("spawns");
+
+		const end = submitted.find((e) => e.type === "tool_call_end")!;
+		expect(end.eventData).toMatchObject({
+			tool_name: "spawn_scouts",
+			toolKind: "spawner",
+			spawns: ["source-scout"],
 		});
 	});
 

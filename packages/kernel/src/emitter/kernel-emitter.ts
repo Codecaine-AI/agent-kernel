@@ -78,6 +78,13 @@ export interface KernelEmitterOptions {
 	model?: string;
 	/** Run phase stamped onto user_message eventData. */
 	phase?: string;
+	/**
+	 * The agent's harvested spawner map (tool name → `spawns` allowlist, D77).
+	 * Tool calls whose name is in this map are marked with
+	 * `toolKind: "spawner"` + `spawns` so viewers can render agent dispatch
+	 * differently from ordinary tools.
+	 */
+	spawnerTools?: Record<string, string[]>;
 	/** Custom type the pipeline's lifecycle logger writes (JSONL parity check). */
 	lifecycleCustomType?: string;
 	/** Session manager of the live Pi session, for JSONL entry-id recovery. */
@@ -230,6 +237,14 @@ export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
 		return undefined;
 	}
 
+	/** toolKind/spawns marking for declared spawner tools (D77). */
+	function spawnerMarking(
+		toolName: string,
+	): { toolKind: "spawner"; spawns: string[] } | undefined {
+		const spawns = opts.spawnerTools?.[toolName];
+		return spawns ? { toolKind: "spawner", spawns } : undefined;
+	}
+
 	function normalizedContent(message: PiMessageLike): PiContentBlockLike[] {
 		const content = message.content;
 		// Pi persists user prompts as either a string or content blocks —
@@ -260,6 +275,7 @@ export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
 				createToolCallEndEvent(ids, toolName, toolCallId, {
 					toolOutput: output || undefined,
 					spanId: toolCallId,
+					...spawnerMarking(toolName),
 				}),
 				entryId,
 				ordinal++,
@@ -299,6 +315,7 @@ export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
 					createToolCallStartEvent(ids, block.name ?? "unknown", block.id ?? "unknown", {
 						toolInput,
 						spanId: block.id,
+						...spawnerMarking(block.name ?? "unknown"),
 					}),
 					entryId,
 					ordinal++,

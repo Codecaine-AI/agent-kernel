@@ -15,7 +15,8 @@ export type ResearchAgentSummary = {
 	tools: string[];
 	disallowedTools: string[];
 	extensions: true | string[] | false;
-	canSpawnSubagent: boolean;
+	/** Spawner tool name → declared agent-name allowlist (D77). */
+	spawnerTools: Record<string, string[]>;
 	variables: Array<{
 		name: string;
 		defaultValue: unknown;

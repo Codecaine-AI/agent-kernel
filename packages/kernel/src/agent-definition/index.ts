@@ -10,6 +10,20 @@ export {
 	type AgentManifestShapeResult,
 } from "./agent-manifest-schema";
 
+export {
+	SPAWNER_TOOL_MARKER,
+	SPAWNER_WILDCARD,
+	defineSpawnerTool,
+	getSpawnerToolMeta,
+	spawnAllowed,
+	type SpawnerDispatch,
+	type SpawnerDispatchOptions,
+	type SpawnerToolContext,
+	type SpawnerToolDeclaration,
+	type SpawnerToolDefinition,
+	type SpawnerToolMeta,
+} from "./spawner-tool";
+
 export interface AgentVariableDeclaration {
 	default?: unknown;
 	description?: string;
@@ -46,7 +60,6 @@ export interface AgentManifest {
 	model: string;
 	thinking?: string;
 	maxTurns?: number;
-	canSpawnSubagent?: boolean;
 	coreTools?: string[];
 	disallowedTools?: string[];
 	extensions?: AgentExtensionsConfig;
@@ -62,7 +75,6 @@ export type NormalizedAgentManifest = AgentManifest & {
 	coreTools: string[];
 	disallowedTools: string[];
 	extensions: AgentExtensionsConfig;
-	canSpawnSubagent: boolean;
 	runInBackground: boolean;
 	toolProfiles: string[];
 	variables: Record<string, AgentVariableDeclaration>;
@@ -78,7 +90,6 @@ export function normalizeAgentManifest(
 		coreTools: manifest.coreTools ?? [],
 		disallowedTools: manifest.disallowedTools ?? [],
 		extensions: manifest.extensions ?? true,
-		canSpawnSubagent: manifest.canSpawnSubagent ?? false,
 		runInBackground: manifest.runInBackground ?? false,
 		toolProfiles: manifest.toolProfiles ?? [],
 		variables: manifest.variables ?? {},

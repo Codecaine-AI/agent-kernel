@@ -34,7 +34,7 @@ import {
 } from "./spawn-pipeline/spawn-agent";
 import type { AgentConfig } from "./spawn-pipeline/types";
 import type { SessionBindingInput } from "./spawn-pipeline/pi-session-factory";
-import { AgentManager, type AgentSpawnResult } from "./subagents";
+import { AgentManager, bindSpawnerTools, type AgentSpawnResult } from "./subagents";
 import { createDbTraceWriter, type KernelTraceWriter } from "./trace-writer";
 
 export const DEFAULT_MAX_BACKGROUND_AGENTS = 4;
@@ -257,7 +257,17 @@ export function createKernel<TToolRuntime = unknown>(
 			buildPrivateRegisterFactory: async (name) => {
 				const privateTools = registry.get(name).privateTools;
 				if (!privateTools) return null;
-				return (pi) => privateTools(pi, config.toolRuntime);
+				// D77: spawner tools registered by tools.ts get their scoped
+				// dispatch handle bound to this kernel's AgentManager here.
+				return (pi) =>
+					privateTools(
+						bindSpawnerTools(pi, {
+							agentManager,
+							toolRuntime: config.toolRuntime,
+							hasAgent: (agentName) => registry.tryGet(agentName) !== null,
+						}),
+						config.toolRuntime,
+					);
 			},
 			buildToolFactories: (agentConfig) => config.sharedTools?.(agentConfig) ?? [],
 			createContextCatalog: () => {

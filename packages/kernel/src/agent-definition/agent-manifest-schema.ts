@@ -22,7 +22,6 @@ const TOP_LEVEL_KEYS = new Set([
 	"model",
 	"thinking",
 	"maxTurns",
-	"canSpawnSubagent",
 	"coreTools",
 	"disallowedTools",
 	"extensions",
@@ -56,7 +55,6 @@ export const agentManifestJsonSchema = {
 		model: { type: "string", minLength: 1 },
 		thinking: { type: "string" },
 		maxTurns: { type: "number" },
-		canSpawnSubagent: { type: "boolean" },
 		coreTools: { type: "array", items: { type: "string" } },
 		disallowedTools: { type: "array", items: { type: "string" } },
 		extensions: {
@@ -133,7 +131,6 @@ export function validateAgentManifestShape(
 
 	checkOptionalString(value, "thinking", errors);
 	checkOptionalNumber(value, "maxTurns", errors);
-	checkOptionalBoolean(value, "canSpawnSubagent", errors);
 	checkOptionalBoolean(value, "runInBackground", errors);
 	checkOptionalStringArray(value, "coreTools", errors);
 	checkOptionalStringArray(value, "disallowedTools", errors);

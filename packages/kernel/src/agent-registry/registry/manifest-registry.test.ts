@@ -52,6 +52,25 @@ export const tools = defineTools((pi) => {
 });
 `;
 
+function spawnerToolsTs(spawns: string[]): string {
+	return `import { defineSpawnerTool, defineTools } from "@agent-kernel/kernel/agent-definition";
+
+export const tools = defineTools((pi) => {
+  pi.registerTool(defineSpawnerTool({
+    name: "spawn_helper",
+    label: "Spawn helper",
+    description: "Dispatch helper agents.",
+    parameters: {},
+    spawns: ${JSON.stringify(spawns)},
+    execute: async (_id, _params, { dispatch }) => {
+      await dispatch(${JSON.stringify(spawns[0])}, "go");
+      return { content: [{ type: "text", text: "ok" }] };
+    }
+  }));
+});
+`;
+}
+
 const AGENT_MANIFEST = {
 	$schema: "agent-kernel/agent-v1",
 	name: "manifest-agent",
@@ -75,11 +94,12 @@ function writeAgentDir(
 		promptJson?: string | null;
 		manifest?: Record<string, unknown>;
 		manifestRaw?: string;
+		toolsTs?: string;
 	} = {},
 ): void {
 	mkdirSync(agentDir, { recursive: true });
 	writeFileSync(join(agentDir, "context.ts"), CONTEXT_TS);
-	writeFileSync(join(agentDir, "tools.ts"), TOOLS_TS);
+	writeFileSync(join(agentDir, "tools.ts"), opts.toolsTs ?? TOOLS_TS);
 	writeFileSync(
 		join(agentDir, "agent.json"),
 		opts.manifestRaw ??
@@ -217,6 +237,72 @@ describe("manifest agent registry (agent.json)", () => {
 			});
 
 			await expectBootFailure(root, /manifest\.model: expected a non-empty string/);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	test("harvests spawner declarations (D77) alongside private tool names", async () => {
+		const root = tempRoot();
+		try {
+			writeAgentDir(join(root, "manifest-agent"), {
+				toolsTs: spawnerToolsTs(["manifest-agent"]),
+			});
+
+			const registry = await buildRegistry({ roots: [root] });
+			const agent = registry.get("manifest-agent");
+			expect(agent.privateToolNames).toEqual(["spawn_helper"]);
+			expect(agent.spawnerTools).toEqual({ spawn_helper: ["manifest-agent"] });
+			// The harvested map rides on the runtime config for the emitter/APIs.
+			expect(agent.parsed.config.spawnerTools).toEqual({
+				spawn_helper: ["manifest-agent"],
+			});
+			expect(agent.parsed.config.tools).toContain("spawn_helper");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	test("boot fails when a spawner tool targets an agent missing from the catalog", async () => {
+		const root = tempRoot();
+		try {
+			writeAgentDir(join(root, "manifest-agent"), {
+				toolsTs: spawnerToolsTs(["ghost-agent"]),
+			});
+
+			await expectBootFailure(
+				root,
+				/spawner tool "spawn_helper" targets unknown agent "ghost-agent" — catalog agents: manifest-agent/,
+			);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	test('spawns: ["*"] passes boot validation (deliberate general spawner)', async () => {
+		const root = tempRoot();
+		try {
+			writeAgentDir(join(root, "manifest-agent"), {
+				toolsTs: spawnerToolsTs(["*"]),
+			});
+
+			const registry = await buildRegistry({ roots: [root] });
+			expect(registry.get("manifest-agent").spawnerTools).toEqual({
+				spawn_helper: ["*"],
+			});
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	test("boot rejects the retired canSpawnSubagent manifest field (closed schema)", async () => {
+		const root = tempRoot();
+		try {
+			writeAgentDir(join(root, "manifest-agent"), {
+				manifest: { ...AGENT_MANIFEST, canSpawnSubagent: true },
+			});
+
+			await expectBootFailure(root, /manifest\.canSpawnSubagent: unknown field/);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}

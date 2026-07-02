@@ -417,12 +417,18 @@ export function createToolCallStartEvent(
     toolInput?: Record<string, unknown>;
     spanId?: string;
     parentEventId?: string;
+    /** Mark the call as an agent-dispatching spawner tool (D77). */
+    toolKind?: "spawner";
+    /** The spawner tool's declared agent-name allowlist (D77). */
+    spawns?: string[];
   },
 ): TraceEvent {
   const data: ToolCallStartData = {
     tool_use_id: toolUseId,
     tool_name: toolName,
     tool_input: opts?.toolInput,
+    ...(opts?.toolKind !== undefined ? { toolKind: opts.toolKind } : {}),
+    ...(opts?.spawns !== undefined ? { spawns: opts.spawns } : {}),
   };
   return createEvent({
     type: EventType.TOOL_CALL_START,
@@ -444,6 +450,10 @@ export function createToolCallEndEvent(
     durationMs?: number;
     spanId?: string;
     parentEventId?: string;
+    /** Mark the call as an agent-dispatching spawner tool (D77). */
+    toolKind?: "spawner";
+    /** The spawner tool's declared agent-name allowlist (D77). */
+    spawns?: string[];
   },
 ): TraceEvent {
   const data: ToolCallEndData = {
@@ -451,6 +461,8 @@ export function createToolCallEndEvent(
     tool_name: toolName,
     tool_output: opts?.toolOutput,
     duration_ms: opts?.durationMs,
+    ...(opts?.toolKind !== undefined ? { toolKind: opts.toolKind } : {}),
+    ...(opts?.spawns !== undefined ? { spawns: opts.spawns } : {}),
   };
   return createEvent({
     type: EventType.TOOL_CALL_END,

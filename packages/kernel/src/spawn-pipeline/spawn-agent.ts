@@ -277,6 +277,7 @@ export function createSpawnAgent(
 					agentName: name,
 					model: resolvedModelLabel,
 					phase: opts.phase,
+					spawnerTools: resolved.config.spawnerTools,
 					lifecycleCustomType: adapters.piLifecycleCustomType,
 					prices: adapters.modelPrices,
 					sessionManager: session.sessionManager as unknown as EmitterSessionManagerLike,

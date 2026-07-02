@@ -225,6 +225,10 @@ export interface ToolCallStartData {
   tool_use_id: string;
   tool_name: string;
   tool_input?: Record<string, unknown>;
+  /** "spawner" when the tool is a declared agent-dispatch tool (D77). */
+  toolKind?: "spawner";
+  /** Agent names the spawner tool may dispatch; ["*"] means any (D77). */
+  spawns?: string[];
 }
 
 export interface ToolCallEndData {
@@ -232,6 +236,10 @@ export interface ToolCallEndData {
   tool_name: string;
   tool_output?: string;
   duration_ms?: number;
+  /** "spawner" when the tool is a declared agent-dispatch tool (D77). */
+  toolKind?: "spawner";
+  /** Agent names the spawner tool may dispatch; ["*"] means any (D77). */
+  spawns?: string[];
 }
 
 export interface PreToolHookData {

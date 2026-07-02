@@ -26,7 +26,12 @@ export interface AgentConfig {
 	tools: string[];
 	disallowedTools?: string[];
 	extensions?: true | string[] | false;
-	canSpawnSubagent?: boolean;
+	/**
+	 * Spawner tool name → declared agent-name allowlist (D77). Harvested from
+	 * the tools.ts sidecar at boot; the emitter uses it to mark spawner tool
+	 * calls in traces (`toolKind: "spawner"`).
+	 */
+	spawnerTools?: Record<string, string[]>;
 	variables: Record<string, VariableDeclaration>;
 	maxTurns?: number;
 	runInBackground?: boolean;

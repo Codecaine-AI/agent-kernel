@@ -24,7 +24,7 @@ agent-catalog/<agent-name>/
   tools.ts             optional private-tools sidecar, attached by filename
 ```
 
-The manifest is pure data: name, description, model (id or kernel-config alias), thinking, `maxTurns`, `canSpawnSubagent`, `coreTools`, `disallowedTools`, `extensions`, `toolProfiles`, `variables`, and named `variants`. There is no `agent.ts` entry point and no Markdown/frontmatter path — the manifest file itself is the registry entry.
+The manifest is pure data: name, description, model (id or kernel-config alias), thinking, `maxTurns`, `coreTools`, `disallowedTools`, `extensions`, `toolProfiles`, `variables`, and named `variants`. There is no `agent.ts` entry point and no Markdown/frontmatter path — the manifest file itself is the registry entry. (`canSpawnSubagent` is retired: spawning is granted per tool via spawner declarations in `tools.ts`, D77.)
 
 `prompt.json` is the canonical prompt artifact (a prompt-kit `PromptDocument`). The registry validates it, renders it to XML-tagged Markdown, and computes its content hash (`pk1-<sha256>` over the canonical bytes). `prompt.rendered.md` is a committed derived snapshot, enforced by a snapshot test, so PR diffs show the behavioral contract in the format the model receives.
 
@@ -56,6 +56,7 @@ Registry boot fails with an aggregate of per-agent errors for:
 - prompt validation errors (including undeclared variable references)
 - declared variables that drift from prompt usage
 - unknown tool profiles
+- spawner tools whose `spawns` name agents missing from the catalog (D77)
 - name collisions
 - malformed context/tools sidecar exports
 
@@ -76,4 +77,4 @@ export const tools = defineTools((pi, runtime) => {
 });
 ```
 
-The registry executes the registration function during boot with a stub Pi object that only records `registerTool({ name })` calls, so it knows which tool names must be enabled without app dependencies at registration time. At spawn time the kernel binds the same function to the config `toolRuntime`, so app services are captured in `execute` handlers.
+The registry executes the registration function during boot with a stub Pi object that only records `registerTool({ name })` calls, so it knows which tool names must be enabled without app dependencies at registration time. Tools compiled by `defineSpawnerTool` additionally carry their `spawns` allowlist, which the harvest collects into the agent's spawner map (validated against the catalog: a non-`"*"` target naming an unknown agent fails boot). At spawn time the kernel binds the same function to the config `toolRuntime` — and binds spawner tools to the scoped dispatch handle (D77) — so app services are captured in `execute` handlers.

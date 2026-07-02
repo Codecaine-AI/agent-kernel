@@ -14,14 +14,12 @@ import {
 	createKernel,
 	getRunContext,
 	type AgentDefinition,
-	type KernelExtensionContext,
 	type KernelInstance
 } from "@agent-kernel/kernel";
 import type { Loader, LoaderDeclaration, LoaderResult } from "@agent-kernel/kernel/context";
 import { updateContainerStatus, type KernelDatabase } from "@agent-kernel/db";
 import { createContainerStartEvent, createPhaseStartEvent } from "@agent-kernel/protocol";
 import type { KernelTraceSessionSummary } from "@agent-kernel/viewer-core";
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import type { PromptDocument } from "@codecaine-ai/prompt-kit";
 import type { SimpleResearchToolRuntime, ToolResponse } from "./agent-catalog/tool-runtime";
 
@@ -66,7 +64,8 @@ type ResearchAgentSummary = {
 	tools: string[];
 	disallowedTools: string[];
 	extensions: true | string[] | false;
-	canSpawnSubagent: boolean;
+	/** Spawner tool name → declared agent-name allowlist (D77). */
+	spawnerTools: Record<string, string[]>;
 	variables: Array<{ name: string; defaultValue: unknown; description: string | null }>;
 	maxTurns: number | null;
 	thinking: string | null;
@@ -346,6 +345,8 @@ export class SimpleResearchKernelStore {
 	}
 
 	private variablesFor(agentName: string, prompt: string): Record<string, unknown> {
+		// Subagent variables (focus) are now supplied by the spawner tools in
+		// the agent catalog; the store only seeds the coordinator run.
 		const common = {
 			researchMemoryDir: "research-memory",
 			phase: PHASE
@@ -363,12 +364,11 @@ export class SimpleResearchKernelStore {
 	}
 
 	private createToolRuntime(): SimpleResearchToolRuntime {
+		// Scout/report-writer dispatch is no longer app plumbing: the spawner
+		// tools (D77) dispatch through the kernel-injected scoped handle, so
+		// the runtime carries only genuine app services.
 		return {
 			readContextSnapshot: (paths) => this.readContextSnapshot(paths),
-			spawnScoutAssignments: (pi, ctx, toolCallId, assignments, signal) =>
-				this.spawnScoutAssignments(pi, ctx, toolCallId, assignments, signal),
-			spawnReportWriter: (pi, ctx, toolCallId, focus, signal) =>
-				this.spawnReportWriter(pi, ctx, toolCallId, focus, signal),
 			reviewResearchReports: (question) => this.reviewResearchReports(question),
 			writeResearchReport: (title, content) => this.writeResearchReport(title, content),
 			writeFinalReport: (title, content) => this.writeFinalReport(title, content)
@@ -405,40 +405,6 @@ export class SimpleResearchKernelStore {
 		};
 	}
 
-	private async spawnReportWriter(
-		pi: ExtensionAPI,
-		ctx: ExtensionContext,
-		toolCallId: string,
-		focus: string,
-		signal?: AbortSignal
-	) {
-		const runCtx = getRunContext();
-		const sessionDir = this.currentRunSessionDir();
-		// Subagent identity is inherited from the parent run context: same
-		// containerId, parentRunId = the coordinator's run, trigger defaults to
-		// "parent-tool", and parentToolUseId flows from toolCallId.
-		return this.kernel.agentManager.spawnAndWait(
-			pi,
-			ctx as unknown as KernelExtensionContext,
-			"report-writer",
-			focus,
-			{
-				description: "Write the final research report",
-				workingDir: sessionDir,
-				containerId: runCtx.containerId,
-				sessionDir,
-				phase: runCtx.phase,
-				displayLabel: this.displayLabel("report-writer"),
-				parentRunId: runCtx.runId,
-				parentPiSessionUuid: runCtx.piSessionUuid,
-				toolCallId,
-				parentPi: pi,
-				signal,
-				variables: this.variablesFor("report-writer", focus)
-			}
-		);
-	}
-
 	private writeResearchReport(title: string | undefined, content: string): ToolResponse {
 		const sessionDir = this.currentRunSessionDir();
 		const reportPath = this.writeArtifact(
@@ -468,41 +434,6 @@ export class SimpleResearchKernelStore {
 				path: relative(sessionDir, reportPath)
 			}
 		};
-	}
-
-	private async spawnScoutAssignments(
-		pi: ExtensionAPI,
-		ctx: ExtensionContext,
-		toolCallId: string,
-		assignments: Array<{ focus: string; prompt: string }>,
-		signal?: AbortSignal
-	) {
-		const runCtx = getRunContext();
-		const sessionDir = this.currentRunSessionDir();
-		return Promise.all(
-			assignments.map((assignment) =>
-				this.kernel.agentManager.spawnAndWait(
-					pi,
-					ctx as unknown as KernelExtensionContext,
-					"source-scout",
-					assignment.prompt,
-					{
-						description: assignment.focus,
-						workingDir: sessionDir,
-						containerId: runCtx.containerId,
-						sessionDir,
-						phase: runCtx.phase,
-						displayLabel: this.displayLabel("source-scout"),
-						parentRunId: runCtx.runId,
-						parentPiSessionUuid: runCtx.piSessionUuid,
-						toolCallId,
-						parentPi: pi,
-						signal,
-						variables: this.variablesFor("source-scout", assignment.prompt)
-					}
-				)
-			)
-		);
 	}
 
 	private snapshotArtifacts(sessionDir: string): ArtifactSnapshot {
@@ -697,7 +628,7 @@ export class SimpleResearchKernelStore {
 			tools: config.tools,
 			disallowedTools: config.disallowedTools ?? [],
 			extensions: config.extensions ?? true,
-			canSpawnSubagent: config.canSpawnSubagent ?? false,
+			spawnerTools: config.spawnerTools ?? {},
 			variables: Object.entries(config.variables).map(([name, decl]) => ({
 				name,
 				defaultValue: decl.default,

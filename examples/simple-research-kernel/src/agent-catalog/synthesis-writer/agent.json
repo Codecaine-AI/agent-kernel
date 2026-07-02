@@ -4,7 +4,6 @@
 	"description": "Synthesizes scout reports and source context into a complete markdown research report.",
 	"model": "research-default",
 	"thinking": "low",
-	"canSpawnSubagent": false,
 	"extensions": false,
 	"variables": {
 		"researchMemoryDir": {

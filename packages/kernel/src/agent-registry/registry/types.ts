@@ -25,6 +25,8 @@ export interface AgentDefinition {
 	/** Tools sidecar (tools.ts), attached by filename convention. */
 	privateTools: AgentPrivateTools | null;
 	privateToolNames: string[];
+	/** Harvested spawner declarations: tool name → `spawns` allowlist (D77). */
+	spawnerTools: Record<string, string[]>;
 	toolsModulePath: string | null;
 	coreTools: string[];
 	/** Absolute path of the agent.json manifest. */

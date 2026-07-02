@@ -4,7 +4,6 @@
 	"description": "Investigates one focused angle, reads local evidence, and writes a durable research note.",
 	"model": "research-default",
 	"thinking": "low",
-	"canSpawnSubagent": false,
 	"extensions": false,
 	"variables": {
 		"researchMemoryDir": {

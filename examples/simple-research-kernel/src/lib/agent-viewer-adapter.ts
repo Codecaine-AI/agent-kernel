@@ -23,7 +23,9 @@ export function toAgentViewerDefinitions(
 			tools: agent.tools,
 			disallowedTools: agent.disallowedTools,
 			extensions: agent.extensions,
-			canSpawnSubagent: agent.canSpawnSubagent,
+			// Legacy viewer-ui field (pending the viewer spawner-rendering
+			// follow-up): derived from the per-tool spawner map (D77).
+			canSpawnSubagent: Object.keys(agent.spawnerTools).length > 0,
 			variables: Object.fromEntries(
 				agent.variables.map((variable) => [
 					variable.name,

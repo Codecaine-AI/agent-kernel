@@ -105,6 +105,8 @@ Kernel base loaders are `file`, `directory`, `skill`, `command`, and `text`. App
 
 ## Subagents
 
+Spawning is granted per tool, not per agent (D77): a `tools.ts` sidecar declares a spawner tool with an explicit `spawns` allowlist of agent names (`["*"]` is the loud general opt-in), and the kernel injects a scoped `dispatch` handle at session build time. There is no agent-level spawn permission flag.
+
 The subagent manager coordinates foreground and background agent runs inside an active parent run. It owns per-agent records, the background concurrency queue, abort and stop behavior, result delivery, parent-to-child Pi session link markers, and `parentToolUseId` propagation.
 
 Subagent execution re-enters the same spawn path with inherited identity: the parent's `containerId`, `parentRunId`, and a `parent-tool` trigger. Primary agents and subagents share the same runtime contracts.
