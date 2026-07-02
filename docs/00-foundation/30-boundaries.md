@@ -16,7 +16,7 @@ The kernel owns the reusable runtime and observability foundation. A host applic
 |---|---|
 | Protocol | Trace event envelope, core event types, trace levels, factories, source conventions |
 | Runtime | `createKernel`, spawn adapter surface, run context, spawn pipeline, turn limits |
-| Agent definitions | Frontmatter parsing, registry, variable validation, dynamic sidecar loading |
+| Agent definitions | Typed agent manifests, registry, prompt rendering, variable validation, sidecar loading |
 | Context | Base loader catalog and context assembly contract |
 | Subagents | In-process agent manager, queueing, parent tool-call linkage |
 | Observability DB | Containers, Pi agent sessions, agent runs, trace events, read helpers |

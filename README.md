@@ -50,8 +50,7 @@
 - A host application (the harness) consumes the kernel through a thin adapter.
 - The harness owns workflow sessions, phase semantics, domain tools, app-specific loaders, app DB tables, and custom viewer panels.
 - The kernel owns spawning, context assembly, observability storage, trace reading, and viewer primitives.
-- For the longer-term service model, see [ARCHITECTURE_UPDATE.md](ARCHITECTURE_UPDATE.md).
-- `ARCHITECTURE_UPDATE.md` describes the centralized local DB/tailer plane, kernel registration, app-embedded viewers, and optional central observer.
+- The current overhaul plan (identity model, per-kernel SQLite, usage tracing, prompt revisions) lives in [docs/.drafts/agent-kernel-overhaul.plan.md](docs/.drafts/agent-kernel-overhaul.plan.md).
 
 ## Setup
 

@@ -1494,3 +1494,87 @@ The migration path is not to preserve `agent.md` compatibility as a long-lived p
 The first agent migration can still be used as the proof point while implementing, but the intended endpoint is that the example catalog moves fully to the typed model.
 
 Implementation note: the first coordinated implementation is now in place. The kernel has a typed `defineAgent(...)` authoring API, the registry can discover `agent.ts`, prompt-kit renders `prompt.ts` documents into XML-tagged Markdown, private `tools.ts` registrations are harvested and bound through Pi extension factories, the agent viewer can consume prompt-kit preview models, and the Simple Research Kernel catalog uses `agent.ts`/`prompt.ts`/`context.ts`/`tools.ts` rather than authored `agent.md`/frontmatter/`index.ts`.
+
+---
+
+## Amendments — 2026-07-01 Overhaul
+
+These decisions supersede earlier entries where noted. Implementation plan:
+`docs/.drafts/agent-kernel-overhaul.plan.md`.
+
+### D70. Canonical Prompt Artifact (revises D2, D3)
+
+Status: decided.
+
+Decision: The canonical authored prompt artifact is the serialized
+`PromptDocument` JSON (`prompt.json`), not TypeScript builder code.
+
+D2/D3 chose TypeScript as the first source format before the prompt editor UI
+existed. Notion-style structural editing must persist, and edited documents
+cannot round-trip into hand-authored builder calls. The builders remain
+exported as the programmatic construction library (scripts, generators,
+tests); what is committed and loaded by the registry is the document.
+
+Validation does not weaken: `validatePrompt` with declared variables performs
+the checks the type system performed, at boot and in the editor.
+
+### D71. Prompt UI Save Format (resolves D66)
+
+Status: decided.
+
+Decision: The prompt UI reads and writes `prompt.json` directly. There is no
+codegen back into builder code, ever. Saves go through a catalog write API
+that validates against the PromptDocument JSON Schema and declared variables,
+canonicalizes, writes the file, and records a prompt revision.
+
+### D72. Prompt Revisions (new)
+
+Status: decided.
+
+Decision: Every prompt state is content-addressed. The canonical document is
+hashed (`"pk1-" + sha256(canonicalBytes)`) and stored as a `prompt_revisions`
+row with the document and rendered text. Agent sessions record the hash at
+creation time — the system prompt is frozen at Pi session creation, so
+revisions bind to sessions, not runs. Each agent directory also commits a
+derived `prompt.rendered.md` snapshot, enforced by test, so PR diffs show the
+rendered contract.
+
+### D73. Sessions Are Containers (new, identity model)
+
+Status: decided.
+
+Decision: There is no separate app-session identity. An app session is a
+container of `kind: "session"`. Containers gain `kind` and `key`; container
+ids derive deterministically from `(kernelId, kind, key)`. The trace envelope
+requires `containerId` and drops `appSessionId`. See
+`docs/10-system-design/15-identity-model.md`.
+
+### D74. Per-Kernel Local Database (new)
+
+Status: decided.
+
+Decision: Each kernel owns a local SQLite database
+(`.agent-kernel/trace.db`, WAL). Postgres remains a supported dialect for
+shared planes but stops being the default. Kernel registration rows shrink to
+a local manifest; a future central observer federates over per-kernel read
+APIs rather than a shared database.
+
+### D75. Extension-Primary Event Emission (new)
+
+Status: decided.
+
+Decision: Kernel-spawned sessions emit trace events in-process through a Pi
+extension that has `RunContext` identity at emit time. Marker-based session
+binding is retired. Pi JSONL remains the durable raw transcript; the tailer is
+demoted to an `agent-kernel backfill` command for crash recovery and imports.
+
+### D76. Manifest As Data (extends D8, D9)
+
+Status: decided.
+
+Decision: The agent manifest becomes `agent.json`, validated by a shared JSON
+Schema. `context.ts` and `tools.ts` attach by filename convention. The agent
+bundle is two data files the UI can fully edit plus two code sidecars.
+`defineAgent` survives as the typed generator/validator for these files. The
+runtime's internal `ParsedAgent.frontmatter` shape is renamed to
+`ParsedAgent.config`; the `AgentFrontmatter` type is retired.
