@@ -17,7 +17,6 @@ Spectre still has local `packages/*` workspace packages with the same package na
 - `@agent-kernel/protocol`
 - `@agent-kernel/db`
 - `@agent-kernel/kernel`
-- `@agent-kernel/tailer`
 - `@agent-kernel/viewer-core`
 - `@agent-kernel/viewer-ui`
 - `@agent-kernel/viewer-shell`
@@ -67,7 +66,6 @@ Spectre/
         protocol/
         db/
         kernel/
-        tailer/
         viewer-core/
         viewer-ui/
         viewer-shell/

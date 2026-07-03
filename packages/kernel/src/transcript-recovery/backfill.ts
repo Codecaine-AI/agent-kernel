@@ -1,12 +1,13 @@
 /**
  * runBackfill — import complete Pi JSONL transcripts into a kernel trace db.
  *
- * The tailer's job after D75: crash recovery and importing sessions that ran
- * outside the kernel. In-process emission is the primary trace path; JSONL is
- * Pi's durable transcript. This reads whole files, maps them through the
- * EventMapper (identity arrives via the session-binding marker in the JSONL),
- * and batch-inserts idempotently by event_id — re-running over the same files
- * inserts zero new rows.
+ * The transcript-recovery role: disaster rebuild, importing sessions that ran
+ * outside the kernel, and schema re-derivation. In-process emission (the
+ * kernel emitter) is the primary trace path; Pi's JSONL is the durable
+ * transcript this module re-derives trace rows from. It reads whole files,
+ * maps them through the EventMapper (identity arrives via the session-binding
+ * marker in the JSONL), and batch-inserts idempotently by event_id — re-running
+ * over the same files inserts zero new rows.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -17,7 +18,7 @@ import {
   type KernelDatabase,
 } from "@agent-kernel/db";
 import type { TraceEvent } from "@agent-kernel/protocol";
-import { createTailerConfig } from "./config";
+import { createRecoveryConfig } from "./config";
 import { EventMapper, type EventMapperOptions } from "./mapper";
 import { readJsonlFile } from "./reader";
 
@@ -69,7 +70,7 @@ function scanJsonlRecursive(dir: string): string[] {
 }
 
 export async function runBackfill(options: RunBackfillOptions): Promise<BackfillSummary> {
-  const config = createTailerConfig(
+  const config = createRecoveryConfig(
     options.batchSize !== undefined ? { batchSize: options.batchSize } : {},
   );
 

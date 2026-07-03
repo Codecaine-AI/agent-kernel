@@ -25,4 +25,4 @@ What belongs in the kernel, what belongs in host applications, and where adapter
 
 ## Source Material
 
-These docs promote and generalize kernel material that originally lived inside Spectre's documentation. The source docs included Spectre-specific paths and names, so the content here is rewritten around portable kernel concepts: app sessions, containers, runs, trace events, tailer ingestion, read APIs, and viewer packages.
+These docs promote and generalize kernel material that originally lived inside Spectre's documentation. The source docs included Spectre-specific paths and names, so the content here is rewritten around portable kernel concepts: app sessions, containers, runs, trace events, transcript recovery, read APIs, and viewer packages.

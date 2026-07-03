@@ -16,7 +16,6 @@
         "@agent-kernel/db": "workspace:*",
         "@agent-kernel/kernel": "workspace:*",
         "@agent-kernel/protocol": "workspace:*",
-        "@agent-kernel/tailer": "workspace:*",
         "@agent-kernel/viewer-core": "workspace:*",
         "@agent-kernel/viewer-shell": "workspace:*",
         "@agent-kernel/viewer-ui": "workspace:*",
@@ -56,6 +55,7 @@
       "version": "0.1.0",
       "bin": {
         "agent-kernel-doctor": "./src/doctor-cli.ts",
+        "agent-kernel-backfill": "./src/transcript-recovery/backfill-cli.ts",
       },
       "dependencies": {
         "@agent-kernel/db": "workspace:*",
@@ -66,7 +66,6 @@
         "elysia": "^1.2.0",
       },
       "devDependencies": {
-        "@agent-kernel/tailer": "workspace:*",
         "@types/bun": "latest",
         "drizzle-orm": "^0.45.0",
       },
@@ -81,17 +80,6 @@
     "packages/protocol": {
       "name": "@agent-kernel/protocol",
       "version": "0.1.0",
-      "devDependencies": {
-        "@types/bun": "latest",
-      },
-    },
-    "packages/tailer": {
-      "name": "@agent-kernel/tailer",
-      "version": "0.1.0",
-      "dependencies": {
-        "@agent-kernel/db": "workspace:*",
-        "@agent-kernel/protocol": "workspace:*",
-      },
       "devDependencies": {
         "@types/bun": "latest",
       },
@@ -156,8 +144,6 @@
     "@agent-kernel/kernel": ["@agent-kernel/kernel@workspace:packages/kernel"],
 
     "@agent-kernel/protocol": ["@agent-kernel/protocol@workspace:packages/protocol"],
-
-    "@agent-kernel/tailer": ["@agent-kernel/tailer@workspace:packages/tailer"],
 
     "@agent-kernel/viewer-core": ["@agent-kernel/viewer-core@workspace:packages/viewer-core"],
 

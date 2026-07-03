@@ -1,7 +1,7 @@
 ---
 covers: "Implementation overview of @agent-kernel/kernel: createKernel config, spawn runtime, containers, emitter, doctor, agent registry, context assembly, subagents, events, and read API route exports."
 type: overview
-concepts: [kernel-package, create-kernel, spawn-pipeline, containers, kernel-emitter, trace-doctor, agent-registry, context-builder, subagents, run-context]
+concepts: [kernel-package, create-kernel, spawn-pipeline, containers, kernel-emitter, trace-doctor, agent-registry, context-builder, subagents, run-context, transcript-recovery]
 code-ref: packages/kernel/src/
 depends-on: [../../10-system-design/10-runtime-model.md]
 ---
@@ -28,6 +28,7 @@ depends-on: [../../10-system-design/10-runtime-model.md]
 | `./run-context` | async-local run identity |
 | `./spawn-pipeline` | Pi spawn pipeline internals |
 | `./subagents` | `AgentManager` and subagent support |
+| `./transcript-recovery` | JSONL backfill: `runBackfill`, `EventMapper`, and the `agent-kernel-backfill` CLI bin |
 | `./trace-writer`, `./read-service` | default DB trace sink and container-backed read service |
 
 ## Current Runtime Shape
@@ -55,3 +56,6 @@ How agent context resolvers and loader catalogs work.
 
 ### [40-subagents.md](40-subagents.md)
 How subagent orchestration reuses the same spawn path.
+
+### [50-transcript-recovery.md](50-transcript-recovery.md)
+How Pi JSONL transcripts are re-derived into trace rows (backfill) for disaster rebuild and importing externally-run sessions, sharing deterministic ids with the emitter.

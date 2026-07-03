@@ -3,8 +3,9 @@
  *
  * Boot: open .agent-kernel/trace.db (WAL), ensure the observability schema,
  * write the local kernel manifest (.agent-kernel/kernel.json). No Postgres,
- * no Docker, no tailer daemon — trace reads and writes go through the
- * kernel's default traceWriter / readApiService (Phase 4b).
+ * no Docker, no tailer daemon (transcript recovery is an in-kernel import
+ * tool) — trace reads and writes go through the kernel's default traceWriter
+ * / readApiService (Phase 4b).
  */
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
@@ -19,7 +20,7 @@ import {
 	writeKernelManifest
 } from "@agent-kernel/db";
 import { containers } from "@agent-kernel/db/schema";
-import { runBackfill } from "@agent-kernel/tailer";
+import { runBackfill } from "@agent-kernel/kernel/transcript-recovery";
 import type {
 	KernelTraceSessionDetail,
 	KernelTraceSessionListResponse,
@@ -160,7 +161,7 @@ new Elysia()
 		return result;
 	})
 	// Dev tool: import complete Pi JSONL transcripts into trace.db (idempotent
-	// by event_id). The tailer is a backfill library now, not a daemon.
+	// by event_id) via the kernel's transcript-recovery backfill library.
 	.post("/api/backfill", async () => {
 		const summary = await runBackfill({
 			jsonlDir: piSessionsDir,

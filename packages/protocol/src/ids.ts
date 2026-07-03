@@ -1,9 +1,9 @@
 /**
  * Deterministic event-id derivation shared by every emission path.
  *
- * The in-process kernel emitter (packages/kernel) and the JSONL backfill
- * mapper (packages/tailer) both derive event ids here so that live emission
- * followed by a backfill of the same Pi session inserts zero duplicate rows
+ * The in-process kernel emitter and the JSONL backfill mapper
+ * (packages/kernel/src/transcript-recovery) both derive event ids here so that
+ * live emission followed by a backfill of the same Pi session inserts zero duplicate rows
  * (trace_events inserts are keyed by event_id with INSERT OR IGNORE).
  */
 

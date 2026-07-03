@@ -1,5 +1,5 @@
 ---
-covers: "Foundational principles for preserving portability across runtime, protocol, storage, tailer, read API, and viewer packages."
+covers: "Foundational principles for preserving portability across runtime, protocol, storage, transcript recovery, read API, and viewer packages."
 concepts: [principles, portability, explicit-linkage, adapters, observability, workspace-packages, model-routing, token-cost]
 depends-on: [30-boundaries.md, ../10-system-design/20-observability-model.md]
 ---
@@ -18,7 +18,7 @@ Apps may attach those meanings through opaque labels, metadata, registered loade
 
 ## Observability Is A Core Contract
 
-The protocol, database schema, tailer, read API, and viewer packages are one platform surface. A kernel feature is not complete until its behavior can be stored, read, and viewed.
+The protocol, database schema, transcript recovery, read API, and viewer packages are one platform surface. A kernel feature is not complete until its behavior can be stored, read, and viewed.
 
 For token-hungry systems this is how spend stays accountable: if work cannot be attributed and inspected, it cannot be budgeted or improved. Observability is the feedback loop that lets a vertical route tokens effectively instead of burning them blindly.
 
@@ -57,7 +57,6 @@ The current packages are:
 - `@agent-kernel/protocol`
 - `@agent-kernel/db`
 - `@agent-kernel/kernel`
-- `@agent-kernel/tailer`
 - `@codecaine-ai/prompt-kit`
 - `@agent-kernel/viewer-core`
 - `@agent-kernel/viewer-ui`

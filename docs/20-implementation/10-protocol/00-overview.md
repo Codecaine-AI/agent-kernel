@@ -8,7 +8,7 @@ depends-on: [../../10-system-design/30-event-protocol.md]
 
 # Protocol Package
 
-`@agent-kernel/protocol` is the shared contract package. Runtime emitters, DB actions, tailer mapping, viewer DTOs, and apps all type against it.
+`@agent-kernel/protocol` is the shared contract package. Runtime emitters, DB actions, transcript-recovery mapping, viewer DTOs, and apps all type against it.
 
 ---
 

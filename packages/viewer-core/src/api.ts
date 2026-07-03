@@ -42,8 +42,8 @@ export const KERNEL_CATALOG_PATHS = {
 
 /**
  * Cross-kernel observer routes (a viewer plane over many kernel manifests).
- * Container-first; the tailer daemon routes are gone with D75 (tailer is a
- * backfill tool, not a service).
+ * Container-first; the tailer-daemon routes are gone with D75 (transcript
+ * recovery is a backfill tool, not a service).
  */
 export const KERNEL_OBSERVER_READ_PATHS = {
 	listKernels: "/kernels",

@@ -38,8 +38,7 @@
 
   - `@agent-kernel/protocol` — trace/event envelopes, event factories, deterministic event ids, and turn usage
   - `@agent-kernel/db` — per-kernel SQLite observability store, schema (with a Postgres mirror), kernel manifest, and query helpers
-  - `@agent-kernel/kernel` — `createKernel` runtime, container identity, registry, context assembly, spawn pipeline, in-process emitter, subagents, trace doctor, and read API
-  - `@agent-kernel/tailer` — Pi JSONL backfill/import tool
+  - `@agent-kernel/kernel` — `createKernel` runtime, container identity, registry, context assembly, spawn pipeline, in-process emitter, subagents, trace doctor, read API, and transcript recovery
   - `@codecaine-ai/prompt-kit` — prompt document model, canonicalization/hashing, renderers, and editor primitives (submodule)
   - `@agent-kernel/viewer-core` — viewer DTOs, read/catalog API paths, trace transforms, and prompt diffing
   - `@agent-kernel/viewer-ui` — reusable trace viewer and prompt lab components

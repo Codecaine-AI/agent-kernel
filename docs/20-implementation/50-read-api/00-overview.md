@@ -62,7 +62,7 @@ Defaults are intentionally conservative: 5000 fallback, 10000 maximum.
 
 `@agent-kernel/viewer-core` exports `KERNEL_TRACE_READ_PATHS` and `KERNEL_CATALOG_PATHS` for app-mounted routes. Viewer code should use those constants rather than hard-coded paths.
 
-Viewer-core also exports `KERNEL_OBSERVER_READ_PATHS` for the future cross-kernel observer plane (container-first; the old tailer daemon routes are gone):
+Viewer-core also exports `KERNEL_OBSERVER_READ_PATHS` for the future cross-kernel observer plane (container-first; the old tailer-daemon routes are gone):
 
 - `GET /kernels`
 - `GET /kernels/:kernelId`

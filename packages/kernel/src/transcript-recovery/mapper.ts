@@ -1,5 +1,11 @@
 /**
- * EventMapper — maps Pi JSONL entries to protocol TraceEvents for backfill.
+ * EventMapper — re-derives protocol TraceEvents from Pi JSONL transcripts.
+ *
+ * Recovery role: Pi's JSONL is the durable record of a session; this maps its
+ * entries back into trace rows for disaster rebuild, importing externally-run
+ * sessions, and schema re-derivation. It shares id derivation and usage
+ * extraction with the live kernel emitter via @agent-kernel/protocol, so both
+ * paths agree on event ids.
  *
  * Identity: `containerId` (required on the envelope) and optional `runId`
  * arrive through a session-binding marker written into the JSONL by the

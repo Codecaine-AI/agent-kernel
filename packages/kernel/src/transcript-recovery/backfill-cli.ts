@@ -3,7 +3,7 @@
  * agent-kernel backfill CLI.
  *
  * Usage:
- *   bun run packages/tailer/src/backfill-cli.ts <jsonl-dir> --db <db-path>
+ *   bun run packages/kernel/src/transcript-recovery/backfill-cli.ts <jsonl-dir> --db <db-path>
  *     [--batch-size <n>]
  *     [--binding-type <customType>]      default: agent-kernel:session-binding
  *     [--lifecycle-type <customType>]    default: agent-kernel:pi-lifecycle

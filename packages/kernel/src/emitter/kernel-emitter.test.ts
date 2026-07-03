@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { EventMapper } from "@agent-kernel/tailer";
-import type { PiEvent } from "@agent-kernel/tailer";
+import { EventMapper } from "../transcript-recovery";
+import type { PiEvent } from "../transcript-recovery";
 import {
 	piEntryEventId,
 	type TraceEvent,

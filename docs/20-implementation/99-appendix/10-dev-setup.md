@@ -33,7 +33,6 @@ bun run typecheck:protocol
 bun run typecheck:db
 bun run typecheck:prompt-kit
 bun run typecheck:kernel
-bun run typecheck:tailer
 bun run typecheck:viewer-core
 bun run typecheck:viewer-ui
 bun run typecheck:viewer-shell

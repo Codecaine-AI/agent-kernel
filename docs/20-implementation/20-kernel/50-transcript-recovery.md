@@ -1,14 +1,21 @@
 ---
-covers: "Implementation of @agent-kernel/tailer as a backfill/import tool: Pi JSONL mapping, session binding, deterministic event ids, emitter id parity, runBackfill, and the CLI."
-type: overview
-concepts: [tailer, backfill, jsonl, event-mapper, deterministic-ids, session-binding, idempotent-insert]
-code-ref: packages/tailer/src/backfill.ts, packages/tailer/src/mapper.ts, packages/tailer/src/backfill-cli.ts
-depends-on: [../../10-system-design/20-observability-model.md, ../10-protocol/00-overview.md]
+covers: "Transcript recovery (backfill) inside the kernel: re-deriving trace rows from Pi JSONL transcripts — mapper, session binding, deterministic event ids, emitter id parity, runBackfill, and the CLI."
+concepts: [transcript-recovery, backfill, jsonl, event-mapper, deterministic-ids, session-binding, idempotent-insert]
+code-ref: packages/kernel/src/transcript-recovery/
+depends-on: [../10-protocol/00-overview.md, ../../10-system-design/20-observability-model.md]
 ---
 
-# Tailer Package
+# Transcript Recovery
 
-`@agent-kernel/tailer` is a backfill/import tool, not a daemon. The primary trace path is the kernel's in-process emitter; this package reads complete Pi JSONL transcripts and imports them into a kernel trace database for crash recovery and for sessions that ran outside the kernel.
+`@agent-kernel/kernel/transcript-recovery` re-derives trace rows from Pi JSONL transcripts. It is a recovery/import tool, not a daemon: the primary trace path is the kernel's in-process emitter, and Pi's JSONL is the durable record this module reads back when the live rows are missing.
+
+It lives inside the kernel package, co-located with the emitter it must stay in parity with. The two paths share id derivation and usage extraction through `@agent-kernel/protocol`.
+
+Use it for:
+
+- **Disaster rebuild** — reconstruct a trace database from the JSONL transcripts after loss or corruption.
+- **Importing externally-run sessions** — bring sessions that ran outside the kernel into a kernel trace db.
+- **Schema re-derivation** — re-map transcripts through updated event mapping.
 
 The old daemon posture — directory watcher loop, cursor snapshots, health port, registration-row discovery — is gone.
 
@@ -19,10 +26,10 @@ The old daemon posture — directory watcher loop, cursor snapshots, health port
 | Component | Purpose |
 |---|---|
 | `runBackfill(options)` | Scans a JSONL directory (or explicit file list), maps whole files, batch-inserts idempotently, returns a summary |
-| `EventMapper` | Maps Pi JSONL entries to protocol `TraceEvent`s |
+| `EventMapper` | Re-derives protocol `TraceEvent`s from Pi JSONL entries |
 | `readJsonlFile` | Reads and parses one JSONL transcript |
-| `createTailerConfig` | Normalizes batch size and retry limits |
-| `backfill-cli.ts` | CLI entry over `runBackfill` |
+| `createRecoveryConfig` | Normalizes batch size |
+| `backfill-cli.ts` | CLI entry over `runBackfill` (exposed as the `agent-kernel-backfill` bin) |
 
 ## Event Mapping
 
@@ -31,6 +38,8 @@ The mapper understands Pi entries such as `session`, `message`, `model_change`, 
 ## Deterministic Ids And Emitter Parity
 
 Event ids are derived deterministically from `(piSessionUuid, JSONL entry id, ordinal, type)` via the shared `piEntryEventId` helper in `@agent-kernel/protocol`. The kernel's in-process emitter derives the identical ids at emit time, so live emission followed by a backfill of the same session produces the same id set — `insertTraceEventsBatch` is `INSERT OR IGNORE` on `event_id`, and replays insert zero new rows. The backfill summary reports mapped, inserted, and skipped (already present) counts.
+
+Because the mapper now lives beside the emitter in the same package, the emitter's id-parity test imports `EventMapper` directly from `../transcript-recovery` — an intra-package drift guard that fails fast if the two paths diverge.
 
 ## Session Binding
 
@@ -41,7 +50,7 @@ Marker and lifecycle custom types are configurable through `EventMapperOptions`;
 ## CLI Usage
 
 ```bash
-bun run packages/tailer/src/backfill-cli.ts <jsonl-dir> --db <db-path> \
+bun run packages/kernel/src/transcript-recovery/backfill-cli.ts <jsonl-dir> --db <db-path> \
   [--batch-size <n>] [--binding-type <t>] [--lifecycle-type <t>] [--subagent-type <t>]
 ```
 

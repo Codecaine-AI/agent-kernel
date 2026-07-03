@@ -34,7 +34,7 @@ export const EventType = {
   AGENT_RUN_END: "agent_run_end",
   RUN_STEERED: "run_steered",
 
-  // Pi Lifecycle (tailer-emitted, mirrors Pi SDK agent/turn boundaries)
+  // Pi Lifecycle (emitter/backfill, mirrors Pi SDK agent/turn boundaries)
   PI_AGENT_START: "pi_agent_start",
   PI_AGENT_END: "pi_agent_end",
   PI_TURN_START: "pi_turn_start",

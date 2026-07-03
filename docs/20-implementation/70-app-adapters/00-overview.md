@@ -1,7 +1,7 @@
 ---
 covers: "Implementation guidance for host app adapters, using Spectre as the reference application without making Spectre concepts kernel concepts."
 type: overview
-concepts: [app-adapter, spectre-adapter, session-mapping, custom-loader, state-manager, viewer-plugins, tailer-wrapper]
+concepts: [app-adapter, spectre-adapter, session-mapping, custom-loader, state-manager, viewer-plugins, transcript-recovery-wrapper]
 depends-on: [../../00-foundation/30-boundaries.md, ../20-kernel/00-overview.md, ../50-read-api/00-overview.md]
 ---
 

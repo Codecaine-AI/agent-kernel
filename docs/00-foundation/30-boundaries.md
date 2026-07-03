@@ -21,7 +21,7 @@ The kernel owns the reusable runtime and observability foundation. A host applic
 | Context | Base loader catalog and context assembly contract |
 | Subagents | In-process agent manager, queueing, parent tool-call linkage, steering events |
 | Observability DB | Per-kernel SQLite database, local kernel manifest, containers, Pi agent sessions, agent runs, trace events, prompt revisions, usage rollups, read helpers |
-| Tailer | JSONL backfill/import: whole-file reading, event mapping, idempotent insert with emitter id parity |
+| Transcript recovery | JSONL backfill/import: whole-file reading, event mapping, idempotent insert with emitter id parity |
 | Read API | Versioned trace read routes and catalog routes that viewer-core can target |
 | Viewer | Trace DTOs, catalog DTOs, trace span transforms, prompt diffing, reusable tree/detail UI, prompt lab, base viewer shell |
 
@@ -47,7 +47,7 @@ For Spectre that adapter includes:
 - Spectre agent catalog roots and shared tool factories
 - Spectre state manager injection
 - Spectre custom context loaders
-- Spectre tailer configuration and compatibility event names
+- Spectre transcript-recovery configuration and compatibility event names
 - Spectre data-backend mount for the kernel read API
 - Spectre viewer shell plugins and phase-specific panels
 

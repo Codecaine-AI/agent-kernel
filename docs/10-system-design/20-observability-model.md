@@ -52,7 +52,7 @@ The viewer may use timestamps for ordering, but not for structural parentage whe
 
 The primary emission path is the in-process kernel emitter: an extension the spawn pipeline attaches to every Pi session it creates. It has full identity from the run context at emit time and writes through the kernel trace writer into the local database.
 
-Pi's JSONL transcript remains the durable raw record. The tailer package is a backfill tool over it — crash recovery and importing sessions that ran outside the kernel. Emitter and backfill derive identical deterministic event ids from the same protocol helpers, so a backfill after live emission inserts zero duplicate rows.
+Pi's JSONL transcript remains the durable raw record. The kernel's transcript-recovery module (`@agent-kernel/kernel/transcript-recovery`) is a backfill tool over it — disaster rebuild and importing sessions that ran outside the kernel. Emitter and backfill derive identical deterministic event ids from the same protocol helpers, so a backfill after live emission inserts zero duplicate rows.
 
 Kernel-side and app-side events flow through the same trace writer. The viewer treats everything as one trace stream; source is used for display and debugging, not for splitting the mental model.
 

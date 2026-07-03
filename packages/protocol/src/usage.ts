@@ -3,8 +3,8 @@
  *
  * Pi assistant messages (live session events and JSONL transcript entries
  * alike) carry `usage: { input, output, cacheRead, cacheWrite, cost? }` and
- * `model`. Both the kernel's in-process emitter and the tailer's backfill
- * mapper extract TurnUsage here so the parsing exists in exactly one style.
+ * `model`. Both the kernel's in-process emitter and the transcript-recovery
+ * backfill mapper extract TurnUsage here so the parsing exists in exactly one style.
  */
 
 import type { TurnUsage } from "./types";

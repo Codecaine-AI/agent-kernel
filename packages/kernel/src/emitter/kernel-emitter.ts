@@ -1,9 +1,9 @@
 /**
  * In-process kernel emitter — maps live Pi session events to protocol trace
- * events with identity from the run context, replacing the tailer as the
- * primary emission path (the tailer remains as JSONL backfill).
+ * events with identity from the run context. This is the primary emission
+ * path; transcript recovery (backfill) re-derives the same rows from JSONL.
  *
- * Id compatibility with backfill: the tailer's EventMapper derives event ids
+ * Id compatibility with backfill: the transcript-recovery EventMapper derives event ids
  * from (piSessionUuid, JSONL entry id, ordinal, type) via the shared
  * `piEntryEventId` helper in @agent-kernel/protocol. This emitter derives the
  * IDENTICAL ids by recovering each JSONL entry id at emit time, so a later
@@ -256,7 +256,7 @@ export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
 
 	/**
 	 * Map one persisted message to trace events. Block iteration and ordinal
-	 * assignment mirror the tailer's EventMapper.mapMessage exactly — that is
+	 * assignment mirror the transcript-recovery EventMapper.mapMessage exactly — that is
 	 * what keeps live ids identical to backfill ids.
 	 */
 	function emitMessageEvents(message: PiMessageLike, entryId: string | undefined): void {

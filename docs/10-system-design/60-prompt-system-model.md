@@ -1565,8 +1565,8 @@ Status: decided.
 
 Decision: Kernel-spawned sessions emit trace events in-process through a Pi
 extension that has `RunContext` identity at emit time. Marker-based session
-binding is retired. Pi JSONL remains the durable raw transcript; the tailer is
-demoted to an `agent-kernel backfill` command for crash recovery and imports.
+binding is retired. Pi JSONL remains the durable raw transcript; transcript
+recovery is an `agent-kernel-backfill` command for crash recovery and imports.
 
 ### D76. Manifest As Data (extends D8, D9)
 
@@ -1642,3 +1642,23 @@ Boundary: this is field-level editing of operational configuration, not a
 general manifest editor — variables, tools, spawner declarations, and
 renames stay file-edited (and renames are rejected by hot-reload). Widening
 the editable set is a future decision, not a default.
+
+### D80. The Tailer Package Is Dissolved into Kernel Transcript Recovery (completes D75)
+
+Status: decided.
+
+Decision: `@agent-kernel/tailer` no longer exists. Its surviving capability —
+re-deriving trace rows from Pi's durable JSONL transcripts — moves into the
+kernel as `packages/kernel/src/transcript-recovery/`
+(`@agent-kernel/kernel/transcript-recovery`, CLI bin
+`agent-kernel-backfill`), with tailing-era names renamed to recovery terms.
+
+Rationale: D75 made in-process emission primary and demoted the tailer to a
+backfill tool, which removed every reason for it to be a separate package —
+the daemon posture was deleted, the shared-plane ingestion story became
+per-kernel SQLite, and its only consumers were the kernel's id-parity test
+and one dev endpoint. Co-locating the recovery mapper with the live emitter
+also turns the emitter/backfill id-parity guarantee into an intra-package
+test, so the two mapping implementations cannot version-skew. The recovery
+role remains load-bearing: disaster rebuild of a trace database, import of
+sessions run outside the kernel, and schema re-derivation from transcripts.

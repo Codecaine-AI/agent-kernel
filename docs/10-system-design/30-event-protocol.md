@@ -7,7 +7,7 @@ depends-on: [20-observability-model.md, 15-identity-model.md]
 
 # Event Protocol
 
-`@agent-kernel/protocol` defines the event contract shared by the runtime, DB helpers, tailer, read API, and viewer packages.
+`@agent-kernel/protocol` defines the event contract shared by the runtime, DB helpers, transcript recovery, read API, and viewer packages.
 
 ---
 
@@ -60,7 +60,7 @@ Usage rides on lifecycle payloads: `pi_turn_end.eventData.usage` carries per-mod
 
 ## Deterministic Event Ids
 
-`src/ids.ts` derives event ids deterministically so the two emission paths dedupe against each other. `piEntryEventId(piSessionUuid, entryId, ordinal, type)` is the shared seed layout used by both the kernel's in-process emitter and the tailer's backfill mapper — live emission followed by a backfill of the same Pi session inserts zero duplicate rows (`trace_events` inserts are `INSERT OR IGNORE` on `event_id`). `liveFallbackEventId` is the documented fallback when a JSONL entry id cannot be observed at emit time: still deterministic, but it cannot match the backfill id for that entry.
+`src/ids.ts` derives event ids deterministically so the two emission paths dedupe against each other. `piEntryEventId(piSessionUuid, entryId, ordinal, type)` is the shared seed layout used by both the kernel's in-process emitter and the transcript-recovery backfill mapper — live emission followed by a backfill of the same Pi session inserts zero duplicate rows (`trace_events` inserts are `INSERT OR IGNORE` on `event_id`). `liveFallbackEventId` is the documented fallback when a JSONL entry id cannot be observed at emit time: still deterministic, but it cannot match the backfill id for that entry.
 
 ## Open Strings
 

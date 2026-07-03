@@ -1,12 +1,12 @@
 ---
 covers: "How to set up a host application on top of the Pi Agent Kernel packages without moving app-specific workflow semantics into the kernel."
-concepts: [application-setup, host-app, adapter, workspace, create-kernel, read-api, viewer, tailer]
+concepts: [application-setup, host-app, adapter, workspace, create-kernel, read-api, viewer, transcript-recovery]
 depends-on: [00-overview.md, ../../00-foundation/30-boundaries.md, ../../10-system-design/50-app-adapter-model.md]
 ---
 
 # Application Setup
 
-A host application is the product-specific layer above the kernel. It owns workflow state, domain tools, routing, product UI, and persistence choices while consuming `@agent-kernel/*` packages for runtime, observability, trace reading, tailing, and viewer primitives.
+A host application is the product-specific layer above the kernel. It owns workflow state, domain tools, routing, product UI, and persistence choices while consuming `@agent-kernel/*` packages for runtime, observability, trace reading, transcript recovery, and viewer primitives.
 
 ---
 
@@ -17,7 +17,7 @@ host app packages
   backend adapter
   database composition
   domain agents/tools/loaders
-  tailer wrapper
+  transcript-recovery wrapper
   read API mount
   frontend viewer mount
         |
@@ -26,7 +26,6 @@ host app packages
   protocol
   db
   kernel
-  tailer
   viewer-core
   viewer-ui
   viewer-shell
@@ -68,7 +67,6 @@ Then app packages can depend on kernel packages with `workspace:*`:
     "@agent-kernel/kernel": "workspace:*",
     "@agent-kernel/protocol": "workspace:*",
     "@agent-kernel/db": "workspace:*",
-    "@agent-kernel/tailer": "workspace:*",
     "@agent-kernel/viewer-core": "workspace:*",
     "@agent-kernel/viewer-shell": "workspace:*",
     "@agent-kernel/viewer-ui": "workspace:*"
@@ -217,7 +215,7 @@ The app decides when domain-level events happen. The event protocol gives those 
 
 ## Step 7: Backfill When Needed
 
-The primary trace path is in-process emission; there is no tailer daemon to run. Keep `@agent-kernel/tailer` around as a recovery tool: `runBackfill({ jsonlDir, db })` re-imports Pi JSONL transcripts idempotently after a crash, or imports sessions that ran outside the kernel. Marker custom types are configurable if compatibility names are needed.
+The primary trace path is in-process emission; there is no tailer daemon to run. Reach for the kernel's transcript-recovery module (`@agent-kernel/kernel/transcript-recovery`) as a recovery tool: `runBackfill({ jsonlDir, db })` re-imports Pi JSONL transcripts idempotently after a crash, or imports sessions that ran outside the kernel. Marker custom types are configurable if compatibility names are needed.
 
 ## Step 8: Mount The Kernel Read API
 
@@ -279,7 +277,7 @@ packages/pi-agent-kernel/packages/*   kernel source of truth
 apps/backend/src/agent-kernel/*       Spectre backend adapter and compatibility shims
 apps/backend/src/agent-catalog/*      Spectre agents, tools, and custom loaders
 apps/database/*                       Spectre schema composed with kernel schema
-apps/tailer/*                         Spectre tailer wrapper
+apps/transcript-recovery/*            Spectre transcript-recovery wrapper
 apps/frontend/*                       Spectre viewer mount and workflow UI
 ```
 

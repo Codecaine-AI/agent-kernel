@@ -7,7 +7,7 @@ depends-on: [10-dev-setup.md, ../20-kernel/30-context-loaders.md, ../50-read-api
 
 # Simple Research Kernel Demo
 
-`examples/simple-research-kernel` is a runnable host application for inspecting the kernel outside Spectre. It runs entirely against one local SQLite file — no Postgres, no Docker, no tailer daemon.
+`examples/simple-research-kernel` is a runnable host application for inspecting the kernel outside Spectre. It runs entirely against one local SQLite file — no Postgres, no Docker, no tailer daemon (transcript recovery is an in-kernel import tool, not a running process).
 
 ---
 
@@ -46,7 +46,7 @@ The harness exercises the core package path:
 @agent-kernel/db
   openKernelDatabase + ensureKernelObservabilitySchema + writeKernelManifest
 
-@agent-kernel/tailer
+@agent-kernel/kernel/transcript-recovery
   runBackfill behind the dev /api/backfill endpoint
 
 @agent-kernel/kernel/read-api

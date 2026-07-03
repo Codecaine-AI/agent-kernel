@@ -13,7 +13,6 @@
     "@agent-kernel/db": "workspace:*",
     "@agent-kernel/kernel": "workspace:*",
     "@agent-kernel/protocol": "workspace:*",
-    "@agent-kernel/tailer": "workspace:*",
     "@agent-kernel/viewer-core": "workspace:*",
     "@agent-kernel/viewer-shell": "workspace:*",
     "@agent-kernel/viewer-ui": "workspace:*",
