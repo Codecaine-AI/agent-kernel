@@ -81,6 +81,19 @@
 	--agentprism-badge-llm-foreground: 84 214 147;      /* signal green primary       */
 	--agentprism-badge-tool-foreground: 220 167 76;     /* amber                      */
 
+	/* ── Trace semantic groups (one hue per meaning) ──────────────────
+	 * Every trace card — its border, icon cap, title accent, badges — keys
+	 * off exactly one of these groups so color carries meaning, not decoration.
+	 * Amber/red are RESERVED for warning/error; nothing non-diagnostic wears
+	 * them. Hues stay desaturated + a touch below neon so they read as flat
+	 * emission on the near-black void (see Readability Calibration).      */
+	--trace-orchestration: 167 139 250;  /* #A78BFA violet — agents, spawner dispatch, runs/sessions */
+	--trace-user: 96 165 250;            /* #60A5FA blue — user messages                            */
+	--trace-assistant: 84 214 147;       /* #54D693 green — assistant messages (signal primary)     */
+	--trace-tool: 84 211 224;            /* #54D3E0 cyan — tool calls                                */
+	--trace-lifecycle: 148 158 172;      /* #949EAC gray — lifecycle / system / provisioning / phases */
+	--trace-meta: 148 158 172;           /* #949EAC gray — info / debug mini-cards                   */
+
 	/* Adjustable research surface controls. */
 	--research-layout-padding: 16px;
 	--research-workspace-height: calc(100vh - 32px);

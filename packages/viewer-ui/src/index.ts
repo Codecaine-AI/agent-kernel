@@ -1,17 +1,23 @@
 export { TreeView } from "./trace-viewer/TreeView";
 export { SpanDetailPanel } from "./trace-viewer/SpanDetailPanel";
-export type { SpanCardViewOptions } from "./trace-viewer/SpanCard/SpanCard";
+export type { SpanCardViewOptions, SpanCardChrome } from "./trace-viewer/SpanCard/SpanCard";
 export {
 	spanIconFor,
 	resolveSpanIcon,
-	SpanEdgeIcon,
+	GROUP_ACCENT,
+	SpanIconCap,
+	SPAN_CAP_SIZE,
+	SPAN_CAP_SIZE_META,
 	SPAN_ICON_KINDS,
 	DEFAULT_ICON_SIDE,
 	DEFAULT_ICON_STYLE,
 	type SpanIconKind,
 	type SpanDisplayType,
+	type SpanColorGroup,
 	type SpanIconDescriptor,
 	type SpanIconInput,
+	type SpanIconCapProps,
+	type SpanCapLayout,
 	type NucleoIconVariant,
 	type IconSide,
 	type IconStyle,

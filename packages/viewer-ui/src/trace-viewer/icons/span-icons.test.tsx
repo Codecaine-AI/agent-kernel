@@ -10,6 +10,7 @@ import {
 } from "./span-icons";
 import {
 	resolveSpanIcon,
+	GROUP_ACCENT,
 	type SpanDisplayType,
 } from "./resolve-span-icon";
 
@@ -83,24 +84,48 @@ describe("resolveSpanIcon", () => {
 		"generic",
 	];
 
-	test("every display type resolves to a kind with a renderable icon and an accent class", () => {
+	test("every display type resolves to a kind, group, and matching accent/border classes", () => {
 		for (const displayType of DISPLAY_TYPES) {
 			const descriptor = resolveSpanIcon({ displayType });
 			expect(SPAN_ICON_KINDS).toContain(descriptor.kind);
 			expect(descriptor.accentClassName.startsWith("text-")).toBe(true);
+			expect(descriptor.borderClassName.startsWith("border-")).toBe(true);
+			// Accent + border draw from the same group token family.
+			expect(descriptor.accentClassName).toBe(GROUP_ACCENT[descriptor.group].text);
+			expect(descriptor.borderClassName).toBe(GROUP_ACCENT[descriptor.group].border);
 			const Icon = spanIconFor(descriptor.kind, "outline");
 			expect(typeof Icon).toBe("function");
 		}
 	});
 
-	test("error and warning status override the glyph regardless of type", () => {
+	test("semantic groups: tool=tool, agent/spawner=orchestration, user/assistant own hues", () => {
+		expect(resolveSpanIcon({ displayType: "tool" }).group).toBe("tool");
+		expect(resolveSpanIcon({ displayType: "agent" }).group).toBe("orchestration");
+		expect(resolveSpanIcon({ displayType: "spawner" }).group).toBe("orchestration");
+		expect(resolveSpanIcon({ displayType: "user" }).group).toBe("user");
+		expect(resolveSpanIcon({ displayType: "assistant" }).group).toBe("assistant");
+		expect(resolveSpanIcon({ displayType: "system" }).group).toBe("lifecycle");
+		expect(resolveSpanIcon({ displayType: "container" }).group).toBe("lifecycle");
+		expect(resolveSpanIcon({ displayType: "generic" }).group).toBe("meta");
+	});
+
+	test("amber/red are reserved: only warning/error status reaches those groups", () => {
+		for (const displayType of DISPLAY_TYPES) {
+			const group = resolveSpanIcon({ displayType }).group;
+			expect(group).not.toBe("warning");
+			expect(group).not.toBe("error");
+		}
 		expect(resolveSpanIcon({ displayType: "tool", status: "error" })).toEqual({
 			kind: "error",
+			group: "error",
 			accentClassName: "text-destructive",
+			borderClassName: "border-destructive",
 		});
 		expect(resolveSpanIcon({ displayType: "agent", status: "warning" })).toEqual({
 			kind: "warning",
+			group: "warning",
 			accentClassName: "text-status-warning",
+			borderClassName: "border-status-warning-border",
 		});
 	});
 

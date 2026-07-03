@@ -1,7 +1,13 @@
 import type { FC } from "react";
 
+import type { SpanCardChrome } from "../SpanCard";
+
+import { TraceCard } from "../TraceCard";
+import { CARD_TYPE_LABEL } from "./card-type";
+
 interface AgentCardProps {
   name: string;
+  chrome: SpanCardChrome;
 }
 
 function toTitleCase(str: string): string {
@@ -10,8 +16,16 @@ function toTitleCase(str: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export const AgentCard: FC<AgentCardProps> = ({ name }) => (
-  <span className="inline-block rounded-[2px] border border-agentprism-badge-agent-foreground px-2 py-0.5 text-[13px] font-medium tracking-wide text-foreground">
-    {toTitleCase(name)}
-  </span>
+export const AgentCard: FC<AgentCardProps> = ({ name, chrome }) => (
+  <TraceCard
+    kind={chrome.descriptor.kind}
+    group={chrome.descriptor.group}
+    side={chrome.side}
+    style={chrome.style}
+    label={chrome.label}
+  >
+    <span className={`${CARD_TYPE_LABEL} font-medium tracking-wide`}>
+      {toTitleCase(name)}
+    </span>
+  </TraceCard>
 );

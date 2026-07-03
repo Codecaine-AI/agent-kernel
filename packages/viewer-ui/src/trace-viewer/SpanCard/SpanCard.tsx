@@ -20,17 +20,17 @@ import type { SpanCardConnectorType } from "./SpanCardConnector";
 
 import { SpanCardConnector } from "./SpanCardConnector";
 import { SpanCardToggle } from "./SpanCardToggle";
-import { UserMessageCard, AssistantMessageCard, ToolCard, SpawnerCard, UIAskCard, AgentCard, LifecycleCard, SystemCard, ContainerCard } from "./variants";
-import { getSpanStyle, readStringAttr } from "../span-style";
+import { TraceCard } from "./TraceCard";
+import { UserMessageCard, AssistantMessageCard, ToolCard, SpawnerCard, UIAskCard, AgentCard, LifecycleCard, SystemCard, ContainerCard, MetaCard } from "./variants";
+import { readStringAttr } from "../span-style";
 import {
-  SpanEdgeIcon,
-  SPAN_EDGE_ICON_CHIP_SIZE,
   resolveSpanIcon,
   DEFAULT_ICON_SIDE,
   DEFAULT_ICON_STYLE,
   type IconSide,
   type IconStyle,
   type SpanDisplayType,
+  type SpanIconDescriptor,
 } from "../icons";
 
 const LAYOUT_CONSTANTS = {
@@ -40,8 +40,18 @@ const LAYOUT_CONSTANTS = {
 
 const MAX_CONTENT_LENGTH = 200;
 
-/** Gap between the edge chip and the card content, in px. */
-const ICON_CHIP_GAP = 6;
+/**
+ * Chrome bundle threaded from SpanCard into every variant so the shared
+ * TraceCard frame renders the same anatomy (icon cap + group border) at every
+ * size. `descriptor` carries the resolved kind + group + accent classes.
+ */
+export interface SpanCardChrome {
+  descriptor: SpanIconDescriptor;
+  side: IconSide;
+  style: IconStyle;
+  /** Accessible label for the cap, e.g. the span title. */
+  label: string;
+}
 
 type SpanDisplay =
   | { type: "user"; content: string }
@@ -410,7 +420,6 @@ export const SpanCard: FC<SpanCardProps> = ({
 
   const eventHandlers = useSpanCardEventHandlers(data, onSpanSelect);
 
-  const spanStyle = useMemo(() => getSpanStyle(data), [data]);
   const spanDisplay = useMemo(() => getSpanDisplay(data), [data]);
 
   const iconSide = viewOptions.iconSide ?? DEFAULT_VIEW_OPTIONS.iconSide;
@@ -422,6 +431,13 @@ export const SpanCard: FC<SpanCardProps> = ({
       spanDisplay?.type === "lifecycle" ? spanDisplay.label : undefined;
     return resolveSpanIcon({ displayType, status: data.status, lifecycleLabel });
   }, [spanDisplay, data.status]);
+
+  const chrome: SpanCardChrome = {
+    descriptor: iconDescriptor,
+    side: iconSide,
+    style: iconStyle,
+    label: `${data.title} span`,
+  };
 
   const hasExpandButtonAsFirstChild =
     expandButton === "inside" && state.hasChildren;
@@ -509,36 +525,22 @@ export const SpanCard: FC<SpanCardProps> = ({
           </div>
           <div
             className={cn(
-              "relative flex items-center gap-2",
+              "relative flex items-center",
               "min-h-6 w-full cursor-pointer",
-              level !== 0 && iconSide !== "left" && !hasExpandButtonAsFirstChild && "pl-2",
-              level !== 0 && iconSide !== "left" && hasExpandButtonAsFirstChild && "pl-1",
+              level !== 0 && "pl-1",
             )}
-            style={{
-              // Reserve room on the icon side so the chip abuts the card edge
-              // without overlapping the tree connectors or the card content.
-              [iconSide === "left" ? "paddingLeft" : "paddingRight"]:
-                SPAN_EDGE_ICON_CHIP_SIZE + ICON_CHIP_GAP,
-            }}
+            style={{ maxWidth: `min(${contentWidth}px, 100%)` }}
           >
-            <SpanEdgeIcon
-              kind={iconDescriptor.kind}
-              accentClassName={iconDescriptor.accentClassName}
-              side={iconSide}
-              style={iconStyle}
-              label={`${data.title} span`}
-            />
-
             {spanDisplay?.type === "user" && (
-              <UserMessageCard content={spanDisplay.content} />
+              <UserMessageCard content={spanDisplay.content} chrome={chrome} />
             )}
 
             {spanDisplay?.type === "assistant" && (
-              <AssistantMessageCard content={spanDisplay.content} />
+              <AssistantMessageCard content={spanDisplay.content} chrome={chrome} />
             )}
 
             {spanDisplay?.type === "tool" && (
-              <ToolCard name={spanDisplay.name} detail={spanDisplay.detail} />
+              <ToolCard name={spanDisplay.name} detail={spanDisplay.detail} chrome={chrome} />
             )}
 
             {spanDisplay?.type === "spawner" && (
@@ -546,56 +548,32 @@ export const SpanCard: FC<SpanCardProps> = ({
                 name={spanDisplay.name}
                 spawns={spanDisplay.spawns}
                 detail={spanDisplay.detail}
+                chrome={chrome}
               />
             )}
 
             {spanDisplay?.type === "ui_ask" && (
-              <UIAskCard />
+              <UIAskCard chrome={chrome} />
             )}
 
             {spanDisplay?.type === "agent" && (
-              <AgentCard name={spanDisplay.name} />
+              <AgentCard name={spanDisplay.name} chrome={chrome} />
             )}
 
             {spanDisplay?.type === "lifecycle" && (
-              <LifecycleCard label={spanDisplay.label} />
+              <LifecycleCard label={spanDisplay.label} chrome={chrome} />
             )}
 
             {spanDisplay?.type === "system" && (
-              <SystemCard label={spanDisplay.label} />
+              <SystemCard label={spanDisplay.label} chrome={chrome} />
             )}
 
             {spanDisplay?.type === "container" && (
-              <ContainerCard label={spanDisplay.label} />
+              <ContainerCard label={spanDisplay.label} chrome={chrome} />
             )}
 
             {!spanDisplay && (
-              <div
-                className="relative flex min-h-5 shrink-0 flex-wrap items-center gap-1.5"
-                style={{
-                  width: `min(${contentWidth}px, 100%)`,
-                  minWidth: 140,
-                }}
-              >
-                {spanStyle.indicator && (
-                  <span
-                    aria-hidden="true"
-                    className="text-agentprism-foreground text-[15px] font-bold leading-none"
-                  >
-                    {spanStyle.indicator}
-                  </span>
-                )}
-
-                <h3
-                  className={cn(
-                    "text-agentprism-foreground max-w-32 truncate leading-[16px]",
-                    spanStyle.titleClassName,
-                  )}
-                  title={data.title}
-                >
-                  {data.title}
-                </h3>
-              </div>
+              <MetaCard title={data.title} chrome={chrome} />
             )}
           </div>
 

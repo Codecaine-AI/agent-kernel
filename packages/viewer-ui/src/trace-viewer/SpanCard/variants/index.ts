@@ -7,3 +7,4 @@ export { AgentCard } from "./AgentCard";
 export { LifecycleCard } from "./LifecycleCard";
 export { SystemCard } from "./SystemCard";
 export { ContainerCard } from "./ContainerCard";
+export { MetaCard } from "./MetaCard";

@@ -1,12 +1,23 @@
 /**
- * resolve-span-icon — maps a span's display type + status to the icon kind and
- * the accent color class the chip should wear.
+ * resolve-span-icon — maps a span's display type + status to (a) the icon kind,
+ * (b) the semantic GROUP it belongs to, and (c) the Tailwind accent utilities
+ * the card should wear (glyph text color + border color).
  *
- * The accent classes are Tailwind text-color utilities over the SAME token
- * family the variant cards already use for their borders/badges (see
- * ../SpanCard/variants and the host theme's --agentprism-badge-* /
- * --status-* / --trace-container tokens). No new colors are introduced — the
- * chip just re-wears the span's existing accent as `currentColor`.
+ * Color carries meaning. Every card — its border, icon cap, title accent, and
+ * badges — keys off exactly ONE group so the eye can read type by hue:
+ *
+ *   orchestration  agents, spawner dispatch, runs/sessions   → violet
+ *   user           user messages                             → blue
+ *   assistant      assistant messages                        → green
+ *   tool           tool calls                                → cyan
+ *   lifecycle      system / provisioning / phases / containers → neutral gray
+ *   meta           info / debug fallback rows                 → muted gray
+ *   warning        RESERVED — diagnostics only                → amber
+ *   error          RESERVED — diagnostics only                → red
+ *
+ * Group tokens live in the host theme (--trace-* in styles.css) and are exposed
+ * as Tailwind `*-trace-*` color utilities. Warning/amber and error/red are
+ * reserved: after this change nothing non-diagnostic may render amber or red.
  */
 import type { SpanIconKind } from "./span-icons";
 
@@ -23,6 +34,17 @@ export type SpanDisplayType =
 	| "container"
 	| "generic";
 
+/** The semantic color group a card belongs to. One hue per group. */
+export type SpanColorGroup =
+	| "orchestration"
+	| "user"
+	| "assistant"
+	| "tool"
+	| "lifecycle"
+	| "meta"
+	| "warning"
+	| "error";
+
 export interface SpanIconInput {
 	/** The display type SpanCard picked, or "generic" for the fallback card. */
 	displayType: SpanDisplayType;
@@ -37,22 +59,41 @@ export interface SpanIconInput {
 
 export interface SpanIconDescriptor {
 	kind: SpanIconKind;
-	/** Tailwind text-color utility that sets the chip accent via currentColor. */
+	/** The semantic group this span belongs to. */
+	group: SpanColorGroup;
+	/** Tailwind text-color utility that sets the cap glyph accent via currentColor. */
 	accentClassName: string;
+	/** Tailwind border-color utility matching the group, for the card frame. */
+	borderClassName: string;
 }
 
-/** Accent class per display type — mirrors each variant card's border token. */
-const ACCENT_BY_DISPLAY: Record<SpanDisplayType, string> = {
-	tool: "text-agentprism-badge-tool-foreground",
-	spawner: "text-agentprism-badge-agent-foreground",
-	agent: "text-agentprism-badge-agent-foreground",
-	ui_ask: "text-status-info",
-	user: "text-agentprism-badge-chain-foreground",
-	assistant: "text-agentprism-badge-llm-foreground",
-	system: "text-agentprism-badge-chain-foreground",
-	lifecycle: "text-status-neutral",
-	container: "text-trace-container",
-	generic: "text-agentprism-muted-foreground",
+/** Every group's Tailwind text + border utilities. Single source of truth. */
+export const GROUP_ACCENT: Record<
+	SpanColorGroup,
+	{ text: string; border: string }
+> = {
+	orchestration: { text: "text-trace-orchestration", border: "border-trace-orchestration" },
+	user: { text: "text-trace-user", border: "border-trace-user" },
+	assistant: { text: "text-trace-assistant", border: "border-trace-assistant" },
+	tool: { text: "text-trace-tool", border: "border-trace-tool" },
+	lifecycle: { text: "text-trace-lifecycle", border: "border-trace-lifecycle" },
+	meta: { text: "text-trace-meta", border: "border-trace-meta" },
+	warning: { text: "text-status-warning", border: "border-status-warning-border" },
+	error: { text: "text-destructive", border: "border-destructive" },
+};
+
+/** The group each display type belongs to. */
+const GROUP_BY_DISPLAY: Record<SpanDisplayType, SpanColorGroup> = {
+	tool: "tool",
+	spawner: "orchestration",
+	agent: "orchestration",
+	ui_ask: "user",
+	user: "user",
+	assistant: "assistant",
+	system: "lifecycle",
+	lifecycle: "lifecycle",
+	container: "lifecycle",
+	generic: "meta",
 };
 
 /** Icon kind per display type (before status/lifecycle overrides). */
@@ -77,22 +118,31 @@ function lifecycleKind(label: string | undefined): SpanIconKind {
 	return "lifecycle";
 }
 
+function descriptor(kind: SpanIconKind, group: SpanColorGroup): SpanIconDescriptor {
+	const accent = GROUP_ACCENT[group];
+	return {
+		kind,
+		group,
+		accentClassName: accent.text,
+		borderClassName: accent.border,
+	};
+}
+
 export function resolveSpanIcon(input: SpanIconInput): SpanIconDescriptor {
-	// Status wins: error/warning spans always flag, regardless of type.
+	// Status wins: error/warning spans always flag, regardless of type. These
+	// are the ONLY paths that reach the reserved amber/red groups.
 	if (input.status === "error") {
-		return { kind: "error", accentClassName: "text-destructive" };
+		return descriptor("error", "error");
 	}
 	if (input.status === "warning") {
-		return { kind: "warning", accentClassName: "text-status-warning" };
+		return descriptor("warning", "warning");
 	}
 
-	const accentClassName = ACCENT_BY_DISPLAY[input.displayType];
+	const group = GROUP_BY_DISPLAY[input.displayType];
 
 	if (input.displayType === "lifecycle") {
-		return { kind: lifecycleKind(input.lifecycleLabel), accentClassName };
+		return descriptor(lifecycleKind(input.lifecycleLabel), group);
 	}
-	// The "Provisioning" lifecycle label reaches SpanCard as a lifecycle
-	// display; a dedicated system-ish "context build" reads as system.
 
-	return { kind: KIND_BY_DISPLAY[input.displayType], accentClassName };
+	return descriptor(KIND_BY_DISPLAY[input.displayType], group);
 }
