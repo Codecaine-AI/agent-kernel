@@ -14,7 +14,6 @@ import { PromptFlowXml } from "../prompt-flow/PromptFlowXml";
 import { createPromptLabHistory } from "../prompt-lab-history";
 import { AgentZone } from "./AgentZone";
 import { ContextSurface, type LabContextPreview } from "./ContextSurface";
-import { DiagnosticsFooter } from "./DiagnosticsFooter";
 import { PinnedChrome } from "./PinnedChrome";
 import { ViewZone, type LabView } from "./ViewZone";
 
@@ -51,6 +50,11 @@ export interface PromptInlineLabProps {
 	onManifestSave?: (patch: { model: string; description: string }) => Promise<ManifestSaveOutcome>;
 	/** Read-only context preview shown when the VIEW zone selects CONTEXT. */
 	context?: LabContextPreview;
+	/**
+	 * REVISIONS sidebar zone content (stats + history + diff), rendered at the
+	 * bottom of the sidebar scroll. Host-composed — see AgentPromptLabContainer.
+	 */
+	revisionsZone?: React.ReactNode;
 }
 
 export function PromptInlineLab({
@@ -64,6 +68,7 @@ export function PromptInlineLab({
 	manifest,
 	onManifestSave,
 	context,
+	revisionsZone,
 }: PromptInlineLabProps) {
 	const [history, setHistory] = useState(() => createPromptLabHistory(prompt));
 	const [editVersion, setEditVersion] = useState(0);
@@ -235,9 +240,9 @@ export function PromptInlineLab({
 					)}
 				</div>
 
-				{/* RIGHT: sidebar — AGENT, VIEW, PROMPT zones (pinned) above the
-				    DETAILS inspector (scrolls beneath). */}
-				<div className="flex w-72 shrink-0 flex-col border-l border-border bg-card @[72rem]:w-80">
+				{/* RIGHT: sidebar — one scroll container stacking the AGENT, VIEW,
+				    PROMPT, DETAILS, and REVISIONS zones. */}
+				<div className="flex w-72 shrink-0 flex-col overflow-y-auto border-l border-border bg-card @[72rem]:w-80">
 					{manifest && (
 						<AgentZone
 							name={manifest.name}
@@ -267,6 +272,7 @@ export function PromptInlineLab({
 						saving={saving}
 						hasSave={Boolean(onSave)}
 						disabled={inContext}
+						saveErrors={saveErrors}
 						onUndo={undo}
 						onRedo={redo}
 						onReset={resetDraft}
@@ -279,10 +285,10 @@ export function PromptInlineLab({
 						selectedEntry={explicitSelectedEntry}
 						onPromptChange={handlePromptChange}
 					/>
+
+					{revisionsZone && <div className="border-t border-border">{revisionsZone}</div>}
 				</div>
 			</div>
-
-			<DiagnosticsFooter diagnostics={inContext ? [] : diagnostics} saveErrors={saveErrors} />
 		</section>
 	);
 }

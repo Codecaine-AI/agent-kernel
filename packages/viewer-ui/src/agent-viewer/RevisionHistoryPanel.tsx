@@ -26,12 +26,16 @@ export interface RevisionHistoryPanelProps {
 	loading?: boolean;
 	error?: string;
 	className?: string;
+	/** Compact stats line rendered under the zone header (e.g. RevisionStatsStrip). */
+	statsSlot?: React.ReactNode;
 }
 
 /**
- * Lists prompt revisions and renders a block-level structural diff (by
- * stable node id — inserted / removed / moved / edited) between two selected
- * revisions.
+ * Sidebar REVISIONS zone: a compact vertical stack — stats line for the
+ * current revision, the revision list (short hash, source, date), and the
+ * block-level structural diff (by stable node id — inserted / removed /
+ * moved / edited) beneath the list when two revisions are selected. The diff
+ * grows the zone's height; nothing spills outside the sidebar column.
  */
 export function RevisionHistoryPanel({
 	revisions,
@@ -41,6 +45,7 @@ export function RevisionHistoryPanel({
 	loading,
 	error,
 	className,
+	statsSlot,
 }: RevisionHistoryPanelProps) {
 	const [selected, setSelected] = useState<string[]>([]);
 
@@ -86,85 +91,87 @@ export function RevisionHistoryPanel({
 	}, [pair, currentHash, currentDocument, documentsByHash]);
 
 	return (
-		<section className={cn("flex min-h-0 flex-col bg-card font-mono", className)}>
-			<header className="flex h-8 shrink-0 items-center gap-2 border-b border-border bg-muted/20 px-3">
-				<span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-					Revisions
-				</span>
-				<span className="tabular-nums text-[10px] text-muted-foreground/70">
-					{revisions.length}
-				</span>
-				<span className="ml-auto text-[10px] text-muted-foreground/60">
-					select two to diff
-				</span>
-			</header>
+		<section className={cn("flex shrink-0 flex-col bg-card font-mono", className)}>
+			<div className="px-3 pt-2.5">
+				<div className="mb-2 flex items-center gap-2">
+					<span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+						Revisions
+					</span>
+					<span className="tabular-nums text-[10px] text-muted-foreground/70">
+						{revisions.length}
+					</span>
+					<span className="h-px flex-1 bg-border" />
+					<span className="text-[9px] uppercase tracking-[0.08em] text-muted-foreground/60">
+						pick two to diff
+					</span>
+				</div>
+				{statsSlot && <div className="mb-2">{statsSlot}</div>}
+			</div>
 
-			<div className="flex min-h-0 flex-1">
-				<div className="min-h-0 w-72 shrink-0 overflow-auto border-r border-border">
-					{loading ? (
-						<Notice>Loading revisions…</Notice>
-					) : error ? (
-						<Notice tone="error">{error}</Notice>
-					) : ordered.length === 0 ? (
-						<Notice>No revisions yet</Notice>
-					) : (
-						<ul className="flex flex-col">
-							{ordered.map((revision, index) => {
-								const isSelected = selected.includes(revision.hash);
-								const isCurrent = revision.hash === currentHash;
-								return (
-									<li key={revision.hash}>
-										<button
-											type="button"
-											onClick={() => toggle(revision.hash)}
-											aria-pressed={isSelected}
-											className={cn(
-												"flex w-full flex-col gap-0.5 px-3 py-2 text-left transition-colors",
-												index > 0 && "border-t border-border/60",
-												isSelected
-													? "bg-status-success-fill/25 text-foreground"
-													: "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
-											)}
-										>
-											<span className="flex items-center gap-2">
-												<span className="truncate text-[12px] tabular-nums" title={revision.hash}>
-													{shortHash(revision.hash)}
+			<div className="px-3 pb-2.5">
+				{loading ? (
+					<Notice>Loading revisions…</Notice>
+				) : error ? (
+					<Notice tone="error">{error}</Notice>
+				) : ordered.length === 0 ? (
+					<Notice>No revisions yet</Notice>
+				) : (
+					<ul className="flex flex-col overflow-hidden rounded-[3px] border border-border bg-background/40">
+						{ordered.map((revision, index) => {
+							const isSelected = selected.includes(revision.hash);
+							const isCurrent = revision.hash === currentHash;
+							return (
+								<li key={revision.hash}>
+									<button
+										type="button"
+										onClick={() => toggle(revision.hash)}
+										aria-pressed={isSelected}
+										className={cn(
+											"flex w-full flex-col gap-0.5 px-2.5 py-1.5 text-left transition-colors",
+											index > 0 && "border-t border-border/60",
+											isSelected
+												? "bg-status-success-fill/25 text-foreground"
+												: "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+										)}
+									>
+										<span className="flex items-center gap-2">
+											<span className="truncate text-[12px] tabular-nums" title={revision.hash}>
+												{shortHash(revision.hash)}
+											</span>
+											{isCurrent && (
+												<span className="rounded-[2px] border border-status-success-border bg-status-success-fill/30 px-1 text-[9px] uppercase tracking-[0.1em] text-status-success">
+													current
 												</span>
-												{isCurrent && (
-													<span className="rounded-[2px] border border-status-success-border bg-status-success-fill/30 px-1 text-[9px] uppercase tracking-[0.1em] text-status-success">
-														current
-													</span>
-												)}
-											</span>
-											<span className="flex items-center gap-2 text-[10px] text-muted-foreground/70">
-												<span className="uppercase tracking-[0.08em]">{revision.source}</span>
-												<span className="tabular-nums">{formatTimestamp(revision.createdAt)}</span>
-											</span>
-										</button>
-									</li>
-								);
-							})}
-						</ul>
-					)}
-				</div>
+											)}
+										</span>
+										<span className="flex items-center gap-2 text-[10px] text-muted-foreground/70">
+											<span className="uppercase tracking-[0.08em]">{revision.source}</span>
+											<span className="tabular-nums">{formatTimestamp(revision.createdAt)}</span>
+										</span>
+									</button>
+								</li>
+							);
+						})}
+					</ul>
+				)}
 
-				<div className="min-h-0 min-w-0 flex-1 overflow-auto">
-					{!pair ? (
-						<Notice>Select two revisions to compare their blocks.</Notice>
-					) : !diff ? (
-						<Notice>
-							Document not loaded for {missingDocs(pair, documentFor).join(", ") || "selection"}.
-						</Notice>
-					) : diff.length === 0 ? (
-						<Notice>No block-level changes between the selected revisions.</Notice>
-					) : (
-						<ul className="flex flex-col">
-							{diff.map((entry, index) => (
-								<DiffRow key={`${entry.kind}:${entry.id}`} entry={entry} bordered={index > 0} />
-							))}
-						</ul>
-					)}
-				</div>
+				{pair && (
+					<div className="mt-2">
+						{!diff ? (
+							<Notice>
+								Document not loaded for {missingDocs(pair, documentFor).join(", ") || "selection"}.
+							</Notice>
+						) : diff.length === 0 ? (
+							<Notice>No block-level changes between the selected revisions.</Notice>
+						) : (
+							<ul className="flex flex-col overflow-hidden rounded-[3px] border border-border bg-background/40">
+								{diff.map((entry, index) => (
+									<DiffRow key={`${entry.kind}:${entry.id}`} entry={entry} bordered={index > 0} />
+								))}
+							</ul>
+						)}
+					</div>
+				)}
 			</div>
 		</section>
 	);
@@ -181,25 +188,27 @@ function DiffRow({ entry, bordered }: { entry: PromptBlockDiffEntry; bordered: b
 	return (
 		<li
 			className={cn(
-				"flex min-w-0 items-center gap-2 px-3 py-1.5",
+				"flex min-w-0 flex-col gap-1 px-2.5 py-1.5",
 				bordered && "border-t border-border/60",
 			)}
 		>
-			<span
-				className={cn(
-					"inline-flex h-5 w-16 shrink-0 items-center justify-center rounded-[2px] border text-[9px] uppercase tracking-[0.1em]",
-					DIFF_KIND_CLASSES[entry.kind],
-				)}
-			>
-				{entry.kind}
+			<span className="flex items-center gap-1.5">
+				<span
+					className={cn(
+						"inline-flex h-4 shrink-0 items-center rounded-[2px] border px-1 text-[9px] uppercase tracking-[0.1em]",
+						DIFF_KIND_CLASSES[entry.kind],
+					)}
+				>
+					{entry.kind}
+				</span>
+				<span className="shrink-0 rounded-[2px] border border-border bg-muted/30 px-1 text-[9px] uppercase tracking-[0.08em] text-muted-foreground">
+					{entry.nodeType}
+				</span>
+				<span className="ml-auto min-w-0 truncate text-[9px] tabular-nums text-muted-foreground/60">
+					{entry.id}
+				</span>
 			</span>
-			<span className="shrink-0 rounded-[2px] border border-border bg-muted/30 px-1.5 py-0.5 text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-				{entry.nodeType}
-			</span>
-			<span className="min-w-0 truncate text-[12px] text-foreground">{entry.label}</span>
-			<span className="ml-auto shrink-0 text-[10px] tabular-nums text-muted-foreground/60">
-				{entry.id}
-			</span>
+			<span className="min-w-0 truncate text-[11px] text-foreground">{entry.label}</span>
 		</li>
 	);
 }
@@ -214,7 +223,7 @@ function Notice({
 	return (
 		<p
 			className={cn(
-				"px-3 py-3 text-[11px] leading-relaxed",
+				"py-1.5 text-[11px] leading-relaxed",
 				tone === "error" ? "text-destructive" : "text-muted-foreground/70",
 			)}
 		>

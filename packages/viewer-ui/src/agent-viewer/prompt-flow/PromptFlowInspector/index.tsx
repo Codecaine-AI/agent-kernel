@@ -1,9 +1,10 @@
 // Slice: inspector composition root — the Details aside: selection summary,
-// identity, per-type details, preview, and diagnostics.
+// identity, per-type details, preview, and diagnostics. With no selection it
+// lists document-level diagnostics (the diagnostics footer folded in here).
 "use client";
 
 import cn from "classnames";
-import type { PromptDocument } from "@codecaine-ai/prompt-kit";
+import type { PromptDiagnostic, PromptDocument } from "@codecaine-ai/prompt-kit";
 import type {
 	PromptEditorModel,
 	PromptEditorTreeEntry,
@@ -27,8 +28,9 @@ export function PromptFlowInspector({
 	selectedEntry,
 	onPromptChange,
 }: PromptFlowInspectorProps) {
+	const documentDiagnostics = model.validation.diagnostics;
 	const diagnostics = selectedEntry
-		? model.validation.diagnostics.filter(
+		? documentDiagnostics.filter(
 				(diagnostic) =>
 					diagnostic.nodeId === selectedEntry.id ||
 					diagnostic.path?.join(".").startsWith(selectedEntry.path.join(".")),
@@ -36,7 +38,7 @@ export function PromptFlowInspector({
 		: [];
 
 	return (
-		<aside className="flex min-h-0 flex-1 flex-col bg-card">
+		<aside className="flex shrink-0 flex-col bg-card">
 			<header className="flex h-10 shrink-0 items-center border-b border-border bg-muted/20 px-3">
 				<span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
 					Details
@@ -44,13 +46,21 @@ export function PromptFlowInspector({
 			</header>
 
 			{!selectedEntry ? (
-				<div className="flex min-h-0 flex-1 items-center justify-center p-5">
-					<p className="max-w-52 text-center text-[12px] leading-relaxed text-muted-foreground/70">
-						Select a prompt block to inspect its structure, metadata, and validation notes.
-					</p>
-				</div>
+				documentDiagnostics.length > 0 ? (
+					<div className="p-3">
+						<InspectorSection title="Document diagnostics">
+							<DiagnosticList diagnostics={documentDiagnostics} />
+						</InspectorSection>
+					</div>
+				) : (
+					<div className="flex items-center justify-center p-5">
+						<p className="max-w-52 text-center text-[12px] leading-relaxed text-muted-foreground/70">
+							Select a prompt block to inspect its structure, metadata, and validation notes.
+						</p>
+					</div>
+				)
 			) : (
-				<div className="min-h-0 flex-1 overflow-auto p-3">
+				<div className="p-3">
 					<div className="flex flex-col gap-4">
 						<InspectorSection title="Selected">
 							<MiniField label="type" value={selectedEntry.node.type} />
@@ -83,29 +93,35 @@ export function PromptFlowInspector({
 							{diagnostics.length === 0 ? (
 								<p className="text-[12px] text-muted-foreground/70">No issues for this block</p>
 							) : (
-								<ul className="flex flex-col">
-									{diagnostics.map((diagnostic, index) => (
-										<li
-											key={`${diagnostic.code}:${index}`}
-											className={cn(
-												"border-b border-border/60 py-2 text-[12px] leading-relaxed last:border-b-0",
-												diagnostic.severity === "error"
-													? "text-destructive"
-													: "text-status-warning",
-											)}
-										>
-											<span className="block text-[10px] font-medium uppercase tracking-[0.12em]">
-												{diagnostic.code}
-											</span>
-											{diagnostic.message}
-										</li>
-									))}
-								</ul>
+								<DiagnosticList diagnostics={diagnostics} />
 							)}
 						</InspectorSection>
 					</div>
 				</div>
 			)}
 		</aside>
+	);
+}
+
+function DiagnosticList({ diagnostics }: { diagnostics: PromptDiagnostic[] }) {
+	return (
+		<ul className="flex flex-col">
+			{diagnostics.map((diagnostic, index) => (
+				<li
+					key={`${diagnostic.code}:${index}`}
+					className={cn(
+						"border-b border-border/60 py-2 text-[12px] leading-relaxed last:border-b-0",
+						diagnostic.severity === "error"
+							? "text-destructive"
+							: "text-status-warning",
+					)}
+				>
+					<span className="block text-[10px] font-medium uppercase tracking-[0.12em]">
+						{diagnostic.code}
+					</span>
+					{diagnostic.message}
+				</li>
+			))}
+		</ul>
 	);
 }

@@ -206,34 +206,26 @@ export function AgentPromptLabContainer({
 					}}
 					onManifestSave={handleManifestSave}
 					context={context}
+					revisionsZone={
+						<RevisionHistoryPanel
+							revisions={revisions}
+							currentHash={savedHash}
+							currentDocument={savedHash ? documentsByHash[savedHash] : undefined}
+							documentsByHash={documentsByHash}
+							loading={revisionsLoading}
+							error={revisionsError}
+							statsSlot={
+								<RevisionStatsStrip
+									baseUrl={origin}
+									agentName={agentName}
+									hash={savedHash}
+								/>
+							}
+						/>
+					}
 					className="h-full"
 				/>
 			</div>
-
-			<div className="flex shrink-0 items-center gap-3 border-t border-border bg-muted/20 px-3 py-1.5">
-				<span
-					className="rounded-[2px] border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] tabular-nums text-muted-foreground"
-					title={savedHash}
-				>
-					{savedHash ? shortHash(savedHash) : "unsaved"}
-				</span>
-				<RevisionStatsStrip
-					baseUrl={origin}
-					agentName={agentName}
-					hash={savedHash}
-					className="ml-auto"
-				/>
-			</div>
-
-			<RevisionHistoryPanel
-				revisions={revisions}
-				currentHash={savedHash}
-				currentDocument={savedHash ? documentsByHash[savedHash] : undefined}
-				documentsByHash={documentsByHash}
-				loading={revisionsLoading}
-				error={revisionsError}
-				className="max-h-56 shrink-0 border-t border-border"
-			/>
 		</div>
 	);
 }
@@ -245,11 +237,6 @@ function readManifestFields(detail: CatalogAgentDetail, agentName: string): Mani
 		model: typeof manifest.model === "string" ? manifest.model : "",
 		description: typeof manifest.description === "string" ? manifest.description : "",
 	};
-}
-
-function shortHash(hash: string): string {
-	const bare = hash.startsWith("pk1-") ? hash.slice(4) : hash;
-	return bare.slice(0, 10);
 }
 
 function trimTrailingSlash(value: string): string {

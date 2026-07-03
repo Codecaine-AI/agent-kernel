@@ -1,5 +1,6 @@
 // Sidebar PROMPT zone: token count first, then status chips (source/valid),
-// then undo/redo/reset/save. No mode toggle. Controls disable in context view.
+// then undo/redo/reset/save with save errors inline beneath. No mode toggle.
+// Controls disable in context view.
 
 import cn from "classnames";
 import { Redo2, RotateCcw, Save, Undo2 } from "lucide-react";
@@ -9,6 +10,8 @@ import { Redo2, RotateCcw, Save, Undo2 } from "lucide-react";
  *  1. token count (first).
  *  2. status chips — source/draft + valid/err.
  *  3. controls — undo, redo, reset, Save.
+ *  4. save errors (compact, destructive) directly under the save control;
+ *     the host clears them on the next successful save.
  * Keyboard shortcuts still drive undo/redo (see handleKeyDown on the section).
  * `disabled` blanks the controls while the CONTEXT view owns the left surface.
  */
@@ -23,6 +26,7 @@ export function PinnedChrome({
 	saving,
 	hasSave,
 	disabled,
+	saveErrors = [],
 	onUndo,
 	onRedo,
 	onReset,
@@ -38,6 +42,7 @@ export function PinnedChrome({
 	saving: boolean;
 	hasSave: boolean;
 	disabled?: boolean;
+	saveErrors?: string[];
 	onUndo: () => void;
 	onRedo: () => void;
 	onReset: () => void;
@@ -106,6 +111,20 @@ export function PinnedChrome({
 						</button>
 					)}
 				</div>
+
+				{saveErrors.length > 0 && (
+					<ul className="flex flex-col gap-1">
+						{saveErrors.map((message, index) => (
+							<li
+								key={`save:${index}`}
+								className="flex items-start gap-1.5 text-[11px] leading-snug text-destructive"
+							>
+								<span className="mt-[7px] h-px w-2.5 shrink-0 bg-current opacity-60" />
+								<span className="min-w-0 flex-1 break-words">{message}</span>
+							</li>
+						))}
+					</ul>
+				)}
 			</div>
 		</div>
 	);
