@@ -1494,3 +1494,171 @@ The migration path is not to preserve `agent.md` compatibility as a long-lived p
 The first agent migration can still be used as the proof point while implementing, but the intended endpoint is that the example catalog moves fully to the typed model.
 
 Implementation note: the first coordinated implementation is now in place. The kernel has a typed `defineAgent(...)` authoring API, the registry can discover `agent.ts`, prompt-kit renders `prompt.ts` documents into XML-tagged Markdown, private `tools.ts` registrations are harvested and bound through Pi extension factories, the agent viewer can consume prompt-kit preview models, and the Simple Research Kernel catalog uses `agent.ts`/`prompt.ts`/`context.ts`/`tools.ts` rather than authored `agent.md`/frontmatter/`index.ts`.
+
+---
+
+## Amendments — 2026-07-01 Overhaul
+
+These decisions supersede earlier entries where noted. Implementation plan:
+`docs/.drafts/agent-kernel-overhaul.plan.md`.
+
+### D70. Canonical Prompt Artifact (revises D2, D3)
+
+Status: decided.
+
+Decision: The canonical authored prompt artifact is the serialized
+`PromptDocument` JSON (`prompt.json`), not TypeScript builder code.
+
+D2/D3 chose TypeScript as the first source format before the prompt editor UI
+existed. Notion-style structural editing must persist, and edited documents
+cannot round-trip into hand-authored builder calls. The builders remain
+exported as the programmatic construction library (scripts, generators,
+tests); what is committed and loaded by the registry is the document.
+
+Validation does not weaken: `validatePrompt` with declared variables performs
+the checks the type system performed, at boot and in the editor.
+
+### D71. Prompt UI Save Format (resolves D66)
+
+Status: decided.
+
+Decision: The prompt UI reads and writes `prompt.json` directly. There is no
+codegen back into builder code, ever. Saves go through a catalog write API
+that validates against the PromptDocument JSON Schema and declared variables,
+canonicalizes, writes the file, and records a prompt revision.
+
+### D72. Prompt Revisions (new)
+
+Status: decided.
+
+Decision: Every prompt state is content-addressed. The canonical document is
+hashed (`"pk1-" + sha256(canonicalBytes)`) and stored as a `prompt_revisions`
+row with the document and rendered text. Agent sessions record the hash at
+creation time — the system prompt is frozen at Pi session creation, so
+revisions bind to sessions, not runs. Each agent directory also commits a
+derived `prompt.rendered.md` snapshot, enforced by test, so PR diffs show the
+rendered contract.
+
+### D73. Sessions Are Containers (new, identity model)
+
+Status: decided.
+
+Decision: There is no separate app-session identity. An app session is a
+container of `kind: "session"`. Containers gain `kind` and `key`; container
+ids derive deterministically from `(kernelId, kind, key)`. The trace envelope
+requires `containerId` and drops `appSessionId`. See
+`docs/10-system-design/15-identity-model.md`.
+
+### D74. Per-Kernel Local Database (new)
+
+Status: decided.
+
+Decision: Each kernel owns a local SQLite database
+(`.agent-kernel/trace.db`, WAL). Postgres remains a supported dialect for
+shared planes but stops being the default. Kernel registration rows shrink to
+a local manifest; a future central observer federates over per-kernel read
+APIs rather than a shared database.
+
+### D75. Extension-Primary Event Emission (new)
+
+Status: decided.
+
+Decision: Kernel-spawned sessions emit trace events in-process through a Pi
+extension that has `RunContext` identity at emit time. Marker-based session
+binding is retired. Pi JSONL remains the durable raw transcript; transcript
+recovery is an `agent-kernel-backfill` command for crash recovery and imports.
+
+### D76. Manifest As Data (extends D8, D9)
+
+Status: decided.
+
+Decision: The agent manifest becomes `agent.json`, validated by a shared JSON
+Schema. `context.ts` and `tools.ts` attach by filename convention. The agent
+bundle is two data files the UI can fully edit plus two code sidecars.
+`defineAgent` survives as the typed generator/validator for these files. The
+runtime's internal `ParsedAgent.frontmatter` shape is renamed to
+`ParsedAgent.config`; the `AgentFrontmatter` type is retired.
+
+### D77. First-Class Spawner Tools (new; retires `canSpawnSubagent`)
+
+Status: decided.
+
+Decision: Spawning is granted per tool, not per agent. A tool that dispatches
+subagents is declared with `defineSpawnerTool({ ..., spawns: [agent names] })`
+in the `tools.ts` sidecar; the kernel injects a scoped `dispatch` handle at
+session build time that enforces the declared allowlist and auto-forwards
+`parentToolUseId`, `trigger: "parent-tool"`, and run-context identity. The
+manifest-level `canSpawnSubagent` boolean is removed from the schema, the
+types, and the runtime.
+
+Agent platforms default to "everything can spawn general subagents"; this
+kernel should not. The boolean was a leftover general-permission model: it
+said an agent may spawn, but not what, through which tool, or with what
+identity plumbing. Spawner declarations are harvested at registry boot —
+every non-`"*"` target must exist in the catalog or boot fails — and the
+harvested map rides on the runtime config. A deliberately general spawner
+remains possible via `spawns: ["*"]`, but it is a loud opt-in visible in the
+declaration, the harvest, and the trace.
+
+Spawner calls are distinguishable in traces: `tool_call_start` /
+`tool_call_end` eventData gains optional `toolKind: "spawner"` + `spawns`
+(additive optional fields on the existing payloads, TurnUsage-style — no new
+event types, no envelope change), so viewers can render agent dispatch
+differently from ordinary tools. Viewer rendering is a deliberate follow-up.
+
+### D78. Agent XML Is the Sole Prompt Editing Surface (revises D46/D47 scope, retires the Sections mode)
+
+Status: decided.
+
+Decision: The prompt editor's only surface is the Agent XML flow — a
+code-editor rendering of exactly what the agent receives, with block and
+keyboard editing layered on as interaction, never as an alternative document
+view. The Notion-style Sections mode, the read-only Raw view, and the
+combined SYS+CTX view were removed from the agent viewer.
+
+Rationale: the editor's job is to manipulate the real artifact. A friendlier
+projection (Sections) and a separate fidelity view (Raw) both existed to
+compensate for an editing surface that didn't look like the rendered prompt;
+once the editor achieved line-for-line parity with the rendered output
+(strict grid, shared highlighting, gutter numbering owned by a tested line
+model), both became redundant. The combined/effective prompt remains
+inspectable where it is a runtime fact: on `system_prompt_resolved` trace
+events. Full surface/interaction contract:
+`docs/20-implementation/60-viewer/20-prompt-editor-design.md`.
+
+### D79. Manifest Fields Are Viewer-Editable Through the Catalog Write API (new)
+
+Status: decided.
+
+Decision: Operational manifest fields — currently `description` and `model` —
+are editable from the agent viewer through a dev-gated
+`PUT /kernel/catalog/agents/:name/manifest`, following the prompt-save
+pattern: schema-validated merge, canonical `agent.json` rewrite, registry
+hot-reload (`reloadAgentManifest`) so the next spawn uses the new values
+without a restart, old registry entry and file preserved on failure. The
+catalog detail exposes the kernel's configured model aliases as suggestions.
+
+Boundary: this is field-level editing of operational configuration, not a
+general manifest editor — variables, tools, spawner declarations, and
+renames stay file-edited (and renames are rejected by hot-reload). Widening
+the editable set is a future decision, not a default.
+
+### D80. The Tailer Package Is Dissolved into Kernel Transcript Recovery (completes D75)
+
+Status: decided.
+
+Decision: `@agent-kernel/tailer` no longer exists. Its surviving capability —
+re-deriving trace rows from Pi's durable JSONL transcripts — moves into the
+kernel as `packages/kernel/src/transcript-recovery/`
+(`@agent-kernel/kernel/transcript-recovery`, CLI bin
+`agent-kernel-backfill`), with tailing-era names renamed to recovery terms.
+
+Rationale: D75 made in-process emission primary and demoted the tailer to a
+backfill tool, which removed every reason for it to be a separate package —
+the daemon posture was deleted, the shared-plane ingestion story became
+per-kernel SQLite, and its only consumers were the kernel's id-parity test
+and one dev endpoint. Co-locating the recovery mapper with the live emitter
+also turns the emitter/backfill id-parity guarantee into an intra-package
+test, so the two mapping implementations cannot version-skew. The recovery
+role remains load-bearing: disaster rebuild of a trace database, import of
+sessions run outside the kernel, and schema re-derivation from transcripts.

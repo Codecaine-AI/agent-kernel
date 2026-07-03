@@ -1,6 +1,6 @@
-import type { AgentRecord } from "@agent-kernel/kernel";
+import { defineSpawnerTool } from "@agent-kernel/kernel/agent-definition";
 import { Type } from "@mariozechner/pi-ai";
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 export type ToolTextResult = {
 	content: Array<{ type: "text"; text: string }>;
@@ -17,27 +17,8 @@ export type ContextSnapshot = {
 	files: Array<{ path: string; bytes: number; truncated: boolean }>;
 };
 
-export type ScoutAssignment = {
-	focus: string;
-	prompt: string;
-};
-
 export interface SimpleResearchToolRuntime {
 	readContextSnapshot(paths?: string[]): ContextSnapshot;
-	spawnScoutAssignments(
-		pi: ExtensionAPI,
-		ctx: ExtensionContext,
-		toolCallId: string,
-		assignments: ScoutAssignment[],
-		signal?: AbortSignal
-	): Promise<AgentRecord[]>;
-	spawnReportWriter(
-		pi: ExtensionAPI,
-		ctx: ExtensionContext,
-		toolCallId: string,
-		focus: string,
-		signal?: AbortSignal
-	): Promise<AgentRecord>;
 	reviewResearchReports(question?: string): ToolResponse;
 	writeResearchReport(title: string | undefined, content: string): ToolResponse;
 	writeFinalReport(title: string | undefined, content: string): ToolResponse;
@@ -113,12 +94,26 @@ export function registerReadContextTool(
 	});
 }
 
-export function registerSpawnScoutsTool(
-	pi: ExtensionAPI,
-	toolName: "spawn_research_scouts" | "spawn_followup_scouts",
-	runtime?: SimpleResearchToolRuntime
-): void {
-	pi.registerTool({
+/** Prompt variables the catalog agents declare (see their agent.json files). */
+const RESEARCH_MEMORY_DIR = "research-memory";
+const RESEARCH_PHASE = "research";
+
+function subagentVariables(focus: string): Record<string, unknown> {
+	return {
+		researchMemoryDir: RESEARCH_MEMORY_DIR,
+		phase: RESEARCH_PHASE,
+		focus
+	};
+}
+
+/**
+ * Scout fan-out as a first-class spawner tool (D77): the tool declares that
+ * it may dispatch exactly the "source-scout" agent, and the kernel-injected
+ * `dispatch` handle enforces that allowlist and forwards parentToolUseId,
+ * trigger, and run-context identity automatically.
+ */
+export function createSpawnScoutsTool(toolName: "spawn_research_scouts" | "spawn_followup_scouts") {
+	return defineSpawnerTool({
 		name: toolName,
 		label: toolName === "spawn_research_scouts" ? "Spawn research scouts" : "Spawn follow-up scouts",
 		description:
@@ -133,9 +128,9 @@ export function registerSpawnScoutsTool(
 				{ minItems: 1 }
 			)
 		}),
+		spawns: ["source-scout"],
 		prepareArguments: (args) => normalizeScoutArguments(args),
-		executionMode: "sequential",
-		execute: async (toolCallId, params, signal, _onUpdate, ctx) => {
+		execute: async (_toolCallId, params, { dispatch }) => {
 			const assignments = params.assignments.map((assignment) => ({
 				focus: assignment.focus,
 				prompt: assignment.prompt ?? assignment.focus
@@ -143,12 +138,14 @@ export function registerSpawnScoutsTool(
 			if (assignments.length === 0) {
 				throw new Error(`${toolName} requires at least one scout assignment.`);
 			}
-			const records = await requireRuntime(runtime).spawnScoutAssignments(
-				pi,
-				ctx,
-				toolCallId,
-				assignments,
-				signal
+			const records = await Promise.all(
+				assignments.map((assignment) =>
+					dispatch("source-scout", assignment.prompt, {
+						description: assignment.focus,
+						displayLabel: "Source Scout",
+						variables: subagentVariables(assignment.prompt)
+					})
+				)
 			);
 			const summary = records
 				.map((record, index) => {
@@ -188,44 +185,38 @@ export function registerReviewReportsTool(
 	});
 }
 
-export function registerQueueReportWriterTool(
-	pi: ExtensionAPI,
-	runtime?: SimpleResearchToolRuntime
-): void {
-	pi.registerTool({
-		name: "queue_report_writer",
-		label: "Queue report writer",
-		description: "Spawn the report-writer agent, wait for it to write the final report, and return the writer output.",
-		promptSnippet: "Queue the report-writer subagent for final synthesis.",
-		parameters: Type.Object({
-			focus: Type.String()
-		}),
-		prepareArguments: (args) => {
-			if (typeof args === "string") return { focus: args };
-			if (args && typeof args === "object" && "prompt" in args && !("focus" in args)) {
-				return { focus: String((args as { prompt: unknown }).prompt) };
-			}
-			return args as { focus: string };
-		},
-		executionMode: "sequential",
-		execute: async (toolCallId, params, signal, _onUpdate, ctx) => {
-			const record = await requireRuntime(runtime).spawnReportWriter(
-				pi,
-				ctx,
-				toolCallId,
-				params.focus,
-				signal
-			);
-			const result = record.result?.trim() || record.error || record.status;
-			return toolTextResult(`Report writer ${record.status}.\n\n${result}`, {
-				id: record.id,
-				status: record.status,
-				result: record.result,
-				error: record.error
-			});
+/** Final synthesis as a spawner tool scoped to the "report-writer" agent. */
+export const queueReportWriterTool = defineSpawnerTool({
+	name: "queue_report_writer",
+	label: "Queue report writer",
+	description: "Spawn the report-writer agent, wait for it to write the final report, and return the writer output.",
+	promptSnippet: "Queue the report-writer subagent for final synthesis.",
+	parameters: Type.Object({
+		focus: Type.String()
+	}),
+	spawns: ["report-writer"],
+	prepareArguments: (args) => {
+		if (typeof args === "string") return { focus: args };
+		if (args && typeof args === "object" && "prompt" in args && !("focus" in args)) {
+			return { focus: String((args as { prompt: unknown }).prompt) };
 		}
-	});
-}
+		return args as { focus: string };
+	},
+	execute: async (_toolCallId, params, { dispatch }) => {
+		const record = await dispatch("report-writer", params.focus, {
+			description: "Write the final research report",
+			displayLabel: "Report Writer",
+			variables: subagentVariables(params.focus)
+		});
+		const result = record.result?.trim() || record.error || record.status;
+		return toolTextResult(`Report writer ${record.status}.\n\n${result}`, {
+			id: record.id,
+			status: record.status,
+			result: record.result,
+			error: record.error
+		});
+	}
+});
 
 export function registerWriteResearchReportTool(
 	pi: ExtensionAPI,

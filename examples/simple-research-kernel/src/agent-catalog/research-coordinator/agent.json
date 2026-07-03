@@ -1,0 +1,29 @@
+{
+	"$schema": "agent-kernel/agent-v1",
+	"name": "research-coordinator",
+	"description": "Coordinates a research request, dispatches focused scouts, manages working memory, and returns a final report.",
+	"model": "research-default",
+	"thinking": "low",
+	"extensions": false,
+	"variables": {
+		"researchMemoryDir": {
+			"default": "research-memory",
+			"description": "Directory inside the active research session that stores the brief, scout reports, and final reports."
+		},
+		"phase": {
+			"default": "research",
+			"description": "Kernel phase label for trace grouping."
+		},
+		"userPrompt": {
+			"default": "",
+			"description": "Current operator request."
+		}
+	},
+	"variants": {
+		"deep": {
+			"thinking": "high",
+			"maxTurns": 24,
+			"displayLabel": "Research Coordinator (deep)"
+		}
+	}
+}

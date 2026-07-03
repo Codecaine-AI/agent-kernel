@@ -1,12 +1,12 @@
 ---
 covers: "How to set up a host application on top of the Pi Agent Kernel packages without moving app-specific workflow semantics into the kernel."
-concepts: [application-setup, host-app, adapter, workspace, create-kernel, read-api, viewer, tailer]
+concepts: [application-setup, host-app, adapter, workspace, create-kernel, read-api, viewer, transcript-recovery]
 depends-on: [00-overview.md, ../../00-foundation/30-boundaries.md, ../../10-system-design/50-app-adapter-model.md]
 ---
 
 # Application Setup
 
-A host application is the product-specific layer above the kernel. It owns workflow state, domain tools, routing, product UI, and persistence choices while consuming `@agent-kernel/*` packages for runtime, observability, trace reading, tailing, and viewer primitives.
+A host application is the product-specific layer above the kernel. It owns workflow state, domain tools, routing, product UI, and persistence choices while consuming `@agent-kernel/*` packages for runtime, observability, trace reading, transcript recovery, and viewer primitives.
 
 ---
 
@@ -17,7 +17,7 @@ host app packages
   backend adapter
   database composition
   domain agents/tools/loaders
-  tailer wrapper
+  transcript-recovery wrapper
   read API mount
   frontend viewer mount
         |
@@ -26,7 +26,6 @@ host app packages
   protocol
   db
   kernel
-  tailer
   viewer-core
   viewer-ui
   viewer-shell
@@ -41,7 +40,7 @@ Spectre has an `apps/backend/src/agent-kernel/` directory because it was the ori
 When starting a new app, do not copy Spectre's `apps/backend/src/agent-kernel/` tree as if it were kernel source. Use it only as a reference for the app-adapter pattern:
 
 - `kernel-instance.ts` shows how Spectre configures `createKernel()`.
-- `run-context.ts` shows how Spectre maps old session identity to generic app-session identity.
+- `run-context.ts` shows how Spectre maps old session identity onto kernel containers.
 - `spawn-pipeline/*` and `subagents/*` contain many transitional re-export shims.
 - Spectre-specific loaders, tools, phase transitions, and `SessionStateManager` stay in Spectre.
 
@@ -68,7 +67,6 @@ Then app packages can depend on kernel packages with `workspace:*`:
     "@agent-kernel/kernel": "workspace:*",
     "@agent-kernel/protocol": "workspace:*",
     "@agent-kernel/db": "workspace:*",
-    "@agent-kernel/tailer": "workspace:*",
     "@agent-kernel/viewer-core": "workspace:*",
     "@agent-kernel/viewer-shell": "workspace:*",
     "@agent-kernel/viewer-ui": "workspace:*"
@@ -78,90 +76,72 @@ Then app packages can depend on kernel packages with `workspace:*`:
 
 After package contracts stabilize, published package versions can replace `workspace:*`.
 
-## Step 2: Compose Persistence
+## Step 2: Open The Kernel Database
 
-The kernel provides reusable schema and read helpers in `@agent-kernel/db`. The host app decides how those tables enter its migration system.
-
-The usual shape is:
-
-```text
-app database package
-  app workflow tables
-  app project/user/session tables
-  kernel table exports from @agent-kernel/db/schema
-  app-specific actions and joins
-```
-
-The app should keep domain workflow rows separate from kernel observability rows. Link them through generic correlation fields such as app session identity or kernel container ids.
-
-## Step 3: Register The Kernel
-
-In the local observability setup, the app should upsert its kernel registration row during backend startup.
+The kernel stores observability rows in one local SQLite file per kernel. Open it during backend startup and write the local kernel manifest:
 
 ```ts
-import { upsertKernelRegistration } from "@agent-kernel/db";
+import {
+  ensureKernelObservabilitySchema,
+  kernelDatabasePath,
+  openKernelDatabase,
+  writeKernelManifest,
+} from "@agent-kernel/db";
 
-await upsertKernelRegistration(db, {
+const handle = openKernelDatabase({ path: kernelDatabasePath(appRoot) });
+await ensureKernelObservabilitySchema(handle.db);
+await writeKernelManifest(appRoot, {
   kernelId: "my-app",
   displayName: "My App",
-  workingDir: process.cwd(),
   piSessionsDir: ".agent-kernel/pi-sessions",
-  appBaseUrl: "http://127.0.0.1:5174",
-  appTraceUrlTemplate: "http://127.0.0.1:5174/traces/{containerId}",
-  genericTraceUrlTemplate: "http://127.0.0.1:8790/containers/{containerId}",
-  markerConfig: {
-    sessionBinding: "agent-kernel:session-binding",
-    lifecycle: "agent-kernel:pi-lifecycle",
-    subagentLink: "agent-kernel:subagent-link",
-  },
+  viewerBaseUrl: "http://127.0.0.1:5174",
 });
 ```
 
-The first implementation is a direct DB upsert. A later central observer can add an HTTP registration API and heartbeats without changing the host-app concept.
+The app keeps its own workflow tables wherever it likes and links them to kernel rows through container `kind` + `key` — the kernel derives container ids deterministically, so the app never stores hashed grouping ids of its own.
 
-## Step 4: Create A Kernel Instance
+## Step 3: Create A Kernel Instance
 
-The app adapter creates the kernel instance and supplies the app-specific spawn implementation.
+The app adapter creates the kernel instance from one config object. App-shaped behavior enters through the function slots (`appContext`, `loaders`, `sharedTools`); everything else is data.
 
 ```ts
-import { createKernel, AgentManager } from "@agent-kernel/kernel";
+import { createKernel } from "@agent-kernel/kernel";
 
-export function createAppKernel() {
-  let kernel!: ReturnType<typeof createKernel>;
-
-  kernel = createKernel({
+export function createAppKernel(db: KernelDatabase) {
+  return createKernel({
     id: "my-app",
-    concurrency: {
-      maxBackgroundAgents: 4,
+    db,
+    catalog: { roots: [agentCatalogDir] },
+    models: {
+      aliases: { strong: "provider/big-model", fanout: "provider/small-model" },
+      prices: { "provider/big-model": { inputPerMTok: 3, outputPerMTok: 15 } },
     },
-    spawnAgent: async (name, prompt, ctx, opts) => {
-      return spawnAgentThroughMyApp(name, prompt, ctx, opts);
-    },
-    createAgentManager: ({ maxConcurrentBackgroundAgents }) =>
-      new AgentManager(undefined, maxConcurrentBackgroundAgents, undefined, {
-        spawnAgent: (name, prompt, ctx, opts) => kernel.spawnAgent(name, prompt, ctx, opts),
-      }),
+    toolProfiles: { reader: ["read", "glob", "grep"] },
+    loaders: [myWorkflowLoader],
+    toolRuntime: appToolRuntime,
+    appContext: ({ agentName, cwd, options }) => ({ stateManager, sessionData }),
+    piSessionsDir: ".agent-kernel/pi-sessions",
+    concurrency: { maxBackgroundAgents: 4 },
   });
-
-  return kernel;
 }
 ```
 
-The spawn adapter is where the host app wires model resolution, app session identity, working directories, trace writers, agent catalog roots, and app run context.
+The instance exposes `spawnAgent` (with manifest `variant` selection and model-alias resolution), `container()`, `agentManager`, `traceWriter`, `readApiService`, `registry()`, `doctor()`, and `dispose()`. Spawns require a `containerId` — derive one with `kernel.container({ kind, key })` and pass it in the spawn options along with the run `trigger`.
 
 ### Private Tool Sidecars
 
-Agent-specific private tools should live beside the agent definition:
+Agent-specific private tools should live beside the agent manifest:
 
 ```text
 src/agent-catalog/report-writer/
-  agent.ts
-  prompt.ts
+  agent.json
+  prompt.json
+  prompt.rendered.md
   context.ts
   tools.ts
 ```
 
-`agent.ts` declares the durable agent config and imports the prompt, context, and private tools. `tools.ts` implements the tools for that one agent:
+`agent.json` declares the durable agent config; `prompt.json` is the canonical prompt document; the code sidecars attach by filename convention. `tools.ts` implements the tools for that one agent:
 
 ```ts
 import { Type } from "@mariozechner/pi-ai";
@@ -179,110 +159,77 @@ export const tools = defineTools((pi, runtime) => {
 });
 ```
 
-The spawn adapter loads the sidecar through the registry and binds app-owned runtime services:
+The kernel binds the sidecar to the config `toolRuntime` at spawn time; the registry harvests the tool names at boot so they enter the allowlist automatically.
+
+Shared tools that should be available across many agents can still come from the `sharedTools` config slot. Tools that only make sense for one agent should use the colocated `tools.ts` path so the implementation, prompt, and manifest stay together.
+
+## Step 4: Define App Container Mapping
+
+The kernel uses containers as the portable grouping primitive. The app keeps its own workflow rows and maps them to containers by kind + key:
 
 ```ts
-buildPrivateRegisterFactory: async (name) => {
-  const agent = registry.get(name);
-  if (!agent.privateTools) return null;
-  return (pi) => agent.privateTools?.(pi, appToolRuntime);
-};
+const container = await kernel.container({
+  kind: "session",
+  key: [appSessionRowId],
+  label: topic,
+  metadata: { app: "my-app" },
+});
 ```
 
-Shared tools that should be available across many agents can still come from `buildToolFactories()`. Tools that only make sense for one agent should use the colocated `tools.ts` path so the implementation, prompt, and typed manifest stay together.
+The same kind and key always resolve to the same container id, so the mapping needs no join table. Use app-owned workflow tables for product semantics. Use kernel rows for runtime and observability.
 
-## Step 5: Define App Session And Container Mapping
+## Step 5: Register Custom Loaders App-Side
 
-The kernel uses containers as portable grouping units. The app can keep its own workflow sessions and map them to containers.
-
-```text
-app session row
-  id
-  topic
-  workflow status
-  current app phase
-  kernel_container_id -> kernel containers.id
-```
-
-Use app-owned workflow tables for product semantics. Use kernel rows for runtime and observability.
-
-## Step 6: Register Custom Loaders App-Side
-
-Kernel loaders should stay generic. App-specific loaders should live in the host app and be registered into the loader catalog.
+Kernel loaders should stay generic. App-specific loaders should live in the host app and be passed through the `loaders` config slot.
 
 ```ts
-import { createDefaultCatalog } from "@agent-kernel/kernel/context/loaders";
-
-const catalog = createDefaultCatalog();
-
-catalog.register({
+const myWorkflowLoader = {
   kind: "my-workflow-slice",
-  async load(input, ctx) {
-    const state = await loadMyWorkflowState(ctx.appSessionId);
+  async resolve(decl, ctx) {
+    const state = await loadMyWorkflowState(ctx.containerId);
     return {
       status: "ok",
       content: JSON.stringify(state, null, 2),
       bytes: 0,
-      fromCache: false,
+      hash: "",
     };
   },
-});
+};
 ```
 
 If a loader reads app tables, app artifacts, or product workflow state, it belongs in the app adapter.
 
-## Step 7: Emit Protocol Events Through A Trace Writer
+## Step 6: Emit App Events Through The Trace Writer
 
-Use `@agent-kernel/protocol` factories for trace events and write them into the app-composed kernel tables.
+Use `@agent-kernel/protocol` factories for app-level trace events and write them through the kernel's trace writer. Identity comes first as a single `ids` object; inside a run scope, build it with `currentTraceIds()`.
 
 ```ts
-import { createAgentRunStartEvent } from "@agent-kernel/protocol";
+import { createPhaseStartEvent } from "@agent-kernel/protocol";
 
-await traceWriter.submit(
-  createAgentRunStartEvent(appSessionId, userId, agentName, runId, {
-    containerId,
-    phase,
-  }),
+kernel.traceWriter.submit(
+  createPhaseStartEvent({ containerId: container.id }, "build"),
 );
 ```
 
-The app decides when domain-level events happen. The event protocol gives those events a portable shape.
+The app decides when domain-level events happen. The event protocol gives those events a portable shape. Runtime events (messages, tools, turns, usage) are emitted by the kernel's in-process emitter automatically.
 
-## Step 8: Wrap The Tailer
+## Step 7: Backfill When Needed
 
-`@agent-kernel/tailer` provides file watching, JSONL reading, event mapping, cursor storage, queueing, and health primitives. The app wrapper supplies:
+The primary trace path is in-process emission; there is no tailer daemon to run. Reach for the kernel's transcript-recovery module (`@agent-kernel/kernel/transcript-recovery`) as a recovery tool: `runBackfill({ jsonlDir, db })` re-imports Pi JSONL transcripts idempotently after a crash, or imports sessions that ran outside the kernel. Marker custom types are configurable if compatibility names are needed.
 
-- watch directory from the kernel registration row
-- cursor snapshot path
-- database connection
-- queue insert/upsert callbacks
-- app-session binding marker names
-- lifecycle/subagent custom marker names if compatibility is needed
+## Step 8: Mount The Kernel Read API
 
-New apps should prefer generic marker names. Existing apps can configure compatibility names.
-
-## Step 9: Mount The Kernel Read API
-
-The read API route factory lives in `@agent-kernel/kernel/read-api`. The app provides a service that resolves app routes into kernel read DTOs.
+The read API route factory lives in `@agent-kernel/kernel/read-api`, and the kernel instance ships a default container-backed service:
 
 ```ts
 import { createKernelTraceReadApi } from "@agent-kernel/kernel/read-api";
 
-app.use(
-  createKernelTraceReadApi({
-    async getTraceSessionDetail(id, query) {
-      return readKernelTraceForAppSession(id, query);
-    },
-    async listTraceSessions(query) {
-      return listKernelTraceSessions(query);
-    },
-  }),
-);
+app.use(createKernelTraceReadApi(kernel.readApiService));
 ```
 
 Keep product routes separate from kernel read routes. Product routes can join app workflow state; kernel read routes should return viewer-core DTOs.
 
-## Step 10: Mount The Viewer
+## Step 9: Mount The Viewer
 
 The base viewer path is:
 
@@ -294,7 +241,7 @@ read API response
 
 The host app owns surrounding navigation, headers, filters, and workflow panels. Generic trace tree behavior belongs in viewer packages; domain interpretation belongs in the host app.
 
-## Step 11: Add Boundary Tests
+## Step 10: Add Boundary Tests
 
 Every host app should have a portability check:
 
@@ -309,15 +256,13 @@ This turns the adapter boundary into a testable contract instead of a convention
 ## Minimal App Checklist
 
 - Link or install `@agent-kernel/*`.
-- Add kernel schema to the app migration path.
-- Upsert a kernel registration row on backend startup.
-- Create app workflow/session tables.
-- Create a small app kernel adapter with `createKernel()`.
-- Provide a spawn adapter and trace writer.
-- Colocate per-agent private tools in agent `tools.ts` sidecars and bind them from the spawn adapter.
-- Register app-owned custom loaders.
-- Wrap the tailer if JSONL ingestion is needed.
-- Mount the kernel read API.
+- Open the kernel SQLite database, ensure the schema, and write the kernel manifest on backend startup.
+- Create app workflow tables and map them to containers by kind + key.
+- Create a small app kernel adapter with `createKernel(config)`.
+- Colocate per-agent private tools in agent `tools.ts` sidecars and pass an app `toolRuntime`.
+- Register app-owned custom loaders through the `loaders` config slot.
+- Keep `runBackfill` handy for crash recovery and imports.
+- Mount the kernel read API over `kernel.readApiService`.
 - Mount `KernelTraceViewer` or compose `viewer-ui` directly.
 - Add boundary tests.
 
@@ -332,7 +277,7 @@ packages/pi-agent-kernel/packages/*   kernel source of truth
 apps/backend/src/agent-kernel/*       Spectre backend adapter and compatibility shims
 apps/backend/src/agent-catalog/*      Spectre agents, tools, and custom loaders
 apps/database/*                       Spectre schema composed with kernel schema
-apps/tailer/*                         Spectre tailer wrapper
+apps/transcript-recovery/*            Spectre transcript-recovery wrapper
 apps/frontend/*                       Spectre viewer mount and workflow UI
 ```
 

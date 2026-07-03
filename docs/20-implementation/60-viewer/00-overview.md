@@ -16,32 +16,36 @@ The viewer packages turn kernel trace read responses into a reusable UI.
 
 Viewer-core owns browser-safe data contracts and trace transforms:
 
-- `KERNEL_TRACE_READ_PATHS`
-- `KERNEL_OBSERVER_READ_PATHS`
+- `KERNEL_TRACE_READ_PATHS`, `KERNEL_CATALOG_PATHS`, `KERNEL_OBSERVER_READ_PATHS`
 - kernel trace DTOs
-- registered kernel DTOs
-- `buildTraceSpans(events, piSessions, agentRuns)`
+- catalog DTOs (`catalog-types.ts`): agent summaries/detail, prompt save results, revision summaries, revision stats
+- `buildTraceSpans(events, piSessions, agentRuns, containers)`
 - event pairing
-- run bucketing
+- run bucketing — envelope `runId` preferred, span-window inference as fallback
 - phase grouping
-- container grouping
+- container grouping from explicit `containerId` values and persisted container summaries
 - parent tool-call nesting
 - span attributes and factories
+- `diffPromptDocuments(a, b)` — block-level structural diff between two prompt revisions, keyed by stable node ids (inserted / removed / moved / edited; no text diffing)
 
 This package should not import Drizzle schema or app DB types.
 
 ## `@agent-kernel/viewer-ui`
 
-Viewer-ui owns reusable React components for trace rendering:
+Viewer-ui owns reusable React components for trace rendering and the prompt lab:
 
 - `TreeView`
 - `SpanCard`
 - `SpanDetailPanel`
 - `AgentCatalogViewer`
+- `PromptInlineLab` — inline prompt editor with transactional undo/redo (block edits and metadata edits share one stack, and undo works across a save boundary) and a save flow against the catalog API
+- `RevisionHistoryPanel` — revision list with block-level diffs between any two revisions via `diffPromptDocuments`
+- `RevisionStatsStrip` — per-revision run analytics (runs, tokens, failures, cost) fetched from the revision stats route
+- `AgentPromptLabContainer` — wires the lab, history, and stats over `KERNEL_CATALOG_PATHS`
 - trace filtering and lookup helpers
 - style and theme helpers
 
-It consumes viewer-core/protocol types and Agent Prism span types.
+It consumes viewer-core/protocol types, prompt-kit documents, and Agent Prism span types.
 
 ## `@agent-kernel/viewer-shell`
 

@@ -1,56 +1,48 @@
 import {
-	SYSTEM_USER_ID,
 	createAgentRunEndEvent,
 	createAgentRunStartEvent,
+	type RunTraceEventIds,
+	type TurnUsage,
 } from "@agent-kernel/protocol";
 
 import type { TraceWriterSink } from "../../subagents/types";
 
 export function emitAgentRunStart(
 	traceWriter: TraceWriterSink,
-	appSessionId: string,
+	ids: RunTraceEventIds,
 	agentName: string,
-	runId: string,
-	parentRunId?: string,
-	piSessionUuid?: string,
-	containerId?: string,
-	phase?: string,
-	parentToolUseId?: string,
-	displayLabel?: string,
+	opts?: {
+		parentRunId?: string;
+		phase?: string;
+		parentToolUseId?: string;
+		displayLabel?: string;
+	},
 ): void {
 	traceWriter.submit(
-		createAgentRunStartEvent(appSessionId, SYSTEM_USER_ID, agentName, runId, {
-			parentRunId,
-			piSessionUuid,
-			containerId,
-			phase,
-			parentToolUseId,
-			displayLabel,
+		createAgentRunStartEvent(ids, agentName, {
+			parentRunId: opts?.parentRunId,
+			phase: opts?.phase,
+			parentToolUseId: opts?.parentToolUseId,
+			displayLabel: opts?.displayLabel,
 		}),
 	);
 }
 
 export function emitAgentRunEnd(
 	traceWriter: TraceWriterSink,
-	appSessionId: string,
+	ids: RunTraceEventIds,
 	agentName: string,
-	runId: string,
 	status: "ok" | "error",
 	errorMessage?: string,
-	piSessionUuid?: string,
-	containerId?: string,
+	usage?: TurnUsage,
 ): void {
 	traceWriter.submit(
 		status === "error"
-			? createAgentRunEndEvent(appSessionId, SYSTEM_USER_ID, agentName, runId, "error", {
+			? createAgentRunEndEvent(ids, agentName, "error", {
 					errorMessage: errorMessage ?? "",
-					piSessionUuid,
-					containerId,
+					...(usage ? { usage } : {}),
 				})
-			: createAgentRunEndEvent(appSessionId, SYSTEM_USER_ID, agentName, runId, "ok", {
-					piSessionUuid,
-					containerId,
-				}),
+			: createAgentRunEndEvent(ids, agentName, "ok", usage ? { usage } : undefined),
 	);
 }
 

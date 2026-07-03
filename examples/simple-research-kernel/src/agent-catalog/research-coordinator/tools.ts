@@ -1,19 +1,21 @@
 import { defineTools } from "@agent-kernel/kernel/agent-definition";
 
 import {
-	registerQueueReportWriterTool,
+	createSpawnScoutsTool,
+	queueReportWriterTool,
 	registerReadContextTool,
 	registerReviewReportsTool,
-	registerSpawnScoutsTool,
 	type SimpleResearchToolRuntime,
 } from "../tool-runtime";
 
 export const tools = defineTools<SimpleResearchToolRuntime>((pi, runtime) => {
 	registerReadContextTool(pi, runtime);
-	registerSpawnScoutsTool(pi, "spawn_research_scouts", runtime);
+	// Spawner tools (D77): each declares the exact agents it may dispatch;
+	// the kernel binds the scoped dispatch handle at session build time.
+	pi.registerTool(createSpawnScoutsTool("spawn_research_scouts"));
 	registerReviewReportsTool(pi, runtime);
-	registerSpawnScoutsTool(pi, "spawn_followup_scouts", runtime);
-	registerQueueReportWriterTool(pi, runtime);
+	pi.registerTool(createSpawnScoutsTool("spawn_followup_scouts"));
+	pi.registerTool(queueReportWriterTool);
 });
 
 export default tools;

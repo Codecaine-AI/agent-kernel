@@ -36,12 +36,12 @@
 
 - This is a platform monorepo while the contracts settle:
 
-  - `@agent-kernel/protocol` — trace/event envelopes and event factories
-  - `@agent-kernel/db` — kernel observability schema and query helpers
-  - `@agent-kernel/kernel` — runtime, registry, context assembly, spawn pipeline, subagents, and read API
-  - `@agent-kernel/tailer` — Pi JSONL ingestion primitives
-  - `@agent-kernel/viewer-core` — viewer DTOs, read API paths, and trace transforms
-  - `@agent-kernel/viewer-ui` — reusable trace viewer components
+  - `@agent-kernel/protocol` — trace/event envelopes, event factories, deterministic event ids, and turn usage
+  - `@agent-kernel/db` — per-kernel SQLite observability store, schema (with a Postgres mirror), kernel manifest, and query helpers
+  - `@agent-kernel/kernel` — `createKernel` runtime, container identity, registry, context assembly, spawn pipeline, in-process emitter, subagents, trace doctor, read API, and transcript recovery
+  - `@codecaine-ai/prompt-kit` — prompt document model, canonicalization/hashing, renderers, and editor primitives (submodule)
+  - `@agent-kernel/viewer-core` — viewer DTOs, read/catalog API paths, trace transforms, and prompt diffing
+  - `@agent-kernel/viewer-ui` — reusable trace viewer and prompt lab components
   - `@agent-kernel/viewer-shell` — mountable base trace viewer shell
 
 ## Building a harness on it
@@ -50,8 +50,7 @@
 - A host application (the harness) consumes the kernel through a thin adapter.
 - The harness owns workflow sessions, phase semantics, domain tools, app-specific loaders, app DB tables, and custom viewer panels.
 - The kernel owns spawning, context assembly, observability storage, trace reading, and viewer primitives.
-- For the longer-term service model, see [ARCHITECTURE_UPDATE.md](ARCHITECTURE_UPDATE.md).
-- `ARCHITECTURE_UPDATE.md` describes the centralized local DB/tailer plane, kernel registration, app-embedded viewers, and optional central observer.
+- The identity model behind all of this (containers, sessions, runs, turns, linkage invariants) is documented in [docs/10-system-design/15-identity-model.md](docs/10-system-design/15-identity-model.md); the overhaul plan that produced it lives in [docs/.drafts/agent-kernel-overhaul.plan.md](docs/.drafts/agent-kernel-overhaul.plan.md).
 
 ## Setup
 
@@ -63,14 +62,13 @@
 - Run `bun run typecheck`.
 - Run `bun run test`.
 - The boundary check is the important portability gate: platform packages must not import the host application or reference host-app paths.
+- To check a kernel trace database against the linkage/usage invariants, run the trace doctor: `bun run packages/kernel/src/doctor-cli.ts <db-path>`.
 
 ## Examples
 
 - `examples/simple-research-kernel` is a runnable standalone Simple Research Kernel.
-- The example defines agents in a catalog, loads context sidecars, spawns scout subagents, waits for their reports, reviews gaps, queues a report writer, writes working memory, persists kernel observability rows to Postgres, and renders traces through the viewer shell.
-- Start shared services with `bun run dev:services`.
-- Start the Simple Research Kernel with `bun run dev:simple-research`.
-- The service command starts shared Postgres in OrbStack/Docker on `127.0.0.1:55432`.
-- The kernel command starts the API on `http://127.0.0.1:8788` and the viewer on `http://127.0.0.1:5174`.
-- The example uses `AGENT_KERNEL_DATABASE_URL` when set, otherwise `postgres://agent_kernel:agent_kernel@127.0.0.1:55432/agent_kernel`.
-- It bootstraps kernel observability tables, upserts a `kernel_registrations` row, and writes containers/Pi sessions/runs/events to Postgres.
+- The example defines agents in a catalog (`agent.json` + `prompt.json` bundles), loads context sidecars, spawns scout subagents, waits for their reports, reviews gaps, queues a report writer, writes working memory, persists kernel observability rows, and renders traces through the viewer shell.
+- Start it with `bun run dev:simple-research` — no Postgres, no Docker, no service processes.
+- It runs against a single local SQLite file (`examples/simple-research-kernel/.agent-kernel/trace.db`, WAL mode) created on boot, alongside a local kernel manifest (`.agent-kernel/kernel.json`).
+- The launcher starts the API on `http://127.0.0.1:8788` and the viewer on `http://127.0.0.1:5174`.
+- `bun run dev:services` remains only for optional shared-Postgres experiments against the `@agent-kernel/db/schema/pg` mirror; the example does not use it.

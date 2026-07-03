@@ -1,60 +1,73 @@
 import {
 	createAgentRun,
-	listAgentRunsForPiSession,
 	upsertPiAgentSession,
-} from "@agent-kernel/db/actions";
-
-type Database = any;
+	type KernelDatabase,
+	type RunTrigger,
+} from "@agent-kernel/db";
 
 export interface SetupPiSessionAndRunArgs {
 	piSessionUuid: string;
-	appSessionId: string;
+	/** Primary grouping identity — required on both the session and run rows. */
+	containerId: string;
+	/** Pipeline-minted run id (known before the run opens). */
+	runId: string;
 	agentName: string;
+	/** What opened the run: operator | parent-tool | steer | resume | system. */
+	trigger: RunTrigger;
 	model?: string;
+	/**
+	 * Prompt revision ("pk1-<sha256>") frozen at Pi session creation. All runs
+	 * in a session share this hash (D72 — revisions bind to sessions).
+	 */
+	promptHash?: string;
 	parentPiSessionUuid?: string;
 	parentRunId?: string;
-	containerId?: string;
 	phase?: string;
 	displayLabel?: string;
 	parentToolUseId?: string;
+	/** The user_message event that opened the run, when the pipeline emitted it. */
+	inboundEventId?: string;
 }
 
 export interface SetupPiSessionAndRunResult {
 	runId: string;
 }
 
+/**
+ * Pre-insert the session + run rows before the agent starts working, so every
+ * event the run emits already resolves (doctor invariants 2 and 7).
+ */
 export async function setupPiSessionAndRun(
-	db: Database,
+	db: KernelDatabase,
 	args: SetupPiSessionAndRunArgs,
 ): Promise<SetupPiSessionAndRunResult> {
 	const now = new Date().toISOString();
 	await upsertPiAgentSession(db, {
 		id: args.piSessionUuid,
-		appSessionId: args.appSessionId,
+		containerId: args.containerId,
 		agentName: args.agentName,
-		status: "running",
+		status: "active",
 		model: args.model,
-		startedAt: now,
-		parentId: args.parentPiSessionUuid,
-		containerId: args.containerId,
+		promptHash: args.promptHash,
+		createdAt: now,
+		parentSessionId: args.parentPiSessionUuid,
+		parentToolUseId: args.parentToolUseId,
 		phase: args.phase,
 		displayLabel: args.displayLabel,
 	});
-	const existing = await listAgentRunsForPiSession(db, args.piSessionUuid);
-	const runNumber = existing.length + 1;
-	const runId = crypto.randomUUID();
 	await createAgentRun(db, {
-		id: runId,
+		id: args.runId,
 		piSessionId: args.piSessionUuid,
+		containerId: args.containerId,
 		agentName: args.agentName,
-		runNumber,
+		trigger: args.trigger,
 		status: "running",
 		startedAt: now,
-		containerId: args.containerId,
-		phase: args.phase,
 		parentRunId: args.parentRunId,
-		displayLabel: args.displayLabel,
 		parentToolUseId: args.parentToolUseId,
+		inboundEventId: args.inboundEventId,
+		phase: args.phase,
+		displayLabel: args.displayLabel,
 	});
-	return { runId };
+	return { runId: args.runId };
 }

@@ -1,3 +1,4 @@
+import type { RunTrigger } from "@agent-kernel/db";
 import type { TraceEvent } from "@agent-kernel/protocol";
 
 export interface KernelAgentSession {
@@ -38,6 +39,8 @@ export interface AgentRecord {
 	notificationTimeout?: ReturnType<typeof setTimeout>;
 	pendingSteers?: string[];
 	isBackground?: boolean;
+	/** Trace identity of the spawned run, once the pipeline reports it. */
+	traceIds?: { containerId: string; runId: string; piSessionUuid?: string };
 }
 
 export type OnAgentComplete = (record: AgentRecord) => void;
@@ -50,11 +53,13 @@ export interface SpawnOptions {
 	toolCallId?: string;
 	parentPi?: KernelExtensionAPI;
 	parentRunId?: string;
-	appSessionId?: string;
-	appSessionSlug?: string;
-	appSessionDir?: string;
-	piSessionsDir?: string;
+	/** Primary grouping identity; inherited from the parent run context when omitted. */
 	containerId?: string;
+	/** What opened the run — subagent spawns default to "parent-tool". */
+	trigger?: RunTrigger;
+	/** Session working directory for Pi session storage. */
+	sessionDir?: string;
+	piSessionsDir?: string;
 	phase?: string;
 	displayLabel?: string;
 	variables?: Record<string, unknown>;

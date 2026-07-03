@@ -15,7 +15,8 @@ export type ResearchAgentSummary = {
 	tools: string[];
 	disallowedTools: string[];
 	extensions: true | string[] | false;
-	canSpawnSubagent: boolean;
+	/** Spawner tool name → declared agent-name allowlist (D77). */
+	spawnerTools: Record<string, string[]>;
 	variables: Array<{
 		name: string;
 		defaultValue: unknown;
@@ -35,11 +36,10 @@ export type ResearchAgentSummary = {
 
 export type ResearchRunSummary = {
 	id: string;
-	appSessionId: string;
-	appSessionSlug: string;
+	/** The session container (kind "session") this run's trace lives under. */
 	containerId: string;
+	sessionSlug: string;
 	prompt: string;
-	kind: "dummy" | "user";
 	status: "running" | "completed" | "error";
 	startedAt: string;
 	completedAt: string | null;
@@ -52,11 +52,6 @@ export type ResearchHarnessInfo = {
 	memoryDir: string;
 	agents: ResearchAgentSummary[];
 	activeRuns: ResearchRunSummary[];
-	dummySession: {
-		id: string;
-		label: string;
-		description: string;
-	};
 	trace: {
 		label: string;
 		piSessionCount: number;

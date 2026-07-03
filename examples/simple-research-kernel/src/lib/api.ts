@@ -6,9 +6,7 @@ import {
 
 import type { ResearchHarnessInfo, ResearchRunSummary } from "./types";
 
-export const RESEARCH_TRACE_SESSION_ID = "simple-research-kernel";
-export const RESEARCH_APP_SESSION_ID = "11111111-1111-4111-8111-111111111111";
-export const RESEARCH_CONTAINER_ID = "simple-research-kernel";
+export const RESEARCH_KERNEL_ID = "simple-research-kernel";
 
 export type ResearchKernelState = {
 	detail: KernelTraceSessionDetail | null;
@@ -40,12 +38,8 @@ export type FetchResearchKernelStateOptions = {
 	selectFallbackTrace?: boolean;
 };
 
-function isSeedTrace(trace: KernelTraceSessionSummary): boolean {
-	return trace.id === RESEARCH_APP_SESSION_ID || trace.containerId === RESEARCH_CONTAINER_ID;
-}
-
 function fallbackTraceId(sessions: KernelTraceSessionSummary[]): string | null {
-	const trace = sessions.find((session) => !isSeedTrace(session)) ?? sessions[0] ?? null;
+	const trace = sessions[0] ?? null;
 	return trace?.id ?? trace?.containerId ?? null;
 }
 
@@ -114,8 +108,7 @@ export async function fetchResearchKernelState(
 	const list = (await traceSessions.json()) as { trace_sessions: KernelTraceSessionSummary[] };
 	const sessions = list.trace_sessions;
 	const researchInfo = (await info.json()) as ResearchHarnessInfo;
-	const activeRunTraceId =
-		researchInfo.activeRuns[0]?.appSessionId ?? researchInfo.activeRuns[0]?.containerId ?? null;
+	const activeRunTraceId = researchInfo.activeRuns[0]?.containerId ?? null;
 	const selectedTraceSessionId =
 		traceSessionId ??
 		(options.selectActiveRunTrace ? activeRunTraceId : null) ??

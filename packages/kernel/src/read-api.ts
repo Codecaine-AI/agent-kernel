@@ -1,27 +1,31 @@
+/**
+ * Kernel trace read API — an Elysia route factory over an app-provided read
+ * service. Container-first: GET /kernel/containers/:containerId/trace is the
+ * primary route. The trace-sessions routes are container-backed — a "trace
+ * session" is a container of kind "session", so the detail route delegates to
+ * the container trace and the list route lists session containers.
+ *
+ * Payload shapes stay app-provided (the viewer defines what a trace detail
+ * looks like); the kernel only owns the routing + query normalization.
+ */
 import { Elysia } from "elysia";
-
-import type {
-	KernelTraceSessionDetail,
-	KernelTraceSessionListResponse,
-} from "@agent-kernel/viewer-core";
 
 export interface KernelTraceReadQuery {
 	after?: string | null;
 	limit?: number;
 }
 
-export interface KernelTraceReadService {
-	listTraceSessions?: (
-		query: KernelTraceReadQuery,
-	) => Promise<KernelTraceSessionListResponse>;
-	getTraceSessionDetail: (
-		id: string,
-		query: KernelTraceReadQuery,
-	) => Promise<KernelTraceSessionDetail | null | undefined>;
-	getContainerTrace?: (
+export interface KernelTraceReadService<TDetail = unknown, TList = unknown> {
+	/** Primary read: the full trace for one container subtree. */
+	getContainerTrace: (
 		containerId: string,
 		query: KernelTraceReadQuery,
-	) => Promise<KernelTraceSessionDetail | null | undefined>;
+	) => Promise<TDetail | null | undefined>;
+	/**
+	 * Optional list support: containers of kind "session" for the
+	 * trace-sessions index. When absent the list route answers 404.
+	 */
+	listSessionContainers?: (query: KernelTraceReadQuery) => Promise<TList>;
 }
 
 export interface CreateKernelTraceReadApiOptions {
@@ -46,8 +50,8 @@ function normalizePrefix(prefix: string): string {
 	return prefix.startsWith("/") ? prefix : `/${prefix}`;
 }
 
-export function createKernelTraceReadApi(
-	service: KernelTraceReadService,
+export function createKernelTraceReadApi<TDetail = unknown, TList = unknown>(
+	service: KernelTraceReadService<TDetail, TList>,
 	options: CreateKernelTraceReadApiOptions = {},
 ) {
 	const prefix = normalizePrefix(options.prefix ?? "/kernel");
@@ -59,50 +63,45 @@ export function createKernelTraceReadApi(
 		limit: parseKernelTraceLimit(query.limit, { fallback: defaultLimit, max: maxLimit }),
 	});
 
-	return new Elysia()
-		.get(`${prefix}/trace-sessions`, async ({ query, set }) => {
-			if (!service.listTraceSessions) {
+	const serveContainerTrace = async (
+		containerId: string,
+		query: Record<string, string | undefined>,
+		set: { status?: number | string },
+	) => {
+		try {
+			const detail = await service.getContainerTrace(containerId, makeQuery(query));
+			if (!detail) {
 				set.status = 404;
-				return { error: "Kernel trace session list is not available" };
+				return { error: `Kernel container ${containerId} trace not found` };
+			}
+			return detail;
+		} catch (error) {
+			console.error("Error fetching kernel container trace:", error);
+			set.status = 500;
+			return { error: "Failed to fetch kernel container trace" };
+		}
+	};
+
+	return new Elysia()
+		.get(`${prefix}/containers/:containerId/trace`, ({ params, query, set }) =>
+			serveContainerTrace(params.containerId, query, set),
+		)
+		.get(`${prefix}/trace-sessions`, async ({ query, set }) => {
+			if (!service.listSessionContainers) {
+				set.status = 404;
+				return { error: "Kernel session container list is not available" };
 			}
 
 			try {
-				return await service.listTraceSessions(makeQuery(query));
+				return await service.listSessionContainers(makeQuery(query));
 			} catch (error) {
-				console.error("Error listing kernel trace sessions:", error);
+				console.error("Error listing kernel session containers:", error);
 				set.status = 500;
-				return { error: "Failed to list kernel trace sessions" };
+				return { error: "Failed to list kernel session containers" };
 			}
 		})
-		.get(`${prefix}/trace-sessions/:id`, async ({ params, query, set }) => {
-			try {
-				const detail = await service.getTraceSessionDetail(params.id, makeQuery(query));
-				if (!detail) {
-					set.status = 404;
-					return { error: `Kernel trace session ${params.id} not found` };
-				}
-				return detail;
-			} catch (error) {
-				console.error("Error fetching kernel trace session detail:", error);
-				set.status = 500;
-				return { error: "Failed to fetch kernel trace session detail" };
-			}
-		})
-		.get(`${prefix}/containers/:containerId/trace`, async ({ params, query, set }) => {
-			try {
-				const detail = await (service.getContainerTrace ?? service.getTraceSessionDetail)(
-					params.containerId,
-					makeQuery(query),
-				);
-				if (!detail) {
-					set.status = 404;
-					return { error: `Kernel container ${params.containerId} trace not found` };
-				}
-				return detail;
-			} catch (error) {
-				console.error("Error fetching kernel container trace:", error);
-				set.status = 500;
-				return { error: "Failed to fetch kernel container trace" };
-			}
-		});
+		.get(`${prefix}/trace-sessions/:id`, ({ params, query, set }) =>
+			// Container-backed: a trace session is a container of kind "session".
+			serveContainerTrace(params.id, query, set),
+		);
 }

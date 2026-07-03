@@ -1,16 +1,12 @@
 const apiPort = String(Bun.env.PORT ?? "8788");
 const frontendPort = String(Bun.env.FRONTEND_PORT ?? "5174");
-const databaseUrl =
-	Bun.env.AGENT_KERNEL_DATABASE_URL ??
-	"postgres://agent_kernel:agent_kernel@127.0.0.1:55432/agent_kernel";
 
 const api = Bun.spawn(["bun", "run", "api"], {
 	cwd: import.meta.dir + "/..",
 	env: {
 		...Bun.env,
 		PORT: apiPort,
-		FRONTEND_PORT: frontendPort,
-		AGENT_KERNEL_DATABASE_URL: databaseUrl
+		FRONTEND_PORT: frontendPort
 	},
 	stdout: "inherit",
 	stderr: "inherit"
@@ -28,10 +24,9 @@ const frontend = Bun.spawn(["bun", "run", "frontend"], {
 });
 
 console.log("\nPi Agent Kernel Simple Research Kernel");
-console.log("  Services: bun run dev:services");
-console.log(`  Viewer:   http://127.0.0.1:${frontendPort}`);
-console.log(`  API:      http://127.0.0.1:${apiPort}/kernel/trace-sessions/simple-research-kernel`);
-console.log(`  DB:       ${databaseUrl}\n`);
+console.log(`  Viewer: http://127.0.0.1:${frontendPort}`);
+console.log(`  API:    http://127.0.0.1:${apiPort}/kernel/trace-sessions`);
+console.log("  DB:     .agent-kernel/trace.db (local SQLite — no services needed)\n");
 
 function shutdown() {
 	api.kill();

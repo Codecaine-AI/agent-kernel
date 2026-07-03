@@ -1,5 +1,11 @@
 export * from "./types";
 export * from "./api";
+export * from "./catalog-types";
+export {
+	diffPromptDocuments,
+	type PromptBlockDiffEntry,
+	type PromptBlockDiffKind,
+} from "./prompt-diff";
 export { buildTraceSpans } from "./build-trace-spans";
 export {
 	extractContainerSpans,
@@ -55,8 +61,6 @@ export type {
 	SystemPromptResolvedData,
 	ToolCallEndData,
 	ToolCallStartData,
-	UIAskAnsweredData,
-	UIAskRequestedData,
 	UserMessageData,
 	WarningData,
 } from "@agent-kernel/protocol";

@@ -125,9 +125,9 @@ export function summarizeAgentRuntime(
 	return {
 		sessionCount: sessionIds.size,
 		runCount: runs.length,
-		completedRuns: runs.filter((run) => run.status === "completed").length,
+		completedRuns: runs.filter((run) => run.status === "done").length,
 		runningRuns: runs.filter((run) => run.status === "running").length,
 		eventCount: events.length,
-		latestActivityAt: latestEvent?.timestamp ?? runs.at(-1)?.updatedAt ?? null
+		latestActivityAt: latestEvent?.timestamp ?? runs.at(-1)?.endedAt ?? runs.at(-1)?.startedAt ?? null
 	};
 }

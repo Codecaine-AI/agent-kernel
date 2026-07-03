@@ -68,8 +68,8 @@ export type LoaderOfKind<K extends LoaderDeclaration["kind"]> = Extract<
 export interface LoaderResolveContext {
 	cwd: string;
 	activeSessionDir?: string;
-	/** Host-app session/workflow identity for app-defined loaders. */
-	appSessionId?: string;
+	/** Primary grouping identity (container) for app-defined loaders. */
+	containerId?: string;
 	/** Pre-fetched session data — synthetic sessions set _syntheticState to bypass DB. */
 	sessionData?: Record<string, any> & { _syntheticState?: Record<string, unknown> };
 }

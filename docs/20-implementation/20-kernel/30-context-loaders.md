@@ -31,11 +31,11 @@ interface AgentContextResolver {
 - agent name
 - caller variables
 - caller identity
-- runtime state
+- runtime state (`cwd`, `containerId`, phase, session dir)
 - paths
 - optional app session data
 
-`sessionData` is opaque to the kernel. Tests and app adapters may prefill it to avoid duplicate DB reads or support synthetic sessions.
+The runtime state's `containerId` is the spawn's primary grouping identity — loaders that key work off the current grouping read it from `ctx`, not from a separate app-session id. `sessionData` is opaque to the kernel; the `createKernel` `appContext` slot and tests may prefill it to avoid duplicate DB reads or support synthetic sessions.
 
 ## Loader Catalog
 

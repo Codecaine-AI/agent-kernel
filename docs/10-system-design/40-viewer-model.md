@@ -15,17 +15,18 @@ The viewer is part of the kernel, not an optional demo. A new app should be able
 
 | Package | Responsibility |
 |---|---|
-| `@agent-kernel/viewer-core` | App trace API paths, central observer API paths, DTOs, trace span transforms, linkage resolution |
-| `@agent-kernel/viewer-ui` | Reusable trace tree, span cards, detail panels, visual utilities |
+| `@agent-kernel/viewer-core` | App trace API paths, catalog API paths, central observer API paths, DTOs, trace span transforms, linkage resolution, prompt diffing |
+| `@agent-kernel/viewer-ui` | Reusable trace tree, span cards, detail panels, prompt lab components, visual utilities |
 | `@agent-kernel/viewer-shell` | Mountable base trace viewer shell with plugin slots |
 
-App-embedded viewers and a future central observer should both read through APIs that return viewer-core DTOs. Browser code should not connect directly to Postgres.
+App-embedded viewers and a future central observer should both read through APIs that return viewer-core DTOs. Browser code should not connect directly to the kernel database.
 
 ## Data Flow
 
 ```text
 kernel read API response
   session/container metadata
+  container summaries
   Pi sessions
   agent runs
   trace events
@@ -39,6 +40,34 @@ viewer-ui TreeView + SpanDetailPanel
         v
 viewer-shell KernelTraceViewer
 ```
+
+Container summaries are part of the trace shape, not decoration. Events and
+agent spans with explicit `containerId` values should render under the matching
+container lineage even when persisted container timestamps tie or app workflow
+events have no Pi session.
+
+Run bucketing prefers the explicit envelope `runId` when an event carries one;
+run-window inference by span pairing is the fallback for events emitted
+without run identity. Relationships that were emitted explicitly are never
+re-derived from timestamps.
+
+## Prompt Lab
+
+The viewer also fronts the kernel catalog API (`KERNEL_CATALOG_PATHS`):
+registry listing, agent detail, prompt saves and manifest edits (both
+dev-gated), model aliases, revision history, and per-revision run stats.
+`viewer-core` supplies the browser-safe catalog DTOs and
+`diffPromptDocuments` — a block-level structural diff keyed by stable node
+ids, no text diffing.
+
+`viewer-ui` builds the agent viewer on top as a strict three-column shell:
+agent selector, the Agent XML editor (the only editing surface — a code-editor
+view of exactly what the agent receives, with Notion-style block/keyboard
+editing and transactional single-step undo), and an always-present sidebar
+stacking agent identity (editable model/description), view scope, editor
+controls, block details, and revision history with per-revision run stats.
+The full design rationale lives in
+[20-prompt-editor-design.md](../20-implementation/60-viewer/20-prompt-editor-design.md).
 
 ## Base Shell
 

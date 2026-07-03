@@ -1,3 +1,9 @@
+/**
+ * Routes owned by the kernel trace read API (see
+ * packages/kernel/src/read-api.ts). Trace sessions are container-backed —
+ * the detail route serves the container trace for a container of kind
+ * "session"; the container route is the primary read.
+ */
 export const KERNEL_TRACE_READ_PATHS = {
 	listTraceSessions: "/kernel/trace-sessions",
 	traceSessionDetail(id: string): string {
@@ -8,6 +14,37 @@ export const KERNEL_TRACE_READ_PATHS = {
 	},
 } as const;
 
+/**
+ * Routes owned by the kernel catalog API (Phase 5): registry listing, agent
+ * detail (manifest + prompt + validation), prompt writes, revision history,
+ * and per-revision run stats. The write route (`PUT .../prompt`) is only
+ * mounted when the kernel runs in dev mode; the paths are defined here so
+ * browser hosts and the server agree on the URL shape.
+ */
+export const KERNEL_CATALOG_PATHS = {
+	listAgents: "/kernel/catalog/agents",
+	agentDetail(name: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}`;
+	},
+	agentPrompt(name: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/prompt`;
+	},
+	agentManifest(name: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/manifest`;
+	},
+	agentRevisions(name: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/revisions`;
+	},
+	revisionStats(name: string, hash: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/revisions/${encodeURIComponent(hash)}/stats`;
+	},
+} as const;
+
+/**
+ * Cross-kernel observer routes (a viewer plane over many kernel manifests).
+ * Container-first; the tailer-daemon routes are gone with D75 (transcript
+ * recovery is a backfill tool, not a service).
+ */
 export const KERNEL_OBSERVER_READ_PATHS = {
 	listKernels: "/kernels",
 	kernel(kernelId: string): string {
@@ -22,9 +59,4 @@ export const KERNEL_OBSERVER_READ_PATHS = {
 	containerTrace(containerId: string): string {
 		return `/containers/${encodeURIComponent(containerId)}/trace`;
 	},
-	listTailers: "/tailers",
-	tailerHealth(tailerId: string): string {
-		return `/tailers/${encodeURIComponent(tailerId)}/health`;
-	},
-	orphanEvents: "/events/orphans",
 } as const;

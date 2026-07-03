@@ -1,5 +1,5 @@
 import type { RuntimeState } from "../../context";
-import type { AgentFrontmatter, ParsedAgent } from "../types";
+import type { AgentConfig, ParsedAgent } from "../types";
 import {
 	AgentVariableError,
 	type ResolvedVariables,
@@ -8,10 +8,12 @@ import {
 
 export interface ResolvedAgent {
 	parsed: ParsedAgent;
-	frontmatter: AgentFrontmatter;
+	config: AgentConfig;
 	resolvedBody: string;
 	systemPrompt: string;
 	variables: ResolvedVariables;
+	/** Content address of the canonical prompt.json this prompt renders (D72). */
+	promptHash?: string;
 }
 
 export interface ResolveAgentInput {
@@ -50,7 +52,7 @@ function collectUnresolvedPlaceholders(
 export function resolveSystemPrompt(input: ResolveAgentInput): ResolvedAgent {
 	const { parsed, runtime } = input;
 	const variables = resolveVariables(
-		parsed.frontmatter.variables ?? {},
+		parsed.config.variables ?? {},
 		input.callerVariables,
 	);
 
@@ -74,10 +76,11 @@ export function resolveSystemPrompt(input: ResolveAgentInput): ResolvedAgent {
 	const systemPrompt = substitutedBody.trim();
 
 	return {
-		parsed: { frontmatter: parsed.frontmatter, body: substitutedBody },
-		frontmatter: parsed.frontmatter,
+		parsed: { ...parsed, body: substitutedBody },
+		config: parsed.config,
 		resolvedBody: substitutedBody,
 		systemPrompt,
 		variables,
+		promptHash: parsed.promptHash,
 	};
 }

@@ -1,47 +1,60 @@
-import { foreignKey, index, pgEnum, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
+import {
+  foreignKey,
+  index,
+  integer,
+  sqliteTable,
+  text,
+} from "drizzle-orm/sqlite-core";
+import { containers } from "./containers";
 
-export const agentStatusEnum = pgEnum("agent_status", [
-  "queued",
-  "running",
-  "completed",
-  "aborted",
-  "stopped",
-  "error",
-]);
-
-export const AGENT_STATUS = {
-  QUEUED: "queued",
-  RUNNING: "running",
-  COMPLETED: "completed",
-  ABORTED: "aborted",
-  STOPPED: "stopped",
+/**
+ * Session status vocabulary. Open string; conventional kernel values below.
+ * A session is "active" while its agent can still receive runs.
+ */
+export const SESSION_STATUS = {
+  ACTIVE: "active",
+  ENDED: "ended",
   ERROR: "error",
 } as const;
 
-export type AgentStatus = (typeof AGENT_STATUS)[keyof typeof AGENT_STATUS];
+export type SessionStatus =
+  | (typeof SESSION_STATUS)[keyof typeof SESSION_STATUS]
+  | (string & {});
 
-export const piAgentSessions = pgTable("pi_agent_sessions", {
-  id: uuid().primaryKey().notNull(),
-  appSessionId: uuid("app_session_id"),
-  parentId: uuid("parent_id"),
-  containerId: varchar("container_id"),
-  phase: varchar(),
-  displayLabel: varchar("display_label"),
-  agentName: varchar("agent_name").notNull(),
-  status: agentStatusEnum().notNull().default(AGENT_STATUS.RUNNING),
-  model: varchar(),
-  startedAt: timestamp("started_at", { mode: "string" }),
-  completedAt: timestamp("completed_at", { mode: "string" }),
-  createdAt: timestamp("created_at", { mode: "string" }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "string" }).notNull().defaultNow(),
-}, (table) => [
-  index("ix_pi_agent_sessions_app_session_id").using("btree", table.appSessionId.asc().nullsLast().op("uuid_ops")),
-  index("ix_pi_agent_sessions_parent_id").using("btree", table.parentId.asc().nullsLast().op("uuid_ops")),
-  index("ix_pi_agent_sessions_container_id").using("btree", table.containerId.asc().nullsLast().op("text_ops")),
-  index("ix_pi_agent_sessions_status").using("btree", table.status.asc().nullsLast().op("text_ops")),
-  foreignKey({
-    columns: [table.parentId],
-    foreignColumns: [table.id],
-    name: "pi_agent_sessions_parent_id_fkey",
-  }),
-]);
+/**
+ * One Pi conversation. The system prompt is frozen at session creation, so
+ * prompt_hash lives here (populated from Phase 3). A subagent's session
+ * carries parent_session_id and parent_tool_use_id.
+ */
+export const piAgentSessions = sqliteTable(
+  "pi_agent_sessions",
+  {
+    id: text("id").primaryKey(),
+    containerId: text("container_id")
+      .notNull()
+      .references(() => containers.id),
+    parentSessionId: text("parent_session_id"),
+    /** Set when spawned by a parent's tool call. */
+    parentToolUseId: text("parent_tool_use_id"),
+    agentName: text("agent_name").notNull(),
+    displayLabel: text("display_label"),
+    model: text("model"),
+    /** Phase 3: prompt revision hash ("pk1-<sha256>") at session creation. */
+    promptHash: text("prompt_hash"),
+    status: text("status").$type<SessionStatus>().notNull(),
+    phase: text("phase"),
+    usageInputTokens: integer("usage_input_tokens").notNull().default(0),
+    usageOutputTokens: integer("usage_output_tokens").notNull().default(0),
+    createdAt: text("created_at").notNull(),
+    endedAt: text("ended_at"),
+  },
+  (table) => [
+    index("ix_pi_agent_sessions_container_id").on(table.containerId),
+    index("ix_pi_agent_sessions_parent_session_id").on(table.parentSessionId),
+    foreignKey({
+      columns: [table.parentSessionId],
+      foreignColumns: [table.id],
+      name: "pi_agent_sessions_parent_session_id_fkey",
+    }),
+  ],
+);

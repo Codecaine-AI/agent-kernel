@@ -1,15 +1,15 @@
-import type { RunContext, RunStateManagerLike } from "../../run-context";
+import type { RunContext, RunStateManagerLike, RunTrigger } from "../../run-context";
 import type { TraceWriterSink } from "../../subagents/types";
 
 export interface BuildRunContextOptions {
-	appSessionId?: string;
-	appSessionSlug?: string;
-	appSessionDir?: string;
+	containerId: string;
+	trigger: RunTrigger;
 	traceWriter?: TraceWriterSink;
 	parentRunId?: string;
+	sessionDir?: string;
 	piSessionsDir?: string;
-	containerId?: string;
 	phase?: string;
+	userId?: string;
 }
 
 export function buildRunContext(
@@ -20,20 +20,20 @@ export function buildRunContext(
 	runId: string,
 	piSessionUuid?: string,
 ): RunContext | null {
-	if (!opts.appSessionId || !opts.appSessionSlug || !opts.traceWriter) return null;
+	if (!opts.traceWriter) return null;
 	return {
-		appSessionId: opts.appSessionId,
-		appSessionSlug: opts.appSessionSlug,
-		appSessionDir: opts.appSessionDir,
+		containerId: opts.containerId,
 		runId,
+		trigger: opts.trigger,
 		parentRunId: opts.parentRunId,
 		agentName: name,
 		traceWriter: opts.traceWriter,
+		sessionDir: opts.sessionDir,
 		piSessionsDir: opts.piSessionsDir,
 		workingDir,
 		stateManager,
 		piSessionUuid,
-		containerId: opts.containerId,
+		userId: opts.userId,
 		phase: opts.phase,
 	};
 }

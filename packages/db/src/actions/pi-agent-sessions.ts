@@ -1,8 +1,7 @@
-import { eq } from "drizzle-orm";
-import { piAgentSessions, type AgentStatus } from "../schema/pi-agent-sessions";
+import { asc, eq } from "drizzle-orm";
+import type { KernelDatabase } from "../client";
+import { piAgentSessions, type SessionStatus } from "../schema/pi-agent-sessions";
 import type { NewPiAgentSession, PiAgentSession } from "../types";
-
-type KernelDatabase = any;
 
 export async function upsertPiAgentSession(
   db: KernelDatabase,
@@ -14,31 +13,39 @@ export async function upsertPiAgentSession(
     .onConflictDoUpdate({
       target: piAgentSessions.id,
       set: {
-        ...(data.appSessionId !== undefined && { appSessionId: data.appSessionId }),
-        ...(data.parentId !== undefined && { parentId: data.parentId }),
-        ...(data.status !== undefined && { status: data.status }),
-        ...(data.model !== undefined && { model: data.model }),
-        ...(data.startedAt !== undefined && { startedAt: data.startedAt }),
-        ...(data.completedAt !== undefined && { completedAt: data.completedAt }),
+        containerId: data.containerId,
+        ...(data.parentSessionId !== undefined && {
+          parentSessionId: data.parentSessionId,
+        }),
+        ...(data.parentToolUseId !== undefined && {
+          parentToolUseId: data.parentToolUseId,
+        }),
         ...(data.displayLabel !== undefined && { displayLabel: data.displayLabel }),
+        ...(data.model !== undefined && { model: data.model }),
+        ...(data.promptHash !== undefined && { promptHash: data.promptHash }),
+        ...(data.status !== undefined && { status: data.status }),
         ...(data.phase !== undefined && { phase: data.phase }),
-        ...(data.containerId !== undefined && { containerId: data.containerId }),
-        updatedAt: new Date().toISOString(),
+        ...(data.endedAt !== undefined && { endedAt: data.endedAt }),
       },
     })
     .returning();
   return row;
 }
 
-export async function setParentId(
+/** Link a child session to the parent session + tool call that spawned it. */
+export async function setParentSession(
   db: KernelDatabase,
-  childPiSessionUuid: string,
-  parentPiSessionUuid: string,
+  childSessionId: string,
+  parentSessionId: string,
+  parentToolUseId?: string,
 ): Promise<PiAgentSession | undefined> {
   const [row] = await db
     .update(piAgentSessions)
-    .set({ parentId: parentPiSessionUuid, updatedAt: new Date().toISOString() })
-    .where(eq(piAgentSessions.id, childPiSessionUuid))
+    .set({
+      parentSessionId,
+      ...(parentToolUseId !== undefined && { parentToolUseId }),
+    })
+    .where(eq(piAgentSessions.id, childSessionId))
     .returning();
   return row;
 }
@@ -46,15 +53,14 @@ export async function setParentId(
 export async function updatePiAgentSessionStatus(
   db: KernelDatabase,
   piSessionId: string,
-  status: AgentStatus,
-  completedAt?: string,
+  status: SessionStatus,
+  endedAt?: string,
 ): Promise<PiAgentSession | undefined> {
   const [row] = await db
     .update(piAgentSessions)
     .set({
       status,
-      ...(completedAt && { completedAt }),
-      updatedAt: new Date().toISOString(),
+      ...(endedAt !== undefined && { endedAt }),
     })
     .where(eq(piAgentSessions.id, piSessionId))
     .returning();
@@ -65,17 +71,21 @@ export async function getPiAgentSession(
   db: KernelDatabase,
   piSessionId: string,
 ): Promise<PiAgentSession | undefined> {
-  return db.query.piAgentSessions.findFirst({
-    where: eq(piAgentSessions.id, piSessionId),
-  });
+  const [row] = await db
+    .select()
+    .from(piAgentSessions)
+    .where(eq(piAgentSessions.id, piSessionId))
+    .limit(1);
+  return row;
 }
 
-export async function listPiAgentSessionsForAppSession(
+export async function listPiAgentSessionsForContainer(
   db: KernelDatabase,
-  appSessionId: string,
+  containerId: string,
 ): Promise<PiAgentSession[]> {
   return db
     .select()
     .from(piAgentSessions)
-    .where(eq(piAgentSessions.appSessionId, appSessionId));
+    .where(eq(piAgentSessions.containerId, containerId))
+    .orderBy(asc(piAgentSessions.createdAt));
 }

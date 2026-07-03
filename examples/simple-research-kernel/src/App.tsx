@@ -19,6 +19,13 @@ import {
 	collectLatestContextPreviews,
 	collectLatestRenderedPrompts
 } from "./lib/trace-selectors";
+import {
+	loadResearchStyleSettings,
+	mergeResearchStyleSettings,
+	saveResearchStyleSettings,
+	type ResearchStyleSettings,
+	type ResearchStyleSettingsPatch
+} from "./lib/style-settings";
 import { useWorkspaceRoute, workspaceFromPathname } from "./lib/use-workspace-route";
 import type { ResearchHarnessInfo, ResearchRunSummary } from "./lib/types";
 
@@ -54,7 +61,12 @@ export function App() {
 	const [startingRun, setStartingRun] = useState(false);
 	const [deletingTraceId, setDeletingTraceId] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [styleSettings, setStyleSettingsState] = useState<ResearchStyleSettings>(loadResearchStyleSettings);
 	const requestIdRef = useRef(0);
+
+	const setStyleSettings = useCallback((updates: ResearchStyleSettingsPatch) => {
+		setStyleSettingsState((current) => mergeResearchStyleSettings(current, updates));
+	}, []);
 
 	const applyState = useCallback((next: Awaited<ReturnType<typeof fetchResearchKernelState>>) => {
 		setDetail(next.detail);
@@ -74,14 +86,14 @@ export function App() {
 		const effectiveTraceSessionId =
 			traceSessionId === undefined
 				? activeWorkspace === "research"
-					? (currentResearchRun?.appSessionId ?? null)
+					? (currentResearchRun?.containerId ?? null)
 					: selectedTraceSessionId
 				: traceSessionId;
 		const next = await fetchResearchKernelState(effectiveTraceSessionId, options);
 		if (requestId !== requestIdRef.current) return next.info;
 		applyState(next);
 		return next.info;
-	}, [activeWorkspace, applyState, currentResearchRun?.appSessionId, selectedTraceSessionId]);
+	}, [activeWorkspace, applyState, currentResearchRun?.containerId, selectedTraceSessionId]);
 
 	useEffect(() => {
 		setLoading(true);
@@ -95,6 +107,10 @@ export function App() {
 			replaceTraceIdInUrl(null);
 		}
 	}, [activeWorkspace]);
+
+	useEffect(() => {
+		saveResearchStyleSettings(styleSettings);
+	}, [styleSettings]);
 
 	useEffect(() => {
 		function handlePopState() {
@@ -125,7 +141,6 @@ export function App() {
 		const refreshedActiveRun = info?.activeRuns.find(
 			(run) =>
 				run.id === currentResearchRun.id ||
-				run.appSessionId === currentResearchRun.appSessionId ||
 				run.containerId === currentResearchRun.containerId
 		);
 		if (refreshedActiveRun) {
@@ -134,13 +149,15 @@ export function App() {
 		}
 		const detailMatchesRun =
 			detail &&
-			(detail.session.id === currentResearchRun.appSessionId ||
+			(detail.session.id === currentResearchRun.containerId ||
 				detail.container?.id === currentResearchRun.containerId);
 		if (!detailMatchesRun) return;
-		if (detail.session.status === "completed" || detail.session.status === "error") {
+		// Session containers close with "done" | "error" (container status
+		// vocabulary); the run summary uses "completed" | "error".
+		if (detail.session.status === "done" || detail.session.status === "error") {
 			setCurrentResearchRun({
 				...currentResearchRun,
-				status: detail.session.status,
+				status: detail.session.status === "done" ? "completed" : "error",
 				completedAt: detail.session.updatedAt
 			});
 		}
@@ -231,7 +248,7 @@ export function App() {
 			setError(null);
 			try {
 				const result = await startResearchRun(prompt);
-				const nextTraceId = result.trace?.id ?? result.run.appSessionId;
+				const nextTraceId = result.trace?.id ?? result.run.containerId;
 				setCurrentResearchRun(result.run);
 				setSelectedTraceSessionId(nextTraceId);
 				if (activeWorkspace === "research") {
@@ -259,6 +276,8 @@ export function App() {
 		<ResearchKernelLayout
 			activeWorkspace={activeWorkspace}
 			onWorkspaceChange={navigate}
+			styleSettings={styleSettings}
+			onStyleSettingsChange={setStyleSettings}
 		>
 			{error && (
 				<div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-3 text-sm text-destructive">
@@ -277,6 +296,7 @@ export function App() {
 					startingRun={startingRun}
 					onStartRun={handleStartRun}
 					onOpenTrace={handleOpenTrace}
+					traceIcons={styleSettings.traceIcons}
 				/>
 			)}
 			{activeWorkspace === "trace" && (
@@ -289,6 +309,7 @@ export function App() {
 					deletingTraceId={deletingTraceId}
 					onTraceSelect={handleTraceSelect}
 					onTraceDelete={handleTraceDelete}
+					traceIcons={styleSettings.traceIcons}
 				/>
 			)}
 			{activeWorkspace === "agents" && (

@@ -1,13 +1,13 @@
 ---
-covers: "Runtime model for the kernel: createKernel, spawn adapters, agent registry, context assembly, Pi session creation, run context, and subagents."
-concepts: [runtime-model, create-kernel, spawn-pipeline, run-context, context-loader, subagents, pi-session]
+covers: "Runtime model for the kernel: createKernel config, the agent bundle, spawn pipeline, run context, context assembly, variants and model aliases, and subagents."
+concepts: [runtime-model, create-kernel, agent-bundle, spawn-pipeline, run-context, context-loader, subagents, pi-session, variants, model-aliases, tool-profiles]
 code-ref: packages/kernel/src/index.ts, packages/kernel/src/spawn-pipeline/, packages/kernel/src/context/, packages/kernel/src/subagents/
-depends-on: [../00-foundation/30-boundaries.md]
+depends-on: [../00-foundation/30-boundaries.md, 15-identity-model.md]
 ---
 
 # Runtime Model
 
-The runtime model is intentionally layered. The kernel owns the shape of a run, but the host app supplies app state, agent catalogs, tool factories, database access, and domain behavior.
+The runtime model is intentionally layered. The kernel owns the shape of a run, but the host app supplies app state, agent catalogs, tool runtimes, database access, and domain behavior.
 
 ---
 
@@ -15,14 +15,13 @@ The runtime model is intentionally layered. The kernel owns the shape of a run, 
 
 ```text
 Host app
-  creates kernel instance
-  provides spawn adapters and app-specific factories
+  createKernel(config) — one config object, no adapter bundle
         |
         v
 @agent-kernel/kernel
   registry -> prompt resolver -> Pi session factory
-  context builder -> run context -> turn trigger
-  subagent manager can re-enter the same spawn path
+  context builder -> run context -> emitter -> turn trigger
+  subagent manager re-enters the same spawn path
         |
         v
 Pi SDK
@@ -31,71 +30,83 @@ Pi SDK
 
 ## Kernel Instance
 
-`createKernel(config)` creates an instance with:
+`createKernel(config)` absorbs what used to be a separate eight-adapter spawn bundle. The config carries:
 
-- a stable kernel id
-- per-kernel concurrency settings
-- a `spawnAgent` adapter
-- optional `AgentManager` creation
-- runtime controls such as `setMaxBackgroundAgents()` and `dispose()`
+- `id` — stable kernel id (namespaces container derivation)
+- `db` — kernel SQLite database handle (`openKernelDatabase` from `@agent-kernel/db`)
+- `catalog.roots` — directories scanned for `agent.json` bundles at first use
+- `models.aliases` — model aliases resolved at spawn; `models.prices` — per-model price table powering cost estimates
+- `toolProfiles` — named tool bundles referenced by manifest `toolProfiles`
+- `loaders` — app context loaders registered into the default loader catalog
+- `sharedTools` — extension factories appended to every spawned session
+- `toolRuntime` — runtime handle passed to each agent's private `tools.ts` register function
+- `appContext` — per-spawn app injection (state manager / session data)
+- `piSessionsDir`, `piAgentDir`, `defaultUserId`, `concurrency`, `createSessionBinding`, `logger`
 
-The instance API lets apps run the kernel without relying on global singleton state.
+Injected functions remain only for genuinely app-shaped slots (`appContext`, `loaders`, `sharedTools`, `createSessionBinding`); everything else is data.
+
+The instance exposes `spawnAgent`, `container()` (deterministic container upsert), `agentManager`, `traceWriter`, `readApiService`, `registry()`, `doctor()`, `setMaxBackgroundAgents()`, and `dispose()`. The `createSpawnAgent` adapter bundle is no longer a public surface.
+
+## The Agent Bundle
+
+An agent is a directory discovered by its manifest:
+
+```text
+agent-catalog/<agent-name>/
+  agent.json           manifest: data, JSON-Schema validated (agent-kernel/agent-v1)
+  prompt.json          canonical PromptDocument (content-addressed)
+  prompt.rendered.md   derived snapshot — do not edit
+  context.ts           optional code sidecar, attached by filename
+  tools.ts             optional code sidecar, attached by filename
+```
+
+The manifest declares name, description, model (an id or a kernel-config alias), thinking, turn limits, core tools, tool profiles, variables, and named `variants`. `defineAgent` survives as a validator/normalizer helper for tooling that constructs manifests programmatically.
 
 ## Spawn Pipeline
 
-The full DB-backed spawn path lives in `packages/kernel/src/spawn-pipeline/spawn-agent.ts`. It requires an adapter bundle because the kernel does not know an app's catalog roots, tools, DB handle, or app session binding by itself.
-
 The pipeline sequence is:
 
-1. Resolve working directory and app session identity.
-2. Load the parsed agent definition.
-3. Resolve variables and render the system prompt.
-4. Build or reuse a Pi session manager.
-5. Load private and shared tool factories.
-6. Create the Pi `AgentSession`.
-7. Pre-insert Pi session and agent-run rows.
-8. Emit system prompt and context lifecycle events.
-9. Build and inject agent context when a resolver exists.
-10. Subscribe to session events for streaming and turn limits.
-11. Build `RunContext` and trigger the Pi turn.
-12. Close the agent run and emit completion status.
+1. Resolve working directory; require `containerId` (from options or the parent run context).
+2. Resolve the run `trigger` (`operator` by default, `parent-tool` when spawned from a tool call).
+3. Resolve the agent config through the registry — applying the selected `variant` and resolving model aliases.
+4. Resolve variables and render the static system prompt from the prompt revision.
+5. Build or reuse a Pi session manager; write the session-binding marker (always carrying `containerId` + `runId`).
+6. Load private and shared tool factories.
+7. Create the Pi `AgentSession`.
+8. Pre-insert the Pi session row (stamping `prompt_hash` and the resolved model) and the agent-run row (with `trigger`).
+9. Attach the in-process kernel emitter, which maps live session events to protocol events with identity from the run context.
+10. Emit `system_prompt_resolved` (carrying `prompt_hash`) and context lifecycle events; inject agent context when a resolver exists.
+11. Subscribe to session events for streaming and turn limits.
+12. Build `RunContext` and trigger the Pi turn.
+13. Close the agent run — recording the outbound event, run status, and usage rollup — and emit `agent_run_end`.
 
 ## Run Context
 
-`RunContext` is an async-local scope for one run. It carries kernel identity plus app-provided identity:
+`RunContext` is an async-local scope for one run:
 
-- `appSessionId`, `appSessionSlug`, `appSessionDir`
-- `runId`, `parentRunId`, `agentName`
+- `containerId` (required), `runId`, `trigger`
+- `agentName`, `parentRunId`, `agentId`
 - `traceWriter`
-- `piSessionsDir`, `workingDir`
-- optional `stateManager`
-- `piSessionUuid`, `containerId`, `phase`
+- `sessionDir`, `piSessionsDir`, `workingDir`
+- optional `stateManager` (app-provided)
+- `piSessionUuid`, `userId`, `phase`
 
-The `stateManager` slot is app-provided. Spectre uses it for `SessionStateManager`; other apps can supply their own object or nothing.
+Emit sites build envelope identity through `currentTraceIds()` / `traceIdsOf()` — never by hand. The kernel stamps `containerId` and `runId` onto every event from this scope, so adapters cannot mislabel identity.
+
+## Variants, Aliases, Tool Profiles
+
+`spawnAgent(name, prompt, ctx, { variant })` selects a named variant from the manifest — a sanctioned per-spawn override of model, thinking, turn limits, background behavior, or display label. Model strings (from the manifest or a variant) resolve through `models.aliases` at spawn; the *resolved* model lands on the session row and in turn usage, so fleet-wide retargeting is one config edit and cost attribution stays truthful. Manifest `toolProfiles` expand into tool allowlists from the kernel-config profile map at registry boot.
 
 ## Context Assembly
 
 The context builder gives an agent a typed `SpawnContext`, walks declared loaders through a `LoaderCatalog`, emits per-loader lifecycle events, and hands the loaded results to the agent's `assemble()` function.
 
-Kernel base loaders are:
-
-- `file`
-- `directory`
-- `skill`
-- `command`
-- `text`
-
-Apps can register custom loaders by kind. A loader such as `checkpoint-slice` belongs in Spectre because it reads Spectre's workflow state.
+Kernel base loaders are `file`, `directory`, `skill`, `command`, and `text`. Apps register custom loaders through the `loaders` config slot; a loader that reads app workflow state belongs in the app.
 
 ## Subagents
 
-The subagent manager coordinates foreground and background agent runs inside an active parent run. It owns:
+Spawning is granted per tool, not per agent (D77): a `tools.ts` sidecar declares a spawner tool with an explicit `spawns` allowlist of agent names (`["*"]` is the loud general opt-in), and the kernel injects a scoped `dispatch` handle at session build time. There is no agent-level spawn permission flag.
 
-- per-agent records
-- background concurrency queue
-- abort and stop behavior
-- result delivery
-- parent Pi session to child Pi session link markers
-- `parentToolUseId` propagation
+The subagent manager coordinates foreground and background agent runs inside an active parent run. It owns per-agent records, the background concurrency queue, abort and stop behavior, result delivery, parent-to-child Pi session link markers, and `parentToolUseId` propagation.
 
-Subagent execution re-enters the same spawn adapter, so primary agents and subagents share the same runtime contracts.
+Subagent execution re-enters the same spawn path with inherited identity: the parent's `containerId`, `parentRunId`, and a `parent-tool` trigger. Primary agents and subagents share the same runtime contracts.

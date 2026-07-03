@@ -16,10 +16,10 @@ export function formatTraceDate(value: string | null | undefined): string {
 }
 
 export function traceStatusClass(status: string): string {
-	if (status === "running" || status === "queued") {
+	if (status === "active" || status === "running" || status === "queued") {
 		return "border-status-info-border bg-status-info-fill text-status-info";
 	}
-	if (status === "completed") {
+	if (status === "done" || status === "completed") {
 		return "border-status-success-border bg-status-success-fill text-status-success";
 	}
 	if (status === "error" || status === "aborted" || status === "stopped") {

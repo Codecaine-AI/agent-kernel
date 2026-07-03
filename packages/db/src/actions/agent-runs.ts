@@ -1,9 +1,7 @@
 import { asc, eq } from "drizzle-orm";
-import { agentRuns } from "../schema/agent-runs";
-import type { AgentStatus } from "../schema/pi-agent-sessions";
+import type { KernelDatabase } from "../client";
+import { agentRuns, type RunStatus } from "../schema/agent-runs";
 import type { AgentRun, NewAgentRun } from "../types";
-
-type KernelDatabase = any;
 
 export async function createAgentRun(
   db: KernelDatabase,
@@ -23,45 +21,91 @@ export async function upsertAgentRun(
     .onConflictDoUpdate({
       target: agentRuns.id,
       set: {
-        ...(data.piSessionId !== undefined && { piSessionId: data.piSessionId }),
-        ...(data.agentName !== undefined && { agentName: data.agentName }),
-        ...(data.containerId !== undefined && { containerId: data.containerId }),
-        ...(data.phase !== undefined && { phase: data.phase }),
+        piSessionId: data.piSessionId,
+        containerId: data.containerId,
         ...(data.parentRunId !== undefined && { parentRunId: data.parentRunId }),
+        ...(data.parentToolUseId !== undefined && {
+          parentToolUseId: data.parentToolUseId,
+        }),
+        ...(data.agentName !== undefined && { agentName: data.agentName }),
+        ...(data.trigger !== undefined && { trigger: data.trigger }),
+        ...(data.inboundEventId !== undefined && {
+          inboundEventId: data.inboundEventId,
+        }),
+        ...(data.outboundEventId !== undefined && {
+          outboundEventId: data.outboundEventId,
+        }),
         ...(data.displayLabel !== undefined && { displayLabel: data.displayLabel }),
-        ...(data.parentToolUseId !== undefined && { parentToolUseId: data.parentToolUseId }),
-        ...(data.runNumber !== undefined && { runNumber: data.runNumber }),
+        ...(data.phase !== undefined && { phase: data.phase }),
         ...(data.status !== undefined && { status: data.status }),
         ...(data.startedAt !== undefined && { startedAt: data.startedAt }),
-        ...(data.completedAt !== undefined && { completedAt: data.completedAt }),
-        ...(data.inputTokens !== undefined && { inputTokens: data.inputTokens }),
-        ...(data.outputTokens !== undefined && { outputTokens: data.outputTokens }),
-        updatedAt: new Date().toISOString(),
+        ...(data.endedAt !== undefined && { endedAt: data.endedAt }),
       },
     })
     .returning();
   return row;
 }
 
+/**
+ * Close or update a run: status transition plus the outbound event that
+ * closed it and the usage rollup (Phase 2 populates usage).
+ */
 export async function updateAgentRunStatus(
   db: KernelDatabase,
   runId: string,
-  status: AgentStatus,
+  status: RunStatus,
   opts?: {
-    completedAt?: string;
-    inputTokens?: number;
-    outputTokens?: number;
+    endedAt?: string;
+    outboundEventId?: string;
+    usageInputTokens?: number;
+    usageOutputTokens?: number;
+    usageCacheRead?: number;
+    usageCacheWrite?: number;
+    usageCostEstimate?: number;
   },
 ): Promise<AgentRun | undefined> {
   const [row] = await db
     .update(agentRuns)
     .set({
       status,
-      ...(opts?.completedAt && { completedAt: opts.completedAt }),
-      ...(opts?.inputTokens !== undefined && { inputTokens: opts.inputTokens }),
-      ...(opts?.outputTokens !== undefined && { outputTokens: opts.outputTokens }),
-      updatedAt: new Date().toISOString(),
+      ...(opts?.endedAt !== undefined && { endedAt: opts.endedAt }),
+      ...(opts?.outboundEventId !== undefined && {
+        outboundEventId: opts.outboundEventId,
+      }),
+      ...(opts?.usageInputTokens !== undefined && {
+        usageInputTokens: opts.usageInputTokens,
+      }),
+      ...(opts?.usageOutputTokens !== undefined && {
+        usageOutputTokens: opts.usageOutputTokens,
+      }),
+      ...(opts?.usageCacheRead !== undefined && {
+        usageCacheRead: opts.usageCacheRead,
+      }),
+      ...(opts?.usageCacheWrite !== undefined && {
+        usageCacheWrite: opts.usageCacheWrite,
+      }),
+      ...(opts?.usageCostEstimate !== undefined && {
+        usageCostEstimate: opts.usageCostEstimate,
+      }),
     })
+    .where(eq(agentRuns.id, runId))
+    .returning();
+  return row;
+}
+
+/**
+ * Record the message event that opened the run. With the in-process emitter,
+ * the inbound user_message id is only known once the emitter observes it —
+ * after the run row was inserted.
+ */
+export async function updateAgentRunInboundEvent(
+  db: KernelDatabase,
+  runId: string,
+  inboundEventId: string,
+): Promise<AgentRun | undefined> {
+  const [row] = await db
+    .update(agentRuns)
+    .set({ inboundEventId })
     .where(eq(agentRuns.id, runId))
     .returning();
   return row;
@@ -71,9 +115,12 @@ export async function getAgentRun(
   db: KernelDatabase,
   runId: string,
 ): Promise<AgentRun | undefined> {
-  return db.query.agentRuns.findFirst({
-    where: eq(agentRuns.id, runId),
-  });
+  const [row] = await db
+    .select()
+    .from(agentRuns)
+    .where(eq(agentRuns.id, runId))
+    .limit(1);
+  return row;
 }
 
 export async function listAgentRunsForPiSession(
@@ -84,5 +131,16 @@ export async function listAgentRunsForPiSession(
     .select()
     .from(agentRuns)
     .where(eq(agentRuns.piSessionId, piSessionId))
-    .orderBy(asc(agentRuns.runNumber));
+    .orderBy(asc(agentRuns.startedAt));
+}
+
+export async function listAgentRunsForContainer(
+  db: KernelDatabase,
+  containerId: string,
+): Promise<AgentRun[]> {
+  return db
+    .select()
+    .from(agentRuns)
+    .where(eq(agentRuns.containerId, containerId))
+    .orderBy(asc(agentRuns.startedAt));
 }

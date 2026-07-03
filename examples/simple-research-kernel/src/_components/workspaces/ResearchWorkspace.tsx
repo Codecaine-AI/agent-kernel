@@ -6,6 +6,7 @@ import {
 import { KernelTraceViewer, type KernelTraceViewerProps } from "@agent-kernel/viewer-shell";
 
 import type { ResearchHarnessInfo, ResearchRunSummary } from "../../lib/types";
+import type { TraceIconSettings } from "../../lib/style-settings";
 import { formatTraceDate, traceStatusClass } from "../../lib/trace-ui";
 
 type ResearchWorkspaceProps = {
@@ -19,6 +20,7 @@ type ResearchWorkspaceProps = {
 	startingRun: boolean;
 	onStartRun: (prompt: string) => void | Promise<void>;
 	onOpenTrace: () => void;
+	traceIcons: TraceIconSettings;
 };
 
 export function ResearchWorkspace({
@@ -31,7 +33,8 @@ export function ResearchWorkspace({
 	loading,
 	startingRun,
 	onStartRun,
-	onOpenTrace
+	onOpenTrace,
+	traceIcons
 }: ResearchWorkspaceProps) {
 	const [prompt, setPrompt] = useState(
 		"Research the next step for turning this simple kernel into a richer agent experience."
@@ -42,25 +45,21 @@ export function ResearchWorkspace({
 		return (
 			info.activeRuns.find(
 				(run) =>
-					run.appSessionId === selectedTraceSessionId ||
 					run.containerId === selectedTraceSessionId ||
-					run.appSessionId === detail?.session.id
+					run.containerId === detail?.session.id
 			) ?? info.activeRuns[0]
 		);
 	}, [currentResearchRun, detail?.session.id, info?.activeRuns, selectedTraceSessionId]);
 	const selectedTrace = useMemo(() => {
 		if (!activeRun) return null;
 		return (
-			traceSessions.find(
-				(trace) =>
-					trace.id === activeRun.appSessionId || trace.containerId === activeRun.containerId
-			) ?? null
+			traceSessions.find((trace) => trace.containerId === activeRun.containerId) ?? null
 		);
 	}, [activeRun, traceSessions]);
 	const activeDetail = useMemo(() => {
 		if (!activeRun || !detail) return null;
 		const matchesRun =
-			detail.session.id === activeRun.appSessionId ||
+			detail.session.id === activeRun.containerId ||
 			detail.container?.id === activeRun.containerId;
 		return matchesRun ? detail : null;
 	}, [activeRun, detail]);
@@ -93,9 +92,9 @@ export function ResearchWorkspace({
 	}
 
 	return (
-		<section className="grid h-[calc(100vh-2rem)] min-h-[680px] min-w-0 grid-cols-[minmax(0,1fr)] overflow-hidden rounded-lg border border-border bg-card xl:grid-cols-[440px_minmax(0,1fr)]">
+		<section className="grid h-[var(--research-workspace-height)] min-h-[var(--research-workspace-min-height)] min-w-0 grid-cols-[minmax(0,1fr)] overflow-hidden rounded-lg border border-border bg-card xl:grid-cols-[440px_minmax(0,1fr)]">
 			<aside className="flex min-h-0 min-w-0 flex-col border-b border-border xl:border-b-0 xl:border-r">
-				<div className="flex h-[72px] items-center border-b border-border px-4">
+				<div className="flex h-[var(--research-header-height)] items-center border-b border-border px-4">
 					<div className="flex w-full items-center justify-between gap-3">
 						<div className="min-w-0">
 							<h2 className="font-display text-lg font-bold leading-tight">Research Run</h2>
@@ -147,7 +146,7 @@ export function ResearchWorkspace({
 								<div className="rounded-md border border-border bg-background/25 px-3.5 py-3.5">
 									<div className="line-clamp-2 text-sm font-bold leading-5">{selectedTrace.label}</div>
 									<div className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-										{selectedTrace.topic ?? selectedTrace.appSessionSlug}
+										{selectedTrace.topic ?? selectedTrace.containerId}
 									</div>
 									<div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
 										<span>{selectedTrace.piSessionCount} sessions</span>
@@ -240,6 +239,8 @@ export function ResearchWorkspace({
 						className="flex h-full flex-col"
 						spans={spans}
 						initialTraceLevel={3}
+						iconSide={traceIcons.side}
+						iconStyle={traceIcons.style}
 					/>
 				)}
 			</div>

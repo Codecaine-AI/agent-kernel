@@ -16,7 +16,6 @@
         "@agent-kernel/db": "workspace:*",
         "@agent-kernel/kernel": "workspace:*",
         "@agent-kernel/protocol": "workspace:*",
-        "@agent-kernel/tailer": "workspace:*",
         "@agent-kernel/viewer-core": "workspace:*",
         "@agent-kernel/viewer-shell": "workspace:*",
         "@agent-kernel/viewer-ui": "workspace:*",
@@ -26,7 +25,6 @@
         "@vitejs/plugin-react": "^4.3.0",
         "drizzle-orm": "^0.45.0",
         "elysia": "^1.2.0",
-        "postgres": "^3.4.7",
         "react": "19.2.3",
         "react-dom": "19.2.3",
         "vite": "^5.4.0",
@@ -55,19 +53,21 @@
     "packages/kernel": {
       "name": "@agent-kernel/kernel",
       "version": "0.1.0",
+      "bin": {
+        "agent-kernel-doctor": "./src/doctor-cli.ts",
+        "agent-kernel-backfill": "./src/transcript-recovery/backfill-cli.ts",
+      },
       "dependencies": {
         "@agent-kernel/db": "workspace:*",
         "@agent-kernel/protocol": "workspace:*",
-        "@agent-kernel/viewer-core": "workspace:*",
         "@codecaine-ai/prompt-kit": "workspace:*",
         "@mariozechner/pi-ai": "^0.70.6",
         "@mariozechner/pi-coding-agent": "^0.70.6",
         "elysia": "^1.2.0",
-        "js-yaml": "^4.1.0",
       },
       "devDependencies": {
         "@types/bun": "latest",
-        "@types/js-yaml": "^4.0.9",
+        "drizzle-orm": "^0.45.0",
       },
     },
     "packages/prompt-kit": {
@@ -84,22 +84,12 @@
         "@types/bun": "latest",
       },
     },
-    "packages/tailer": {
-      "name": "@agent-kernel/tailer",
-      "version": "0.1.0",
-      "dependencies": {
-        "@agent-kernel/protocol": "workspace:*",
-        "elysia": "^1.2.0",
-      },
-      "devDependencies": {
-        "@types/bun": "latest",
-      },
-    },
     "packages/viewer-core": {
       "name": "@agent-kernel/viewer-core",
       "version": "0.1.0",
       "dependencies": {
         "@agent-kernel/protocol": "workspace:*",
+        "@codecaine-ai/prompt-kit": "workspace:*",
         "@evilmartians/agent-prism-types": "^0.0.9",
         "@tanstack/react-query": "^5.99.0",
       },
@@ -154,8 +144,6 @@
     "@agent-kernel/kernel": ["@agent-kernel/kernel@workspace:packages/kernel"],
 
     "@agent-kernel/protocol": ["@agent-kernel/protocol@workspace:packages/protocol"],
-
-    "@agent-kernel/tailer": ["@agent-kernel/tailer@workspace:packages/tailer"],
 
     "@agent-kernel/viewer-core": ["@agent-kernel/viewer-core@workspace:packages/viewer-core"],
 
@@ -503,8 +491,6 @@
 
     "@types/estree": ["@types/estree@1.0.9", "", {}, "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg=="],
 
-    "@types/js-yaml": ["@types/js-yaml@4.0.9", "", {}, "sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg=="],
-
     "@types/mime-types": ["@types/mime-types@2.1.4", "", {}, "sha512-lfU4b34HOri+kAY5UheuFMWPDOI+OPceBSHZKp69gEyTL/mmJ4cnU6Y/rlme3UL3GyOn6Y42hyIEw0/q8sWx5w=="],
 
     "@types/node": ["@types/node@25.9.3", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-603BddQMv3pUcr4U2dhujk83N2tTDVr/34wII2B6bJy6g+8WD6yUb11jszNs0gdi4PesVWl7ABt8nYMVpnLUcg=="],
@@ -532,8 +518,6 @@
     "anynum": ["anynum@1.0.1", "", {}, "sha512-N6//FLET/tXYNM/F6ABca1oH6fWB+KlTt909Le28WMDBk8oaT4vY17DCrwg2MvmuqUKt3Ni4N5dGJ/EoBgcO6A=="],
 
     "arg": ["arg@5.0.2", "", {}, "sha512-PYjyFOLKQ9y57JvQ6QLo8dAgNqswh8M1RMJYdQduT6xbWSgK36P/Z/v+p888pM69jMMfS8Xd8F6I1kQ/I9HUGg=="],
-
-    "argparse": ["argparse@2.0.1", "", {}, "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q=="],
 
     "ast-types": ["ast-types@0.13.4", "", { "dependencies": { "tslib": "^2.0.1" } }, "sha512-x1FCFnFifvYDDzTaLII71vG5uvDwgtmDTEVWAxrgeiR8VjMONcCXJx7E+USjDtHlwFmt9MysbqgF9b9Vjr6w+w=="],
 
@@ -722,8 +706,6 @@
     "jiti": ["jiti@1.21.7", "", { "bin": { "jiti": "bin/jiti.js" } }, "sha512-/imKNG4EbWNrVjoNC/1H5/9GFy+tqjGBHCaSsN+P2RnPqjsLmv6UD3Ej+Kj8nBWaRAwyk7kK5ZUc+OEatnTR3A=="],
 
     "js-tokens": ["js-tokens@4.0.0", "", {}, "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="],
-
-    "js-yaml": ["js-yaml@4.2.0", "", { "dependencies": { "argparse": "^2.0.1" }, "bin": { "js-yaml": "bin/js-yaml.js" } }, "sha512-ePWsvanv0DWuDRsW8dnt+R4jQ31SCRCQ7hhNcPXZPsoBZiemuZNYGf7adZdqX2D86j6rvKp3RpCxVTSb8WQlOw=="],
 
     "jsesc": ["jsesc@3.1.0", "", { "bin": { "jsesc": "bin/jsesc" } }, "sha512-/sM3dO2FOzXjKQhJuo0Q173wf2KOo8t4I8vHy6lF9poUp7bKT0/NHE8fPX23PwfhnykfqnC2xRxOnVw5XuGIaA=="],
 

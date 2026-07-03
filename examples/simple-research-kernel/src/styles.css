@@ -22,16 +22,16 @@
 	color-scheme: dark;
 
 	/* ── Base & structure ─────────────────────────────────────────── */
-	/* Void nudged a hair off pure black (#040508) — still instrument
-	 * black, but gentler under sustained contrast. */
-	--background: 4 5 8;
-	--foreground: 226 232 238;        /* #E2E8EE — primary text, never pure white   */
-	--card: 11 13 16;                 /* Panel housing — a step above the void      */
-	--card-foreground: 226 232 238;
-	--muted: 20 23 27;                /* Inset Graphite — recessed wells            */
-	--muted-foreground: 148 158 172;  /* Label Gray — bright enough to read for hours */
-	--border: 27 31 37;               /* Bezel Line — 1px panel / row rules         */
-	--input: 27 31 37;
+	/* Neutral gray ladder anchored on VS Code Dark+ (#252526 raised surface),
+	 * cohesive with the #1E1E1E editor buffer. Warm-neutral, no blue cast. */
+	--background: 27 27 28;           /* #1B1B1C — page base, a hair under the editor */
+	--foreground: 212 212 212;        /* #D4D4D4 — primary text (matches editor fg)   */
+	--card: 37 37 38;                 /* #252526 — raised surfaces (panels, cards)    */
+	--card-foreground: 212 212 212;
+	--muted: 42 42 43;                /* #2A2A2B — inputs / wells on raised surfaces  */
+	--muted-foreground: 168 168 168;  /* #A8A8A8 — secondary/label text, de-blued     */
+	--border: 58 58 59;               /* #3A3A3B — solid hairline panel / row rules   */
+	--input: 58 58 59;
 	--ring: 84 214 147;               /* Focus ring = signal-green primary          */
 
 	/* ── Primary accent (Signal Green — softened phosphor) ────────── */
@@ -41,13 +41,13 @@
 	--accent-foreground: 4 12 8;
 
 	--destructive: 225 91 88;         /* #E15B58 — softened Alert Red               */
-	--trace-container: 148 158 172;
+	--trace-container: 168 168 168;   /* #A8A8A8 — neutral gray, de-blued          */
 
 	/* ── Status semantics (consistent across every panel) ─────────── */
 	/* Nominal / Active / Gain → Signal Green (the primary)            */
-	--status-neutral: 148 158 172;
-	--status-neutral-fill: 20 23 27;
-	--status-neutral-border: 40 46 54;
+	--status-neutral: 168 168 168;    /* #A8A8A8 — de-blued neutral label            */
+	--status-neutral-fill: 42 42 43;  /* #2A2A2B — neutral well on raised surfaces   */
+	--status-neutral-border: 74 74 76; /* #4A4A4C — one step brighter than --border   */
 
 	--status-success: 84 214 147;
 	--status-success-fill: 10 30 22;
@@ -64,22 +64,66 @@
 	--status-info-border: 28 84 96;
 
 	/* ── Syntax (mono code buffers) ───────────────────────────────── */
-	--syntax-key: 160 175 190;
+	--syntax-key: 176 176 176;        /* #B0B0B0 — neutral gray key, de-blued        */
 	--syntax-string: 84 214 147;      /* green — flat emission on small marks       */
 	--syntax-number: 220 167 76;      /* amber                                       */
 	--syntax-boolean: 214 190 110;    /* soft yellow                                 */
 
+	/* ── Editor surface (VS Code Dark+ standards) ─────────────────────
+	 * ONE palette shared by the Agent XML editing flow and the read-only Raw
+	 * prompt view, so the two read as a single object. Deliberately a hair
+	 * warmer/grayer than the instrument void — a code buffer, not a panel.
+	 * These are literal colors (not RGB triplets): they're consumed directly
+	 * via var() in editor components, which carry their own fallbacks. */
+	--editor-bg: #1e1e1e;                       /* VS Code Dark+ editor background   */
+	--editor-fg: #d4d4d4;                        /* default editor foreground         */
+	--editor-line-number: #858585;               /* gutter line numbers               */
+	--editor-line-number-active: #c6c6c6;        /* current/selected line number      */
+	--editor-gutter-bg: #1e1e1e;                 /* gutter matches buffer (no seam)   */
+	--editor-rule: rgb(255 255 255 / 0.04);      /* ruled-paper per-line hairline     */
+	--editor-guide: rgb(255 255 255 / 0.08);     /* indent guide (bracket line)       */
+	--editor-landmark: rgb(255 255 255 / 0.028); /* section-open landmark tint        */
+
 	/* ── Trace badges (instrument hues, no pastels/AI-purple) ─────── */
-	--agentprism-background: 4 5 8;
-	--agentprism-foreground: 226 232 238;
-	--agentprism-muted: 20 23 27;
-	--agentprism-muted-foreground: 148 158 172;
-	--agentprism-border-subtle: 27 31 37;
-	--agentprism-code-base: 148 158 172;
+	--agentprism-background: 27 27 28;   /* #1B1B1C — glyph knockout inside solid icon caps */
+	--agentprism-foreground: 212 212 212; /* #D4D4D4 — primary text                  */
+	--agentprism-muted: 42 42 43;         /* #2A2A2B — well on raised surface        */
+	--agentprism-muted-foreground: 168 168 168; /* #A8A8A8 — secondary text, de-blued */
+	--agentprism-border-subtle: 58 58 59; /* #3A3A3B — solid hairline                */
+	--agentprism-code-base: 168 168 168;  /* #A8A8A8 — neutral gray code base        */
 	--agentprism-badge-agent-foreground: 84 211 224;    /* cyan                       */
 	--agentprism-badge-chain-foreground: 110 210 184;   /* cyan-green                 */
 	--agentprism-badge-llm-foreground: 84 214 147;      /* signal green primary       */
 	--agentprism-badge-tool-foreground: 220 167 76;     /* amber                      */
+
+	/* ── Trace semantic groups (one hue per meaning) ──────────────────
+	 * Every trace card — its border, icon cap, title accent, badges — keys
+	 * off exactly one of these groups so color carries meaning, not decoration.
+	 * Amber/red are RESERVED for warning/error; nothing non-diagnostic wears
+	 * them. Hues stay desaturated + a touch below neon so they read as flat
+	 * emission on the near-black void (see Readability Calibration).      */
+	--trace-orchestration: 167 139 250;  /* #A78BFA violet — agents, spawner dispatch, runs/sessions */
+	--trace-user: 96 165 250;            /* #60A5FA blue — user messages                            */
+	--trace-assistant: 84 214 147;       /* #54D693 green — assistant messages (signal primary)     */
+	--trace-tool: 84 211 224;            /* #54D3E0 cyan — tool calls                                */
+	--trace-lifecycle: 168 168 168;      /* #A8A8A8 gray — lifecycle / system / provisioning / phases */
+	--trace-meta: 168 168 168;           /* #A8A8A8 gray — info / debug mini-cards                   */
+
+	/* Adjustable research surface controls. */
+	--research-layout-padding: 16px;
+	--research-workspace-height: calc(100vh - 32px);
+	--research-workspace-min-height: 680px;
+	--research-header-height: 72px;
+	--research-style-rail-track: 52px;
+	--style-bevel-depth: 0px;
+	--style-bevel-highlight-alpha: 0;
+	--style-bevel-shadow-alpha: 0;
+	--style-bevel-text-highlight-alpha: 0;
+	--style-bevel-text-shadow-alpha: 0;
+	--style-soften-font-glow: 0px;
+	--style-soften-icon-blur: 0px;
+	--style-soften-icon-glow: 0px;
+	--style-soften-icon-opacity: 1;
 }
 
 * {
@@ -101,6 +145,176 @@ body {
 	font-variant-numeric: tabular-nums;
 	-webkit-font-smoothing: antialiased;
 	text-rendering: optimizeLegibility;
+}
+
+.research-style-shell {
+	isolation: isolate;
+	position: relative;
+	text-shadow:
+		0 0 var(--style-soften-font-glow) rgb(var(--foreground) / 0.22),
+		0 calc(var(--style-bevel-depth) * -0.35) 0 rgb(255 255 255 / var(--style-bevel-text-highlight-alpha)),
+		0 calc(var(--style-bevel-depth) * 0.35) 0 rgb(0 0 0 / var(--style-bevel-text-shadow-alpha));
+}
+
+.research-layout-grid {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.research-workspace-pad {
+	padding: var(--research-layout-padding);
+}
+
+.research-style-shell :is(button, [role="button"]) svg {
+	filter: blur(var(--style-soften-icon-blur)) drop-shadow(0 0 var(--style-soften-icon-glow) currentColor);
+	opacity: var(--style-soften-icon-opacity);
+	transition:
+		filter 140ms ease,
+		opacity 140ms ease;
+}
+
+.style-bevel-enabled :is(button, input:not(.style-range), select, textarea, pre, article, section, aside, header, [class~="border"], [class*="border-"]) {
+	box-shadow:
+		inset 1px 1px 0 rgb(255 255 255 / var(--style-bevel-highlight-alpha)),
+		inset -1px -1px var(--style-bevel-depth) rgb(0 0 0 / var(--style-bevel-shadow-alpha));
+}
+
+.research-normal-layer,
+.research-grain-layer {
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	transition: opacity 140ms ease;
+}
+
+.research-normal-layer {
+	z-index: 60;
+	opacity: var(--normal-opacity, 0);
+	mix-blend-mode: soft-light;
+}
+
+.research-grain-layer {
+	z-index: 61;
+	opacity: var(--grain-opacity, 0.1);
+	mix-blend-mode: var(--grain-blend-mode, screen);
+}
+
+.research-normal-layer svg,
+.research-grain-layer svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.research-normal-layer rect {
+	fill: #808080;
+}
+
+.research-grain-layer rect {
+	fill: #fff;
+}
+
+.style-settings-rail {
+	overflow-x: clip;
+}
+
+.style-settings-rail-open {
+	min-width: min(100%, var(--research-style-rail-track));
+}
+
+.style-settings-rail-resize-handle {
+	position: absolute;
+	inset-block: 0;
+	inset-inline-start: -3px;
+	z-index: 20;
+	width: 7px;
+	cursor: col-resize;
+}
+
+.style-settings-rail-resize-handle:hover,
+.research-style-shell-resizing .style-settings-rail-resize-handle {
+	background: rgb(var(--border));
+}
+
+.research-style-shell-resizing {
+	cursor: col-resize;
+	user-select: none;
+}
+
+.style-panel-heading {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	white-space: nowrap;
+}
+
+.style-panel-heading::after {
+	content: "";
+	flex: 1;
+	height: 1px;
+	background: linear-gradient(90deg, rgb(var(--border)), transparent);
+}
+
+.style-range {
+	min-height: 24px;
+	padding: 0;
+	appearance: none;
+	border: 0;
+	background: transparent;
+	accent-color: rgb(var(--accent));
+	cursor: pointer;
+}
+
+.style-range:focus-visible {
+	outline: none;
+	box-shadow: none;
+}
+
+.style-range::-webkit-slider-runnable-track {
+	height: 4px;
+	border: 1px solid rgb(var(--border));
+	background: linear-gradient(90deg, rgb(var(--status-info) / 0.24), rgb(var(--foreground) / 0.18));
+}
+
+.style-range::-webkit-slider-thumb {
+	width: 10px;
+	height: 18px;
+	margin-top: -8px;
+	-webkit-appearance: none;
+	appearance: none;
+	border: 1px solid rgb(var(--foreground));
+	background: rgb(var(--foreground));
+	box-shadow: 0 0 0 2px rgb(var(--background));
+}
+
+.style-range:focus-visible::-webkit-slider-thumb {
+	box-shadow: 0 0 0 2px rgb(var(--background)), 0 0 0 4px rgb(var(--status-info) / 0.35);
+}
+
+.style-range::-moz-range-track {
+	height: 4px;
+	border: 1px solid rgb(var(--border));
+	background: linear-gradient(90deg, rgb(var(--status-info) / 0.24), rgb(var(--foreground) / 0.18));
+}
+
+.style-range::-moz-range-thumb {
+	width: 10px;
+	height: 18px;
+	border: 1px solid rgb(var(--foreground));
+	border-radius: 0;
+	background: rgb(var(--foreground));
+	box-shadow: 0 0 0 2px rgb(var(--background));
+}
+
+@media (min-width: 1024px) {
+	.research-layout-grid {
+		grid-template-columns: 280px minmax(0, 1fr) var(--research-style-rail-track);
+	}
+}
+
+@media (max-width: 1023px) {
+	.style-settings-rail-resize-handle {
+		display: none;
+	}
 }
 
 ::selection {
@@ -174,5 +388,11 @@ body {
 @media (prefers-reduced-motion: reduce) {
 	.tk-pulse {
 		animation: none;
+	}
+
+	.research-normal-layer,
+	.research-grain-layer,
+	.research-style-shell :is(button, [role="button"]) svg {
+		transition: none;
 	}
 }

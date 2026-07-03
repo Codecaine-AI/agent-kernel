@@ -19,11 +19,11 @@ export function renderSessionMeta(ctx: SpawnContext): string {
 	const r = ctx.runtime;
 	const lines = [
 		"<session-meta>",
-		`- **App session**: \`${r.appSessionId ?? ""}\``,
+		`- **Container**: \`${r.containerId ?? ""}\``,
 		`- **Topic**: ${r.topic}`,
 		`- **Phase**: ${r.phase}`,
 		`- **Status**: ${r.status}`,
-		`- **App session directory**: ${r.appSessionDir}`,
+		`- **Session directory**: ${r.sessionDir}`,
 		"</session-meta>",
 	];
 	return lines.join("\n");

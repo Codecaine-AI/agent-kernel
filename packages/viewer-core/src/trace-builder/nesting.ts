@@ -17,6 +17,8 @@ import type { TraceSpan } from "@evilmartians/agent-prism-types";
 
 import { EventType } from "../types";
 
+import { readStringAttr } from "./spanAttributes";
+
 const PROVISIONING_EVENT_TYPES = new Set<string>([
   EventType.SYSTEM_PROMPT_RESOLVED,
   EventType.CONTEXT_BUILD_STARTED,
@@ -226,9 +228,7 @@ export function findToolCallSpanByToolUseId(
 
   for (const child of children) {
     if (typeById.get(child.id) === EventType.TOOL_CALL_START) {
-      const childToolUseId = child.attributes?.find((a) => a.key === "tool_use_id")?.value
-        ?.stringValue;
-      if (childToolUseId === toolUseId) return child;
+      if (readStringAttr(child, "tool_use_id") === toolUseId) return child;
     }
     const inner = findToolCallSpanByToolUseId(child, toolUseId, typeById);
     if (inner) return inner;

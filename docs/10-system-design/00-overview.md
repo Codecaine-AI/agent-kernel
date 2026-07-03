@@ -15,6 +15,9 @@ The kernel is organized around a small set of system concepts: agents are spawne
 ### [10-runtime-model.md](10-runtime-model.md)
 How agents, context, subagents, run context, and app adapters compose at runtime.
 
+### [15-identity-model.md](15-identity-model.md)
+Containers with kinds as the single grouping primitive, sessions, runs, turns, and the linkage invariants.
+
 ### [20-observability-model.md](20-observability-model.md)
 How containers, Pi sessions, runs, events, and explicit linkages form the trace graph.
 

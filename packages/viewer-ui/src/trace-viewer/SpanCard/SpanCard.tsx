@@ -20,20 +20,43 @@ import type { SpanCardConnectorType } from "./SpanCardConnector";
 
 import { SpanCardConnector } from "./SpanCardConnector";
 import { SpanCardToggle } from "./SpanCardToggle";
-import { UserMessageCard, AssistantMessageCard, ToolCard, UIAskCard, AgentCard, LifecycleCard, SystemCard, ContainerCard } from "./variants";
-import { getSpanStyle, readStringAttr } from "../span-style";
+import { TraceCard } from "./TraceCard";
+import { UserMessageCard, AssistantMessageCard, ToolCard, SpawnerCard, UIAskCard, AgentCard, LifecycleCard, SystemCard, ContainerCard, MetaCard } from "./variants";
+import { readStringAttr } from "../span-style";
+import {
+  resolveSpanIcon,
+  DEFAULT_ICON_SIDE,
+  DEFAULT_ICON_STYLE,
+  type IconSide,
+  type IconStyle,
+  type SpanDisplayType,
+  type SpanIconDescriptor,
+} from "../icons";
 
 const LAYOUT_CONSTANTS = {
   CONNECTOR_WIDTH: 24,
-  CONTENT_BASE_WIDTH: 320,
 } as const;
 
 const MAX_CONTENT_LENGTH = 200;
+
+/**
+ * Chrome bundle threaded from SpanCard into every variant so the shared
+ * TraceCard frame renders the same anatomy (icon cap + group border) at every
+ * size. `descriptor` carries the resolved kind + group + accent classes.
+ */
+export interface SpanCardChrome {
+  descriptor: SpanIconDescriptor;
+  side: IconSide;
+  style: IconStyle;
+  /** Accessible label for the cap, e.g. the span title. */
+  label: string;
+}
 
 type SpanDisplay =
   | { type: "user"; content: string }
   | { type: "assistant"; content: string }
   | { type: "tool"; name: string; detail?: string }
+  | { type: "spawner"; name: string; spawns: string[]; detail?: string }
   | { type: "ui_ask"; kind: string }
   | { type: "agent"; name: string }
   | { type: "lifecycle"; label: string }
@@ -69,6 +92,12 @@ function getSpanDisplay(data: TraceSpan): SpanDisplay {
           detail = parsed.raw.command;
         }
       } catch {}
+    }
+    // Spawner tool calls (D77) read as agent dispatch, not a generic tool.
+    if (readStringAttr(data, "tool_kind") === "spawner") {
+      const spawnsAttr = readStringAttr(data, "spawns");
+      const spawns = spawnsAttr ? spawnsAttr.split(",").filter(Boolean) : [];
+      return { type: "spawner", name: toolName, spawns, detail };
     }
     return { type: "tool", name: toolName, detail };
   }
@@ -122,11 +151,17 @@ type ExpandButtonPlacement = "inside" | "outside";
 export type SpanCardViewOptions = {
   withStatus?: boolean;
   expandButton?: ExpandButtonPlacement;
+  /** Which outer edge the scannability chip abuts. Default "left". */
+  iconSide?: IconSide;
+  /** Chip treatment: hollow "outline" or accent-filled "solid". Default "outline". */
+  iconStyle?: IconStyle;
 };
 
 const DEFAULT_VIEW_OPTIONS: Required<SpanCardViewOptions> = {
   withStatus: true,
   expandButton: "inside",
+  iconSide: DEFAULT_ICON_SIDE,
+  iconStyle: DEFAULT_ICON_STYLE,
 };
 
 interface SpanCardProps {
@@ -149,32 +184,6 @@ interface SpanCardState {
   isSelected: boolean;
 }
 
-const getContentWidth = ({
-  level,
-  hasExpandButton,
-  contentPadding,
-  expandButton,
-}: {
-  level: number;
-  hasExpandButton: boolean;
-  contentPadding: number;
-  expandButton: ExpandButtonPlacement;
-}) => {
-  let width =
-    LAYOUT_CONSTANTS.CONTENT_BASE_WIDTH -
-    level * LAYOUT_CONSTANTS.CONNECTOR_WIDTH;
-
-  if (hasExpandButton && expandButton === "inside") {
-    width -= LAYOUT_CONSTANTS.CONNECTOR_WIDTH;
-  }
-
-  if (expandButton === "outside" && level === 0) {
-    width -= LAYOUT_CONSTANTS.CONNECTOR_WIDTH;
-  }
-
-  return width - contentPadding;
-};
-
 const getGridTemplateColumns = ({
   connectorsColumnWidth,
   expandButton,
@@ -187,20 +196,6 @@ const getGridTemplateColumns = ({
   }
 
   return `${connectorsColumnWidth}px 1fr ${LAYOUT_CONSTANTS.CONNECTOR_WIDTH}px`;
-};
-
-const getContentPadding = ({
-  level,
-  hasExpandButton,
-}: {
-  level: number;
-  hasExpandButton: boolean;
-}) => {
-  if (level === 0) return 0;
-
-  if (hasExpandButton) return 4;
-
-  return 8;
 };
 
 const getConnectorsLayout = ({
@@ -384,23 +379,27 @@ export const SpanCard: FC<SpanCardProps> = ({
 
   const eventHandlers = useSpanCardEventHandlers(data, onSpanSelect);
 
-  const spanStyle = useMemo(() => getSpanStyle(data), [data]);
   const spanDisplay = useMemo(() => getSpanDisplay(data), [data]);
+
+  const iconSide = viewOptions.iconSide ?? DEFAULT_VIEW_OPTIONS.iconSide;
+  const iconStyle = viewOptions.iconStyle ?? DEFAULT_VIEW_OPTIONS.iconStyle;
+
+  const iconDescriptor = useMemo(() => {
+    const displayType: SpanDisplayType = spanDisplay?.type ?? "generic";
+    const lifecycleLabel =
+      spanDisplay?.type === "lifecycle" ? spanDisplay.label : undefined;
+    return resolveSpanIcon({ displayType, status: data.status, lifecycleLabel });
+  }, [spanDisplay, data.status]);
+
+  const chrome: SpanCardChrome = {
+    descriptor: iconDescriptor,
+    side: iconSide,
+    style: iconStyle,
+    label: `${data.title} span`,
+  };
 
   const hasExpandButtonAsFirstChild =
     expandButton === "inside" && state.hasChildren;
-
-  const contentPadding = getContentPadding({
-    level,
-    hasExpandButton: hasExpandButtonAsFirstChild,
-  });
-
-  const contentWidth = getContentWidth({
-    level,
-    hasExpandButton: hasExpandButtonAsFirstChild,
-    contentPadding,
-    expandButton,
-  });
 
   const { connectors, connectorsColumnWidth } = getConnectorsLayout({
     level,
@@ -473,71 +472,54 @@ export const SpanCard: FC<SpanCardProps> = ({
           </div>
           <div
             className={cn(
-              "flex items-center gap-2",
+              "relative flex min-w-0 items-center",
               "min-h-6 w-full cursor-pointer",
-              level !== 0 && !hasExpandButtonAsFirstChild && "pl-2",
-              level !== 0 && hasExpandButtonAsFirstChild && "pl-1",
+              level !== 0 && "pl-1",
             )}
           >
             {spanDisplay?.type === "user" && (
-              <UserMessageCard content={spanDisplay.content} />
+              <UserMessageCard content={spanDisplay.content} chrome={chrome} />
             )}
 
             {spanDisplay?.type === "assistant" && (
-              <AssistantMessageCard content={spanDisplay.content} />
+              <AssistantMessageCard content={spanDisplay.content} chrome={chrome} />
             )}
 
             {spanDisplay?.type === "tool" && (
-              <ToolCard name={spanDisplay.name} detail={spanDisplay.detail} />
+              <ToolCard name={spanDisplay.name} detail={spanDisplay.detail} chrome={chrome} />
+            )}
+
+            {spanDisplay?.type === "spawner" && (
+              <SpawnerCard
+                name={spanDisplay.name}
+                spawns={spanDisplay.spawns}
+                detail={spanDisplay.detail}
+                chrome={chrome}
+              />
             )}
 
             {spanDisplay?.type === "ui_ask" && (
-              <UIAskCard />
+              <UIAskCard chrome={chrome} />
             )}
 
             {spanDisplay?.type === "agent" && (
-              <AgentCard name={spanDisplay.name} />
+              <AgentCard name={spanDisplay.name} chrome={chrome} />
             )}
 
             {spanDisplay?.type === "lifecycle" && (
-              <LifecycleCard label={spanDisplay.label} />
+              <LifecycleCard label={spanDisplay.label} chrome={chrome} />
             )}
 
             {spanDisplay?.type === "system" && (
-              <SystemCard label={spanDisplay.label} />
+              <SystemCard label={spanDisplay.label} chrome={chrome} />
             )}
 
             {spanDisplay?.type === "container" && (
-              <ContainerCard label={spanDisplay.label} />
+              <ContainerCard label={spanDisplay.label} chrome={chrome} />
             )}
 
             {!spanDisplay && (
-              <div
-                className="relative flex min-h-5 shrink-0 flex-wrap items-center gap-1.5"
-                style={{
-                  width: `min(${contentWidth}px, 100%)`,
-                  minWidth: 140,
-                }}
-              >
-                {spanStyle.indicator && (
-                  <span
-                    aria-hidden="true"
-                    className="text-agentprism-foreground text-[15px] font-bold leading-none"
-                  >
-                    {spanStyle.indicator}
-                  </span>
-                )}
-
-                <h3
-                  className={cn(
-                    "text-agentprism-foreground max-w-32 truncate leading-[16px]",
-                    spanStyle.titleClassName,
-                  )}
-                  title={data.title}
-                >
-                  {data.title}
-                </h3>
-              </div>
+              <MetaCard title={data.title} chrome={chrome} />
             )}
           </div>
 

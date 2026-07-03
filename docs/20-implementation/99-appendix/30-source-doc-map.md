@@ -10,6 +10,10 @@ The kernel docs were promoted from Spectre docs, but they were not copied verbat
 
 ---
 
+## 2026-07 Overhaul
+
+The kernel-overhaul (identity + SQLite storage, usage tracing, prompt revisions, runtime consolidation, prompt lab) superseded parts of the originally promoted docs. The docs in this tree describe the post-overhaul state; for the plan that drove the change and the identity contract it introduced, read [docs/.drafts/agent-kernel-overhaul.plan.md](../../.drafts/agent-kernel-overhaul.plan.md) and [docs/10-system-design/15-identity-model.md](../../10-system-design/15-identity-model.md). Pre-overhaul concepts referenced below (app-session identity, `agent.md` frontmatter, kernel registration rows, the tailer daemon) are historical.
+
 ## Promoted Into Kernel Docs
 
 | Original Spectre Doc | Kernel Destination |
@@ -22,7 +26,7 @@ The kernel docs were promoted from Spectre docs, but they were not copied verbat
 | `docs/20-implementation/10-backend/10-agent-kernel/40-per-agent-loaders.md` | `docs/20-implementation/20-kernel/30-context-loaders.md` |
 | `docs/20-implementation/10-backend/10-agent-kernel/60-domain-guard.md` | `docs/20-implementation/20-kernel/10-spawn-pipeline.md` |
 | `docs/20-implementation/10-backend/10-agent-kernel/70-subagents/*` | `docs/20-implementation/20-kernel/40-subagents.md` |
-| `docs/20-implementation/15-tailer/00-overview.md` | `docs/20-implementation/40-tailer/00-overview.md` |
+| `docs/20-implementation/15-tailer/00-overview.md` | `docs/20-implementation/20-kernel/50-transcript-recovery.md` |
 | `docs/20-implementation/30-database/00-overview.md` | `docs/20-implementation/30-db/00-overview.md` |
 | `docs/20-implementation/12-data-backend/00-overview.md` | `docs/20-implementation/50-read-api/00-overview.md` |
 | `docs/10-system-design/20-event-system-linkages.md` | `docs/10-system-design/20-observability-model.md` |
@@ -47,7 +51,7 @@ Those should be documented as Spectre adapters on top of the kernel.
 
 | Spectre Term | Kernel Term |
 |---|---|
-| Spectre session id | `appSessionId` when referring to host correlation |
+| Spectre session id | container `kind` + `key` (originally `appSessionId`, deleted in the 2026-07 overhaul) |
 | Spectre session grouping | container |
 | Spectre phase | opaque `phase` label |
 | Spectre checkpoint/task group | app workflow metadata |

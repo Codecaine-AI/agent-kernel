@@ -7,8 +7,10 @@ import { appendResumeToolResult } from "./branch-based-resume";
 
 export interface BuildSessionManagerOptions {
 	sessionManager?: SessionManager;
-	appSessionId?: string;
-	appSessionDir?: string;
+	/** Primary grouping identity — namespaces the Pi session storage path. */
+	containerId?: string;
+	/** Session working directory (SessionManager root). */
+	sessionDir?: string;
 	piSessionsDir?: string;
 	reuseExistingSession?: boolean;
 	resumeFromToolResult?: ResumeToolResultInput;
@@ -30,15 +32,15 @@ async function openOrCreateSessionManager(
 	opts: BuildSessionManagerOptions,
 ): Promise<SessionManager | undefined> {
 	if (opts.sessionManager) return opts.sessionManager;
-	if (!opts.appSessionId || !opts.appSessionDir) return undefined;
+	if (!opts.containerId || !opts.sessionDir) return undefined;
 	if (!opts.piSessionsDir) {
 		throw new Error("buildSessionManager requires opts.piSessionsDir when session storage is enabled");
 	}
-	const sessionsDir = join(opts.piSessionsDir, opts.appSessionId, name);
+	const sessionsDir = join(opts.piSessionsDir, opts.containerId, name);
 	const shouldReuse = Boolean(opts.reuseExistingSession || opts.resumeFromToolResult);
 	if (shouldReuse) {
-		const existing = await SessionManager.list(opts.appSessionDir, sessionsDir);
+		const existing = await SessionManager.list(opts.sessionDir, sessionsDir);
 		if (existing.length > 0) return SessionManager.open(existing[0].path, sessionsDir);
 	}
-	return SessionManager.create(opts.appSessionDir, sessionsDir);
+	return SessionManager.create(opts.sessionDir, sessionsDir);
 }
