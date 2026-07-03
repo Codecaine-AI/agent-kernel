@@ -22,16 +22,16 @@
 	color-scheme: dark;
 
 	/* ── Base & structure ─────────────────────────────────────────── */
-	/* Void nudged a hair off pure black (#040508) — still instrument
-	 * black, but gentler under sustained contrast. */
-	--background: 4 5 8;
-	--foreground: 226 232 238;        /* #E2E8EE — primary text, never pure white   */
-	--card: 11 13 16;                 /* Panel housing — a step above the void      */
-	--card-foreground: 226 232 238;
-	--muted: 20 23 27;                /* Inset Graphite — recessed wells            */
-	--muted-foreground: 148 158 172;  /* Label Gray — bright enough to read for hours */
-	--border: 27 31 37;               /* Bezel Line — 1px panel / row rules         */
-	--input: 27 31 37;
+	/* Neutral gray ladder anchored on VS Code Dark+ (#252526 raised surface),
+	 * cohesive with the #1E1E1E editor buffer. Warm-neutral, no blue cast. */
+	--background: 27 27 28;           /* #1B1B1C — page base, a hair under the editor */
+	--foreground: 212 212 212;        /* #D4D4D4 — primary text (matches editor fg)   */
+	--card: 37 37 38;                 /* #252526 — raised surfaces (panels, cards)    */
+	--card-foreground: 212 212 212;
+	--muted: 42 42 43;                /* #2A2A2B — inputs / wells on raised surfaces  */
+	--muted-foreground: 168 168 168;  /* #A8A8A8 — secondary/label text, de-blued     */
+	--border: 58 58 59;               /* #3A3A3B — solid hairline panel / row rules   */
+	--input: 58 58 59;
 	--ring: 84 214 147;               /* Focus ring = signal-green primary          */
 
 	/* ── Primary accent (Signal Green — softened phosphor) ────────── */
@@ -41,13 +41,13 @@
 	--accent-foreground: 4 12 8;
 
 	--destructive: 225 91 88;         /* #E15B58 — softened Alert Red               */
-	--trace-container: 148 158 172;
+	--trace-container: 168 168 168;   /* #A8A8A8 — neutral gray, de-blued          */
 
 	/* ── Status semantics (consistent across every panel) ─────────── */
 	/* Nominal / Active / Gain → Signal Green (the primary)            */
-	--status-neutral: 148 158 172;
-	--status-neutral-fill: 20 23 27;
-	--status-neutral-border: 40 46 54;
+	--status-neutral: 168 168 168;    /* #A8A8A8 — de-blued neutral label            */
+	--status-neutral-fill: 42 42 43;  /* #2A2A2B — neutral well on raised surfaces   */
+	--status-neutral-border: 74 74 76; /* #4A4A4C — one step brighter than --border   */
 
 	--status-success: 84 214 147;
 	--status-success-fill: 10 30 22;
@@ -64,7 +64,7 @@
 	--status-info-border: 28 84 96;
 
 	/* ── Syntax (mono code buffers) ───────────────────────────────── */
-	--syntax-key: 160 175 190;
+	--syntax-key: 176 176 176;        /* #B0B0B0 — neutral gray key, de-blued        */
 	--syntax-string: 84 214 147;      /* green — flat emission on small marks       */
 	--syntax-number: 220 167 76;      /* amber                                       */
 	--syntax-boolean: 214 190 110;    /* soft yellow                                 */
@@ -85,12 +85,12 @@
 	--editor-landmark: rgb(255 255 255 / 0.028); /* section-open landmark tint        */
 
 	/* ── Trace badges (instrument hues, no pastels/AI-purple) ─────── */
-	--agentprism-background: 4 5 8;
-	--agentprism-foreground: 226 232 238;
-	--agentprism-muted: 20 23 27;
-	--agentprism-muted-foreground: 148 158 172;
-	--agentprism-border-subtle: 27 31 37;
-	--agentprism-code-base: 148 158 172;
+	--agentprism-background: 27 27 28;   /* #1B1B1C — glyph knockout inside solid icon caps */
+	--agentprism-foreground: 212 212 212; /* #D4D4D4 — primary text                  */
+	--agentprism-muted: 42 42 43;         /* #2A2A2B — well on raised surface        */
+	--agentprism-muted-foreground: 168 168 168; /* #A8A8A8 — secondary text, de-blued */
+	--agentprism-border-subtle: 58 58 59; /* #3A3A3B — solid hairline                */
+	--agentprism-code-base: 168 168 168;  /* #A8A8A8 — neutral gray code base        */
 	--agentprism-badge-agent-foreground: 84 211 224;    /* cyan                       */
 	--agentprism-badge-chain-foreground: 110 210 184;   /* cyan-green                 */
 	--agentprism-badge-llm-foreground: 84 214 147;      /* signal green primary       */
@@ -106,8 +106,8 @@
 	--trace-user: 96 165 250;            /* #60A5FA blue — user messages                            */
 	--trace-assistant: 84 214 147;       /* #54D693 green — assistant messages (signal primary)     */
 	--trace-tool: 84 211 224;            /* #54D3E0 cyan — tool calls                                */
-	--trace-lifecycle: 148 158 172;      /* #949EAC gray — lifecycle / system / provisioning / phases */
-	--trace-meta: 148 158 172;           /* #949EAC gray — info / debug mini-cards                   */
+	--trace-lifecycle: 168 168 168;      /* #A8A8A8 gray — lifecycle / system / provisioning / phases */
+	--trace-meta: 168 168 168;           /* #A8A8A8 gray — info / debug mini-cards                   */
 
 	/* Adjustable research surface controls. */
 	--research-layout-padding: 16px;

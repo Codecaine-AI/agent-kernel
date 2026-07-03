@@ -152,34 +152,41 @@ export const TRACE_ICON_STYLE_OPTIONS: ReadonlyArray<{ id: TraceIconStyle; label
 
 const STYLE_SETTINGS_KEY = "simpleResearchStyleSettings.v1";
 
+// Neutral gray ladder anchored on VS Code Dark+ (#252526 raised surface),
+// cohesive with the #1E1E1E editor buffer. Warm-neutral, no blue cast. These
+// are the RUNTIME source of truth for the neutral palette — the style overlay
+// inlines them onto .research-style-shell, shadowing the styles.css :root
+// fallbacks. Keep them in lockstep with styles.css.
 const BASE_TOKENS = {
-	background: [4, 5, 8],
-	foreground: [226, 232, 238],
-	card: [11, 13, 16],
-	cardForeground: [226, 232, 238],
-	muted: [20, 23, 27],
-	mutedForeground: [148, 158, 172],
-	border: [27, 31, 37],
-	statusNeutralFill: [20, 23, 27],
-	statusNeutralBorder: [40, 46, 54],
+	background: [27, 27, 28],          // #1B1B1C — page base
+	foreground: [212, 212, 212],       // #D4D4D4 — primary text
+	card: [37, 37, 38],                // #252526 — raised surfaces
+	cardForeground: [212, 212, 212],   // #D4D4D4
+	muted: [42, 42, 43],               // #2A2A2B — inputs / wells on raised surfaces
+	mutedForeground: [168, 168, 168],  // #A8A8A8 — secondary / label text
+	border: [58, 58, 59],              // #3A3A3B — solid hairline
+	statusNeutralFill: [42, 42, 43],   // #2A2A2B
+	statusNeutralBorder: [74, 74, 76], // #4A4A4C
 	statusSuccessFill: [10, 30, 22],
 	statusSuccessBorder: [38, 92, 70],
 	statusWarningFill: [34, 28, 10],
 	statusWarningBorder: [96, 74, 28],
 	statusInfoFill: [8, 30, 36],
 	statusInfoBorder: [28, 84, 96],
-	agentPrismMuted: [20, 23, 27],
-	agentPrismBorder: [27, 31, 37],
-	agentPrismCodeBase: [148, 158, 172]
+	agentPrismMuted: [42, 42, 43],     // #2A2A2B
+	agentPrismBorder: [58, 58, 59],    // #3A3A3B
+	agentPrismCodeBase: [168, 168, 168] // #A8A8A8
 } satisfies Record<string, Rgb>;
 
+// Softening targets: lighter, warm-neutral variants the base grays mix toward
+// as the softening sliders rise. Stay on the same neutral family (no blue cast).
 const SOFT_TARGETS = {
-	background: [15, 18, 23],
-	card: [20, 24, 30],
-	muted: [29, 34, 41],
-	foreground: [214, 222, 230],
-	mutedForeground: [140, 152, 168],
-	border: [45, 53, 62],
+	background: [35, 35, 36],           // #232324
+	card: [45, 45, 46],                 // #2D2D2E — hover/active neutral territory
+	muted: [52, 52, 53],                // #343435
+	foreground: [214, 214, 214],        // #D6D6D6
+	mutedForeground: [176, 176, 176],   // #B0B0B0
+	border: [74, 74, 76],               // #4A4A4C
 	statusSuccessFill: [14, 39, 29],
 	statusSuccessBorder: [54, 112, 86],
 	statusWarningFill: [43, 36, 16],
