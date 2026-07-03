@@ -163,81 +163,9 @@ export function PromptInlineLab({
 			onKeyDown={handleKeyDown}
 			className={cn("@container flex h-full min-h-0 flex-1 flex-col bg-card font-mono", className)}
 		>
-			<header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b border-border bg-muted/20 px-3 py-2">
-				<div className="mr-auto min-w-0">
-					<div className="flex flex-wrap items-center gap-2">
-						<span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-							Prompt Editor
-						</span>
-						<StatusChip tone={dirty ? "amber" : "neutral"}>{dirty ? "draft" : "source"}</StatusChip>
-						<StatusChip tone={errorCount > 0 ? "red" : warningCount > 0 ? "amber" : "green"}>
-							{errorCount > 0 ? `${errorCount} err` : warningCount > 0 ? `${warningCount} warn` : "valid"}
-						</StatusChip>
-						{currentSavedHash && (
-							<StatusChip tone="neutral">
-								<span className="normal-case" title={currentSavedHash}>
-									{shortHash(currentSavedHash)}
-								</span>
-							</StatusChip>
-						)}
-						<span className="tabular-nums text-[11px] text-muted-foreground">
-							{tokenCount.toLocaleString()}
-							<span className="ml-1 text-[9px] uppercase tracking-[0.12em] text-muted-foreground/55">tok</span>
-						</span>
-					</div>
-					<p className="mt-1 max-w-[56rem] truncate text-[11px] text-muted-foreground/70">
-						{mode === "sections"
-							? "Edit the prompt as a rendered section flow with inline insert and drag/drop."
-							: "Edit the same prompt through the agent-facing XML Markdown flow."}
-					</p>
-				</div>
-
-				<div className="flex flex-wrap items-center gap-1">
-					<ModeButton active={mode === "xml"} onClick={() => setMode("xml")}>
-						Agent XML
-					</ModeButton>
-					<ModeButton active={mode === "sections"} onClick={() => setMode("sections")}>
-						Sections
-					</ModeButton>
-					<IconButton
-						onClick={undo}
-						disabled={!history.canUndo()}
-						title="Undo (mod+z)"
-						ariaLabel="Undo"
-					>
-						<Undo2 size={13} />
-					</IconButton>
-					<IconButton
-						onClick={redo}
-						disabled={!history.canRedo()}
-						title="Redo (mod+shift+z)"
-						ariaLabel="Redo"
-					>
-						<Redo2 size={13} />
-					</IconButton>
-					<IconButton onClick={resetDraft} disabled={!dirty} title="Reset draft" ariaLabel="Reset draft">
-						<RotateCcw size={13} />
-					</IconButton>
-					{onSave && (
-						<button
-							type="button"
-							onClick={() => void handleSave()}
-							disabled={!dirty || saving}
-							className={cn(
-								"inline-flex h-7 items-center gap-1.5 rounded-[2px] border px-2 text-[11px] uppercase tracking-[0.1em] transition-colors",
-								dirty && !saving
-									? "border-status-success-border bg-status-success-fill/40 text-status-success hover:bg-status-success-fill/60"
-									: "cursor-not-allowed border-border bg-background text-muted-foreground opacity-45",
-							)}
-						>
-							<Save size={13} />
-							{saving ? "Saving…" : "Save"}
-						</button>
-					)}
-				</div>
-			</header>
-
 			<div className="flex min-h-0 flex-1 overflow-hidden">
+				{/* Left column is exclusively the editor surface — gutter + lines,
+				    full height, no competing chrome. */}
 				<div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
 					{mode === "sections" ? (
 						<PromptFlowSections
@@ -259,12 +187,36 @@ export function PromptInlineLab({
 						/>
 					)}
 				</div>
-				<PromptFlowInspector
-					prompt={model.prompt}
-					model={model}
-					selectedEntry={explicitSelectedEntry}
-					onPromptChange={handlePromptChange}
-				/>
+
+				{/* Right column: a PINNED chrome zone (status + controls) above the
+				    inspector, which scrolls beneath it. All the editor chrome that
+				    used to sit atop the editor now lives here so the editor stays
+				    pure. */}
+				<div className="flex w-72 shrink-0 flex-col border-l border-border bg-card @[72rem]:w-80">
+					<PinnedChrome
+						mode={mode}
+						onMode={setMode}
+						dirty={dirty}
+						errorCount={errorCount}
+						warningCount={warningCount}
+						tokenCount={tokenCount}
+						savedHash={currentSavedHash}
+						canUndo={history.canUndo()}
+						canRedo={history.canRedo()}
+						saving={saving}
+						hasSave={Boolean(onSave)}
+						onUndo={undo}
+						onRedo={redo}
+						onReset={resetDraft}
+						onSave={() => void handleSave()}
+					/>
+					<PromptFlowInspector
+						prompt={model.prompt}
+						model={model}
+						selectedEntry={explicitSelectedEntry}
+						onPromptChange={handlePromptChange}
+					/>
+				</div>
 			</div>
 
 			{(diagnostics.length > 0 || saveErrors.length > 0) && (
@@ -290,6 +242,103 @@ export function PromptInlineLab({
 				</footer>
 			)}
 		</section>
+	);
+}
+
+/**
+ * The editor chrome, pinned to the top of the details column. Two rows:
+ *  1. status — dirty/valid chips, token count, saved-hash chip.
+ *  2. controls — Agent XML / Sections mode toggle, undo, redo, reset, Save.
+ * Keyboard shortcuts still drive undo/redo (see handleKeyDown on the section),
+ * so relocating the buttons here changes only where they render.
+ */
+function PinnedChrome({
+	mode,
+	onMode,
+	dirty,
+	errorCount,
+	warningCount,
+	tokenCount,
+	savedHash,
+	canUndo,
+	canRedo,
+	saving,
+	hasSave,
+	onUndo,
+	onRedo,
+	onReset,
+	onSave,
+}: {
+	mode: PromptFlowMode;
+	onMode: (mode: PromptFlowMode) => void;
+	dirty: boolean;
+	errorCount: number;
+	warningCount: number;
+	tokenCount: number;
+	savedHash?: string;
+	canUndo: boolean;
+	canRedo: boolean;
+	saving: boolean;
+	hasSave: boolean;
+	onUndo: () => void;
+	onRedo: () => void;
+	onReset: () => void;
+	onSave: () => void;
+}) {
+	return (
+		<div className="shrink-0 border-b border-border bg-muted/20 px-3 py-2.5">
+			<div className="flex flex-wrap items-center gap-1.5">
+				<StatusChip tone={dirty ? "amber" : "neutral"}>{dirty ? "draft" : "source"}</StatusChip>
+				<StatusChip tone={errorCount > 0 ? "red" : warningCount > 0 ? "amber" : "green"}>
+					{errorCount > 0 ? `${errorCount} err` : warningCount > 0 ? `${warningCount} warn` : "valid"}
+				</StatusChip>
+				{savedHash && (
+					<StatusChip tone="neutral">
+						<span className="normal-case" title={savedHash}>
+							{shortHash(savedHash)}
+						</span>
+					</StatusChip>
+				)}
+				<span className="ml-auto tabular-nums text-[11px] text-muted-foreground">
+					{tokenCount.toLocaleString()}
+					<span className="ml-1 text-[9px] uppercase tracking-[0.12em] text-muted-foreground/55">tok</span>
+				</span>
+			</div>
+
+			<div className="mt-2 flex flex-wrap items-center gap-1">
+				<ModeButton active={mode === "xml"} onClick={() => onMode("xml")}>
+					Agent XML
+				</ModeButton>
+				<ModeButton active={mode === "sections"} onClick={() => onMode("sections")}>
+					Sections
+				</ModeButton>
+				<IconButton onClick={onUndo} disabled={!canUndo} title="Undo (mod+z)" ariaLabel="Undo">
+					<Undo2 size={13} />
+				</IconButton>
+				<IconButton onClick={onRedo} disabled={!canRedo} title="Redo (mod+shift+z)" ariaLabel="Redo">
+					<Redo2 size={13} />
+				</IconButton>
+				<IconButton onClick={onReset} disabled={!dirty} title="Reset draft" ariaLabel="Reset draft">
+					<RotateCcw size={13} />
+				</IconButton>
+				{hasSave && (
+					<button
+						type="button"
+						onClick={onSave}
+						disabled={!dirty || saving}
+						className={cn(
+							"ml-auto inline-flex h-7 items-center gap-1.5 rounded-[2px] border px-2 text-[11px] uppercase tracking-[0.1em] transition-colors",
+							dirty && !saving
+								? "border-status-success-border bg-status-success-fill/40 text-status-success hover:bg-status-success-fill/60"
+								: "cursor-not-allowed border-border bg-background text-muted-foreground opacity-45",
+						)}
+					>
+						<Save size={13} />
+						{saving ? "Saving…" : "Save"}
+					</button>
+				)}
+			</div>
+		</div>
 	);
 }
 

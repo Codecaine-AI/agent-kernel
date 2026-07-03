@@ -69,6 +69,21 @@
 	--syntax-number: 220 167 76;      /* amber                                       */
 	--syntax-boolean: 214 190 110;    /* soft yellow                                 */
 
+	/* ── Editor surface (VS Code Dark+ standards) ─────────────────────
+	 * ONE palette shared by the Agent XML editing flow and the read-only Raw
+	 * prompt view, so the two read as a single object. Deliberately a hair
+	 * warmer/grayer than the instrument void — a code buffer, not a panel.
+	 * These are literal colors (not RGB triplets): they're consumed directly
+	 * via var() in editor components, which carry their own fallbacks. */
+	--editor-bg: #1e1e1e;                       /* VS Code Dark+ editor background   */
+	--editor-fg: #d4d4d4;                        /* default editor foreground         */
+	--editor-line-number: #858585;               /* gutter line numbers               */
+	--editor-line-number-active: #c6c6c6;        /* current/selected line number      */
+	--editor-gutter-bg: #1e1e1e;                 /* gutter matches buffer (no seam)   */
+	--editor-rule: rgb(255 255 255 / 0.04);      /* ruled-paper per-line hairline     */
+	--editor-guide: rgb(255 255 255 / 0.08);     /* indent guide (bracket line)       */
+	--editor-landmark: rgb(255 255 255 / 0.028); /* section-open landmark tint        */
+
 	/* ── Trace badges (instrument hues, no pastels/AI-purple) ─────── */
 	--agentprism-background: 4 5 8;
 	--agentprism-foreground: 226 232 238;

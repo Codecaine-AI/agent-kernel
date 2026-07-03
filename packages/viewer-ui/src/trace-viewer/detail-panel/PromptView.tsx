@@ -3,78 +3,21 @@
 import { useMemo } from "react";
 import cn from "classnames";
 
-function highlightXmlLine(line: string): React.ReactNode {
-	const result: React.ReactNode[] = [];
-	let keyIndex = 0;
-	const tagRegex =
-		/<\/?([a-zA-Z_][\w_-]*)((?:\s+[a-zA-Z_][\w_-]*(?:=(?:'[^']*'|"[^"]*"|[^\s>]*))?)*)\s*(\/)?>/g;
-	let lastIndex = 0;
-	let match: RegExpExecArray | null;
-
-	while ((match = tagRegex.exec(line)) !== null) {
-		if (match.index > lastIndex) {
-			result.push(<span key={keyIndex++}>{line.slice(lastIndex, match.index)}</span>);
-		}
-
-		const fullMatch = match[0];
-		const tagName = match[1];
-		const attributes = match[2] || "";
-		const isClosing = fullMatch.startsWith("</");
-		const isSelfClosing = fullMatch.endsWith("/>");
-		const formattedAttributes: React.ReactNode[] = [];
-
-		if (attributes.trim()) {
-			const attrRegex =
-				/([a-zA-Z_][\w_-]*)(?:=('[^']*'|"[^"]*"|[^\s>]*))?/g;
-			let attrMatch: RegExpExecArray | null;
-			while ((attrMatch = attrRegex.exec(attributes)) !== null) {
-				const attrName = attrMatch[1];
-				const attrValue = attrMatch[2];
-				formattedAttributes.push(
-					<span key={keyIndex++}>
-						{" "}
-						<span className="text-syntax-boolean">{attrName}</span>
-						{attrValue && (
-							<>
-								<span className="text-foreground">=</span>
-								<span className="text-syntax-string">{attrValue}</span>
-							</>
-						)}
-					</span>,
-				);
-			}
-		}
-
-		result.push(
-			<span key={keyIndex++} className="text-syntax-number">
-				{"<"}
-				{isClosing && "/"}
-				<span className="font-medium text-syntax-key">{tagName}</span>
-				{formattedAttributes}
-				{isSelfClosing && " /"}
-				{">"}
-			</span>,
-		);
-		lastIndex = match.index + fullMatch.length;
-	}
-
-	if (lastIndex < line.length) {
-		result.push(<span key={keyIndex++}>{line.slice(lastIndex)}</span>);
-	}
-
-	return result.length === 0 ? <span>{line}</span> : <>{result}</>;
-}
+import { EDITOR_COLORS } from "../../shared/editor-surface";
+import { hasXmlTags as detectXmlTags, highlightXmlLine } from "../../shared/xml-highlight";
 
 export type PromptViewSize = "sm" | "md" | "lg";
 
 const PROMPT_VIEW_SIZE_CLASS: Record<PromptViewSize, string> = {
-	sm: "text-xs",
+	sm: "text-[13px] leading-[21px]",
 	md: "text-sm",
 	lg: "text-base",
 };
 
-const PROMPT_ROW_BORDER = "1px solid color-mix(in srgb, var(--color-border) 42%, transparent)";
-const PROMPT_GUTTER_BORDER = "color-mix(in srgb, var(--color-border) 62%, transparent)";
+// One faint ruled-paper hairline per line row. An INSET box-shadow (not a
+// border) so it adds zero layout pixels — the row grid stays exact. Shared
+// --editor-rule token keeps it identical to the Agent XML flow.
+const PROMPT_ROW_RULE = `inset 0 -1px 0 ${EDITOR_COLORS.rule}`;
 
 export function PromptView({
 	content,
@@ -95,10 +38,7 @@ export function PromptView({
 	const lines = useMemo(() => (content ? content.split("\n") : []), [content]);
 	const lastLine = startLine + Math.max(0, lines.length - 1);
 	const lineNumberWidth = useMemo(() => Math.max(2, String(lastLine).length), [lastLine]);
-	const hasXmlTags = useMemo(
-		() => (content ? /<\/?[a-zA-Z_][\w_-]*/.test(content) : false),
-		[content],
-	);
+	const hasXmlTags = useMemo(() => detectXmlTags(content), [content]);
 
 	if (!content) {
 		return (
@@ -110,28 +50,33 @@ export function PromptView({
 
 	return (
 		<div className="relative w-full overflow-hidden">
-			<div className={cn("w-full overflow-auto", bare ? undefined : "rounded-[3px] border border-border bg-muted/20")}>
+			<div
+				className={cn("w-full overflow-auto", bare ? undefined : "rounded-[3px]")}
+				style={{ background: EDITOR_COLORS.bg, color: EDITOR_COLORS.fg }}
+			>
 				<table className={cn("w-full table-auto border-separate border-spacing-0 font-mono", PROMPT_VIEW_SIZE_CLASS[size])}>
 					<tbody>
 						{lines.map((line, index) => {
 							const isLastLine = index === lines.length - 1;
-							const rowBorder = isLastLine ? "0" : PROMPT_ROW_BORDER;
+							const rowRule = isLastLine ? undefined : PROMPT_ROW_RULE;
 							return (
-								<tr key={index} className="hover:bg-muted/30">
+								<tr key={index} className="hover:bg-white/[0.03]">
 									<td
-										className="sticky left-0 select-none border-r border-border !bg-muted/40 px-3 py-0.5 text-right align-top tabular-nums text-muted-foreground/70"
+										className="sticky left-0 select-none px-3 py-0.5 text-right align-top tabular-nums"
 										style={{
 											minWidth: `${lineNumberWidth + 2}ch`,
-											borderBottom: rowBorder,
-											borderRightColor: PROMPT_GUTTER_BORDER,
+											boxShadow: rowRule,
+											background: EDITOR_COLORS.gutterBg,
+											color: EDITOR_COLORS.lineNumber,
 										}}
 									>
 										{startLine + index}
 									</td>
 									<td
-										className="w-full !bg-transparent py-0.5 pl-3 pr-4"
+										className="w-full py-0.5 pl-3 pr-4"
 										style={{
-											borderBottom: rowBorder,
+											boxShadow: rowRule,
+											background: "transparent",
 											whiteSpace: "pre-wrap",
 											wordBreak: "break-word",
 										}}

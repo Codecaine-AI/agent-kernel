@@ -150,6 +150,8 @@ export function usePromptFlowInteractions({
 		insertBlock,
 		removeBlock,
 		canDropOn,
+		moveNear,
+		setDropTarget,
 		handleDragOver,
 		handleDrop,
 		handleDragEnd,

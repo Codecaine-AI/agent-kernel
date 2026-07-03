@@ -45,7 +45,7 @@ export function PromptFlowInspector({
 		: [];
 
 	return (
-		<aside className="flex w-72 shrink-0 flex-col border-l border-border bg-card @[72rem]:w-80">
+		<aside className="flex min-h-0 flex-1 flex-col bg-card">
 			<header className="flex h-10 shrink-0 items-center border-b border-border bg-muted/20 px-3">
 				<span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
 					Details
