@@ -1,0 +1,8 @@
+Nucleo UI icons, licensed to the repo owner. https://nucleoapp.com
+Do not add icons without a license.
+
+These SVGs are the licensed source for the trace-viewer scannability icons.
+They are copied verbatim (18px viewBox) from the owner's Nucleo set and are
+converted into React components in ../nucleo-icons.tsx (paths inlined, fixed
+width/height and hard-coded colors stripped so glyphs inherit currentColor).
+Matching outline/ and fill/ trees preserve the source's relative paths.

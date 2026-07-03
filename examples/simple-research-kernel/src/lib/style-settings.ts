@@ -45,9 +45,18 @@ export interface GrainSettings {
 	cssBevel: CssBevelSettings;
 }
 
+export type TraceIconSide = "left" | "right";
+export type TraceIconStyle = "outline" | "solid";
+
+export interface TraceIconSettings {
+	side: TraceIconSide;
+	style: TraceIconStyle;
+}
+
 export interface ResearchStyleSettings {
 	layout: LayoutStyleSettings;
 	grain: GrainSettings;
+	traceIcons: TraceIconSettings;
 }
 
 export type GrainSettingsPatch = Omit<Partial<GrainSettings>, "softening" | "svgNormal" | "cssBevel"> & {
@@ -59,6 +68,7 @@ export type GrainSettingsPatch = Omit<Partial<GrainSettings>, "softening" | "svg
 export interface ResearchStyleSettingsPatch {
 	layout?: Partial<LayoutStyleSettings>;
 	grain?: GrainSettingsPatch;
+	traceIcons?: Partial<TraceIconSettings>;
 }
 
 type Rgb = readonly [number, number, number];
@@ -105,9 +115,15 @@ export const DEFAULT_GRAIN_SETTINGS: GrainSettings = {
 	cssBevel: DEFAULT_CSS_BEVEL_SETTINGS
 };
 
+export const DEFAULT_TRACE_ICON_SETTINGS: TraceIconSettings = {
+	side: "left",
+	style: "outline"
+};
+
 export const DEFAULT_RESEARCH_STYLE_SETTINGS: ResearchStyleSettings = {
 	layout: DEFAULT_LAYOUT_STYLE_SETTINGS,
-	grain: DEFAULT_GRAIN_SETTINGS
+	grain: DEFAULT_GRAIN_SETTINGS,
+	traceIcons: DEFAULT_TRACE_ICON_SETTINGS
 };
 
 export const GRAIN_BLEND_OPTIONS: ReadonlyArray<{ id: GrainBlendMode; label: string }> = [
@@ -122,6 +138,16 @@ export const SOFTENING_CHANNEL_OPTIONS: ReadonlyArray<{ id: SofteningChannel; la
 	{ id: "font", label: "Font" },
 	{ id: "borders", label: "Borders" },
 	{ id: "icons", label: "Icons" }
+];
+
+export const TRACE_ICON_SIDE_OPTIONS: ReadonlyArray<{ id: TraceIconSide; label: string }> = [
+	{ id: "left", label: "Left" },
+	{ id: "right", label: "Right" }
+];
+
+export const TRACE_ICON_STYLE_OPTIONS: ReadonlyArray<{ id: TraceIconStyle; label: string }> = [
+	{ id: "outline", label: "Outline" },
+	{ id: "solid", label: "Solid" }
 ];
 
 const STYLE_SETTINGS_KEY = "simpleResearchStyleSettings.v1";
@@ -228,6 +254,22 @@ export function normalizeGrainSettings(input: GrainSettingsPatch | Record<string
 	};
 }
 
+function isTraceIconSide(value: unknown): value is TraceIconSide {
+	return TRACE_ICON_SIDE_OPTIONS.some((option) => option.id === value);
+}
+
+function isTraceIconStyle(value: unknown): value is TraceIconStyle {
+	return TRACE_ICON_STYLE_OPTIONS.some((option) => option.id === value);
+}
+
+function normalizeTraceIconSettings(input: unknown): TraceIconSettings {
+	const source = input && typeof input === "object" ? input as Record<string, unknown> : {};
+	return {
+		side: isTraceIconSide(source.side) ? source.side : DEFAULT_TRACE_ICON_SETTINGS.side,
+		style: isTraceIconStyle(source.style) ? source.style : DEFAULT_TRACE_ICON_SETTINGS.style
+	};
+}
+
 export function normalizeResearchStyleSettings(input: ResearchStyleSettingsPatch | Record<string, unknown>): ResearchStyleSettings {
 	const source = input && typeof input === "object" ? input as Record<string, unknown> : {};
 	return {
@@ -236,7 +278,8 @@ export function normalizeResearchStyleSettings(input: ResearchStyleSettingsPatch
 			source.grain && typeof source.grain === "object"
 				? source.grain as Record<string, unknown>
 				: {}
-		)
+		),
+		traceIcons: normalizeTraceIconSettings(source.traceIcons)
 	};
 }
 
@@ -254,7 +297,8 @@ export function mergeResearchStyleSettings(
 			softening: { ...current.grain.softening, ...(updates.grain?.softening ?? {}) },
 			svgNormal: { ...current.grain.svgNormal, ...(updates.grain?.svgNormal ?? {}) },
 			cssBevel: { ...current.grain.cssBevel, ...(updates.grain?.cssBevel ?? {}) }
-		}
+		},
+		traceIcons: { ...current.traceIcons, ...(updates.traceIcons ?? {}) }
 	});
 }
 

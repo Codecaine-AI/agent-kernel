@@ -8,6 +8,7 @@ import {
 	collectSpanIds,
 	filterSpansByTraceLevel,
 	findSpanInTree,
+	type SpanCardViewOptions,
 } from "@agent-kernel/viewer-ui";
 
 import { TraceLevelSlider, type TraceLevelInfo } from "./TraceLevelSlider";
@@ -51,6 +52,12 @@ export interface KernelTraceViewerProps {
 	selectedId?: string | null;
 	onSelectedIdChange?: (id: string | null) => void;
 	plugins?: KernelViewerPlugins;
+	/**
+	 * Which outer edge the per-span scannability chip abuts, and its treatment
+	 * (hollow outline vs. accent-filled solid). Forwarded to every SpanCard.
+	 */
+	iconSide?: SpanCardViewOptions["iconSide"];
+	iconStyle?: SpanCardViewOptions["iconStyle"];
 }
 
 export function KernelTraceViewer({
@@ -60,6 +67,8 @@ export function KernelTraceViewer({
 	selectedId: controlledSelectedId,
 	onSelectedIdChange,
 	plugins,
+	iconSide,
+	iconStyle,
 }: KernelTraceViewerProps) {
 	const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
 	const [expandedSpansIds, setExpandedSpansIds] = useState<string[]>([]);
@@ -92,6 +101,14 @@ export function KernelTraceViewer({
 	const selectedSpan = useMemo(
 		() => (selectedId ? findSpanInTree(filteredSpans, selectedId) : null),
 		[filteredSpans, selectedId],
+	);
+
+	const spanCardViewOptions = useMemo<SpanCardViewOptions | undefined>(
+		() =>
+			iconSide === undefined && iconStyle === undefined
+				? undefined
+				: { iconSide, iconStyle },
+		[iconSide, iconStyle],
 	);
 
 	const toggleExpandAll = () => {
@@ -142,6 +159,7 @@ export function KernelTraceViewer({
 							onSpanSelect={(span) => setSelectedId(span.id)}
 							expandedSpansIds={expandedSpansIds}
 							onExpandSpansIdsChange={setExpandedSpansIds}
+							spanCardViewOptions={spanCardViewOptions}
 						/>
 					</div>
 				</div>

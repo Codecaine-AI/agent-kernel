@@ -4,9 +4,13 @@ import {
 	DEFAULT_RESEARCH_STYLE_SETTINGS,
 	GRAIN_BLEND_OPTIONS,
 	SOFTENING_CHANNEL_OPTIONS,
+	TRACE_ICON_SIDE_OPTIONS,
+	TRACE_ICON_STYLE_OPTIONS,
 	type GrainBlendMode,
 	type ResearchStyleSettings,
-	type ResearchStyleSettingsPatch
+	type ResearchStyleSettingsPatch,
+	type TraceIconSide,
+	type TraceIconStyle
 } from "../../lib/style-settings";
 
 type StyleSettingsPanelProps = {
@@ -149,6 +153,40 @@ export function StyleSettingsPanel({ settings, onChange }: StyleSettingsPanelPro
 						value={settings.layout.headerHeight}
 						valueLabel={pxLabel(settings.layout.headerHeight)}
 					/>
+				</div>
+			</PanelSection>
+
+			<PanelSection>
+				<PanelTitle>Trace Icons</PanelTitle>
+				<div className="grid gap-4">
+					<label className="block text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+						<span>Icon side</span>
+						<select
+							className="mt-1.5 min-h-8 w-full border border-border bg-muted px-2 py-1 text-[13px] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border"
+							onChange={(event) => onChange({ traceIcons: { side: event.currentTarget.value as TraceIconSide } })}
+							value={settings.traceIcons.side}
+						>
+							{TRACE_ICON_SIDE_OPTIONS.map((option) => (
+								<option key={option.id} value={option.id}>
+									{option.label}
+								</option>
+							))}
+						</select>
+					</label>
+					<label className="block text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+						<span>Icon style</span>
+						<select
+							className="mt-1.5 min-h-8 w-full border border-border bg-muted px-2 py-1 text-[13px] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border"
+							onChange={(event) => onChange({ traceIcons: { style: event.currentTarget.value as TraceIconStyle } })}
+							value={settings.traceIcons.style}
+						>
+							{TRACE_ICON_STYLE_OPTIONS.map((option) => (
+								<option key={option.id} value={option.id}>
+									{option.label}
+								</option>
+							))}
+						</select>
+					</label>
 				</div>
 			</PanelSection>
 
@@ -345,6 +383,8 @@ export function StyleSettingsPanel({ settings, onChange }: StyleSettingsPanelPro
 					<ReadoutRow label="Density" value={grain.frequency.toFixed(2)} />
 					<ReadoutRow label="Contrast" value={`${grain.contrast.toFixed(2)}x`} />
 					<ReadoutRow label="Blend" value={GRAIN_BLEND_OPTIONS.find((option) => option.id === grain.blendMode)?.label ?? grain.blendMode} />
+						<ReadoutRow label="Icon Side" value={TRACE_ICON_SIDE_OPTIONS.find((option) => option.id === settings.traceIcons.side)?.label ?? settings.traceIcons.side} />
+						<ReadoutRow label="Icon Style" value={TRACE_ICON_STYLE_OPTIONS.find((option) => option.id === settings.traceIcons.style)?.label ?? settings.traceIcons.style} />
 					<ReadoutRow label="Background" value={percentLabel(grain.softening.background)} />
 					<ReadoutRow label="Font" value={percentLabel(grain.softening.font)} />
 					<ReadoutRow label="Borders" value={percentLabel(grain.softening.borders)} />

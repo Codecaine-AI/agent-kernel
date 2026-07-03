@@ -22,6 +22,16 @@ import { SpanCardConnector } from "./SpanCardConnector";
 import { SpanCardToggle } from "./SpanCardToggle";
 import { UserMessageCard, AssistantMessageCard, ToolCard, SpawnerCard, UIAskCard, AgentCard, LifecycleCard, SystemCard, ContainerCard } from "./variants";
 import { getSpanStyle, readStringAttr } from "../span-style";
+import {
+  SpanEdgeIcon,
+  SPAN_EDGE_ICON_CHIP_SIZE,
+  resolveSpanIcon,
+  DEFAULT_ICON_SIDE,
+  DEFAULT_ICON_STYLE,
+  type IconSide,
+  type IconStyle,
+  type SpanDisplayType,
+} from "../icons";
 
 const LAYOUT_CONSTANTS = {
   CONNECTOR_WIDTH: 24,
@@ -29,6 +39,9 @@ const LAYOUT_CONSTANTS = {
 } as const;
 
 const MAX_CONTENT_LENGTH = 200;
+
+/** Gap between the edge chip and the card content, in px. */
+const ICON_CHIP_GAP = 6;
 
 type SpanDisplay =
   | { type: "user"; content: string }
@@ -129,11 +142,17 @@ type ExpandButtonPlacement = "inside" | "outside";
 export type SpanCardViewOptions = {
   withStatus?: boolean;
   expandButton?: ExpandButtonPlacement;
+  /** Which outer edge the scannability chip abuts. Default "left". */
+  iconSide?: IconSide;
+  /** Chip treatment: hollow "outline" or accent-filled "solid". Default "outline". */
+  iconStyle?: IconStyle;
 };
 
 const DEFAULT_VIEW_OPTIONS: Required<SpanCardViewOptions> = {
   withStatus: true,
   expandButton: "inside",
+  iconSide: DEFAULT_ICON_SIDE,
+  iconStyle: DEFAULT_ICON_STYLE,
 };
 
 interface SpanCardProps {
@@ -394,6 +413,16 @@ export const SpanCard: FC<SpanCardProps> = ({
   const spanStyle = useMemo(() => getSpanStyle(data), [data]);
   const spanDisplay = useMemo(() => getSpanDisplay(data), [data]);
 
+  const iconSide = viewOptions.iconSide ?? DEFAULT_VIEW_OPTIONS.iconSide;
+  const iconStyle = viewOptions.iconStyle ?? DEFAULT_VIEW_OPTIONS.iconStyle;
+
+  const iconDescriptor = useMemo(() => {
+    const displayType: SpanDisplayType = spanDisplay?.type ?? "generic";
+    const lifecycleLabel =
+      spanDisplay?.type === "lifecycle" ? spanDisplay.label : undefined;
+    return resolveSpanIcon({ displayType, status: data.status, lifecycleLabel });
+  }, [spanDisplay, data.status]);
+
   const hasExpandButtonAsFirstChild =
     expandButton === "inside" && state.hasChildren;
 
@@ -480,12 +509,26 @@ export const SpanCard: FC<SpanCardProps> = ({
           </div>
           <div
             className={cn(
-              "flex items-center gap-2",
+              "relative flex items-center gap-2",
               "min-h-6 w-full cursor-pointer",
-              level !== 0 && !hasExpandButtonAsFirstChild && "pl-2",
-              level !== 0 && hasExpandButtonAsFirstChild && "pl-1",
+              level !== 0 && iconSide !== "left" && !hasExpandButtonAsFirstChild && "pl-2",
+              level !== 0 && iconSide !== "left" && hasExpandButtonAsFirstChild && "pl-1",
             )}
+            style={{
+              // Reserve room on the icon side so the chip abuts the card edge
+              // without overlapping the tree connectors or the card content.
+              [iconSide === "left" ? "paddingLeft" : "paddingRight"]:
+                SPAN_EDGE_ICON_CHIP_SIZE + ICON_CHIP_GAP,
+            }}
           >
+            <SpanEdgeIcon
+              kind={iconDescriptor.kind}
+              accentClassName={iconDescriptor.accentClassName}
+              side={iconSide}
+              style={iconStyle}
+              label={`${data.title} span`}
+            />
+
             {spanDisplay?.type === "user" && (
               <UserMessageCard content={spanDisplay.content} />
             )}

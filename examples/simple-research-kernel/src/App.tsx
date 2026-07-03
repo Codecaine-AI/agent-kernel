@@ -296,6 +296,7 @@ export function App() {
 					startingRun={startingRun}
 					onStartRun={handleStartRun}
 					onOpenTrace={handleOpenTrace}
+					traceIcons={styleSettings.traceIcons}
 				/>
 			)}
 			{activeWorkspace === "trace" && (
@@ -308,6 +309,7 @@ export function App() {
 					deletingTraceId={deletingTraceId}
 					onTraceSelect={handleTraceSelect}
 					onTraceDelete={handleTraceDelete}
+					traceIcons={styleSettings.traceIcons}
 				/>
 			)}
 			{activeWorkspace === "agents" && (

@@ -4,6 +4,7 @@ import {
 } from "@agent-kernel/viewer-core";
 import { KernelTraceViewer, type KernelTraceViewerProps } from "@agent-kernel/viewer-shell";
 
+import type { TraceIconSettings } from "../../lib/style-settings";
 import { isSelectedTrace, traceStatusClass } from "../../lib/trace-ui";
 
 type TraceWorkspaceProps = {
@@ -15,6 +16,7 @@ type TraceWorkspaceProps = {
 	deletingTraceId: string | null;
 	onTraceSelect: (traceSessionId: string) => void;
 	onTraceDelete: (traceSessionId: string) => void;
+	traceIcons: TraceIconSettings;
 };
 
 function shortId(value: string): string {
@@ -33,7 +35,8 @@ export function TraceWorkspace({
 	loading,
 	deletingTraceId,
 	onTraceSelect,
-	onTraceDelete
+	onTraceDelete,
+	traceIcons
 }: TraceWorkspaceProps) {
 	return (
 		<section className="grid h-[var(--research-workspace-height)] min-h-[var(--research-workspace-min-height)] min-w-0 grid-cols-[minmax(0,1fr)] overflow-hidden rounded-lg border border-border bg-card lg:grid-cols-[380px_minmax(0,1fr)]">
@@ -141,6 +144,8 @@ export function TraceWorkspace({
 						className="flex h-full flex-col"
 						spans={spans}
 						initialTraceLevel={2}
+						iconSide={traceIcons.side}
+						iconStyle={traceIcons.style}
 					/>
 				)}
 			</div>

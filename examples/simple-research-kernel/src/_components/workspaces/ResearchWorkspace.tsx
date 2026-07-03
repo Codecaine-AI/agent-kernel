@@ -6,6 +6,7 @@ import {
 import { KernelTraceViewer, type KernelTraceViewerProps } from "@agent-kernel/viewer-shell";
 
 import type { ResearchHarnessInfo, ResearchRunSummary } from "../../lib/types";
+import type { TraceIconSettings } from "../../lib/style-settings";
 import { formatTraceDate, traceStatusClass } from "../../lib/trace-ui";
 
 type ResearchWorkspaceProps = {
@@ -19,6 +20,7 @@ type ResearchWorkspaceProps = {
 	startingRun: boolean;
 	onStartRun: (prompt: string) => void | Promise<void>;
 	onOpenTrace: () => void;
+	traceIcons: TraceIconSettings;
 };
 
 export function ResearchWorkspace({
@@ -31,7 +33,8 @@ export function ResearchWorkspace({
 	loading,
 	startingRun,
 	onStartRun,
-	onOpenTrace
+	onOpenTrace,
+	traceIcons
 }: ResearchWorkspaceProps) {
 	const [prompt, setPrompt] = useState(
 		"Research the next step for turning this simple kernel into a richer agent experience."
@@ -236,6 +239,8 @@ export function ResearchWorkspace({
 						className="flex h-full flex-col"
 						spans={spans}
 						initialTraceLevel={3}
+						iconSide={traceIcons.side}
+						iconStyle={traceIcons.style}
 					/>
 				)}
 			</div>
