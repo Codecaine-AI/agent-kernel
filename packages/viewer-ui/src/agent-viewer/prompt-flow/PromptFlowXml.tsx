@@ -1,7 +1,15 @@
 "use client";
 
 import cn from "classnames";
-import { GripVertical, Plus, Trash2 } from "lucide-react";
+import {
+	Copy,
+	CornerDownRight,
+	GripVertical,
+	Plus,
+	Tag,
+	Trash2,
+	X,
+} from "lucide-react";
 import {
 	useCallback,
 	useEffect,
@@ -23,6 +31,7 @@ import type {
 import {
 	editableTextToInline,
 	inlineToEditableText,
+	insertPromptBlockNodeWithStep,
 	type PromptBlockNodeType,
 	type PromptEditorTreeEntry,
 } from "@codecaine-ai/prompt-kit/ui";
@@ -34,6 +43,13 @@ import {
 	LINE_HEIGHT_PX,
 } from "../../shared/editor-surface";
 import { hasXmlTags, highlightXmlLine } from "../../shared/xml-highlight";
+import {
+	insertListItemStep,
+	nestListItemStep,
+	removeListItemStep,
+	setListItemContentStep,
+	unnestListItemStep,
+} from "./list-item-steps";
 import {
 	EmptyFlow,
 	InsertPalette,
@@ -96,11 +112,25 @@ export function PromptFlowXml({
 
 	const [hoverNodeId, setHoverNodeId] = useState<string | null>(null);
 	const [hoverGapIndex, setHoverGapIndex] = useState<number | null>(null);
+	const [hoverItem, setHoverItem] = useState<{
+		nodeId: string;
+		itemIndex: number;
+	} | null>(null);
 	const [editTarget, setEditTarget] = useState<InlineEditTarget | null>(null);
+	// The block menu ([⋮⋮] click) opens for one block at a time, anchored to its
+	// first row so every block affordance stays in the one left cluster.
+	const [menuNodeId, setMenuNodeId] = useState<string | null>(null);
 
 	const entriesById = useMemo(() => {
 		const map = new Map<string, PromptEditorTreeEntry>();
 		for (const entry of model.tree) map.set(entry.id, entry);
+		// Lists nested inside list items are NOT walked by the editor tree
+		// (list items aren't block containers in the model), yet the line model
+		// still renders their rows with real ids. Register lightweight entries
+		// for those nested lists so their items stay inline-editable and item
+		// ops (add/remove/nest) resolve by id. These synthetic entries carry no
+		// meaningful tree path — item ops address the list by id, not path.
+		for (const entry of model.tree) registerNestedLists(entry, map);
 		return map;
 	}, [model.tree]);
 
@@ -155,6 +185,7 @@ export function PromptFlowXml({
 			onClick={() => {
 				onSelectNode(undefined);
 				setEditTarget(null);
+				setMenuNodeId(null);
 			}}
 		>
 			<div
@@ -175,6 +206,7 @@ export function PromptFlowXml({
 						onMouseLeave={() => {
 							setHoverNodeId(null);
 							setHoverGapIndex(null);
+							setHoverItem(null);
 						}}
 					>
 						{lines.map((line, index) => {
@@ -220,41 +252,97 @@ export function PromptFlowXml({
 									}
 									gapHovered={line.role === "gap" && hoverGapIndex === index}
 									insertOpen={flow.insertAfterId === line.nodeId && isRangeEnd}
+									menuOpen={menuNodeId === line.nodeId && isRangeStart}
+									itemHovered={
+										line.role === "item" &&
+										hoverItem?.nodeId === line.nodeId &&
+										hoverItem.itemIndex === line.itemIndex
+									}
 									prompt={prompt}
 									onPromptChange={onPromptChange}
 									onHoverNode={() => {
 										if (drag.draggingId) return;
 										setHoverNodeId(line.nodeId);
 										setHoverGapIndex(null);
+										if (line.role === "item" && line.itemIndex !== undefined) {
+											setHoverItem({
+												nodeId: line.nodeId,
+												itemIndex: line.itemIndex,
+											});
+										} else {
+											setHoverItem(null);
+										}
 									}}
 									onHoverGap={() => {
 										if (drag.draggingId) return;
 										setHoverGapIndex(index);
 										setHoverNodeId(null);
+										setHoverItem(null);
 									}}
 									onSelect={() => {
 										onSelectNode(line.nodeId);
 										setEditTarget(null);
+										setMenuNodeId(null);
 									}}
 									onStartEdit={() => {
 										if (!line.editable) return;
 										onSelectNode(line.nodeId);
+										setMenuNodeId(null);
 										setEditTarget({
 											nodeId: line.nodeId,
 											itemIndex: line.itemIndex,
 										});
 									}}
 									onEndEdit={() => setEditTarget(null)}
-									onOpenInsert={() =>
+									onEditItem={(nodeId, itemIndex) => {
+										onSelectNode(nodeId);
+										setMenuNodeId(null);
+										setEditTarget({ nodeId, itemIndex });
+									}}
+									onOpenInsert={() => {
+										setMenuNodeId(null);
 										flow.setInsertAfterId((current) =>
 											current === line.nodeId ? null : line.nodeId,
-										)
-									}
+										);
+									}}
+									onToggleMenu={() => {
+										flow.setInsertAfterId(null);
+										setMenuNodeId((current) =>
+											current === line.nodeId ? null : line.nodeId,
+										);
+									}}
+									onCloseMenu={() => setMenuNodeId(null)}
 									onInsert={(type) => flow.insertBlock(type, line.nodeId)}
 									onInsertChild={(type) =>
 										flow.insertBlock(type, line.nodeId, "child")
 									}
+									onDuplicate={() => flow.duplicateBlock(line.nodeId)}
+									onRetag={(tag) =>
+										entry && retagSection(prompt, entry, tag, onPromptChange)
+									}
 									onRemove={() => entry && flow.removeBlock(entry)}
+									onAddItem={() =>
+										appendListItem(prompt, line, onPromptChange, (itemIndex) =>
+											setEditTarget({ nodeId: line.nodeId, itemIndex }),
+										)
+									}
+									onRemoveItem={() =>
+										removeListItemOrList(
+											prompt,
+											line,
+											entry,
+											onPromptChange,
+											flow.removeBlock,
+										)
+									}
+									onEnterParagraph={() =>
+										insertParagraphBelow(
+											prompt,
+											line.nodeId,
+											onPromptChange,
+											(newId) => setEditTarget({ nodeId: newId }),
+										)
+									}
 									onDragHandleDown={(event) =>
 										entry && drag.startDrag(event, line.nodeId)
 									}
@@ -324,6 +412,8 @@ interface XmlRowProps {
 	editing: boolean;
 	gapHovered: boolean;
 	insertOpen: boolean;
+	menuOpen: boolean;
+	itemHovered: boolean;
 	prompt: PromptDocument;
 	onPromptChange: PromptFlowViewProps["onPromptChange"];
 	onHoverNode: () => void;
@@ -331,10 +421,18 @@ interface XmlRowProps {
 	onSelect: () => void;
 	onStartEdit: () => void;
 	onEndEdit: () => void;
+	onEditItem: (nodeId: string, itemIndex: number) => void;
 	onOpenInsert: () => void;
+	onToggleMenu: () => void;
+	onCloseMenu: () => void;
 	onInsert: (type: PromptBlockNodeType) => void;
 	onInsertChild: (type: PromptBlockNodeType) => void;
+	onDuplicate: () => void;
+	onRetag: (tag: string) => void;
 	onRemove: () => void;
+	onAddItem: () => void;
+	onRemoveItem: () => void;
+	onEnterParagraph: () => void;
 	onDragHandleDown: (event: React.PointerEvent<HTMLElement>) => void;
 }
 
@@ -355,6 +453,8 @@ function XmlRow({
 	editing,
 	gapHovered,
 	insertOpen,
+	menuOpen,
+	itemHovered,
 	prompt,
 	onPromptChange,
 	onHoverNode,
@@ -362,13 +462,22 @@ function XmlRow({
 	onSelect,
 	onStartEdit,
 	onEndEdit,
+	onEditItem,
 	onOpenInsert,
+	onToggleMenu,
+	onCloseMenu,
 	onInsert,
 	onInsertChild,
+	onDuplicate,
+	onRetag,
 	onRemove,
+	onAddItem,
+	onRemoveItem,
+	onEnterParagraph,
 	onDragHandleDown,
 }: XmlRowProps) {
 	const isGap = line.role === "gap";
+	const isItem = line.role === "item";
 	const canInsertChild =
 		line.node.type === "section" ||
 		line.node.type === "example" ||
@@ -404,7 +513,9 @@ function XmlRow({
 				/>
 			)}
 
-			{/* Hover / drag range wash sits behind the text across the whole block. */}
+			{/* Range wash behind the text across the whole block. Selection reads
+			    clearly stronger than hover: a solid accent tint vs. a faint muted
+			    hover wash, so it's obvious which block is picked. */}
 			{(inHighlight || flashing) && (
 				<div
 					className={cn(
@@ -412,18 +523,19 @@ function XmlRow({
 						flashing
 							? "bg-status-success-fill/25"
 							: active
-								? "bg-status-success-fill/12"
+								? "bg-status-success-fill/20"
 								: "bg-muted/40",
 					)}
 				/>
 			)}
-			{/* git-diff change-bar: a 2px accent bar down the left edge spanning
-			    exactly the highlighted block's rows. */}
-			{inHighlight && (
+			{/* Left accent bar. On hover it's a thin git-diff change-bar; on
+			    SELECTION it's a persistent, full-opacity 2px accent that stays
+			    even when the pointer leaves — the primary "this is selected" cue. */}
+			{(inHighlight || active) && (
 				<div
 					className={cn(
-						"pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-[2px]",
-						active ? "bg-status-success" : "bg-status-success/55",
+						"pointer-events-none absolute bottom-0 left-0 top-0 z-10",
+						active ? "w-[2px] bg-status-success" : "w-[2px] bg-status-success/55",
 					)}
 					style={{
 						borderTopLeftRadius: isHighlightStart ? 1 : 0,
@@ -433,8 +545,9 @@ function XmlRow({
 			)}
 
 			{/* Gutter: fixed-width, right-aligned number. Background matches the
-			    buffer so there's no hard seam/side line; drag handle overlays the
-			    number on the block's first row on hover. */}
+			    buffer so there's no hard seam/side line. All block affordances now
+			    live in ONE cluster (see BlockCluster) anchored at the gutter's
+			    right edge, so hover/selection controls are in a single spot. */}
 			<div
 				className="sticky left-0 z-10 flex shrink-0 select-none items-start justify-end pr-3 text-right tabular-nums"
 				style={{
@@ -444,22 +557,6 @@ function XmlRow({
 						: EDITOR_COLORS.gutterBg,
 				}}
 			>
-				{entry && !isGap && isRangeStart && (
-					<button
-						type="button"
-						onPointerDown={(event) => {
-							event.stopPropagation();
-							onDragHandleDown(event);
-						}}
-						onClick={(event) => event.stopPropagation()}
-						title={`Drag ${line.node.type}`}
-						aria-label={`Drag ${line.node.type} block`}
-						className="absolute left-1 top-0 flex w-3.5 shrink-0 cursor-grab touch-none items-center justify-center rounded-[2px] text-muted-foreground/70 opacity-0 hover:bg-white/10 hover:text-foreground group-hover:opacity-100 active:cursor-grabbing"
-						style={{ height: LINE_HEIGHT_PX }}
-					>
-						<GripVertical size={12} />
-					</button>
-				)}
 				<span
 					style={{
 						color: active
@@ -470,6 +567,27 @@ function XmlRow({
 					{lineNumber}
 				</span>
 			</div>
+
+			{/* ONE affordance cluster, Notion-style, pinned at the block's first
+			    line just inside the gutter: [+] insert-below and [⋮⋮] drag +
+			    block menu. Visible on block hover OR while selected. */}
+			{!isGap && isRangeStart && entry && (
+				<BlockCluster
+					node={line.node}
+					gutterWidth={gutterWidth}
+					visible={inHighlight || active || menuOpen}
+					menuOpen={menuOpen}
+					canInsertChild={canInsertChild}
+					onOpenInsert={onOpenInsert}
+					onToggleMenu={onToggleMenu}
+					onCloseMenu={onCloseMenu}
+					onDuplicate={onDuplicate}
+					onRetag={onRetag}
+					onRemove={onRemove}
+					onInsertChild={onInsertChild}
+					onDragHandleDown={onDragHandleDown}
+				/>
+			)}
 
 			{/* Body column. Hanging-indent via padding-left + negative text-indent. */}
 			<div
@@ -489,6 +607,22 @@ function XmlRow({
 						onInsert={onInsert}
 						onInsertChild={onInsertChild}
 					/>
+				) : isItem && entry ? (
+					// List items always render their "1." / "-" marker as a fixed,
+					// non-editable prefix; only the content area toggles between
+					// display and inline editing, so the marker never disappears
+					// during editing and the layout never shifts.
+					<ItemRow
+						line={line}
+						entry={entry}
+						editing={editing}
+						prompt={prompt}
+						onPromptChange={onPromptChange}
+						onStartEdit={() => onEditItem(line.nodeId, line.itemIndex ?? 0)}
+						onEndEdit={onEndEdit}
+						onEditItem={onEditItem}
+						onAddItem={onAddItem}
+					/>
 				) : editing && entry ? (
 					<InlineEditor
 						line={line}
@@ -496,6 +630,7 @@ function XmlRow({
 						prompt={prompt}
 						onPromptChange={onPromptChange}
 						onEndEdit={onEndEdit}
+						onEnterParagraph={onEnterParagraph}
 					/>
 				) : (
 					<RowText
@@ -507,42 +642,435 @@ function XmlRow({
 				)}
 			</div>
 
-			{/* Type chip + block controls, revealed on hover at the row end. */}
-			{!isGap && isRangeStart && entry && (
-				<div
-					className="pointer-events-none absolute right-2 top-0 z-10 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
-					style={{ height: LINE_HEIGHT_PX }}
+			{/* Per-item affordance: a minimal × at the item row's right margin,
+			    shown only while hovering that item, removing exactly that item. */}
+			{isItem && (itemHovered || (editing && isItem)) && (
+				<button
+					type="button"
+					onClick={(event) => {
+						event.stopPropagation();
+						onRemoveItem();
+					}}
+					title="Remove item"
+					aria-label="Remove list item"
+					className="absolute right-2 top-0 z-10 flex h-4 w-4 items-center justify-center rounded-[2px] text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive"
+					style={{ marginTop: (LINE_HEIGHT_PX - 16) / 2 }}
 				>
-					<span className="pointer-events-auto rounded-[2px] bg-muted/70 px-1 text-[9px] uppercase tracking-[0.1em] text-muted-foreground/80">
-						{line.node.type}
-					</span>
-					<button
-						type="button"
-						onClick={(event) => {
-							event.stopPropagation();
-							onOpenInsert();
-						}}
-						title="Insert after"
-						aria-label="Insert after"
-						className="pointer-events-auto flex h-4 w-4 items-center justify-center rounded-[2px] text-muted-foreground/70 hover:bg-muted/70 hover:text-foreground"
-					>
-						<Plus size={11} />
-					</button>
-					<button
-						type="button"
-						onClick={(event) => {
-							event.stopPropagation();
-							onRemove();
-						}}
-						title="Delete block"
-						aria-label="Delete block"
-						className="pointer-events-auto flex h-4 w-4 items-center justify-center rounded-[2px] text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive"
-					>
-						<Trash2 size={10} />
-					</button>
-				</div>
+					<X size={11} />
+				</button>
 			)}
 		</div>
+	);
+}
+
+/**
+ * The single left-edge affordance cluster for a block, pinned at its first
+ * line just inside the gutter. Holds [+] (insert-below → typed-insert menu) and
+ * [⋮⋮] (drag handle whose CLICK opens a compact block menu). Consolidating both
+ * here — and keeping it visible while the block is selected — replaces the old
+ * scattered left-drag-bar / right-"SECTION + trash" arrangement.
+ */
+function BlockCluster({
+	node,
+	gutterWidth,
+	visible,
+	menuOpen,
+	canInsertChild,
+	onOpenInsert,
+	onToggleMenu,
+	onCloseMenu,
+	onDuplicate,
+	onRetag,
+	onRemove,
+	onInsertChild,
+	onDragHandleDown,
+}: {
+	node: PromptBlockNode;
+	gutterWidth: string;
+	visible: boolean;
+	menuOpen: boolean;
+	canInsertChild: boolean;
+	onOpenInsert: () => void;
+	onToggleMenu: () => void;
+	onCloseMenu: () => void;
+	onDuplicate: () => void;
+	onRetag: (tag: string) => void;
+	onRemove: () => void;
+	onInsertChild: (type: PromptBlockNodeType) => void;
+	onDragHandleDown: (event: React.PointerEvent<HTMLElement>) => void;
+}) {
+	return (
+		<div
+			className={cn(
+				"absolute top-0 z-20 flex items-center gap-0.5 transition-opacity",
+				visible ? "opacity-100" : "opacity-0",
+			)}
+			style={{ left: `calc(${gutterWidth} - 0.25ch)`, height: LINE_HEIGHT_PX }}
+			onClick={(event) => event.stopPropagation()}
+		>
+			<button
+				type="button"
+				onClick={(event) => {
+					event.stopPropagation();
+					onOpenInsert();
+				}}
+				title="Insert block below"
+				aria-label="Insert block below"
+				className="pointer-events-auto flex h-4 w-4 items-center justify-center rounded-[2px] text-muted-foreground/70 hover:bg-white/10 hover:text-foreground"
+			>
+				<Plus size={12} />
+			</button>
+			<button
+				type="button"
+				onPointerDown={(event) => {
+					// Pointer-down begins a drag; a click that never moves opens the
+					// block menu (handled in onClick).
+					event.stopPropagation();
+					onDragHandleDown(event);
+				}}
+				onClick={(event) => {
+					event.stopPropagation();
+					onToggleMenu();
+				}}
+				title="Drag, or click for block menu"
+				aria-label="Block handle and menu"
+				className="pointer-events-auto flex w-4 cursor-grab touch-none items-center justify-center rounded-[2px] text-muted-foreground/70 hover:bg-white/10 hover:text-foreground active:cursor-grabbing"
+				style={{ height: LINE_HEIGHT_PX }}
+			>
+				<GripVertical size={12} />
+			</button>
+			{menuOpen && (
+				<BlockMenu
+					node={node}
+					canInsertChild={canInsertChild}
+					onClose={onCloseMenu}
+					onDuplicate={onDuplicate}
+					onRetag={onRetag}
+					onRemove={onRemove}
+					onInsertChild={onInsertChild}
+				/>
+			)}
+		</div>
+	);
+}
+
+/**
+ * Compact block menu opened from the [⋮⋮] handle: type name as header,
+ * Duplicate, Delete, and — for container blocks — Add child. For sections the
+ * type header doubles as a rename field (edits the tag), matching "type name as
+ * header".
+ */
+function BlockMenu({
+	node,
+	canInsertChild,
+	onClose,
+	onDuplicate,
+	onRetag,
+	onRemove,
+	onInsertChild,
+}: {
+	node: PromptBlockNode;
+	canInsertChild: boolean;
+	onClose: () => void;
+	onDuplicate: () => void;
+	onRetag: (tag: string) => void;
+	onRemove: () => void;
+	onInsertChild: (type: PromptBlockNodeType) => void;
+}) {
+	const isSection = node.type === "section";
+	const [tag, setTag] = useState(isSection ? node.tag : node.type);
+
+	function commitTag() {
+		if (isSection && tag.trim() && tag !== node.tag) onRetag(tag.trim());
+	}
+
+	return (
+		<div
+			className="absolute left-0 top-full z-30 mt-1 w-48 rounded-[4px] border border-border bg-card p-1 shadow-lg"
+			onClick={(event) => event.stopPropagation()}
+		>
+			{/* Type name as header — editable (rename tag) for sections. */}
+			<div className="flex items-center gap-1.5 border-b border-border/70 px-1.5 pb-1.5 pt-1">
+				<Tag size={11} className="shrink-0 text-muted-foreground" />
+				{isSection ? (
+					<input
+						value={tag}
+						onChange={(event) => setTag(event.target.value)}
+						onBlur={commitTag}
+						onKeyDown={(event) => {
+							if (event.key === "Enter") {
+								event.preventDefault();
+								commitTag();
+								onClose();
+							}
+							if (event.key === "Escape") onClose();
+						}}
+						spellCheck={false}
+						className="w-full rounded-[2px] border border-border bg-background px-1 py-0.5 text-[11px] text-foreground outline-none focus:border-status-success"
+						// Autofocus so the header reads as "rename here".
+						autoFocus
+					/>
+				) : (
+					<span className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+						{node.type}
+					</span>
+				)}
+			</div>
+			<MenuItem
+				icon={Copy}
+				label="Duplicate"
+				onClick={() => {
+					onDuplicate();
+					onClose();
+				}}
+			/>
+			{canInsertChild && (
+				<MenuItem
+					icon={CornerDownRight}
+					label="Add child"
+					onClick={() => {
+						onInsertChild("paragraph");
+						onClose();
+					}}
+				/>
+			)}
+			<MenuItem
+				icon={Trash2}
+				label="Delete"
+				destructive
+				onClick={() => {
+					onRemove();
+					onClose();
+				}}
+			/>
+		</div>
+	);
+}
+
+function MenuItem({
+	icon: Icon,
+	label,
+	destructive,
+	onClick,
+}: {
+	icon: typeof Copy;
+	label: string;
+	destructive?: boolean;
+	onClick: () => void;
+}) {
+	return (
+		<button
+			type="button"
+			onClick={(event) => {
+				event.stopPropagation();
+				onClick();
+			}}
+			className={cn(
+				"flex w-full items-center gap-2 rounded-[2px] px-1.5 py-1 text-left text-[12px]",
+				destructive
+					? "text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+					: "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+			)}
+		>
+			<Icon size={12} />
+			{label}
+		</button>
+	);
+}
+
+/**
+ * One list-item row. The marker ("1." / "-") is always rendered as a fixed,
+ * non-editable prefix; the content area to its right either displays the item
+ * text or hosts the inline editor. This guarantees the marker persists during
+ * editing and the layout never shifts. When the item is the last in its list, a
+ * hover-only "+ item" affordance appears at the list end.
+ */
+function ItemRow({
+	line,
+	entry,
+	editing,
+	prompt,
+	onPromptChange,
+	onStartEdit,
+	onEndEdit,
+	onEditItem,
+	onAddItem,
+}: {
+	line: XmlLine;
+	entry: PromptEditorTreeEntry;
+	editing: boolean;
+	prompt: PromptDocument;
+	onPromptChange: PromptFlowViewProps["onPromptChange"];
+	onStartEdit: () => void;
+	onEndEdit: () => void;
+	onEditItem: (nodeId: string, itemIndex: number) => void;
+	onAddItem: () => void;
+}) {
+	const node = line.node;
+	const itemIndex = line.itemIndex ?? 0;
+	const marker = listMarker(node, itemIndex);
+	const isLast =
+		(node.type === "bulletList" || node.type === "orderedList") &&
+		itemIndex === node.items.length - 1;
+
+	return (
+		<div className="flex min-w-0 items-start" style={{ textIndent: 0 }}>
+			<span
+				className="shrink-0 select-none pr-1 tabular-nums text-muted-foreground/80"
+				style={{ lineHeight: `${LINE_HEIGHT_PX}px` }}
+			>
+				{marker}
+			</span>
+			<div className="relative min-w-0 flex-1">
+				{editing ? (
+					<ItemEditor
+						line={line}
+						entry={entry}
+						prompt={prompt}
+						onPromptChange={onPromptChange}
+						onEndEdit={onEndEdit}
+						onEditItem={onEditItem}
+					/>
+				) : (
+					<div
+						className="cursor-text whitespace-pre-wrap break-words"
+						style={{ lineHeight: `${LINE_HEIGHT_PX}px` }}
+						onClick={(event) => {
+							event.stopPropagation();
+							onStartEdit();
+						}}
+					>
+						{itemContentText(node, itemIndex) || " "}
+					</div>
+				)}
+				{isLast && !editing && (
+					<button
+						type="button"
+						onClick={(event) => {
+							event.stopPropagation();
+							onAddItem();
+						}}
+						title="Add item"
+						aria-label="Add list item"
+						className="mt-px flex h-4 items-center gap-1 rounded-[2px] px-1 text-[9px] uppercase tracking-[0.1em] text-muted-foreground/0 transition-colors hover:text-foreground group-hover:text-muted-foreground/70"
+					>
+						<Plus size={9} /> item
+					</button>
+				)}
+			</div>
+		</div>
+	);
+}
+
+/**
+ * Inline editor for one list item with the Notion-style keyboard model. Text
+ * commits live (per keystroke) through setListItemContentStep, so each of the
+ * structural keys below is a single additional step / one undo unit.
+ *
+ * Keyboard map:
+ *   Enter        commit + insert empty item BELOW, focus it.
+ *   Enter (on an already-empty trailing item) → remove it, exit editing
+ *                 ("escape the list").
+ *   Backspace    (in an empty item) → remove it, focus previous item's end.
+ *   Tab          nest under previous item.
+ *   Shift+Tab    un-nest (best-effort; see report).
+ *   Escape       cancel edit (blur) — inherited from GrowTextArea.
+ */
+function ItemEditor({
+	line,
+	entry,
+	prompt,
+	onPromptChange,
+	onEndEdit,
+	onEditItem,
+}: {
+	line: XmlLine;
+	entry: PromptEditorTreeEntry;
+	prompt: PromptDocument;
+	onPromptChange: PromptFlowViewProps["onPromptChange"];
+	onEndEdit: () => void;
+	onEditItem: (nodeId: string, itemIndex: number) => void;
+}) {
+	const node = entry.node;
+	const listId = line.nodeId;
+	const itemIndex = line.itemIndex ?? 0;
+	const value = editorValueForLine(node, line);
+	const itemCount =
+		node.type === "bulletList" || node.type === "orderedList"
+			? node.items.length
+			: 0;
+	const isEmpty = value.trim().length === 0;
+	const isTrailing = itemIndex === itemCount - 1;
+
+	const commit = (next: string) => {
+		const result = setListItemContentStep(prompt, listId, itemIndex, next);
+		if (result.step) onPromptChange(result.prompt, listId, [result.step]);
+	};
+
+	function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+		if (event.key === "Enter" && !event.shiftKey) {
+			event.preventDefault();
+			// Enter on an empty trailing item escapes the list.
+			if (isEmpty && isTrailing) {
+				const result = removeListItemStep(prompt, listId, itemIndex);
+				if (result.step) onPromptChange(result.prompt, listId, [result.step]);
+				onEndEdit();
+				return;
+			}
+			const result = insertListItemStep(prompt, listId, itemIndex + 1);
+			if (result.step) onPromptChange(result.prompt, listId, [result.step]);
+			onEditItem(listId, result.focusItemIndex ?? itemIndex + 1);
+			return;
+		}
+		if (event.key === "Enter" && event.shiftKey) {
+			// Single-line item model: Shift+Enter can't insert a literal newline.
+			event.preventDefault();
+			return;
+		}
+		if (event.key === "Backspace" && isEmpty && itemCount > 1) {
+			event.preventDefault();
+			const result = removeListItemStep(prompt, listId, itemIndex);
+			if (result.step) onPromptChange(result.prompt, listId, [result.step]);
+			const focus = result.focusItemIndex ?? Math.max(0, itemIndex - 1);
+			onEditItem(listId, focus);
+			return;
+		}
+		if (event.key === "Tab" && !event.shiftKey) {
+			event.preventDefault();
+			// Nest under the previous item (no-op for the first item).
+			const result = nestListItemStep(prompt, listId, itemIndex);
+			if (result.step) onPromptChange(result.prompt, listId, [result.step]);
+			return;
+		}
+		if (event.key === "Tab" && event.shiftKey) {
+			event.preventDefault();
+			// Un-nest hoists this item out of its parent list. Resolvable only
+			// when we can locate the outer list + parent item for this nested
+			// list (see report for the addressing limitation).
+			const location = findUnnestLocation(prompt, listId, itemIndex);
+			if (location) {
+				const result = unnestListItemStep(
+					prompt,
+					location.outerListId,
+					location.parentItemIndex,
+					itemIndex,
+				);
+				if (result.step) {
+					onPromptChange(result.prompt, location.outerListId, [result.step]);
+				}
+			}
+			return;
+		}
+	}
+
+	return (
+		<GrowTextArea
+			value={value}
+			autoFocus
+			onChange={commit}
+			onBlur={onEndEdit}
+			onKeyDown={handleKeyDown}
+		/>
 	);
 }
 
@@ -592,14 +1120,18 @@ function InlineEditor({
 	prompt,
 	onPromptChange,
 	onEndEdit,
+	onEnterParagraph,
 }: {
 	line: XmlLine;
 	entry: PromptEditorTreeEntry;
 	prompt: PromptDocument;
 	onPromptChange: PromptFlowViewProps["onPromptChange"];
 	onEndEdit: () => void;
+	onEnterParagraph: () => void;
 }) {
 	const node = entry.node;
+	// Multi-line leaf content (raw / code) keeps Enter as a literal newline.
+	const multiline = node.type === "raw" || node.type === "codeBlock";
 
 	const value = editorValueForLine(node, line);
 	const commit = (next: string) =>
@@ -607,7 +1139,30 @@ function InlineEditor({
 
 	return (
 		<div className="flex min-w-0" style={{ textIndent: 0 }}>
-			<GrowTextArea value={value} autoFocus onChange={commit} onBlur={onEndEdit} />
+			<GrowTextArea
+				value={value}
+				autoFocus
+				onChange={commit}
+				onBlur={onEndEdit}
+				onKeyDown={
+					node.type === "paragraph"
+						? (event) => {
+								// Notion-style: Enter commits (already live) and adds a new
+								// paragraph below, focusing it. Shift+Enter would be a literal
+								// newline, but paragraph content is single-line in this model,
+								// so Shift+Enter is a no-op here (see report).
+								if (event.key === "Enter" && !event.shiftKey) {
+									event.preventDefault();
+									onEnterParagraph();
+								}
+								if (event.key === "Enter" && event.shiftKey) {
+									event.preventDefault(); // no-op: single-line paragraph model
+								}
+							}
+						: undefined
+				}
+				allowEnter={multiline}
+			/>
 		</div>
 	);
 }
@@ -678,11 +1233,21 @@ function GrowTextArea({
 	autoFocus,
 	onChange,
 	onBlur,
+	onKeyDown,
+	allowEnter,
+	caretAtEnd,
 }: {
 	value: string;
 	autoFocus?: boolean;
 	onChange: (value: string) => void;
 	onBlur: () => void;
+	/** Extra key handling layered on top of Escape / Enter-guarding. */
+	onKeyDown?: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+	/** When true, Enter inserts a literal newline (raw / code). Otherwise the
+	 * host's onKeyDown owns Enter (structural). */
+	allowEnter?: boolean;
+	/** Place the caret at the end on focus (used when focusing a previous item). */
+	caretAtEnd?: boolean;
 }) {
 	const ref = useRef<HTMLTextAreaElement | null>(null);
 
@@ -692,6 +1257,16 @@ function GrowTextArea({
 		el.style.height = "auto";
 		el.style.height = `${el.scrollHeight}px`;
 	}, [value]);
+
+	useLayoutEffect(() => {
+		if (!caretAtEnd) return;
+		const el = ref.current;
+		if (!el) return;
+		const end = el.value.length;
+		el.setSelectionRange(end, end);
+		// caretAtEnd only matters on mount.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	return (
 		<textarea
@@ -707,6 +1282,14 @@ function GrowTextArea({
 				if (event.key === "Escape") {
 					event.preventDefault();
 					event.currentTarget.blur();
+					return;
+				}
+				onKeyDown?.(event);
+				if (event.defaultPrevented) return;
+				// Guard: for single-line fields, swallow a bare Enter so it never
+				// injects a newline the model can't represent.
+				if (event.key === "Enter" && !allowEnter && !event.shiftKey) {
+					event.preventDefault();
 				}
 			}}
 			className="m-0 min-h-4 w-full resize-none overflow-hidden border-0 bg-transparent p-0 font-mono outline-none"
@@ -1064,6 +1647,166 @@ function DropIndicator({
 			/>
 		</div>
 	);
+}
+
+// ---------------------------------------------------------------------------
+// List-item / block helpers used by the interaction layer above. All mutations
+// route through the *WithStep helpers (directly or via list-item-steps) so they
+// commit as invertible transactions.
+// ---------------------------------------------------------------------------
+
+/** The rendered marker prefix for an item ("1." for ordered, "-" for bullet). */
+function listMarker(node: PromptBlockNode, itemIndex: number): string {
+	if (node.type === "orderedList") return `${(node.start ?? 1) + itemIndex}.`;
+	return "-";
+}
+
+/** Editable text of an item, without the marker. */
+function itemContentText(node: PromptBlockNode, itemIndex: number): string {
+	if (node.type !== "bulletList" && node.type !== "orderedList") return "";
+	const item = node.items[itemIndex];
+	return item ? inlineToEditableText(item.content) : "";
+}
+
+/**
+ * Registers nested lists (those inside list-item children, which the editor
+ * tree does not walk) into the id→entry map so their items stay inline-editable
+ * and item ops resolve by id. Recurses through any depth of item nesting.
+ */
+function registerNestedLists(
+	entry: PromptEditorTreeEntry,
+	map: Map<string, PromptEditorTreeEntry>,
+): void {
+	const node = entry.node;
+	if (node.type !== "bulletList" && node.type !== "orderedList") return;
+	for (const item of node.items) {
+		for (const child of item.children ?? []) {
+			if (
+				(child.type === "bulletList" || child.type === "orderedList") &&
+				child.id &&
+				!map.has(child.id)
+			) {
+				const synthetic: PromptEditorTreeEntry = {
+					...entry,
+					id: child.id,
+					node: child,
+				};
+				map.set(child.id, synthetic);
+				registerNestedLists(synthetic, map);
+			}
+		}
+	}
+}
+
+/** Renames a section's tag (the "type name as header" menu action). */
+function retagSection(
+	prompt: PromptDocument,
+	entry: PromptEditorTreeEntry,
+	tag: string,
+	onPromptChange: PromptFlowViewProps["onPromptChange"],
+): void {
+	updateNode(prompt, entry, onPromptChange, (current) =>
+		current.type === "section" ? { ...current, tag } : current,
+	);
+}
+
+/** Appends a new empty item to the list this line belongs to, focusing it. */
+function appendListItem(
+	prompt: PromptDocument,
+	line: XmlLine,
+	onPromptChange: PromptFlowViewProps["onPromptChange"],
+	focus: (itemIndex: number) => void,
+): void {
+	const node = line.node;
+	if (node.type !== "bulletList" && node.type !== "orderedList") return;
+	const result = insertListItemStep(prompt, line.nodeId, node.items.length);
+	if (result.step) onPromptChange(result.prompt, line.nodeId, [result.step]);
+	focus(result.focusItemIndex ?? node.items.length);
+}
+
+/**
+ * Removes the item this line represents. When it's the only item in a
+ * top-level list (which HAS a tree entry), the whole list block is removed
+ * instead — an empty list would render nothing and orphan the block.
+ */
+function removeListItemOrList(
+	prompt: PromptDocument,
+	line: XmlLine,
+	entry: PromptEditorTreeEntry | undefined,
+	onPromptChange: PromptFlowViewProps["onPromptChange"],
+	removeBlock: (entry: PromptEditorTreeEntry) => void,
+): void {
+	const node = line.node;
+	if (node.type !== "bulletList" && node.type !== "orderedList") return;
+	const itemIndex = line.itemIndex ?? 0;
+	if (node.items.length <= 1 && entry) {
+		removeBlock(entry);
+		return;
+	}
+	const result = removeListItemStep(prompt, line.nodeId, itemIndex);
+	if (result.step) onPromptChange(result.prompt, line.nodeId, [result.step]);
+}
+
+/** Inserts an empty paragraph after `targetId`, focusing it (Notion Enter). */
+function insertParagraphBelow(
+	prompt: PromptDocument,
+	targetId: string,
+	onPromptChange: PromptFlowViewProps["onPromptChange"],
+	focus: (newId: string) => void,
+): void {
+	const paragraph: PromptBlockNode = { type: "paragraph", content: [""] };
+	const result = insertPromptBlockNodeWithStep(prompt, targetId, paragraph, "after");
+	if (!result.step) return;
+	const newId = result.step.op === "insert" ? result.step.node.id : undefined;
+	onPromptChange(result.prompt, newId, [result.step]);
+	if (newId) focus(newId);
+}
+
+/**
+ * Finds the outer list + parent-item that hold the nested list `nestedListId`,
+ * so Shift+Tab can hoist an item out. Returns undefined when `nestedListId` is
+ * a top-level list (nothing to un-nest from). Searches only one level of items,
+ * which covers the nesting this surface can create.
+ */
+function findUnnestLocation(
+	prompt: PromptDocument,
+	nestedListId: string,
+	_itemIndex: number,
+): { outerListId: string; parentItemIndex: number } | undefined {
+	const walk = (
+		nodes: readonly PromptBlockNode[],
+	): { outerListId: string; parentItemIndex: number } | undefined => {
+		for (const node of nodes) {
+			if (node.type === "bulletList" || node.type === "orderedList") {
+				for (let i = 0; i < node.items.length; i++) {
+					const children = node.items[i]?.children ?? [];
+					for (const child of children) {
+						if (child.id === nestedListId && node.id) {
+							return { outerListId: node.id, parentItemIndex: i };
+						}
+						if (child.type === "bulletList" || child.type === "orderedList") {
+							const deeper = walk([child]);
+							if (deeper) return deeper;
+						}
+					}
+				}
+			}
+			if (node.type === "section" || node.type === "example") {
+				const found = walk(node.children);
+				if (found) return found;
+			}
+			if (node.type === "field") {
+				const found = walk(node.children ?? []);
+				if (found) return found;
+			}
+			if (node.type === "contextUsage") {
+				const found = walk(node.instructions);
+				if (found) return found;
+			}
+		}
+		return undefined;
+	};
+	return walk(prompt.nodes);
 }
 
 function editorValueForLine(node: PromptBlockNode, line: XmlLine): string {

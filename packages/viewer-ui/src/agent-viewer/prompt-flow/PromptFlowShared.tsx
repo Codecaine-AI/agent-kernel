@@ -22,6 +22,7 @@ import type {
 } from "@codecaine-ai/prompt-kit";
 import {
 	createPromptBlockTemplate,
+	duplicatePromptBlockNodeByIdWithStep,
 	insertPromptBlockNodeWithStep,
 	movePromptBlockNodeByIdWithStep,
 	removePromptBlockNodeByIdWithStep,
@@ -88,6 +89,16 @@ export function usePromptFlowInteractions({
 		setDropTarget(null);
 	}
 
+	function duplicateBlock(id: string) {
+		const result = duplicatePromptBlockNodeByIdWithStep(prompt, id);
+		if (result.step) {
+			const insertedId =
+				result.step.op === "insert" ? result.step.node.id : id;
+			onPromptChange(result.prompt, insertedId, [result.step]);
+		}
+		setInsertAfterId(null);
+	}
+
 	function moveNear(sourceId: string, targetId: string, side: DropSide) {
 		const source = model.tree.find((entry) => entry.id === sourceId);
 		const target = model.tree.find((entry) => entry.id === targetId);
@@ -149,6 +160,7 @@ export function usePromptFlowInteractions({
 		dropTarget,
 		insertBlock,
 		removeBlock,
+		duplicateBlock,
 		canDropOn,
 		moveNear,
 		setDropTarget,
