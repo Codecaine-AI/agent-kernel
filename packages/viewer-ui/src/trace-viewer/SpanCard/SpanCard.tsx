@@ -35,7 +35,6 @@ import {
 
 const LAYOUT_CONSTANTS = {
   CONNECTOR_WIDTH: 24,
-  CONTENT_BASE_WIDTH: 320,
 } as const;
 
 const MAX_CONTENT_LENGTH = 200;
@@ -185,32 +184,6 @@ interface SpanCardState {
   isSelected: boolean;
 }
 
-const getContentWidth = ({
-  level,
-  hasExpandButton,
-  contentPadding,
-  expandButton,
-}: {
-  level: number;
-  hasExpandButton: boolean;
-  contentPadding: number;
-  expandButton: ExpandButtonPlacement;
-}) => {
-  let width =
-    LAYOUT_CONSTANTS.CONTENT_BASE_WIDTH -
-    level * LAYOUT_CONSTANTS.CONNECTOR_WIDTH;
-
-  if (hasExpandButton && expandButton === "inside") {
-    width -= LAYOUT_CONSTANTS.CONNECTOR_WIDTH;
-  }
-
-  if (expandButton === "outside" && level === 0) {
-    width -= LAYOUT_CONSTANTS.CONNECTOR_WIDTH;
-  }
-
-  return width - contentPadding;
-};
-
 const getGridTemplateColumns = ({
   connectorsColumnWidth,
   expandButton,
@@ -223,20 +196,6 @@ const getGridTemplateColumns = ({
   }
 
   return `${connectorsColumnWidth}px 1fr ${LAYOUT_CONSTANTS.CONNECTOR_WIDTH}px`;
-};
-
-const getContentPadding = ({
-  level,
-  hasExpandButton,
-}: {
-  level: number;
-  hasExpandButton: boolean;
-}) => {
-  if (level === 0) return 0;
-
-  if (hasExpandButton) return 4;
-
-  return 8;
 };
 
 const getConnectorsLayout = ({
@@ -442,18 +401,6 @@ export const SpanCard: FC<SpanCardProps> = ({
   const hasExpandButtonAsFirstChild =
     expandButton === "inside" && state.hasChildren;
 
-  const contentPadding = getContentPadding({
-    level,
-    hasExpandButton: hasExpandButtonAsFirstChild,
-  });
-
-  const contentWidth = getContentWidth({
-    level,
-    hasExpandButton: hasExpandButtonAsFirstChild,
-    contentPadding,
-    expandButton,
-  });
-
   const { connectors, connectorsColumnWidth } = getConnectorsLayout({
     level,
     hasExpandButton: hasExpandButtonAsFirstChild,
@@ -525,11 +472,10 @@ export const SpanCard: FC<SpanCardProps> = ({
           </div>
           <div
             className={cn(
-              "relative flex items-center",
+              "relative flex min-w-0 items-center",
               "min-h-6 w-full cursor-pointer",
               level !== 0 && "pl-1",
             )}
-            style={{ maxWidth: `min(${contentWidth}px, 100%)` }}
           >
             {spanDisplay?.type === "user" && (
               <UserMessageCard content={spanDisplay.content} chrome={chrome} />

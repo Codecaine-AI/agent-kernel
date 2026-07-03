@@ -80,7 +80,9 @@ export const TraceCard: FC<TraceCardProps> = ({
 		return (
 			<div
 				className={cn(
-					"relative overflow-hidden rounded-[2px] border text-foreground",
+					// w-fit so short messages hug their content instead of stretching
+					// an empty frame across the row; variants cap growth via max-w.
+					"relative w-fit overflow-hidden rounded-[2px] border text-foreground",
 					border,
 					className,
 				)}
@@ -94,10 +96,12 @@ export const TraceCard: FC<TraceCardProps> = ({
 	}
 
 	// Single-line (and meta) cards: [cap | content] flex row sharing the frame.
+	// max-w-full lets the frame shrink inside the tree row so truncating detail
+	// chips ellipsize at the panel edge instead of overflowing it.
 	return (
 		<div
 			className={cn(
-				"inline-flex items-stretch overflow-hidden rounded-[2px] border text-foreground",
+				"inline-flex max-w-full items-stretch overflow-hidden rounded-[2px] border text-foreground",
 				border,
 				side === "right" && "flex-row-reverse",
 				className,

@@ -30,7 +30,7 @@ export const MetaCard: FC<MetaCardProps> = ({ title, chrome }) => (
     label={chrome.label}
   >
     <span
-      className={`${CARD_TYPE_META} max-w-[220px] truncate text-agentprism-muted-foreground`}
+      className={`${CARD_TYPE_META} truncate text-agentprism-muted-foreground`}
       title={title}
     >
       {title}

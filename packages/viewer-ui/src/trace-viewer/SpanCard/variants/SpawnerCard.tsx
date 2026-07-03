@@ -60,7 +60,7 @@ export const SpawnerCard: FC<SpawnerCardProps> = ({ name, spawns, detail, chrome
       </span>
       {detail && (
         <code
-          className={`${CARD_TYPE_META} max-w-[200px] truncate rounded-[2px] bg-agentprism-code-base px-1.5 py-0.5 text-agentprism-muted-foreground`}
+          className={`${CARD_TYPE_META} truncate rounded-[2px] bg-agentprism-code-base px-1.5 py-0.5 text-agentprism-muted-foreground`}
         >
           {detail}
         </code>
