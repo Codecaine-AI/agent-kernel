@@ -1,7 +1,9 @@
+import { useState } from "react";
 import {
 	type KernelTraceSessionDetail,
 	type KernelTraceSessionSummary
 } from "@agent-kernel/viewer-core";
+import { DoctorPanel, UsageSummaryPanel } from "@agent-kernel/viewer-ui";
 import { KernelTraceViewer, type KernelTraceViewerProps } from "@agent-kernel/viewer-shell";
 
 import type { TraceIconSettings } from "../../lib/style-settings";
@@ -38,6 +40,7 @@ export function TraceWorkspace({
 	onTraceDelete,
 	traceIcons
 }: TraceWorkspaceProps) {
+	const [usageOpen, setUsageOpen] = useState(true);
 	return (
 		<section className="grid h-[var(--research-workspace-height)] min-h-[var(--research-workspace-min-height)] min-w-0 grid-cols-[minmax(0,1fr)] overflow-hidden rounded-lg border border-border bg-card lg:grid-cols-[380px_minmax(0,1fr)]">
 			<aside className="flex min-h-0 min-w-0 flex-col border-b border-border lg:border-b-0 lg:border-r">
@@ -55,6 +58,10 @@ export function TraceWorkspace({
 							</span>
 						)}
 					</div>
+				</div>
+
+				<div className="border-b border-border px-3 py-2">
+					<DoctorPanel endpoint="/api/doctor" />
 				</div>
 
 				<div className="min-h-0 flex-1 overflow-y-auto">
@@ -130,7 +137,7 @@ export function TraceWorkspace({
 				</div>
 			</aside>
 
-			<div className="min-h-0 overflow-hidden">
+			<div className="flex min-h-0 flex-col overflow-hidden">
 				{loading && !detail ? (
 					<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
 						Loading kernel trace...
@@ -140,13 +147,35 @@ export function TraceWorkspace({
 						Select a trace.
 					</div>
 				) : (
-					<KernelTraceViewer
-						className="flex h-full flex-col"
-						spans={spans}
-						initialTraceLevel={2}
-						iconSide={traceIcons.side}
-						iconStyle={traceIcons.style}
-					/>
+					<>
+						<div className="shrink-0 border-b border-border">
+							<button
+								type="button"
+								onClick={() => setUsageOpen((open) => !open)}
+								className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-status-info-border"
+								aria-expanded={usageOpen}
+							>
+								<span>Usage summary</span>
+								<span>{usageOpen ? "▾" : "▸"}</span>
+							</button>
+							{usageOpen && (
+								<div className="max-h-[42vh] overflow-y-auto border-t border-border/60">
+									<UsageSummaryPanel
+										container={detail.container ?? null}
+										runs={detail.agent_runs}
+										sessions={detail.pi_sessions}
+									/>
+								</div>
+							)}
+						</div>
+						<KernelTraceViewer
+							className="flex min-h-0 flex-1 flex-col"
+							spans={spans}
+							initialTraceLevel={2}
+							iconSide={traceIcons.side}
+							iconStyle={traceIcons.style}
+						/>
+					</>
 				)}
 			</div>
 		</section>

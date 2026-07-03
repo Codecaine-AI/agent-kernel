@@ -32,6 +32,11 @@ export interface KernelContainerSummaryPayload {
 	createdAt: string;
 	startedAt: string | null;
 	endedAt: string | null;
+	usageInputTokens: number;
+	usageOutputTokens: number;
+	usageCacheRead: number;
+	usageCacheWrite: number;
+	usageCostEstimate: number | null;
 }
 
 export interface KernelPiSessionPayload {
@@ -48,6 +53,8 @@ export interface KernelPiSessionPayload {
 	createdAt: string;
 	endedAt: string | null;
 	eventCount: number;
+	usageInputTokens: number;
+	usageOutputTokens: number;
 }
 
 export interface KernelAgentRunPayload {
@@ -65,6 +72,11 @@ export interface KernelAgentRunPayload {
 	status: string;
 	startedAt: string;
 	endedAt: string | null;
+	usageInputTokens: number;
+	usageOutputTokens: number;
+	usageCacheRead: number;
+	usageCacheWrite: number;
+	usageCostEstimate: number | null;
 }
 
 export interface KernelTraceEventPayload {
@@ -166,6 +178,11 @@ function toContainer(row: Container): KernelContainerSummaryPayload {
 		createdAt: row.createdAt,
 		startedAt: row.startedAt ?? null,
 		endedAt: row.endedAt ?? null,
+		usageInputTokens: row.usageInputTokens,
+		usageOutputTokens: row.usageOutputTokens,
+		usageCacheRead: row.usageCacheRead,
+		usageCacheWrite: row.usageCacheWrite,
+		usageCostEstimate: row.usageCostEstimate ?? null,
 	};
 }
 
@@ -186,6 +203,8 @@ function toPiSession(
 		createdAt: row.createdAt,
 		endedAt: row.endedAt ?? null,
 		eventCount: row.eventCount,
+		usageInputTokens: row.usageInputTokens,
+		usageOutputTokens: row.usageOutputTokens,
 	};
 }
 
@@ -207,6 +226,11 @@ function toAgentRun(
 		status: row.status,
 		startedAt: row.startedAt,
 		endedAt: row.endedAt ?? null,
+		usageInputTokens: row.usageInputTokens,
+		usageOutputTokens: row.usageOutputTokens,
+		usageCacheRead: row.usageCacheRead,
+		usageCacheWrite: row.usageCacheWrite,
+		usageCostEstimate: row.usageCostEstimate ?? null,
 	};
 }
 

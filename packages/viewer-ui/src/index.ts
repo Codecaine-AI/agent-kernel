@@ -1,5 +1,29 @@
 export { TreeView } from "./trace-viewer/TreeView";
 export { SpanDetailPanel } from "./trace-viewer/SpanDetailPanel";
+export {
+	UsageSummaryPanel,
+	type UsageSummaryPanelProps,
+} from "./trace-viewer/UsageSummaryPanel";
+export {
+	summarizeUsage,
+	computeTotals,
+	rollupByAgent,
+	toRunRow,
+	durationMs,
+	formatTokens,
+	formatCost,
+	formatDuration,
+	type UsageSummary,
+	type UsageTotals,
+	type RunUsageRow,
+	type AgentUsageRollup,
+} from "./trace-viewer/usage-summary";
+export {
+	DoctorPanel,
+	type DoctorPanelProps,
+	type DoctorReport,
+	type DoctorViolation,
+} from "./trace-viewer/DoctorPanel";
 export type { SpanCardViewOptions, SpanCardChrome } from "./trace-viewer/SpanCard/SpanCard";
 export {
 	spanIconFor,

@@ -92,6 +92,13 @@ export interface KernelContainerSummary {
 	createdAt: string;
 	startedAt?: string | null;
 	endedAt?: string | null;
+	/** Container-level usage rollup (sum of the container subtree's runs). */
+	usageInputTokens?: number;
+	usageOutputTokens?: number;
+	usageCacheRead?: number;
+	usageCacheWrite?: number;
+	/** Estimated cost in USD; null/absent when no price data is available. */
+	usageCostEstimate?: number | null;
 }
 
 /**
@@ -131,6 +138,9 @@ export interface PiAgentSession {
 	phase?: string | null;
 	createdAt: string;
 	endedAt?: string | null;
+	/** Per-session token rollup (sum of this session's runs). */
+	usageInputTokens?: number;
+	usageOutputTokens?: number;
 }
 
 /** One processing loop (message in -> response out) — mirrors `agent_runs`. */
@@ -149,6 +159,13 @@ export interface AgentRun {
 	status: string;
 	startedAt: string;
 	endedAt?: string | null;
+	/** Per-run usage — the leaf rows that roll up into session/container totals. */
+	usageInputTokens?: number;
+	usageOutputTokens?: number;
+	usageCacheRead?: number;
+	usageCacheWrite?: number;
+	/** Estimated cost in USD; null/absent when no price data is available. */
+	usageCostEstimate?: number | null;
 }
 
 /**
