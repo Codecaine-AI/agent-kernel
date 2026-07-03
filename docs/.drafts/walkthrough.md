@@ -153,7 +153,7 @@ sqlite3 examples/simple-research-kernel/.agent-kernel/trace.db \
   pi-sessions dir):
 
 ```sh
-bun run packages/tailer/src/backfill-cli.ts \
+bun run packages/kernel/src/transcript-recovery/backfill-cli.ts \
   examples/simple-research-kernel/.agent-kernel/pi-sessions \
   --db examples/simple-research-kernel/.agent-kernel/trace.db
 bun run packages/kernel/src/doctor-cli.ts examples/simple-research-kernel/.agent-kernel/trace.db
