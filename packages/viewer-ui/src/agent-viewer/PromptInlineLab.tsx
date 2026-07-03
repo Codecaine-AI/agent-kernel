@@ -44,7 +44,10 @@ export function PromptInlineLab({
 	const [history, setHistory] = useState(() => createPromptLabHistory(prompt));
 	const [editVersion, setEditVersion] = useState(0);
 	const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>(undefined);
-	const [mode, setMode] = useState<PromptFlowMode>("sections");
+	// Agent XML is the primary editing surface: it is shaped like what the
+	// agent actually receives. Sections is the secondary, human-convenience
+	// arrangement of the same blocks.
+	const [mode, setMode] = useState<PromptFlowMode>("xml");
 	const [saving, setSaving] = useState(false);
 	const [saveErrors, setSaveErrors] = useState<string[]>([]);
 	const [currentSavedHash, setCurrentSavedHash] = useState(savedHash);
@@ -190,11 +193,11 @@ export function PromptInlineLab({
 				</div>
 
 				<div className="flex flex-wrap items-center gap-1">
-					<ModeButton active={mode === "sections"} onClick={() => setMode("sections")}>
-						Sections
-					</ModeButton>
 					<ModeButton active={mode === "xml"} onClick={() => setMode("xml")}>
 						Agent XML
+					</ModeButton>
+					<ModeButton active={mode === "sections"} onClick={() => setMode("sections")}>
+						Sections
 					</ModeButton>
 					<IconButton
 						onClick={undo}
