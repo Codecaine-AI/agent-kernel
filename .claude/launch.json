@@ -4,8 +4,8 @@
 		{
 			"name": "simple-research-kernel",
 			"runtimeExecutable": "env",
-			"runtimeArgs": ["PORT=8790", "FRONTEND_PORT=5180", "bun", "run", "dev:simple-research"],
-			"port": 5180
+			"runtimeArgs": ["PORT=8792", "FRONTEND_PORT=5182", "bun", "run", "dev:simple-research"],
+			"port": 5182
 		}
 	]
 }

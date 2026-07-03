@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import type { AgentRun, KernelContainerSummary } from "@agent-kernel/viewer-core";
 
 import {
+	aggregateUsageForScope,
 	computeTotals,
 	durationMs,
 	formatCost,
@@ -11,6 +12,7 @@ import {
 	rollupByAgent,
 	summarizeUsage,
 	toRunRow,
+	usageScopeForSpanId,
 } from "./usage-summary";
 
 function run(overrides: Partial<AgentRun> = {}): AgentRun {
@@ -143,6 +145,80 @@ describe("summarizeUsage", () => {
 		expect(summary.runs).toHaveLength(2);
 		expect(summary.byAgent).toHaveLength(2);
 		expect(summary.totals.runCount).toBe(2);
+	});
+});
+
+describe("usageScopeForSpanId", () => {
+	test("parses each container/phase/session/run span id", () => {
+		expect(usageScopeForSpanId("container:c-1")).toEqual({
+			kind: "container",
+			containerId: "c-1",
+		});
+		expect(usageScopeForSpanId("phase:research")).toEqual({
+			kind: "phase",
+			phase: "research",
+		});
+		expect(usageScopeForSpanId("pi:sess-9")).toEqual({
+			kind: "session",
+			piSessionId: "sess-9",
+		});
+		expect(usageScopeForSpanId("run:run-7")).toEqual({
+			kind: "run",
+			runId: "run-7",
+		});
+	});
+	test("returns null for a leaf event span id", () => {
+		expect(usageScopeForSpanId("evt-abc123")).toBeNull();
+	});
+});
+
+describe("aggregateUsageForScope", () => {
+	const runs: AgentRun[] = [
+		run({ id: "a", containerId: "c-1", piSessionId: "pi-1", phase: "research", usageInputTokens: 100, usageOutputTokens: 40 }),
+		run({ id: "b", containerId: "c-1", piSessionId: "pi-2", phase: "report", usageInputTokens: 60, usageOutputTokens: 20 }),
+		run({ id: "c", containerId: "c-2", piSessionId: "pi-3", phase: "research", usageInputTokens: 5, usageOutputTokens: 5 }),
+	];
+
+	test("container scope folds every run under the container and reads container duration", () => {
+		const agg = aggregateUsageForScope({
+			scope: { kind: "container", containerId: "c-1" },
+			runs,
+			container: container(),
+		});
+		expect(agg).not.toBeNull();
+		expect(agg!.totals.runCount).toBe(2);
+		expect(agg!.totals.inputTokens).toBe(160);
+		expect(agg!.totals.durationMs).toBe((2 * 60 + 51) * 1000);
+	});
+
+	test("session scope folds only that session's runs", () => {
+		const agg = aggregateUsageForScope({
+			scope: { kind: "session", piSessionId: "pi-2" },
+			runs,
+		});
+		expect(agg!.runs.map((r) => r.id)).toEqual(["b"]);
+		expect(agg!.totals.durationMs).toBeNull();
+	});
+
+	test("phase scope folds runs stamped with that phase across containers", () => {
+		const agg = aggregateUsageForScope({
+			scope: { kind: "phase", phase: "research" },
+			runs,
+		});
+		expect(agg!.totals.runCount).toBe(2);
+		expect(agg!.runs.map((r) => r.id).sort()).toEqual(["a", "c"]);
+	});
+
+	test("run scope folds the single run", () => {
+		const agg = aggregateUsageForScope({ scope: { kind: "run", runId: "c" }, runs });
+		expect(agg!.runs).toHaveLength(1);
+		expect(agg!.runs[0]!.id).toBe("c");
+	});
+
+	test("returns null when the scope catches no runs", () => {
+		expect(
+			aggregateUsageForScope({ scope: { kind: "container", containerId: "nope" }, runs }),
+		).toBeNull();
 	});
 });
 

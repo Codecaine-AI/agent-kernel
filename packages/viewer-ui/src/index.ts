@@ -1,9 +1,11 @@
 export { TreeView } from "./trace-viewer/TreeView";
 export { SpanDetailPanel } from "./trace-viewer/SpanDetailPanel";
+export type { UsageContext } from "./trace-viewer/detail-panel/types";
 export {
 	UsageSummaryPanel,
 	type UsageSummaryPanelProps,
 } from "./trace-viewer/UsageSummaryPanel";
+export { UsageStrip, type UsageStripProps } from "./trace-viewer/UsageStrip";
 export {
 	summarizeUsage,
 	computeTotals,
@@ -13,10 +15,14 @@ export {
 	formatTokens,
 	formatCost,
 	formatDuration,
+	aggregateUsageForScope,
+	usageScopeForSpanId,
 	type UsageSummary,
 	type UsageTotals,
 	type RunUsageRow,
 	type AgentUsageRollup,
+	type UsageScope,
+	type SpanUsageAggregate,
 } from "./trace-viewer/usage-summary";
 export {
 	DoctorPanel,

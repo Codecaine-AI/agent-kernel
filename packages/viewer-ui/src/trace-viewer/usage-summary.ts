@@ -31,6 +31,9 @@ export interface UsageTotals {
 
 export interface RunUsageRow {
 	id: string;
+	/** The pi session this run belongs to — a selection fallback when the run
+	 *  has no standalone `run:<id>` span (single-run sessions are not wrapped). */
+	piSessionId: string;
 	agentName: string;
 	trigger: string;
 	status: string;
@@ -90,6 +93,7 @@ export function durationMs(
 export function toRunRow(run: AgentRun): RunUsageRow {
 	return {
 		id: run.id,
+		piSessionId: run.piSessionId,
 		agentName: run.agentName,
 		trigger: run.trigger,
 		status: run.status,
@@ -175,6 +179,86 @@ export function summarizeUsage(input: {
 		totals: computeTotals(runs, input.container ?? null),
 		runs,
 		byAgent: rollupByAgent(runs),
+	};
+}
+
+// ── span-scoped aggregation ─────────────────────────────────────────────────
+
+/**
+ * The container/phase/agent/run "span" whose usage aggregate the detail panel
+ * shows. Kinds mirror spanFactories' id conventions:
+ *   - container:<containerId>  → all runs under that container
+ *   - phase:<phase>            → runs stamped with that phase
+ *   - pi:<piSessionUuid>       → runs belonging to that pi session
+ *   - run:<runUuid>            → the single run
+ */
+export type UsageScope =
+	| { kind: "container"; containerId: string }
+	| { kind: "phase"; phase: string }
+	| { kind: "session"; piSessionId: string }
+	| { kind: "run"; runId: string };
+
+const SPAN_ID_PREFIXES: ReadonlyArray<[prefix: string, make: (rest: string) => UsageScope]> = [
+	["container:", (rest) => ({ kind: "container", containerId: rest })],
+	["phase:", (rest) => ({ kind: "phase", phase: rest })],
+	["pi:", (rest) => ({ kind: "session", piSessionId: rest })],
+	["run:", (rest) => ({ kind: "run", runId: rest })],
+];
+
+/**
+ * Parse a built span's `id` into the usage scope it represents, or null when
+ * the id is a leaf event span (no aggregate to show). Order matters only in
+ * that each prefix is distinct.
+ */
+export function usageScopeForSpanId(spanId: string): UsageScope | null {
+	for (const [prefix, make] of SPAN_ID_PREFIXES) {
+		if (spanId.startsWith(prefix)) return make(spanId.slice(prefix.length));
+	}
+	return null;
+}
+
+/** True when a run belongs under the given scope. */
+function runInScope(run: AgentRun, scope: UsageScope): boolean {
+	switch (scope.kind) {
+		case "container":
+			return run.containerId === scope.containerId;
+		case "phase":
+			return (run.phase ?? null) === scope.phase;
+		case "session":
+			return run.piSessionId === scope.piSessionId;
+		case "run":
+			return run.id === scope.runId;
+	}
+}
+
+export interface SpanUsageAggregate {
+	scope: UsageScope;
+	totals: UsageTotals;
+	byAgent: AgentUsageRollup[];
+	runs: RunUsageRow[];
+}
+
+/**
+ * Fold just the runs belonging to one container/phase/session/run span into a
+ * usage aggregate. Returns null when the scope catches no runs (nothing to
+ * show — the caller falls back to the event's normal renderer). Duration comes
+ * from the container only for the whole-container scope; narrower scopes leave
+ * duration to the runs (null when a run lacks an end).
+ */
+export function aggregateUsageForScope(input: {
+	scope: UsageScope;
+	runs: AgentRun[];
+	container?: KernelContainerSummary | null;
+}): SpanUsageAggregate | null {
+	const scoped = input.runs.filter((run) => runInScope(run, input.scope)).map(toRunRow);
+	if (scoped.length === 0) return null;
+	const container =
+		input.scope.kind === "container" ? (input.container ?? null) : null;
+	return {
+		scope: input.scope,
+		totals: computeTotals(scoped, container),
+		byAgent: rollupByAgent(scoped),
+		runs: scoped,
 	};
 }
 

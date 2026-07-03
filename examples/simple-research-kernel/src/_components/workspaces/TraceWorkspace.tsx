@@ -1,9 +1,16 @@
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	type KernelTraceSessionDetail,
 	type KernelTraceSessionSummary
 } from "@agent-kernel/viewer-core";
-import { DoctorPanel, UsageSummaryPanel } from "@agent-kernel/viewer-ui";
+import {
+	DoctorPanel,
+	UsageStrip,
+	UsageSummaryPanel,
+	findSpanInTree,
+	type RunUsageRow,
+	type UsageContext
+} from "@agent-kernel/viewer-ui";
 import { KernelTraceViewer, type KernelTraceViewerProps } from "@agent-kernel/viewer-shell";
 
 import type { TraceIconSettings } from "../../lib/style-settings";
@@ -40,7 +47,56 @@ export function TraceWorkspace({
 	onTraceDelete,
 	traceIcons
 }: TraceWorkspaceProps) {
-	const [usageOpen, setUsageOpen] = useState(true);
+	// Usage view lives in the detail column; selecting a span always wins over it.
+	const [usageViewOpen, setUsageViewOpen] = useState(false);
+	const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
+
+	// Reset per-trace so a fresh selection opens the new trace's traces, not stale.
+	useEffect(() => {
+		setSelectedSpanId(null);
+		setUsageViewOpen(false);
+	}, [detail?.session.id]);
+
+	const handleSelectedIdChange = useCallback((id: string | null) => {
+		setSelectedSpanId(id);
+		if (id !== null) setUsageViewOpen(false);
+	}, []);
+
+	// A run's own `run:<id>` span only exists when its pi session had >1 run
+	// (single-run sessions aren't wrapped); fall back to the pi session span so
+	// the click always lands on the run's place in the tree.
+	const handleRunSelect = useCallback(
+		(row: RunUsageRow) => {
+			const runSpanId = `run:${row.id}`;
+			const target = findSpanInTree(spans, runSpanId)
+				? runSpanId
+				: `pi:${row.piSessionId}`;
+			setSelectedSpanId(target);
+			setUsageViewOpen(false);
+		},
+		[spans]
+	);
+
+	const toggleUsageView = useCallback(() => {
+		setUsageViewOpen((open) => {
+			const next = !open;
+			if (next) setSelectedSpanId(null);
+			return next;
+		});
+	}, []);
+
+	const usageContext = useMemo<UsageContext | undefined>(
+		() =>
+			detail
+				? {
+						runs: detail.agent_runs,
+						container: detail.container ?? null,
+						onRunSelect: handleRunSelect
+					}
+				: undefined,
+		[detail, handleRunSelect]
+	);
+
 	return (
 		<section className="grid h-[var(--research-workspace-height)] min-h-[var(--research-workspace-min-height)] min-w-0 grid-cols-[minmax(0,1fr)] overflow-hidden rounded-lg border border-border bg-card lg:grid-cols-[380px_minmax(0,1fr)]">
 			<aside className="flex min-h-0 min-w-0 flex-col border-b border-border lg:border-b-0 lg:border-r">
@@ -148,30 +204,47 @@ export function TraceWorkspace({
 					</div>
 				) : (
 					<>
-						<div className="shrink-0 border-b border-border">
-							<button
-								type="button"
-								onClick={() => setUsageOpen((open) => !open)}
-								className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-status-info-border"
-								aria-expanded={usageOpen}
-							>
-								<span>Usage summary</span>
-								<span>{usageOpen ? "▾" : "▸"}</span>
-							</button>
-							{usageOpen && (
-								<div className="max-h-[42vh] overflow-y-auto border-t border-border/60">
-									<UsageSummaryPanel
-										container={detail.container ?? null}
-										runs={detail.agent_runs}
-										sessions={detail.pi_sessions}
-									/>
-								</div>
-							)}
-						</div>
+						<UsageStrip
+							className="shrink-0"
+							container={detail.container ?? null}
+							runs={detail.agent_runs}
+							sessions={detail.pi_sessions}
+							active={usageViewOpen}
+							onToggle={toggleUsageView}
+						/>
 						<KernelTraceViewer
 							className="flex min-h-0 flex-1 flex-col"
 							spans={spans}
 							initialTraceLevel={2}
+							selectedId={selectedSpanId}
+							onSelectedIdChange={handleSelectedIdChange}
+							usageContext={usageContext}
+							plugins={{
+								detailOverride: usageViewOpen ? (
+									<div className="flex h-full flex-col">
+										<div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
+											<span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
+												Usage summary
+											</span>
+											<button
+												type="button"
+												onClick={toggleUsageView}
+												className="rounded-[2px] border border-border px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
+											>
+												Close
+											</button>
+										</div>
+										<div className="min-h-0 flex-1 overflow-y-auto">
+											<UsageSummaryPanel
+												container={detail.container ?? null}
+												runs={detail.agent_runs}
+												sessions={detail.pi_sessions}
+												onRunSelect={handleRunSelect}
+											/>
+										</div>
+									</div>
+								) : undefined
+							}}
 							iconSide={traceIcons.side}
 							iconStyle={traceIcons.style}
 						/>

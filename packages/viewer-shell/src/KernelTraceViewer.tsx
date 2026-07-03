@@ -9,6 +9,7 @@ import {
 	filterSpansByTraceLevel,
 	findSpanInTree,
 	type SpanCardViewOptions,
+	type UsageContext,
 } from "@agent-kernel/viewer-ui";
 
 import { TraceLevelSlider, type TraceLevelInfo } from "./TraceLevelSlider";
@@ -43,6 +44,13 @@ export interface KernelViewerPlugins {
 	treeToolbarTrailing?: ReactNode;
 	emptyState?: ReactNode;
 	detailPlaceholder?: ReactNode;
+	/**
+	 * When present AND no span is selected, this node takes over the detail
+	 * column (in place of the placeholder). The workspace uses it to surface the
+	 * full usage summary when the usage strip is toggled; selecting any span
+	 * clears the override and returns to span detail.
+	 */
+	detailOverride?: ReactNode;
 }
 
 export interface KernelTraceViewerProps {
@@ -52,6 +60,11 @@ export interface KernelTraceViewerProps {
 	selectedId?: string | null;
 	onSelectedIdChange?: (id: string | null) => void;
 	plugins?: KernelViewerPlugins;
+	/**
+	 * Workspace usage data forwarded to the detail panel so container / phase /
+	 * agent-session / run spans render a usage aggregate instead of dead-ending.
+	 */
+	usageContext?: UsageContext;
 	/**
 	 * Which outer edge the per-span scannability chip abuts, and its treatment
 	 * (hollow outline vs. accent-filled solid). Forwarded to every SpanCard.
@@ -67,6 +80,7 @@ export function KernelTraceViewer({
 	selectedId: controlledSelectedId,
 	onSelectedIdChange,
 	plugins,
+	usageContext,
 	iconSide,
 	iconStyle,
 }: KernelTraceViewerProps) {
@@ -165,8 +179,9 @@ export function KernelTraceViewer({
 				</div>
 				<div className="w-[37.5%] overflow-hidden rounded-[3px] border border-border bg-card">
 					{selectedSpan ? (
-						<SpanDetailPanel span={selectedSpan} />
+						<SpanDetailPanel span={selectedSpan} usageContext={usageContext} />
 					) : (
+						plugins?.detailOverride ??
 						plugins?.detailPlaceholder ?? <SpanDetailPanel span={null} />
 					)}
 				</div>

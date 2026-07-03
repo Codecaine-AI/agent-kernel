@@ -37,6 +37,12 @@ export interface UsageSummaryPanelProps {
 	runs: AgentRun[];
 	sessions?: PiAgentSession[];
 	className?: string;
+	/**
+	 * When set, each run row becomes a button reporting the run. The workspace
+	 * selects the run's `run:<id>` span, falling back to its `pi:<session>` span
+	 * when the run has no standalone wrapper (single-run sessions).
+	 */
+	onRunSelect?: (row: RunUsageRow) => void;
 }
 
 const LABEL = "font-mono text-[13px] leading-[16px]";
@@ -78,7 +84,7 @@ const StatChip: FC<{ label: string; value: string; accent?: boolean }> = ({
 	</div>
 );
 
-const TotalsStrip: FC<{ totals: UsageTotals }> = ({ totals }) => (
+export const TotalsStrip: FC<{ totals: UsageTotals }> = ({ totals }) => (
 	<div className="flex flex-wrap gap-1.5">
 		<StatChip label="Input" value={formatTokens(totals.inputTokens)} />
 		<StatChip label="Output" value={formatTokens(totals.outputTokens)} />
@@ -94,7 +100,7 @@ const TotalsStrip: FC<{ totals: UsageTotals }> = ({ totals }) => (
 	</div>
 );
 
-const AgentBreakdown: FC<{ byAgent: AgentUsageRollup[] }> = ({ byAgent }) => {
+export const AgentBreakdown: FC<{ byAgent: AgentUsageRollup[] }> = ({ byAgent }) => {
 	if (byAgent.length === 0) return null;
 	return (
 		<div className="flex flex-col gap-1">
@@ -126,7 +132,13 @@ const AgentBreakdown: FC<{ byAgent: AgentUsageRollup[] }> = ({ byAgent }) => {
 	);
 };
 
-const RunsTable: FC<{ runs: RunUsageRow[] }> = ({ runs }) => {
+const RUN_ROW_GRID =
+	"grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_64px_64px_60px] items-center gap-2";
+
+export const RunsTable: FC<{
+	runs: RunUsageRow[];
+	onRunSelect?: (row: RunUsageRow) => void;
+}> = ({ runs, onRunSelect }) => {
 	if (runs.length === 0) return null;
 	return (
 		<div className="flex flex-col gap-1">
@@ -139,7 +151,8 @@ const RunsTable: FC<{ runs: RunUsageRow[] }> = ({ runs }) => {
 				<div
 					className={cn(
 						META,
-						"grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_64px_64px_60px] gap-2 border-b border-border bg-card/80 px-2.5 py-1 uppercase tracking-[0.1em] text-muted-foreground",
+						RUN_ROW_GRID,
+						"border-b border-border bg-card/80 px-2.5 py-1 uppercase tracking-[0.1em] text-muted-foreground",
 					)}
 				>
 					<span>Agent</span>
@@ -149,12 +162,16 @@ const RunsTable: FC<{ runs: RunUsageRow[] }> = ({ runs }) => {
 					<span className="text-right">Dur</span>
 				</div>
 				<div className="flex flex-col">
-					{runs.map((run) => (
-						<div
-							key={run.id}
-							className="grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_64px_64px_60px] items-center gap-2 border-b border-border/60 px-2.5 py-1 last:border-b-0"
-						>
-							<span className="flex min-w-0 items-center gap-1.5">
+					{runs.map((run) => {
+						const rowClass = cn(
+							RUN_ROW_GRID,
+							"border-b border-border/60 px-2.5 py-1 text-left last:border-b-0",
+							onRunSelect &&
+								"cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-status-info-border",
+						);
+						const cells = (
+							<>
+								<span className="flex min-w-0 items-center gap-1.5">
 								<span
 									className={cn(
 										LABEL,
@@ -186,8 +203,23 @@ const RunsTable: FC<{ runs: RunUsageRow[] }> = ({ runs }) => {
 							<span className={cn(META, "text-right tabular-nums text-muted-foreground")}>
 								{formatDuration(run.durationMs)}
 							</span>
+						</>
+					);
+					return onRunSelect ? (
+						<button
+							key={run.id}
+							type="button"
+							onClick={() => onRunSelect(run)}
+							className={rowClass}
+						>
+							{cells}
+						</button>
+					) : (
+						<div key={run.id} className={rowClass}>
+							{cells}
 						</div>
-					))}
+					);
+				})}
 				</div>
 			</div>
 		</div>
@@ -199,6 +231,7 @@ export const UsageSummaryPanel: FC<UsageSummaryPanelProps> = ({
 	runs,
 	sessions,
 	className,
+	onRunSelect,
 }) => {
 	const summary = summarizeUsage({ container, runs, sessions });
 
@@ -220,7 +253,7 @@ export const UsageSummaryPanel: FC<UsageSummaryPanelProps> = ({
 		<div className={cn("flex flex-col gap-3 p-3", className)}>
 			<TotalsStrip totals={summary.totals} />
 			<AgentBreakdown byAgent={summary.byAgent} />
-			<RunsTable runs={summary.runs} />
+			<RunsTable runs={summary.runs} onRunSelect={onRunSelect} />
 		</div>
 	);
 };
