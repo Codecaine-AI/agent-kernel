@@ -50,7 +50,17 @@ Judge: is the tree shaped how you think about the work? Are tokens surfaced
 where you'd look for them, or do they need to be more prominent (per-span,
 rollup badges, container header)?
 
-## Station 3 — Database + doctor (~10 min) · traceability, raw
+## Station 3 — Usage + doctor, now in the UI (~10 min) · traceability
+
+UPDATE (`d163197`): no SQL needed. In the Trace workspace, the selected trace
+now has a collapsible Usage panel above the span tree (totals, per-agent
+rollup, per-run table with triggers) and the Traces panel header has a Doctor
+control (invariants chip + row counts). The SQL below remains for going
+deeper. Judge in the UI: is the totals strip the right set? Does per-agent
+rollup earn its space? What breakdowns are missing for real analysis
+(per-phase, per-epoch — container kinds can carry them)?
+
+## Station 3 (raw) — Database + doctor via SQL · optional
 
 ```sh
 sqlite3 examples/simple-research-kernel/.agent-kernel/trace.db \
@@ -186,9 +196,39 @@ that contradicts what you experienced at Stations 1–7.
   captured from the real walkthrough run. spanAttributes' four parallel
   switches became one declarative EVENT_SPECS registry; build-trace-spans is
   now a staged pipeline. Output unchanged by construction.
-- [ ] S2: spawner tools (D77) — in flight: defineSpawnerTool with per-tool
-  spawns allowlist, canSpawnSubagent retired, toolKind:"spawner" on tool-call
-  events; distinct viewer rendering follows once it lands.
+- [x] S2: spawner tools (D77) — done in `98610b0` (kernel) + `40aceb0`
+  (viewer): defineSpawnerTool with per-tool spawns allowlist and scoped
+  dispatch, canSpawnSubagent retired, dispatch events render as
+  "Dispatch: <agent>" nodes with agent chips. QA review caught and fixed a
+  queued-dispatch identity bug before commit. Known accepted gap: JSONL
+  backfill can't stamp spawner marking (recovery-path display only).
+- [x] S3: usage summary over-indexed — done in `670871a`: one-line USAGE strip
+  above the tree, full summary in the detail column on click (runs table rows
+  select their span), container/session/run spans show their aggregate in the
+  detail panel. Browser-verified both directions.
+- [x] S5: prompt editor evolution — done in `d0cf1cf` + `5e0483f`: Agent XML
+  is the primary surface, rendered as a true code editor (strict 21px grid,
+  continuous gutter with Raw parity, indent guides + tag-line landmarks,
+  hover range bars), pointer-based drag with full-block ghost + depth-aware
+  insertion line, chrome relocated to the pinned details column, VS Code
+  Dark+ palette via shared editor tokens. Browser-verified geometrically.
+- [ ] OPEN (owner decision): grain overlay screen-blend lifts all dark
+  surfaces app-wide — keep as atmosphere, change default blend to
+  soft-light, or exempt the editor (masking work)?
+- [ ] DEFERRED: dedicated cost-summary page (cross-container comparison) —
+  revisit once real multi-session history accumulates.
+- [ ] NOTE: API server does not hot-reload — server-side changes need a
+  `make research-ui` restart; zeros in usage UI = stale API process.
+- [x] S2: icons should be part of the card, colors don't convey roles, fonts
+  inconsistent — done in `058e923`: integrated icon caps (inline end cell /
+  boxed corner cell sharing the card border), semantic color groups
+  (orchestration violet, user blue, assistant green, tools cyan, lifecycle
+  gray, amber/red reserved for diagnostics), unified mono type scale, info
+  rows became MetaCard mini-cards. Browser-verified.
+- [x] S2: span cards hard to scan without type icons — done in `814ec3a`:
+  Nucleo edge-icon chips per span type (13 icons, outline + fill), with
+  "Icon style" (outline/solid) and "Icon side" (left/right) in the style
+  rail. Both treatments browser-verified; pick by eye and tell me which wins.
 - [x] S1: white screen at the viewer — top-level `node:crypto` imports in
   `protocol/ids.ts` and prompt-kit `canonicalize.ts` failed module
   instantiation in the browser (silent — no console error), blanking the app

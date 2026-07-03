@@ -1605,3 +1605,40 @@ Spawner calls are distinguishable in traces: `tool_call_start` /
 (additive optional fields on the existing payloads, TurnUsage-style — no new
 event types, no envelope change), so viewers can render agent dispatch
 differently from ordinary tools. Viewer rendering is a deliberate follow-up.
+
+### D78. Agent XML Is the Sole Prompt Editing Surface (revises D46/D47 scope, retires the Sections mode)
+
+Status: decided.
+
+Decision: The prompt editor's only surface is the Agent XML flow — a
+code-editor rendering of exactly what the agent receives, with block and
+keyboard editing layered on as interaction, never as an alternative document
+view. The Notion-style Sections mode, the read-only Raw view, and the
+combined SYS+CTX view were removed from the agent viewer.
+
+Rationale: the editor's job is to manipulate the real artifact. A friendlier
+projection (Sections) and a separate fidelity view (Raw) both existed to
+compensate for an editing surface that didn't look like the rendered prompt;
+once the editor achieved line-for-line parity with the rendered output
+(strict grid, shared highlighting, gutter numbering owned by a tested line
+model), both became redundant. The combined/effective prompt remains
+inspectable where it is a runtime fact: on `system_prompt_resolved` trace
+events. Full surface/interaction contract:
+`docs/20-implementation/60-viewer/20-prompt-editor-design.md`.
+
+### D79. Manifest Fields Are Viewer-Editable Through the Catalog Write API (new)
+
+Status: decided.
+
+Decision: Operational manifest fields — currently `description` and `model` —
+are editable from the agent viewer through a dev-gated
+`PUT /kernel/catalog/agents/:name/manifest`, following the prompt-save
+pattern: schema-validated merge, canonical `agent.json` rewrite, registry
+hot-reload (`reloadAgentManifest`) so the next spawn uses the new values
+without a restart, old registry entry and file preserved on failure. The
+catalog detail exposes the kernel's configured model aliases as suggestions.
+
+Boundary: this is field-level editing of operational configuration, not a
+general manifest editor — variables, tools, spawner declarations, and
+renames stay file-edited (and renames are rejected by hot-reload). Widening
+the editable set is a future decision, not a default.

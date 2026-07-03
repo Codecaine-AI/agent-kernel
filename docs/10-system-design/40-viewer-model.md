@@ -54,13 +54,20 @@ re-derived from timestamps.
 ## Prompt Lab
 
 The viewer also fronts the kernel catalog API (`KERNEL_CATALOG_PATHS`):
-registry listing, agent detail, prompt saves (dev-gated), revision history,
-and per-revision run stats. `viewer-core` supplies the browser-safe catalog
-DTOs and `diffPromptDocuments` — a block-level structural diff keyed by stable
-node ids, no text diffing. `viewer-ui` builds the lab on top: an inline prompt
-editor with transactional undo/redo across save boundaries, a revision history
-panel with block diffs between revisions, and a stats strip showing each
-revision's runs, tokens, failures, and cost next to the blocks being edited.
+registry listing, agent detail, prompt saves and manifest edits (both
+dev-gated), model aliases, revision history, and per-revision run stats.
+`viewer-core` supplies the browser-safe catalog DTOs and
+`diffPromptDocuments` — a block-level structural diff keyed by stable node
+ids, no text diffing.
+
+`viewer-ui` builds the agent viewer on top as a strict three-column shell:
+agent selector, the Agent XML editor (the only editing surface — a code-editor
+view of exactly what the agent receives, with Notion-style block/keyboard
+editing and transactional single-step undo), and an always-present sidebar
+stacking agent identity (editable model/description), view scope, editor
+controls, block details, and revision history with per-revision run stats.
+The full design rationale lives in
+[20-prompt-editor-design.md](../20-implementation/60-viewer/20-prompt-editor-design.md).
 
 ## Base Shell
 
