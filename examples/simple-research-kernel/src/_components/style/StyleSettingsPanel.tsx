@@ -1,14 +1,24 @@
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import {
-	DEFAULT_RESEARCH_STYLE_SETTINGS,
+	buildColorExport,
+	colorTokenDefaultHex,
+	colorTokenEffectiveHex,
+	COLOR_TOKENS,
+	DEFAULT_GRAIN_SETTINGS,
+	DEFAULT_LAYOUT_STYLE_SETTINGS,
 	GRAIN_BLEND_OPTIONS,
+	normalizeHex,
 	SOFTENING_CHANNEL_OPTIONS,
+	STYLE_PANEL_TAB_OPTIONS,
 	TRACE_ICON_SIDE_OPTIONS,
 	TRACE_ICON_STYLE_OPTIONS,
+	type ColorTokenDescriptor,
+	type ColorTokenGroup,
 	type GrainBlendMode,
 	type ResearchStyleSettings,
 	type ResearchStyleSettingsPatch,
+	type StylePanelTab,
 	type TraceIconSide,
 	type TraceIconStyle
 } from "../../lib/style-settings";
@@ -100,18 +110,280 @@ function CheckboxField({
 	);
 }
 
-function ReadoutRow({ label, tone = "text-foreground/80", value }: { label: string; tone?: string; value: ReactNode }) {
+function TabBar({
+	active,
+	onSelect
+}: {
+	active: StylePanelTab;
+	onSelect: (tab: StylePanelTab) => void;
+}) {
 	return (
-		<div className="grid min-h-8 grid-cols-[112px_minmax(0,1fr)] items-center gap-2 border-t border-border px-2.5 py-1.5 first:border-t-0">
-			<span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">{label}</span>
-			<span className={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap ${tone}`}>{value}</span>
+		<div className="grid grid-cols-4 gap-1 border border-border bg-background/40 p-1" role="tablist">
+			{STYLE_PANEL_TAB_OPTIONS.map((option) => {
+				const isActive = option.id === active;
+				return (
+					<button
+						aria-selected={isActive}
+						className={`min-h-7 border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] transition-colors ${
+							isActive
+								? "border-status-info-border bg-muted text-foreground"
+								: "border-transparent text-muted-foreground hover:text-foreground"
+						}`}
+						key={option.id}
+						onClick={() => onSelect(option.id)}
+						role="tab"
+						type="button"
+					>
+						{option.label}
+					</button>
+				);
+			})}
 		</div>
 	);
 }
 
-export function StyleSettingsPanel({ settings, onChange }: StyleSettingsPanelProps) {
-	const grain = settings.grain;
+// ── Color pickers ──────────────────────────────────────────────────────────
 
+const COLOR_GROUP_TITLES: Record<ColorTokenGroup, string> = {
+	neutrals: "Neutrals",
+	editor: "Editor",
+	accents: "Accents"
+};
+
+function ColorTokenRow({
+	token,
+	overrides,
+	onChange
+}: {
+	token: ColorTokenDescriptor;
+	overrides: ResearchStyleSettings["colorOverrides"];
+	onChange: (updates: ResearchStyleSettingsPatch) => void;
+}) {
+	const effective = colorTokenEffectiveHex(token, overrides);
+	const hasOverride = Boolean(overrides[token.id]);
+	const [draft, setDraft] = useState(effective);
+	const [locked, setLocked] = useState(Boolean(token.reserved));
+
+	// Keep the text field in sync when the effective value changes elsewhere
+	// (swatch edit, reset) — but let the user keep typing an invalid draft.
+	const [syncedFrom, setSyncedFrom] = useState(effective);
+	if (syncedFrom !== effective && draft !== effective) {
+		setSyncedFrom(effective);
+		setDraft(effective);
+	}
+
+	const disabled = Boolean(token.reserved) && locked;
+
+	function commit(hex: string) {
+		const normalized = normalizeHex(hex);
+		if (!normalized) return;
+		onChange({ colorOverrides: { [token.id]: normalized } });
+	}
+
+	function reset() {
+		onChange({ colorOverrides: { [token.id]: "" } });
+		setDraft(colorTokenDefaultHex(token));
+		setSyncedFrom(colorTokenDefaultHex(token));
+	}
+
+	const draftValid = normalizeHex(draft) !== null;
+
+	return (
+		<div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-t border-border/60 py-1.5 first:border-t-0">
+			<div className="flex items-center gap-2">
+				<span
+					aria-hidden
+					className="h-6 w-6 shrink-0 border border-border"
+					style={{ backgroundColor: effective }}
+				/>
+				<input
+					aria-label={`${token.label} swatch`}
+					className="h-6 w-6 shrink-0 cursor-pointer border border-border bg-transparent p-0 disabled:cursor-not-allowed disabled:opacity-40"
+					disabled={disabled}
+					onChange={(event) => commit(event.currentTarget.value)}
+					type="color"
+					value={effective}
+				/>
+			</div>
+			<div className="min-w-0">
+				<div className="flex items-center gap-1.5">
+					<span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+						{token.label}
+					</span>
+					{token.reserved && (
+						<span className="shrink-0 text-[9px] uppercase tracking-[0.08em] text-status-warning">
+							{token.reservedNote ?? "reserved"}
+						</span>
+					)}
+				</div>
+				<input
+					aria-label={`${token.label} hex`}
+					className={`mt-1 min-h-7 w-full border bg-muted px-2 py-1 font-mono text-[12px] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border disabled:opacity-40 ${
+						draftValid ? "border-border" : "border-destructive"
+					}`}
+					disabled={disabled}
+					onBlur={() => {
+						if (draftValid) commit(draft);
+						else setDraft(effective);
+					}}
+					onChange={(event) => setDraft(event.currentTarget.value)}
+					onKeyDown={(event) => {
+						if (event.key === "Enter" && draftValid) commit(draft);
+					}}
+					spellCheck={false}
+					type="text"
+					value={draft}
+				/>
+			</div>
+			<div className="flex shrink-0 items-center gap-1">
+				{token.reserved && (
+					<button
+						aria-label={locked ? `Unlock ${token.label}` : `Lock ${token.label}`}
+						className="grid h-6 w-6 place-items-center border border-border bg-card text-[11px] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground"
+						onClick={() => setLocked((value) => !value)}
+						title={locked ? "Unlock to edit (diagnostics color)" : "Lock"}
+						type="button"
+					>
+						<span aria-hidden>{locked ? "\u{1F512}" : "\u{1F513}"}</span>
+					</button>
+				)}
+				<button
+					aria-label={`Reset ${token.label}`}
+					className="grid h-6 w-6 place-items-center border border-border bg-card text-[13px] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground disabled:opacity-30"
+					disabled={!hasOverride}
+					onClick={reset}
+					title="Reset to default"
+					type="button"
+				>
+					<span aria-hidden>{"↺"}</span>
+				</button>
+			</div>
+		</div>
+	);
+}
+
+function ColorsTab({
+	settings,
+	onChange
+}: {
+	settings: ResearchStyleSettings;
+	onChange: (updates: ResearchStyleSettingsPatch) => void;
+}) {
+	const [copied, setCopied] = useState(false);
+	const overrides = settings.colorOverrides;
+	const groups = useMemo(() => {
+		const order: ColorTokenGroup[] = ["neutrals", "editor", "accents"];
+		return order.map((group) => ({
+			group,
+			tokens: COLOR_TOKENS.filter((token) => token.group === group)
+		}));
+	}, []);
+
+	async function copyExport() {
+		const block = buildColorExport(overrides);
+		try {
+			await navigator.clipboard.writeText(block);
+			setCopied(true);
+			window.setTimeout(() => setCopied(false), 1600);
+		} catch {
+			// Clipboard may be unavailable (insecure context); fail quietly.
+			setCopied(false);
+		}
+	}
+
+	return (
+		<div className="grid content-start gap-3">
+			{groups.map(({ group, tokens }) => (
+				<PanelSection key={group}>
+					<PanelTitle>{COLOR_GROUP_TITLES[group]}</PanelTitle>
+					<div className="grid">
+						{tokens.map((token) => (
+							<ColorTokenRow key={token.id} onChange={onChange} overrides={overrides} token={token} />
+						))}
+					</div>
+				</PanelSection>
+			))}
+
+			<PanelSection>
+				<PanelTitle>Export</PanelTitle>
+				<div className="grid gap-2">
+					<button
+						className="min-h-8 border border-border bg-muted px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground"
+						onClick={copyExport}
+						type="button"
+					>
+						{copied ? "Copied ✓" : "Copy CSS"}
+					</button>
+					<button
+						className="min-h-8 border border-border bg-muted px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-destructive hover:text-foreground"
+						onClick={() => onChange({ colorOverrides: null })}
+						type="button"
+					>
+						Reset all colors
+					</button>
+				</div>
+			</PanelSection>
+		</div>
+	);
+}
+
+// ── Trace tab ────────────────────────────────────────────────────────────────
+
+function TraceTab({
+	settings,
+	onChange
+}: {
+	settings: ResearchStyleSettings;
+	onChange: (updates: ResearchStyleSettingsPatch) => void;
+}) {
+	return (
+		<div className="grid content-start gap-3">
+			<PanelSection>
+				<PanelTitle>Trace Icons</PanelTitle>
+				<div className="grid gap-4">
+					<label className="block text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+						<span>Icon side</span>
+						<select
+							className="mt-1.5 min-h-8 w-full border border-border bg-muted px-2 py-1 text-[13px] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border"
+							onChange={(event) => onChange({ traceIcons: { side: event.currentTarget.value as TraceIconSide } })}
+							value={settings.traceIcons.side}
+						>
+							{TRACE_ICON_SIDE_OPTIONS.map((option) => (
+								<option key={option.id} value={option.id}>
+									{option.label}
+								</option>
+							))}
+						</select>
+					</label>
+					<label className="block text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+						<span>Icon style</span>
+						<select
+							className="mt-1.5 min-h-8 w-full border border-border bg-muted px-2 py-1 text-[13px] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border"
+							onChange={(event) => onChange({ traceIcons: { style: event.currentTarget.value as TraceIconStyle } })}
+							value={settings.traceIcons.style}
+						>
+							{TRACE_ICON_STYLE_OPTIONS.map((option) => (
+								<option key={option.id} value={option.id}>
+									{option.label}
+								</option>
+							))}
+						</select>
+					</label>
+				</div>
+			</PanelSection>
+		</div>
+	);
+}
+
+// ── Layout tab ────────────────────────────────────────────────────────────────
+
+function LayoutTab({
+	settings,
+	onChange
+}: {
+	settings: ResearchStyleSettings;
+	onChange: (updates: ResearchStyleSettingsPatch) => void;
+}) {
 	return (
 		<div className="grid content-start gap-3">
 			<PanelSection>
@@ -119,7 +391,7 @@ export function StyleSettingsPanel({ settings, onChange }: StyleSettingsPanelPro
 					<PanelTitle className="mb-0 min-w-0 flex-1">Surface</PanelTitle>
 					<button
 						className="min-h-7 border border-border bg-muted px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground"
-						onClick={() => onChange(DEFAULT_RESEARCH_STYLE_SETTINGS)}
+						onClick={() => onChange({ layout: DEFAULT_LAYOUT_STYLE_SETTINGS })}
 						type="button"
 					>
 						Reset
@@ -155,43 +427,34 @@ export function StyleSettingsPanel({ settings, onChange }: StyleSettingsPanelPro
 					/>
 				</div>
 			</PanelSection>
+		</div>
+	);
+}
 
+// ── Effects tab ──────────────────────────────────────────────────────────────
+
+function EffectsTab({
+	settings,
+	onChange
+}: {
+	settings: ResearchStyleSettings;
+	onChange: (updates: ResearchStyleSettingsPatch) => void;
+}) {
+	const grain = settings.grain;
+
+	return (
+		<div className="grid content-start gap-3">
 			<PanelSection>
-				<PanelTitle>Trace Icons</PanelTitle>
-				<div className="grid gap-4">
-					<label className="block text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-						<span>Icon side</span>
-						<select
-							className="mt-1.5 min-h-8 w-full border border-border bg-muted px-2 py-1 text-[13px] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border"
-							onChange={(event) => onChange({ traceIcons: { side: event.currentTarget.value as TraceIconSide } })}
-							value={settings.traceIcons.side}
-						>
-							{TRACE_ICON_SIDE_OPTIONS.map((option) => (
-								<option key={option.id} value={option.id}>
-									{option.label}
-								</option>
-							))}
-						</select>
-					</label>
-					<label className="block text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-						<span>Icon style</span>
-						<select
-							className="mt-1.5 min-h-8 w-full border border-border bg-muted px-2 py-1 text-[13px] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border"
-							onChange={(event) => onChange({ traceIcons: { style: event.currentTarget.value as TraceIconStyle } })}
-							value={settings.traceIcons.style}
-						>
-							{TRACE_ICON_STYLE_OPTIONS.map((option) => (
-								<option key={option.id} value={option.id}>
-									{option.label}
-								</option>
-							))}
-						</select>
-					</label>
+				<div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+					<PanelTitle className="mb-0 min-w-0 flex-1">Global Grain</PanelTitle>
+					<button
+						className="min-h-7 border border-border bg-muted px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground"
+						onClick={() => onChange({ grain: DEFAULT_GRAIN_SETTINGS })}
+						type="button"
+					>
+						Reset
+					</button>
 				</div>
-			</PanelSection>
-
-			<PanelSection>
-				<PanelTitle>Global Grain</PanelTitle>
 				<CheckboxField
 					checked={grain.enabled}
 					label="Enable grain"
@@ -371,28 +634,20 @@ export function StyleSettingsPanel({ settings, onChange }: StyleSettingsPanelPro
 					/>
 				</div>
 			</PanelSection>
+		</div>
+	);
+}
 
-			<PanelSection>
-				<PanelTitle>Readout</PanelTitle>
-				<div className="overflow-hidden border border-border bg-card/70">
-					<ReadoutRow label="Frame" value={pxLabel(settings.layout.framePadding)} />
-					<ReadoutRow label="Height" value={`${Math.round(settings.layout.workspaceMinHeight)}px`} />
-					<ReadoutRow label="Header" value={pxLabel(settings.layout.headerHeight)} />
-					<ReadoutRow label="State" tone={grain.enabled ? "text-status-success" : "text-muted-foreground"} value={grain.enabled ? "enabled" : "off"} />
-					<ReadoutRow label="Intensity" value={percentLabel(grain.opacity)} />
-					<ReadoutRow label="Density" value={grain.frequency.toFixed(2)} />
-					<ReadoutRow label="Contrast" value={`${grain.contrast.toFixed(2)}x`} />
-					<ReadoutRow label="Blend" value={GRAIN_BLEND_OPTIONS.find((option) => option.id === grain.blendMode)?.label ?? grain.blendMode} />
-						<ReadoutRow label="Icon Side" value={TRACE_ICON_SIDE_OPTIONS.find((option) => option.id === settings.traceIcons.side)?.label ?? settings.traceIcons.side} />
-						<ReadoutRow label="Icon Style" value={TRACE_ICON_STYLE_OPTIONS.find((option) => option.id === settings.traceIcons.style)?.label ?? settings.traceIcons.style} />
-					<ReadoutRow label="Background" value={percentLabel(grain.softening.background)} />
-					<ReadoutRow label="Font" value={percentLabel(grain.softening.font)} />
-					<ReadoutRow label="Borders" value={percentLabel(grain.softening.borders)} />
-					<ReadoutRow label="Icons" value={percentLabel(grain.softening.icons)} />
-					<ReadoutRow label="SVG Normal" tone={grain.svgNormal.enabled ? "text-status-success" : "text-muted-foreground"} value={grain.svgNormal.enabled ? "enabled" : "off"} />
-					<ReadoutRow label="CSS Bevel" tone={grain.cssBevel.enabled ? "text-status-success" : "text-muted-foreground"} value={grain.cssBevel.enabled ? "enabled" : "off"} />
-				</div>
-			</PanelSection>
+export function StyleSettingsPanel({ settings, onChange }: StyleSettingsPanelProps) {
+	const activeTab = settings.activeTab;
+
+	return (
+		<div className="grid content-start gap-3">
+			<TabBar active={activeTab} onSelect={(tab) => onChange({ activeTab: tab })} />
+			{activeTab === "colors" && <ColorsTab onChange={onChange} settings={settings} />}
+			{activeTab === "effects" && <EffectsTab onChange={onChange} settings={settings} />}
+			{activeTab === "trace" && <TraceTab onChange={onChange} settings={settings} />}
+			{activeTab === "layout" && <LayoutTab onChange={onChange} settings={settings} />}
 		</div>
 	);
 }

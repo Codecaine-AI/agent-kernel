@@ -48,15 +48,43 @@ export interface GrainSettings {
 export type TraceIconSide = "left" | "right";
 export type TraceIconStyle = "outline" | "solid";
 
+export type StylePanelTab = "colors" | "effects" | "trace" | "layout";
+
 export interface TraceIconSettings {
 	side: TraceIconSide;
 	style: TraceIconStyle;
 }
 
+export type ColorTokenFormat = "triplet" | "hex";
+export type ColorTokenGroup = "neutrals" | "editor" | "accents";
+
+/**
+ * A user-picker-editable color token. `id` is the override-map key; `cssVar`
+ * is the custom property set on the shell; `format` decides how the value is
+ * serialized (RGB-triplet `27 27 28` neutrals/accents vs literal `#1e1e1e`
+ * editor colors). `baseTokenKey` links a neutral/accent back to its BASE_TOKENS
+ * entry so the overlay can shadow it BEFORE softening; editor tokens have none.
+ */
+export interface ColorTokenDescriptor {
+	id: string;
+	label: string;
+	group: ColorTokenGroup;
+	format: ColorTokenFormat;
+	cssVar: string;
+	baseTokenKey?: keyof typeof BASE_TOKENS;
+	reserved?: boolean;
+	reservedNote?: string;
+}
+
+/** Per-token hex overrides ("#RRGGBB"), keyed by ColorTokenDescriptor.id. */
+export type ColorOverrides = Record<string, string>;
+
 export interface ResearchStyleSettings {
 	layout: LayoutStyleSettings;
 	grain: GrainSettings;
 	traceIcons: TraceIconSettings;
+	colorOverrides: ColorOverrides;
+	activeTab: StylePanelTab;
 }
 
 export type GrainSettingsPatch = Omit<Partial<GrainSettings>, "softening" | "svgNormal" | "cssBevel"> & {
@@ -69,6 +97,8 @@ export interface ResearchStyleSettingsPatch {
 	layout?: Partial<LayoutStyleSettings>;
 	grain?: GrainSettingsPatch;
 	traceIcons?: Partial<TraceIconSettings>;
+	colorOverrides?: ColorOverrides | null;
+	activeTab?: StylePanelTab;
 }
 
 type Rgb = readonly [number, number, number];
@@ -120,11 +150,24 @@ export const DEFAULT_TRACE_ICON_SETTINGS: TraceIconSettings = {
 	style: "outline"
 };
 
+export const DEFAULT_STYLE_PANEL_TAB: StylePanelTab = "colors";
+
+export const DEFAULT_COLOR_OVERRIDES: ColorOverrides = {};
+
 export const DEFAULT_RESEARCH_STYLE_SETTINGS: ResearchStyleSettings = {
 	layout: DEFAULT_LAYOUT_STYLE_SETTINGS,
 	grain: DEFAULT_GRAIN_SETTINGS,
-	traceIcons: DEFAULT_TRACE_ICON_SETTINGS
+	traceIcons: DEFAULT_TRACE_ICON_SETTINGS,
+	colorOverrides: DEFAULT_COLOR_OVERRIDES,
+	activeTab: DEFAULT_STYLE_PANEL_TAB
 };
+
+export const STYLE_PANEL_TAB_OPTIONS: ReadonlyArray<{ id: StylePanelTab; label: string }> = [
+	{ id: "colors", label: "Colors" },
+	{ id: "effects", label: "Effects" },
+	{ id: "trace", label: "Trace" },
+	{ id: "layout", label: "Layout" }
+];
 
 export const GRAIN_BLEND_OPTIONS: ReadonlyArray<{ id: GrainBlendMode; label: string }> = [
 	{ id: "screen", label: "Screen" },
@@ -194,6 +237,153 @@ const SOFT_TARGETS = {
 	statusInfoFill: [13, 42, 49],
 	statusInfoBorder: [48, 104, 116]
 } satisfies Record<string, Rgb>;
+
+// ── Color picker layer ────────────────────────────────────────────────────
+// Accent/status color tokens live only in styles.css :root today (not in
+// BASE_TOKENS, and not emitted by researchStyleVars). We mirror their default
+// RGB triplets here so the overlay can emit user overrides on top and the
+// export builder can print the effective :root lines. These are NOT softened.
+const ACCENT_DEFAULTS = {
+	traceOrchestration: [167, 139, 250] as Rgb, // #A78BFA
+	traceUser: [96, 165, 250] as Rgb,           // #60A5FA
+	traceAssistant: [84, 214, 147] as Rgb,      // #54D693
+	traceTool: [84, 211, 224] as Rgb,           // #54D3E0
+	traceLifecycle: [168, 168, 168] as Rgb,     // #A8A8A8
+	statusWarning: [220, 167, 76] as Rgb,       // #DCA74C
+	statusError: [225, 91, 88] as Rgb           // #E15B58 (--destructive)
+} satisfies Record<string, Rgb>;
+
+// Literal-hex editor defaults (consumed via var(--editor-*, fallback)).
+const EDITOR_DEFAULTS = {
+	editorBg: "#1e1e1e",
+	editorFg: "#d4d4d4",
+	editorLineNumber: "#858585"
+} satisfies Record<string, string>;
+
+/**
+ * The full catalog of picker-editable color tokens. Order within a group is the
+ * display order. Neutrals/accents serialize as RGB triplets; editor tokens as
+ * literal hex. Alpha-bearing tokens (rules/guides/landmarks) are intentionally
+ * excluded — solid colors only this pass.
+ */
+export const COLOR_TOKENS: ReadonlyArray<ColorTokenDescriptor> = [
+	// Neutrals — shadow BASE_TOKENS entries BEFORE softening.
+	{ id: "background", label: "Background", group: "neutrals", format: "triplet", cssVar: "--background", baseTokenKey: "background" },
+	{ id: "card", label: "Card / Surface", group: "neutrals", format: "triplet", cssVar: "--card", baseTokenKey: "card" },
+	{ id: "muted", label: "Muted / Well", group: "neutrals", format: "triplet", cssVar: "--muted", baseTokenKey: "muted" },
+	{ id: "border", label: "Border", group: "neutrals", format: "triplet", cssVar: "--border", baseTokenKey: "border" },
+	{ id: "foreground", label: "Foreground", group: "neutrals", format: "triplet", cssVar: "--foreground", baseTokenKey: "foreground" },
+	{ id: "mutedForeground", label: "Muted Foreground", group: "neutrals", format: "triplet", cssVar: "--muted-foreground", baseTokenKey: "mutedForeground" },
+	// Editor — literal hex, set directly on the shell.
+	{ id: "editorBg", label: "Editor BG", group: "editor", format: "hex", cssVar: "--editor-bg" },
+	{ id: "editorFg", label: "Editor FG", group: "editor", format: "hex", cssVar: "--editor-fg" },
+	{ id: "editorLineNumber", label: "Line Number", group: "editor", format: "hex", cssVar: "--editor-line-number" },
+	// Accents — emitted directly (no softening); reserved diagnostics locked.
+	{ id: "traceOrchestration", label: "Orchestration", group: "accents", format: "triplet", cssVar: "--trace-orchestration" },
+	{ id: "traceUser", label: "User", group: "accents", format: "triplet", cssVar: "--trace-user" },
+	{ id: "traceAssistant", label: "Assistant", group: "accents", format: "triplet", cssVar: "--trace-assistant" },
+	{ id: "traceTool", label: "Tool", group: "accents", format: "triplet", cssVar: "--trace-tool" },
+	{ id: "traceLifecycle", label: "Lifecycle", group: "accents", format: "triplet", cssVar: "--trace-lifecycle" },
+	{ id: "statusWarning", label: "Warning", group: "accents", format: "triplet", cssVar: "--status-warning", reserved: true, reservedNote: "reserved · diagnostics" },
+	{ id: "statusError", label: "Error", group: "accents", format: "triplet", cssVar: "--destructive", reserved: true, reservedNote: "reserved · diagnostics" }
+];
+
+const COLOR_TOKENS_BY_ID: Record<string, ColorTokenDescriptor> = Object.fromEntries(
+	COLOR_TOKENS.map((token) => [token.id, token])
+);
+
+export function getColorToken(id: string): ColorTokenDescriptor | undefined {
+	return COLOR_TOKENS_BY_ID[id];
+}
+
+function clampChannel(value: number): number {
+	if (!Number.isFinite(value)) return 0;
+	return Math.min(255, Math.max(0, Math.round(value)));
+}
+
+/** Serialize an RGB triplet as an uppercase `#RRGGBB` hex string. */
+export function rgbToHex(rgb: Rgb): string {
+	return (
+		"#" +
+		[rgb[0], rgb[1], rgb[2]]
+			.map((channel) => clampChannel(channel).toString(16).padStart(2, "0"))
+			.join("")
+			.toUpperCase()
+	);
+}
+
+/**
+ * Parse `#RGB` / `#RRGGBB` (with or without the leading `#`, any case) into an
+ * RGB triplet. Returns null for anything malformed so callers can reject input.
+ */
+export function hexToRgb(input: string): Rgb | null {
+	if (typeof input !== "string") return null;
+	const trimmed = input.trim().replace(/^#/, "");
+	if (!/^[0-9a-fA-F]+$/.test(trimmed)) return null;
+	let expanded: string;
+	if (trimmed.length === 3) {
+		expanded = trimmed.split("").map((char) => char + char).join("");
+	} else if (trimmed.length === 6) {
+		expanded = trimmed;
+	} else {
+		return null;
+	}
+	const r = parseInt(expanded.slice(0, 2), 16);
+	const g = parseInt(expanded.slice(2, 4), 16);
+	const b = parseInt(expanded.slice(4, 6), 16);
+	return [r, g, b];
+}
+
+/** Normalize any accepted hex form to canonical `#RRGGBB`, or null if invalid. */
+export function normalizeHex(input: string): string | null {
+	const rgb = hexToRgb(input);
+	return rgb ? rgbToHex(rgb) : null;
+}
+
+/** `27 27 28` → `#1B1B1C`. Returns null if the triplet is malformed. */
+export function tripletToHex(input: string): string | null {
+	const parts = input.trim().split(/\s+/).map((part) => Number(part));
+	if (parts.length !== 3 || parts.some((part) => !Number.isFinite(part))) return null;
+	return rgbToHex([parts[0], parts[1], parts[2]]);
+}
+
+/** `#1B1B1C` → `27 27 28`. Returns null if the hex is malformed. */
+export function hexToTriplet(input: string): string | null {
+	const rgb = hexToRgb(input);
+	return rgb ? `${rgb[0]} ${rgb[1]} ${rgb[2]}` : null;
+}
+
+/** The shipped default color for a token, as canonical `#RRGGBB` hex. */
+export function colorTokenDefaultHex(token: ColorTokenDescriptor): string {
+	if (token.format === "hex") {
+		return normalizeHex(EDITOR_DEFAULTS[token.id as keyof typeof EDITOR_DEFAULTS]) ?? "#000000";
+	}
+	if (token.baseTokenKey) {
+		return rgbToHex(BASE_TOKENS[token.baseTokenKey]);
+	}
+	return rgbToHex(ACCENT_DEFAULTS[token.id as keyof typeof ACCENT_DEFAULTS]);
+}
+
+/** The effective (override-or-default) color for a token, as `#RRGGBB` hex. */
+export function colorTokenEffectiveHex(token: ColorTokenDescriptor, overrides: ColorOverrides): string {
+	const override = overrides[token.id];
+	if (override) {
+		const normalized = normalizeHex(override);
+		if (normalized) return normalized;
+	}
+	return colorTokenDefaultHex(token);
+}
+
+/**
+ * The value to write into a token's CSS custom property: a triplet string for
+ * neutrals/accents, a hex string for editor tokens.
+ */
+export function colorTokenCssValue(token: ColorTokenDescriptor, hex: string): string {
+	if (token.format === "triplet") {
+		return hexToTriplet(hex) ?? hex;
+	}
+	return normalizeHex(hex) ?? hex;
+}
 
 function clampNumber(value: unknown, min: number, max: number, fallback: number): number {
 	const numeric = typeof value === "number" ? value : Number(value);
@@ -277,6 +467,27 @@ function normalizeTraceIconSettings(input: unknown): TraceIconSettings {
 	};
 }
 
+function isStylePanelTab(value: unknown): value is StylePanelTab {
+	return STYLE_PANEL_TAB_OPTIONS.some((option) => option.id === value);
+}
+
+/**
+ * Keep only known token ids with valid, canonicalized hex values. Unknown ids
+ * and malformed values are dropped so persisted state can never poison the UI.
+ */
+export function normalizeColorOverrides(input: unknown): ColorOverrides {
+	if (!input || typeof input !== "object") return {};
+	const source = input as Record<string, unknown>;
+	const result: ColorOverrides = {};
+	for (const token of COLOR_TOKENS) {
+		const raw = source[token.id];
+		if (typeof raw !== "string") continue;
+		const normalized = normalizeHex(raw);
+		if (normalized) result[token.id] = normalized;
+	}
+	return result;
+}
+
 export function normalizeResearchStyleSettings(input: ResearchStyleSettingsPatch | Record<string, unknown>): ResearchStyleSettings {
 	const source = input && typeof input === "object" ? input as Record<string, unknown> : {};
 	return {
@@ -286,8 +497,32 @@ export function normalizeResearchStyleSettings(input: ResearchStyleSettingsPatch
 				? source.grain as Record<string, unknown>
 				: {}
 		),
-		traceIcons: normalizeTraceIconSettings(source.traceIcons)
+		traceIcons: normalizeTraceIconSettings(source.traceIcons),
+		colorOverrides: normalizeColorOverrides(source.colorOverrides),
+		activeTab: isStylePanelTab(source.activeTab) ? source.activeTab : DEFAULT_STYLE_PANEL_TAB
 	};
+}
+
+/**
+ * Fold a colorOverrides patch into the current map. A `null` patch clears every
+ * override (reset-all); otherwise each entry is merged, and an empty-string
+ * value removes that single token's override (per-token reset).
+ */
+export function mergeColorOverrides(
+	current: ColorOverrides,
+	patch: ColorOverrides | null | undefined
+): ColorOverrides {
+	if (patch === null) return {};
+	if (!patch) return current;
+	const next: ColorOverrides = { ...current };
+	for (const [id, value] of Object.entries(patch)) {
+		if (value === "") {
+			delete next[id];
+		} else {
+			next[id] = value;
+		}
+	}
+	return next;
 }
 
 export function mergeResearchStyleSettings(
@@ -305,7 +540,12 @@ export function mergeResearchStyleSettings(
 			svgNormal: { ...current.grain.svgNormal, ...(updates.grain?.svgNormal ?? {}) },
 			cssBevel: { ...current.grain.cssBevel, ...(updates.grain?.cssBevel ?? {}) }
 		},
-		traceIcons: { ...current.traceIcons, ...(updates.traceIcons ?? {}) }
+		traceIcons: { ...current.traceIcons, ...(updates.traceIcons ?? {}) },
+		colorOverrides:
+			"colorOverrides" in updates
+				? mergeColorOverrides(current.colorOverrides, updates.colorOverrides)
+				: current.colorOverrides,
+		activeTab: updates.activeTab ?? current.activeTab
 	});
 }
 
@@ -339,41 +579,76 @@ function token(rgb: Rgb): string {
 	return `${rgb[0]} ${rgb[1]} ${rgb[2]}`;
 }
 
+type BaseTokens = { [K in keyof typeof BASE_TOKENS]: Rgb };
+
+/**
+ * BASE_TOKENS with neutral picker overrides shadowed in — this is the pre-
+ * softening base the overlay mixes toward SOFT_TARGETS. Overriding `foreground`
+ * also drives `cardForeground` so body text stays a single color.
+ */
+export function effectiveBaseTokens(overrides: ColorOverrides): BaseTokens {
+	const next = { ...BASE_TOKENS } as BaseTokens;
+	for (const tokenDesc of COLOR_TOKENS) {
+		if (tokenDesc.group !== "neutrals" || !tokenDesc.baseTokenKey) continue;
+		const override = overrides[tokenDesc.id];
+		if (!override) continue;
+		const rgb = hexToRgb(override);
+		if (!rgb) continue;
+		next[tokenDesc.baseTokenKey] = rgb;
+		if (tokenDesc.baseTokenKey === "foreground") next.cardForeground = rgb;
+	}
+	return next;
+}
+
 export function researchStyleVars(settings: ResearchStyleSettings): CSSProperties {
 	const { background, borders, font, icons } = settings.grain.softening;
 	const backgroundMix = background * 0.1;
 	const borderMix = borders * 0.16;
 	const fontMix = font * 0.08;
 	const bevelStrength = settings.grain.cssBevel.enabled ? settings.grain.cssBevel.strength : 0;
+	const overrides = settings.colorOverrides;
+	const BASE = effectiveBaseTokens(overrides);
+
+	// Accent (trace-*/status) and editor tokens are not softened: emit the
+	// override straight onto its CSS var so it wins over the styles.css :root
+	// fallback. Untouched tokens are omitted, keeping the :root default live.
+	const accentVars: Record<string, string> = {};
+	for (const tokenDesc of COLOR_TOKENS) {
+		if (tokenDesc.group === "neutrals") continue;
+		const override = overrides[tokenDesc.id];
+		if (!override) continue;
+		accentVars[tokenDesc.cssVar] = colorTokenCssValue(tokenDesc, override);
+	}
 
 	return {
+		...accentVars,
 		"--research-layout-padding": `${settings.layout.framePadding}px`,
 		"--research-workspace-height": `calc(100vh - ${settings.layout.framePadding * 2}px)`,
 		"--research-workspace-min-height": `${settings.layout.workspaceMinHeight}px`,
 		"--research-header-height": `${settings.layout.headerHeight}px`,
-		"--background": token(mixRgb(BASE_TOKENS.background, SOFT_TARGETS.background, backgroundMix)),
-		"--card": token(mixRgb(BASE_TOKENS.card, SOFT_TARGETS.card, backgroundMix)),
-		"--card-foreground": token(mixRgb(BASE_TOKENS.cardForeground, SOFT_TARGETS.foreground, fontMix)),
-		"--muted": token(mixRgb(BASE_TOKENS.muted, SOFT_TARGETS.muted, backgroundMix)),
-		"--foreground": token(mixRgb(BASE_TOKENS.foreground, SOFT_TARGETS.foreground, fontMix)),
-		"--muted-foreground": token(mixRgb(BASE_TOKENS.mutedForeground, SOFT_TARGETS.mutedForeground, fontMix)),
-		"--border": token(mixRgb(BASE_TOKENS.border, SOFT_TARGETS.border, borderMix)),
-		"--input": token(mixRgb(BASE_TOKENS.border, SOFT_TARGETS.border, borderMix)),
-		"--trace-container": token(mixRgb(BASE_TOKENS.mutedForeground, SOFT_TARGETS.mutedForeground, fontMix)),
-		"--status-neutral-fill": token(mixRgb(BASE_TOKENS.statusNeutralFill, SOFT_TARGETS.muted, backgroundMix)),
-		"--status-neutral-border": token(mixRgb(BASE_TOKENS.statusNeutralBorder, SOFT_TARGETS.border, borderMix)),
-		"--status-success-fill": token(mixRgb(BASE_TOKENS.statusSuccessFill, SOFT_TARGETS.statusSuccessFill, backgroundMix)),
-		"--status-success-border": token(mixRgb(BASE_TOKENS.statusSuccessBorder, SOFT_TARGETS.statusSuccessBorder, borderMix)),
-		"--status-warning-fill": token(mixRgb(BASE_TOKENS.statusWarningFill, SOFT_TARGETS.statusWarningFill, backgroundMix)),
-		"--status-warning-border": token(mixRgb(BASE_TOKENS.statusWarningBorder, SOFT_TARGETS.statusWarningBorder, borderMix)),
-		"--status-info-fill": token(mixRgb(BASE_TOKENS.statusInfoFill, SOFT_TARGETS.statusInfoFill, backgroundMix)),
-		"--status-info-border": token(mixRgb(BASE_TOKENS.statusInfoBorder, SOFT_TARGETS.statusInfoBorder, borderMix)),
-		"--agentprism-background": token(mixRgb(BASE_TOKENS.background, SOFT_TARGETS.background, backgroundMix)),
-		"--agentprism-foreground": token(mixRgb(BASE_TOKENS.foreground, SOFT_TARGETS.foreground, fontMix)),
-		"--agentprism-muted": token(mixRgb(BASE_TOKENS.agentPrismMuted, SOFT_TARGETS.muted, backgroundMix)),
-		"--agentprism-muted-foreground": token(mixRgb(BASE_TOKENS.mutedForeground, SOFT_TARGETS.mutedForeground, fontMix)),
-		"--agentprism-border-subtle": token(mixRgb(BASE_TOKENS.agentPrismBorder, SOFT_TARGETS.border, borderMix)),
-		"--agentprism-code-base": token(mixRgb(BASE_TOKENS.agentPrismCodeBase, SOFT_TARGETS.mutedForeground, fontMix)),
+		"--background": token(mixRgb(BASE.background, SOFT_TARGETS.background, backgroundMix)),
+		"--card": token(mixRgb(BASE.card, SOFT_TARGETS.card, backgroundMix)),
+		"--card-foreground": token(mixRgb(BASE.cardForeground, SOFT_TARGETS.foreground, fontMix)),
+		"--muted": token(mixRgb(BASE.muted, SOFT_TARGETS.muted, backgroundMix)),
+		"--foreground": token(mixRgb(BASE.foreground, SOFT_TARGETS.foreground, fontMix)),
+		"--muted-foreground": token(mixRgb(BASE.mutedForeground, SOFT_TARGETS.mutedForeground, fontMix)),
+		"--border": token(mixRgb(BASE.border, SOFT_TARGETS.border, borderMix)),
+		"--input": token(mixRgb(BASE.border, SOFT_TARGETS.border, borderMix)),
+		"--trace-container": token(mixRgb(BASE.mutedForeground, SOFT_TARGETS.mutedForeground, fontMix)),
+		"--status-neutral-fill": token(mixRgb(BASE.statusNeutralFill, SOFT_TARGETS.muted, backgroundMix)),
+		"--status-neutral-border": token(mixRgb(BASE.statusNeutralBorder, SOFT_TARGETS.border, borderMix)),
+		"--status-success-fill": token(mixRgb(BASE.statusSuccessFill, SOFT_TARGETS.statusSuccessFill, backgroundMix)),
+		"--status-success-border": token(mixRgb(BASE.statusSuccessBorder, SOFT_TARGETS.statusSuccessBorder, borderMix)),
+		"--status-warning-fill": token(mixRgb(BASE.statusWarningFill, SOFT_TARGETS.statusWarningFill, backgroundMix)),
+		"--status-warning-border": token(mixRgb(BASE.statusWarningBorder, SOFT_TARGETS.statusWarningBorder, borderMix)),
+		"--status-info-fill": token(mixRgb(BASE.statusInfoFill, SOFT_TARGETS.statusInfoFill, backgroundMix)),
+		"--status-info-border": token(mixRgb(BASE.statusInfoBorder, SOFT_TARGETS.statusInfoBorder, borderMix)),
+		"--agentprism-background": token(mixRgb(BASE.background, SOFT_TARGETS.background, backgroundMix)),
+		"--agentprism-foreground": token(mixRgb(BASE.foreground, SOFT_TARGETS.foreground, fontMix)),
+		"--agentprism-muted": token(mixRgb(BASE.agentPrismMuted, SOFT_TARGETS.muted, backgroundMix)),
+		"--agentprism-muted-foreground": token(mixRgb(BASE.mutedForeground, SOFT_TARGETS.mutedForeground, fontMix)),
+		"--agentprism-border-subtle": token(mixRgb(BASE.agentPrismBorder, SOFT_TARGETS.border, borderMix)),
+		"--agentprism-code-base": token(mixRgb(BASE.agentPrismCodeBase, SOFT_TARGETS.mutedForeground, fontMix)),
 		"--style-bevel-depth": `${settings.grain.cssBevel.depth * bevelStrength}px`,
 		"--style-bevel-highlight-alpha": String(settings.grain.cssBevel.highlight * bevelStrength * 0.24),
 		"--style-bevel-shadow-alpha": String(settings.grain.cssBevel.shadow * bevelStrength * 0.32),
@@ -390,4 +665,36 @@ export function styleEffectClass(settings: ResearchStyleSettings): string {
 	return settings.grain.cssBevel.enabled && settings.grain.cssBevel.strength > 0
 		? "style-bevel-enabled"
 		: "";
+}
+
+/**
+ * Build a paste-ready CSS/TS block reflecting the EFFECTIVE base colors
+ * (defaults + overrides, pre-softening). Two sections, each under a one-line
+ * comment header saying where the lines belong:
+ *   1. styles.css :root — every picker token as its CSS custom property.
+ *   2. src/lib/style-settings.ts BASE_TOKENS — the neutral entries only
+ *      (accents/editor tokens don't live in BASE_TOKENS).
+ */
+export function buildColorExport(overrides: ColorOverrides): string {
+	const rootLines: string[] = [];
+	for (const tokenDesc of COLOR_TOKENS) {
+		const hex = colorTokenEffectiveHex(tokenDesc, overrides);
+		rootLines.push(`  ${tokenDesc.cssVar}: ${colorTokenCssValue(tokenDesc, hex)};`);
+	}
+
+	const base = effectiveBaseTokens(overrides);
+	const baseLines: string[] = [];
+	for (const tokenDesc of COLOR_TOKENS) {
+		if (tokenDesc.group !== "neutrals" || !tokenDesc.baseTokenKey) continue;
+		const rgb = base[tokenDesc.baseTokenKey];
+		baseLines.push(`  ${tokenDesc.baseTokenKey}: [${rgb[0]}, ${rgb[1]}, ${rgb[2]}],`);
+	}
+
+	return [
+		"/* → examples/simple-research-kernel/src/styles.css :root */",
+		...rootLines,
+		"",
+		"/* → examples/simple-research-kernel/src/lib/style-settings.ts BASE_TOKENS */",
+		...baseLines
+	].join("\n");
 }
