@@ -47,6 +47,14 @@ export interface AgentRegistry {
 	 * RegistryError when the on-disk document fails validation.
 	 */
 	reloadAgentPrompt(name: string): AgentDefinition;
+	/**
+	 * Re-read an agent's agent.json from disk, re-normalize + re-validate it
+	 * (schema shape, tool-profile expansion, spawner-target constraints), and
+	 * hot-swap the registry entry keeping the loaded prompt/context/tools
+	 * bindings (Phase 5 manifest edit). Throws RegistryError when the on-disk
+	 * manifest fails validation, leaving the cached entry intact.
+	 */
+	reloadAgentManifest(name: string): AgentDefinition;
 }
 
 export class RegistryError extends Error {

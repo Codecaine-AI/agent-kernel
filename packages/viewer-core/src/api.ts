@@ -29,6 +29,9 @@ export const KERNEL_CATALOG_PATHS = {
 	agentPrompt(name: string): string {
 		return `/kernel/catalog/agents/${encodeURIComponent(name)}/prompt`;
 	},
+	agentManifest(name: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/manifest`;
+	},
 	agentRevisions(name: string): string {
 		return `/kernel/catalog/agents/${encodeURIComponent(name)}/revisions`;
 	},

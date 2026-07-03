@@ -78,7 +78,10 @@ export {
 	PromptInlineLab,
 	type PromptInlineLabProps,
 	type PromptSaveOutcome,
+	type ManifestSaveOutcome,
+	type LabManifest,
 } from "./agent-viewer/PromptInlineLab";
+export type { LabContextPreview } from "./agent-viewer/PromptInlineLab/ContextSurface";
 export {
 	AgentPromptLabContainer,
 	type AgentPromptLabContainerProps,

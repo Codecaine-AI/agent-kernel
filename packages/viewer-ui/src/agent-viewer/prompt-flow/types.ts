@@ -7,8 +7,6 @@ import type {
 	PromptStep,
 } from "@codecaine-ai/prompt-kit/ui";
 
-export type PromptFlowMode = "sections" | "xml";
-
 /**
  * Change callback contract: block edits are produced through the prompt-kit
  * *WithStep editor wrappers and pass their steps alongside the resulting

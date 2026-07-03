@@ -120,6 +120,7 @@ beforeEach(async () => {
 		registry: async () => registry,
 		db: () => handle.db,
 		allowWrites: true,
+		modelAliases: () => ["fast", "smart"],
 	});
 	app = createKernelCatalogApi(service);
 });
@@ -180,6 +181,7 @@ describe("GET /kernel/catalog/agents/:name", () => {
 		expect(body.rendered).toContain("<purpose>");
 		expect(body.rendered).toContain("You are the catalog test agent.");
 		expect(body.declaredVariables).toEqual(["focus"]);
+		expect(body.modelAliases).toEqual(["fast", "smart"]);
 	});
 
 	test("404 for an agent that is not in the registry", async () => {
@@ -275,6 +277,118 @@ describe("PUT /kernel/catalog/agents/:name/prompt", () => {
 		const response = await putPrompt(readOnly, AGENT_NAME, makePromptDocument(["edit"]));
 		expect(response.status).toBe(403);
 		expect(readFileSync(join(agentDir, "prompt.json"), "utf8")).toBe(originalCanonical);
+	});
+});
+
+function putManifest(
+	target: ReturnType<typeof createKernelCatalogApi>,
+	name: string,
+	patch: unknown,
+) {
+	return target.handle(
+		new Request(url(`/kernel/catalog/agents/${name}/manifest`), {
+			method: "PUT",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify(patch),
+		}),
+	);
+}
+
+describe("PUT /kernel/catalog/agents/:name/manifest", () => {
+	test("happy path: rewrites agent.json (tab-indented) + hot-swaps registry", async () => {
+		const response = await putManifest(app, AGENT_NAME, {
+			description: "Revised description.",
+			model: "revised-model",
+		});
+		const body = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(body.manifest.description).toBe("Revised description.");
+		expect(body.manifest.model).toBe("revised-model");
+
+		// agent.json was rewritten preserving the tab-indented + trailing-newline
+		// convention, and fields we did not touch survive verbatim.
+		const onDisk = readFileSync(join(agentDir, "agent.json"), "utf8");
+		expect(onDisk).toBe(
+			`${JSON.stringify({ ...manifest, description: "Revised description.", model: "revised-model" }, null, "\t")}\n`,
+		);
+
+		// The in-memory registry entry was hot-swapped — description/model on the
+		// runtime config reflect the edit without a restart.
+		const def = registry.get(AGENT_NAME);
+		expect(def.manifest.description).toBe("Revised description.");
+		expect(def.manifest.model).toBe("revised-model");
+		expect(def.parsed.config.model).toBe("revised-model");
+
+		// A subsequent GET serves the new manifest values.
+		const detail = await (
+			await app.handle(new Request(url(`/kernel/catalog/agents/${AGENT_NAME}`)))
+		).json();
+		expect(detail.manifest.description).toBe("Revised description.");
+		expect(detail.manifest.model).toBe("revised-model");
+	});
+
+	test("partial patch: description only leaves model unchanged", async () => {
+		const response = await putManifest(app, AGENT_NAME, { description: "Only desc." });
+		const body = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(body.manifest.description).toBe("Only desc.");
+		expect(body.manifest.model).toBe(manifest.model);
+		expect(registry.get(AGENT_NAME).manifest.model).toBe(manifest.model);
+	});
+
+	test("invalid model (empty string): 400 with errors, file untouched", async () => {
+		const before = readFileSync(join(agentDir, "agent.json"), "utf8");
+		const response = await putManifest(app, AGENT_NAME, { model: "" });
+		const body = await response.json();
+
+		expect(response.status).toBe(400);
+		expect(Array.isArray(body.errors)).toBe(true);
+		expect(body.errors.join("\n")).toContain("model");
+
+		expect(readFileSync(join(agentDir, "agent.json"), "utf8")).toBe(before);
+		expect(registry.get(AGENT_NAME).manifest.model).toBe(manifest.model);
+	});
+
+	test("non-string description: 400 with errors, file untouched", async () => {
+		const before = readFileSync(join(agentDir, "agent.json"), "utf8");
+		const response = await putManifest(app, AGENT_NAME, { description: 42 });
+		const body = await response.json();
+
+		expect(response.status).toBe(400);
+		expect(Array.isArray(body.errors)).toBe(true);
+		expect(readFileSync(join(agentDir, "agent.json"), "utf8")).toBe(before);
+	});
+
+	test("unknown editable field: 400 with errors, file untouched", async () => {
+		const before = readFileSync(join(agentDir, "agent.json"), "utf8");
+		const response = await putManifest(app, AGENT_NAME, { name: "renamed" });
+		const body = await response.json();
+
+		expect(response.status).toBe(400);
+		expect(body.errors.join("\n")).toContain("name");
+		expect(readFileSync(join(agentDir, "agent.json"), "utf8")).toBe(before);
+	});
+
+	test("unknown agent: 404", async () => {
+		const response = await putManifest(app, "no-such-agent", { model: "x" });
+		expect(response.status).toBe(404);
+	});
+
+	test("write gate: 403 when allowWrites is false, file untouched", async () => {
+		const before = readFileSync(join(agentDir, "agent.json"), "utf8");
+		const readOnly = createKernelCatalogApi(
+			createKernelCatalogService({
+				registry: async () => registry,
+				db: () => handle.db,
+				allowWrites: false,
+			}),
+		);
+
+		const response = await putManifest(readOnly, AGENT_NAME, { model: "x" });
+		expect(response.status).toBe(403);
+		expect(readFileSync(join(agentDir, "agent.json"), "utf8")).toBe(before);
 	});
 });
 

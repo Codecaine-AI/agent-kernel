@@ -27,7 +27,29 @@ export interface CatalogAgentDetail {
 	promptHash: string;
 	rendered: string;
 	declaredVariables: string[];
+	/** Model alias keys (models.aliases config) — datalist suggestions for the model field. */
+	modelAliases: string[];
 }
+
+/** Body of `PUT /kernel/catalog/agents/:name/manifest`. */
+export interface CatalogManifestPatch {
+	description?: string;
+	model?: string;
+}
+
+/** 200 body of `PUT /kernel/catalog/agents/:name/manifest`. */
+export interface CatalogManifestSaveSuccess {
+	manifest: Record<string, unknown>;
+}
+
+/** 400 body of `PUT /kernel/catalog/agents/:name/manifest`. */
+export interface CatalogManifestSaveFailure {
+	errors: string[];
+}
+
+export type CatalogManifestSaveResult =
+	| CatalogManifestSaveSuccess
+	| CatalogManifestSaveFailure;
 
 /** 200 body of `PUT /kernel/catalog/agents/:name/prompt`. */
 export interface CatalogPromptSaveSuccess {

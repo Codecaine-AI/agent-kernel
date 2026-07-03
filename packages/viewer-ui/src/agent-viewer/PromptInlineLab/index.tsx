@@ -1,6 +1,7 @@
 "use client";
 
-// The prompt lab: split editor/inspector layout with undo/redo history + save state.
+// The prompt lab shell: LEFT is the pure editor surface (or the read-only
+// context surface); RIGHT is a stacked sidebar — AGENT, VIEW, PROMPT, DETAILS.
 
 import cn from "classnames";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -9,14 +10,26 @@ import { createPromptEditorModel, type PromptStep } from "@codecaine-ai/prompt-k
 import { estimateTokenCount } from "tokenx";
 
 import { PromptFlowInspector } from "../prompt-flow/PromptFlowInspector";
-import { PromptFlowSections } from "../prompt-flow/PromptFlowSections";
 import { PromptFlowXml } from "../prompt-flow/PromptFlowXml";
-import type { PromptFlowMode } from "../prompt-flow/types";
 import { createPromptLabHistory } from "../prompt-lab-history";
+import { AgentZone } from "./AgentZone";
+import { ContextSurface, type LabContextPreview } from "./ContextSurface";
 import { DiagnosticsFooter } from "./DiagnosticsFooter";
 import { PinnedChrome } from "./PinnedChrome";
+import { ViewZone, type LabView } from "./ViewZone";
 
 export type PromptSaveOutcome = { hash: string } | { errors: string[] };
+export type ManifestSaveOutcome = { ok: true } | { errors: string[] };
+
+/** AGENT-zone manifest fields surfaced + editable in the sidebar. */
+export interface LabManifest {
+	name: string;
+	model: string;
+	description: string;
+	modelAliases: string[];
+	/** When false the AGENT-zone inputs are read-only (no save endpoint). */
+	editable: boolean;
+}
 
 export interface PromptInlineLabProps {
 	prompt: PromptDocument;
@@ -25,14 +38,19 @@ export interface PromptInlineLabProps {
 	className?: string;
 	onDraftChange?: (prompt: PromptDocument) => void;
 	/**
-	 * Persists the current draft. On `{ hash }` the draft becomes the new
-	 * saved baseline (undo history survives the boundary); on `{ errors }`
-	 * the messages render in the diagnostics footer. The lab never fetches —
-	 * hosts wire this to the catalog write API (see AgentPromptLabContainer).
+	 * Persists the current prompt draft. On `{ hash }` the draft becomes the
+	 * new saved baseline (undo history survives); on `{ errors }` the messages
+	 * render in the diagnostics footer. The lab never fetches.
 	 */
 	onSave?: (doc: PromptDocument) => Promise<PromptSaveOutcome>;
-	/** Content hash of the currently saved revision, shown as a chip. */
+	/** Content hash of the currently saved prompt revision, shown as a chip. */
 	savedHash?: string;
+	/** AGENT-zone manifest data (name/model/description + alias suggestions). */
+	manifest?: LabManifest;
+	/** Persists AGENT-zone edits (model/description). */
+	onManifestSave?: (patch: { model: string; description: string }) => Promise<ManifestSaveOutcome>;
+	/** Read-only context preview shown when the VIEW zone selects CONTEXT. */
+	context?: LabContextPreview;
 }
 
 export function PromptInlineLab({
@@ -43,17 +61,24 @@ export function PromptInlineLab({
 	onDraftChange,
 	onSave,
 	savedHash,
+	manifest,
+	onManifestSave,
+	context,
 }: PromptInlineLabProps) {
 	const [history, setHistory] = useState(() => createPromptLabHistory(prompt));
 	const [editVersion, setEditVersion] = useState(0);
 	const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>(undefined);
-	// Agent XML is the primary editing surface: it is shaped like what the
-	// agent actually receives. Sections is the secondary, human-convenience
-	// arrangement of the same blocks.
-	const [mode, setMode] = useState<PromptFlowMode>("xml");
 	const [saving, setSaving] = useState(false);
 	const [saveErrors, setSaveErrors] = useState<string[]>([]);
 	const [currentSavedHash, setCurrentSavedHash] = useState(savedHash);
+	const [view, setView] = useState<LabView>("system");
+
+	// AGENT-zone local edit state (model/description), reset when the source
+	// manifest identity changes.
+	const [model, setModel] = useState(manifest?.model ?? "");
+	const [description, setDescription] = useState(manifest?.description ?? "");
+	const [manifestSaving, setManifestSaving] = useState(false);
+	const [manifestError, setManifestError] = useState<string | undefined>(undefined);
 
 	const bump = useCallback(() => setEditVersion((version) => version + 1), []);
 
@@ -67,12 +92,18 @@ export function PromptInlineLab({
 		setCurrentSavedHash(savedHash);
 	}, [savedHash]);
 
+	useEffect(() => {
+		setModel(manifest?.model ?? "");
+		setDescription(manifest?.description ?? "");
+		setManifestError(undefined);
+	}, [manifest?.name, manifest?.model, manifest?.description]);
+
 	// history.current() builds a fresh object; key the memo on the edit
-	// version so the model (and the prompt identity handed to views) is
-	// stable between edits.
+	// version so the model (and prompt identity handed to views) stays stable
+	// between edits.
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const draftPrompt = useMemo(() => history.current(), [history, editVersion]);
-	const model = useMemo(
+	const model_ = useMemo(
 		() =>
 			createPromptEditorModel(draftPrompt, {
 				selectedNodeId,
@@ -83,13 +114,18 @@ export function PromptInlineLab({
 	);
 
 	const dirty = history.isDirty();
-	const diagnostics = model.validation.diagnostics;
+	const diagnostics = model_.validation.diagnostics;
 	const errorCount = diagnostics.filter((diagnostic) => diagnostic.severity === "error").length;
 	const warningCount = diagnostics.filter((diagnostic) => diagnostic.severity === "warning").length;
-	const tokenCount = useMemo(() => estimateTokenCount(model.rendered), [model.rendered]);
+	const tokenCount = useMemo(() => estimateTokenCount(model_.rendered), [model_.rendered]);
 	const explicitSelectedEntry = selectedNodeId
-		? model.tree.find((entry) => entry.id === selectedNodeId)
+		? model_.tree.find((entry) => entry.id === selectedNodeId)
 		: undefined;
+
+	const manifestDirty = Boolean(
+		manifest && (model !== manifest.model || description !== manifest.description),
+	);
+	const inContext = view === "context";
 
 	function handlePromptChange(
 		nextPrompt: PromptDocument,
@@ -100,8 +136,6 @@ export function PromptInlineLab({
 		if (steps) {
 			changed = steps.length > 0 && history.commitSteps(steps);
 		} else {
-			// Stepless calls carry document-metadata edits only (see
-			// PromptFlowChangeHandler); node changes always arrive as steps.
 			changed = history.commitMeta({
 				title: nextPrompt.title,
 				description: nextPrompt.description,
@@ -153,9 +187,26 @@ export function PromptInlineLab({
 		}
 	}
 
+	async function handleManifestSave() {
+		if (!onManifestSave || manifestSaving || !manifestDirty) return;
+		setManifestSaving(true);
+		setManifestError(undefined);
+		try {
+			const outcome = await onManifestSave({ model, description });
+			if (!("ok" in outcome)) {
+				setManifestError(outcome.errors.join("; "));
+			}
+		} catch (error) {
+			setManifestError(error instanceof Error ? error.message : "Save failed");
+		} finally {
+			setManifestSaving(false);
+		}
+	}
+
 	function handleKeyDown(event: React.KeyboardEvent<HTMLElement>) {
 		const mod = event.metaKey || event.ctrlKey;
 		if (!mod || event.key.toLowerCase() !== "z") return;
+		if (inContext) return;
 		event.preventDefault();
 		if (event.shiftKey) redo();
 		else undo();
@@ -167,22 +218,15 @@ export function PromptInlineLab({
 			className={cn("@container flex h-full min-h-0 flex-1 flex-col bg-card font-mono", className)}
 		>
 			<div className="flex min-h-0 flex-1 overflow-hidden">
-				{/* Left column is exclusively the editor surface — gutter + lines,
-				    full height, no competing chrome. */}
+				{/* LEFT: the editor surface — nothing else. In context view the
+				    read-only context surface takes its place. */}
 				<div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-					{mode === "sections" ? (
-						<PromptFlowSections
-							prompt={model.prompt}
-							model={model}
-							selectedEntry={explicitSelectedEntry}
-							selectedNodeId={selectedNodeId}
-							onSelectNode={setSelectedNodeId}
-							onPromptChange={handlePromptChange}
-						/>
+					{inContext ? (
+						<ContextSurface context={context} />
 					) : (
 						<PromptFlowXml
-							prompt={model.prompt}
-							model={model}
+							prompt={model_.prompt}
+							model={model_}
 							selectedEntry={explicitSelectedEntry}
 							selectedNodeId={selectedNodeId}
 							onSelectNode={setSelectedNodeId}
@@ -191,14 +235,28 @@ export function PromptInlineLab({
 					)}
 				</div>
 
-				{/* Right column: a PINNED chrome zone (status + controls) above the
-				    inspector, which scrolls beneath it. All the editor chrome that
-				    used to sit atop the editor now lives here so the editor stays
-				    pure. */}
+				{/* RIGHT: sidebar — AGENT, VIEW, PROMPT zones (pinned) above the
+				    DETAILS inspector (scrolls beneath). */}
 				<div className="flex w-72 shrink-0 flex-col border-l border-border bg-card @[72rem]:w-80">
+					{manifest && (
+						<AgentZone
+							name={manifest.name}
+							model={model}
+							description={description}
+							modelAliases={manifest.modelAliases}
+							dirty={manifestDirty}
+							saving={manifestSaving}
+							canSave={manifest.editable && Boolean(onManifestSave)}
+							onModelChange={setModel}
+							onDescriptionChange={setDescription}
+							onSave={() => void handleManifestSave()}
+							error={manifestError}
+						/>
+					)}
+
+					<ViewZone view={view} onViewChange={setView} />
+
 					<PinnedChrome
-						mode={mode}
-						onMode={setMode}
 						dirty={dirty}
 						errorCount={errorCount}
 						warningCount={warningCount}
@@ -208,21 +266,23 @@ export function PromptInlineLab({
 						canRedo={history.canRedo()}
 						saving={saving}
 						hasSave={Boolean(onSave)}
+						disabled={inContext}
 						onUndo={undo}
 						onRedo={redo}
 						onReset={resetDraft}
 						onSave={() => void handleSave()}
 					/>
+
 					<PromptFlowInspector
-						prompt={model.prompt}
-						model={model}
+						prompt={model_.prompt}
+						model={model_}
 						selectedEntry={explicitSelectedEntry}
 						onPromptChange={handlePromptChange}
 					/>
 				</div>
 			</div>
 
-			<DiagnosticsFooter diagnostics={diagnostics} saveErrors={saveErrors} />
+			<DiagnosticsFooter diagnostics={inContext ? [] : diagnostics} saveErrors={saveErrors} />
 		</section>
 	);
 }

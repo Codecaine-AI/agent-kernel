@@ -7,6 +7,7 @@
  *   GET  <prefix>/catalog/agents                       registry listing
  *   GET  <prefix>/catalog/agents/:name                 manifest + prompt + validation
  *   PUT  <prefix>/catalog/agents/:name/prompt          body: PromptDocument
+ *   PUT  <prefix>/catalog/agents/:name/manifest        body: { description?, model? }
  *   GET  <prefix>/catalog/agents/:name/revisions       history (hash, source, date)
  *   GET  <prefix>/catalog/agents/:name/revisions/:hash/stats
  *
@@ -83,6 +84,31 @@ export function createKernelCatalogApi(
 				console.error("Error saving kernel catalog prompt:", error);
 				set.status = 500;
 				return { error: "Failed to save kernel catalog prompt" };
+			}
+		})
+		.put(`${prefix}/catalog/agents/:name/manifest`, async ({ params, body, set }) => {
+			if (!allowWrites) {
+				set.status = 403;
+				return {
+					error:
+						"Catalog writes are disabled — the kernel is not running in dev mode",
+				};
+			}
+			try {
+				const result = await service.saveManifest(params.name, body);
+				if (result === null) {
+					set.status = 404;
+					return { error: `Agent ${params.name} not found in catalog` };
+				}
+				if (!result.ok) {
+					set.status = 400;
+					return { errors: result.errors };
+				}
+				return { manifest: result.manifest };
+			} catch (error) {
+				console.error("Error saving kernel catalog manifest:", error);
+				set.status = 500;
+				return { error: "Failed to save kernel catalog manifest" };
 			}
 		})
 		.get(`${prefix}/catalog/agents/:name/revisions`, async ({ params, set }) => {

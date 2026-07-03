@@ -1,15 +1,16 @@
 "use client";
 
-// Composition root: agent list/grouping, three-panel layout, and view-mode state wiring.
+// Composition root: the agent list/grouping (navigation) beside the prompt
+// lab shell (editor + AGENT/VIEW/PROMPT/DETAILS sidebar) for the selected
+// agent. The catalog/lab split collapsed into a single surface.
 
 import cn from "classnames";
 import { useMemo, useState, type ReactNode } from "react";
 
+import { AgentPromptLabContainer } from "../AgentPromptLabContainer";
+import type { LabContextPreview } from "../PromptInlineLab/ContextSurface";
 import type { AgentViewerDefinition } from "../types";
-import { AgentDetail } from "./AgentDetail";
-import { AgentInspectorSidebar } from "./AgentInspectorSidebar";
 import { Led, Panel } from "./primitives";
-import type { FontScale, Form, Scope, SidebarTab } from "./shared";
 
 const GROUP_ORDER = ["intake", "spec", "plan", "build", "docs", "research", "other"] as const;
 const GROUP_LABEL: Record<string, string> = {
@@ -24,6 +25,8 @@ const GROUP_LABEL: Record<string, string> = {
 
 export interface AgentCatalogViewerProps {
 	agents: AgentViewerDefinition[];
+	/** Kernel API origin for the catalog read/write endpoints (defaults to ""). */
+	baseUrl?: string;
 	selectedName?: string | null;
 	onSelectedNameChange?: (name: string) => void;
 	className?: string;
@@ -58,18 +61,24 @@ function groupAgents(agents: AgentViewerDefinition[]) {
 	return ordered;
 }
 
+function contextPreviewFor(agent: AgentViewerDefinition): LabContextPreview | undefined {
+	if (!agent.context) return undefined;
+	return {
+		renderedContext: agent.context.renderedContext,
+		inputs: agent.context.inputs,
+		modulePath: agent.context.modulePath ?? agent.contextModulePath,
+	};
+}
+
 export function AgentCatalogViewer({
 	agents,
+	baseUrl = "",
 	selectedName,
 	onSelectedNameChange,
 	className,
 	emptyState,
 }: AgentCatalogViewerProps) {
 	const [internalSelectedName, setInternalSelectedName] = useState<string | null>(null);
-	const [scope, setScope] = useState<Scope>("system");
-	const [form, setForm] = useState<Form>("rendered");
-	const [sidebarTab, setSidebarTab] = useState<SidebarTab>("files");
-	const [fontScale, setFontScale] = useState<FontScale>("small");
 	const grouped = useMemo(() => groupAgents(agents), [agents]);
 	const effectiveSelectedName = selectedName ?? internalSelectedName ?? agents[0]?.name ?? null;
 	const selectedAgent = agents.find((agent) => agent.name === effectiveSelectedName) ?? agents[0] ?? null;
@@ -94,7 +103,7 @@ export function AgentCatalogViewer({
 
 	return (
 		<div className={cn("@container flex min-h-0 w-full gap-3 font-mono", className)}>
-			{/* ── Catalog ─────────────────────────────────────────── */}
+			{/* ── Catalog navigation ──────────────────────────────── */}
 			<Panel className="w-60 shrink-0">
 				<div className="min-h-0 flex-1 overflow-auto">
 					<div className="flex flex-col gap-2 p-2">
@@ -143,22 +152,15 @@ export function AgentCatalogViewer({
 				</div>
 			</Panel>
 
-			{/* ── Detail ──────────────────────────────────────────── */}
+			{/* ── Lab shell ───────────────────────────────────────── */}
 			<Panel className="min-w-0 flex-1">
-				<AgentDetail
-					agent={selectedAgent}
-					scope={scope}
-					onScopeChange={setScope}
-					form={form}
-					onFormChange={setForm}
-					fontScale={fontScale}
-					onFontScaleChange={setFontScale}
+				<AgentPromptLabContainer
+					key={selectedAgent.name}
+					baseUrl={baseUrl}
+					agentName={selectedAgent.name}
+					context={contextPreviewFor(selectedAgent)}
+					className="h-full"
 				/>
-			</Panel>
-
-			{/* ── Inspector ───────────────────────────────────────── */}
-			<Panel className="hidden w-[30rem] shrink-0 @[78rem]:flex">
-				<AgentInspectorSidebar agent={selectedAgent} tab={sidebarTab} onTabChange={setSidebarTab} />
 			</Panel>
 		</div>
 	);

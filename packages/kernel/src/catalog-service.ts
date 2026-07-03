@@ -20,7 +20,7 @@
  * Local-dev trust model: the save path mutates catalog files on disk, so a
  * service is read-only unless created with `allowWrites: true`.
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import {
@@ -41,6 +41,7 @@ import {
 	RegistryError,
 	type AgentRegistry,
 } from "./agent-registry";
+import { validateAgentManifestShape } from "./agent-definition";
 
 /** One row of `GET .../catalog/agents`. */
 export interface KernelCatalogAgentSummary {
@@ -59,6 +60,14 @@ export interface KernelCatalogAgentDetail {
 	promptHash: string;
 	rendered: string;
 	declaredVariables: string[];
+	/** Model alias keys from the kernel's models.aliases config (datalist suggestions). */
+	modelAliases: string[];
+}
+
+/** Partial manifest patch accepted by `PUT .../catalog/agents/:name/manifest`. */
+export interface KernelCatalogManifestPatch {
+	description?: string;
+	model?: string;
 }
 
 /** One row of `GET .../catalog/agents/:name/revisions`. */
@@ -72,6 +81,10 @@ export type KernelCatalogPromptSaveResult =
 	| { ok: true; hash: string }
 	| { ok: false; errors: string[] };
 
+export type KernelCatalogManifestSaveResult =
+	| { ok: true; manifest: Record<string, unknown> }
+	| { ok: false; errors: string[] };
+
 export interface KernelCatalogService {
 	/** Dev-mode write gate: the PUT route answers 403 when false. */
 	readonly allowWrites: boolean;
@@ -83,6 +96,11 @@ export interface KernelCatalogService {
 		name: string,
 		document: unknown,
 	): Promise<KernelCatalogPromptSaveResult | null>;
+	/** null when the agent is not in the registry. */
+	saveManifest(
+		name: string,
+		patch: unknown,
+	): Promise<KernelCatalogManifestSaveResult | null>;
 	/** null when the agent is not in the registry. */
 	listRevisions(name: string): Promise<KernelCatalogRevisionSummary[] | null>;
 	/** null when the agent is not in the registry. */
@@ -99,6 +117,12 @@ export interface CreateKernelCatalogServiceOptions {
 	db: () => KernelDatabase;
 	/** Enable the prompt save path (mutates catalog files). Default false. */
 	allowWrites?: boolean;
+	/**
+	 * Model alias keys from the kernel's models.aliases config — surfaced on
+	 * agent detail as datalist suggestions for the manifest model field. The
+	 * accessor lets the kernel thread its live config without a dependency.
+	 */
+	modelAliases?: () => string[];
 }
 
 /**
@@ -115,10 +139,15 @@ export function renderedPromptSnapshot(body: string): string {
 	return `${RENDERED_SNAPSHOT_HEADER}${body.endsWith("\n") ? body : `${body}\n`}`;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 export function createKernelCatalogService(
 	opts: CreateKernelCatalogServiceOptions,
 ): KernelCatalogService {
 	const allowWrites = opts.allowWrites ?? false;
+	const modelAliases = opts.modelAliases ?? (() => []);
 
 	return {
 		allowWrites,
@@ -146,6 +175,7 @@ export function createKernelCatalogService(
 				promptHash: def.promptHash,
 				rendered: def.parsed.body,
 				declaredVariables: Object.keys(def.manifest.variables),
+				modelAliases: modelAliases(),
 			};
 		},
 
@@ -195,6 +225,72 @@ export function createKernelCatalogService(
 			registry.reloadAgentPrompt(name);
 
 			return { ok: true, hash };
+		},
+
+		async saveManifest(name, input) {
+			const registry = await opts.registry();
+			const def = registry.tryGet(name);
+			if (!def) return null;
+
+			// Shape-check the partial patch before touching disk.
+			if (!isPlainObject(input)) {
+				return { ok: false, errors: ["manifest patch: expected an object"] };
+			}
+			const patch = input as Record<string, unknown>;
+			const errors: string[] = [];
+			for (const key of Object.keys(patch)) {
+				if (key !== "description" && key !== "model") {
+					errors.push(`manifest patch.${key}: only description and model are editable`);
+				}
+			}
+			if (patch.description !== undefined && typeof patch.description !== "string") {
+				errors.push("manifest patch.description: expected a string");
+			}
+			if (patch.model !== undefined && typeof patch.model !== "string") {
+				errors.push("manifest patch.model: expected a string");
+			}
+			if (errors.length > 0) return { ok: false, errors };
+
+			// Re-read the raw agent.json (source of truth for formatting) and
+			// merge the patch, so fields we don't edit ($schema, variants, …)
+			// are preserved verbatim.
+			let onDisk: Record<string, unknown>;
+			try {
+				const parsed = JSON.parse(readFileSync(def.manifestFile, "utf8"));
+				if (!isPlainObject(parsed)) {
+					return { ok: false, errors: ["agent.json: expected an object"] };
+				}
+				onDisk = parsed;
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : String(err);
+				return { ok: false, errors: [`agent.json parse error: ${msg}`] };
+			}
+
+			const merged: Record<string, unknown> = { ...onDisk };
+			if (patch.description !== undefined) merged.description = patch.description;
+			if (patch.model !== undefined) merged.model = patch.model;
+
+			// Validate the MERGED manifest against the shared schema shape.
+			const shape = validateAgentManifestShape(merged);
+			if (!shape.valid) return { ok: false, errors: shape.errors };
+
+			// Rewrite agent.json preserving the tab-indented convention, then
+			// hot-swap the registry entry. reloadAgentManifest re-normalizes and
+			// re-validates (spawner targets / tool profiles); on failure it
+			// throws RegistryError and the on-disk file has already been written,
+			// so guard the write behind a successful reload by writing first and
+			// reverting on reload failure.
+			const previous = readFileSync(def.manifestFile, "utf8");
+			writeFileSync(def.manifestFile, `${JSON.stringify(merged, null, "\t")}\n`, "utf8");
+			try {
+				registry.reloadAgentManifest(name);
+			} catch (err) {
+				writeFileSync(def.manifestFile, previous, "utf8");
+				if (err instanceof RegistryError) return { ok: false, errors: err.violations };
+				throw err;
+			}
+
+			return { ok: true, manifest: merged };
 		},
 
 		async listRevisions(name) {

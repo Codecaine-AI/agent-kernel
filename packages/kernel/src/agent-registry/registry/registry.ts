@@ -431,6 +431,78 @@ export async function buildRegistry(
 			defs.set(name, next);
 			return next;
 		},
+		reloadAgentManifest(name: string): AgentDefinition {
+			const current = defs.get(name);
+			if (!current) throw new Error(`Agent not found in registry: ${name}`);
+
+			// Re-read + re-validate the manifest from disk (shape check first).
+			const manifest = loadManifest(current.manifestFile);
+			if (manifest.name !== current.name) {
+				throw new RegistryError(current.manifestFile, [
+					`manifest.name: hot-reload cannot rename an agent (was "${current.name}", got "${manifest.name}")`,
+				]);
+			}
+
+			// Re-expand tool profiles against the boot-time profile map, then
+			// re-validate the prompt against the (possibly changed) declared
+			// variables. Both throw RegistryError on failure — the cached entry
+			// is left untouched because we only swap defs after all checks pass.
+			const profileTools = expandToolProfiles(manifest, toolProfiles, current.manifestFile);
+			const promptState = buildAgentPromptState(
+				manifest,
+				current.promptDocument,
+				current.manifestFile,
+			);
+
+			// Re-validate spawner targets against the current catalog (D77):
+			// non-wildcard targets must still resolve to a registered agent.
+			const spawnerViolations: string[] = [];
+			for (const [toolName, spawns] of Object.entries(current.spawnerTools)) {
+				for (const target of spawns) {
+					if (target === SPAWNER_WILDCARD) continue;
+					if (!defs.has(target)) {
+						spawnerViolations.push(
+							`spawner tool "${toolName}" targets unknown agent "${target}"`,
+						);
+					}
+				}
+			}
+			if (spawnerViolations.length > 0) {
+				throw new RegistryError(current.manifestFile, spawnerViolations);
+			}
+
+			// Prompt/context/tools bindings survive: private tool names + core
+			// tools recompute from the new manifest, keeping the harvested set.
+			const tools = [
+				...new Set([...manifest.coreTools, ...profileTools, ...current.privateToolNames]),
+			];
+			const next: AgentDefinition = {
+				...current,
+				manifest,
+				coreTools: manifest.coreTools,
+				promptHash: promptState.promptHash,
+				parsed: {
+					...current.parsed,
+					config: {
+						...current.parsed.config,
+						description: manifest.description,
+						model: manifest.model,
+						tools,
+						disallowedTools: manifest.disallowedTools,
+						extensions: manifest.extensions,
+						variables: manifest.variables,
+						maxTurns: manifest.maxTurns,
+						runInBackground: manifest.runInBackground,
+						thinking: manifest.thinking,
+					},
+					body: promptState.body,
+					promptHash: promptState.promptHash,
+				},
+				warnings: promptState.warnings,
+			};
+			defs.set(name, next);
+			return next;
+		},
 	};
 }
 

@@ -402,6 +402,98 @@ describe("manifest agent registry (agent.json)", () => {
 		}
 	});
 
+	test("reloadAgentManifest hot-swaps model/description keeping prompt + tool bindings", async () => {
+		const root = tempRoot();
+		try {
+			const agentDir = join(root, "manifest-agent");
+			writeAgentDir(agentDir);
+
+			const registry = await buildRegistry({ roots: [root] });
+			const before = registry.get("manifest-agent");
+			expect(before.manifest.model).toBe("test/model");
+
+			// Edit the manifest on disk (model + description), then hot-reload.
+			writeFileSync(
+				join(agentDir, "agent.json"),
+				`${JSON.stringify({ ...AGENT_MANIFEST, model: "test/model-edited", description: "Edited." }, null, "\t")}\n`,
+			);
+			const next = registry.reloadAgentManifest("manifest-agent");
+
+			expect(next.manifest.model).toBe("test/model-edited");
+			expect(next.manifest.description).toBe("Edited.");
+			expect(next.parsed.config.model).toBe("test/model-edited");
+			expect(next.parsed.config.description).toBe("Edited.");
+			// Prompt + tools bindings survive untouched.
+			expect(next.promptHash).toBe(before.promptHash);
+			expect(next.parsed.config.tools).toEqual(before.parsed.config.tools);
+			expect(next.privateToolNames).toEqual(before.privateToolNames);
+			expect(next.contextResolver).toBe(before.contextResolver);
+			expect(registry.get("manifest-agent").manifest.model).toBe("test/model-edited");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	test("reloadAgentManifest throws + leaves the cached entry intact on invalid manifest", async () => {
+		const root = tempRoot();
+		try {
+			const agentDir = join(root, "manifest-agent");
+			writeAgentDir(agentDir);
+
+			const registry = await buildRegistry({ roots: [root] });
+
+			// Write an invalid manifest (missing required model) to disk.
+			writeFileSync(
+				join(agentDir, "agent.json"),
+				`${JSON.stringify({ name: "manifest-agent", description: "no model" }, null, "\t")}\n`,
+			);
+
+			expect(() => registry.reloadAgentManifest("manifest-agent")).toThrow(/model/);
+			// The cached entry is unchanged (old model still resolves).
+			expect(registry.get("manifest-agent").manifest.model).toBe("test/model");
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	test("reloadAgentManifest re-expands tool profiles and rejects unknown ones", async () => {
+		const root = tempRoot();
+		try {
+			const agentDir = join(root, "manifest-agent");
+			writeAgentDir(agentDir);
+
+			const registry = await buildRegistry({
+				roots: [root],
+				toolProfiles: { reader: ["glob", "grep", "read"] },
+			});
+
+			// Add a valid profile reference — reload expands it.
+			writeFileSync(
+				join(agentDir, "agent.json"),
+				`${JSON.stringify({ ...AGENT_MANIFEST, toolProfiles: ["reader"] }, null, "\t")}\n`,
+			);
+			const next = registry.reloadAgentManifest("manifest-agent");
+			expect(next.parsed.config.tools).toEqual(["read", "glob", "grep", "custom_tool"]);
+
+			// Point at an unknown profile — reload throws, entry left intact.
+			writeFileSync(
+				join(agentDir, "agent.json"),
+				`${JSON.stringify({ ...AGENT_MANIFEST, toolProfiles: ["ghost"] }, null, "\t")}\n`,
+			);
+			expect(() => registry.reloadAgentManifest("manifest-agent")).toThrow(
+				/unknown tool profile "ghost"/,
+			);
+			expect(registry.get("manifest-agent").parsed.config.tools).toEqual([
+				"read",
+				"glob",
+				"grep",
+				"custom_tool",
+			]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
 	test("registerPromptRevisions upserts one registry-boot revision per agent, idempotently", async () => {
 		const root = tempRoot();
 		const handle = openKernelDatabase({ path: join(root, "trace.db") });

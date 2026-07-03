@@ -349,6 +349,7 @@ export function createKernel<TToolRuntime = unknown>(
 				registry: () => runtime().then((r) => r.registry),
 				db: () => requireDb("catalogApiService"),
 				allowWrites: opts.allowWrites ?? false,
+				modelAliases: () => Object.keys(config.models?.aliases ?? {}),
 			});
 		},
 		spawnAgent,
