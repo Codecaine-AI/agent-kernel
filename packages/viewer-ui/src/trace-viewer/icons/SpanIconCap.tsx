@@ -91,6 +91,9 @@ export const SpanIconCap: FC<SpanIconCapProps> = ({
 				"pointer-events-none grid shrink-0 place-items-center self-stretch",
 				accentClassName,
 				divider,
+				// The divider is part of the card frame: it must carry the same
+				// accent as the border, never the theme's neutral border color.
+				"border-current",
 				isSolid ? "bg-current" : "bg-transparent",
 				layout === "box" && "absolute left-0 top-0 rounded-tl-[2px]",
 				layout === "inline" &&
