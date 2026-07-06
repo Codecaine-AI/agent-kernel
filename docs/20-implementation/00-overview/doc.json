@@ -1,0 +1,423 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-00-overview",
+  "title": "Implementation Overview",
+  "root": "b-00-overview-root-26",
+  "blocks": {
+    "b-00-overview-root-26": {
+      "id": "b-00-overview-root-26",
+      "flavour": "paragraph",
+      "props": {
+        "concepts": [
+          "implementation",
+          "packages",
+          "protocol",
+          "db",
+          "kernel",
+          "tailer",
+          "read-api",
+          "viewer"
+        ],
+        "covers": "Implementation overview of the kernel monorepo packages and how protocol, db, kernel, tailer, read API, and viewer packages fit together.",
+        "depends-on": [
+          "../10-system-design/00-overview.md"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-implementation-overview-1",
+        "b-00-overview-this-repository-is-a-bun-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-package-map-4",
+        "b-00-overview-text-5",
+        "b-00-overview-dependency-direction-6",
+        "b-00-overview-text-7",
+        "b-00-overview-kernel-packages-must-not-8",
+        "b-00-overview-child-nodes-9",
+        "b-00-overview-10-protocol-10-protoc-10",
+        "b-00-overview-trace-protocol-types-and-11",
+        "b-00-overview-20-kernel-20-kernel-0-12",
+        "b-00-overview-runtime-package-kernel-13",
+        "b-00-overview-30-db-30-db-00-overvi-14",
+        "b-00-overview-drizzle-schema-and-query-15",
+        "b-00-overview-40-tailer-40-tailer-0-16",
+        "b-00-overview-jsonl-ingestion-pieces-17",
+        "b-00-overview-50-read-api-50-read-a-18",
+        "b-00-overview-elysia-route-factory-and-19",
+        "b-00-overview-60-viewer-60-viewer-0-20",
+        "b-00-overview-viewer-dtos-trace-trans-21",
+        "b-00-overview-70-app-adapters-70-ap-22",
+        "b-00-overview-how-host-apps-such-as-sp-23",
+        "b-00-overview-99-appendix-99-append-24",
+        "b-00-overview-development-setup-valid-25"
+      ]
+    },
+    "b-00-overview-implementation-overview-1": {
+      "id": "b-00-overview-implementation-overview-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Implementation Overview"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-this-repository-is-a-bun-2": {
+      "id": "b-00-overview-this-repository-is-a-bun-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This repository is a Bun workspace containing the portable kernel packages extracted from Spectre."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-package-map-4": {
+      "id": "b-00-overview-package-map-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Package Map"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-text-5": {
+      "id": "b-00-overview-text-5",
+      "flavour": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "packages/\n  protocol/      Trace event envelope, event catalog, factories\n  db/            Kernel observability Drizzle schema and query helpers\n  kernel/        Kernel instance, spawn runtime, registry, context, subagents, read API\n  tailer/        Pi JSONL ingestion primitives\n  viewer-core/   Read API DTOs and trace span transforms\n  viewer-ui/     Trace tree and detail UI components\n  viewer-shell/  Mountable KernelTraceViewer shell"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-dependency-direction-6": {
+      "id": "b-00-overview-dependency-direction-6",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Dependency Direction"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-text-7": {
+      "id": "b-00-overview-text-7",
+      "flavour": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "protocol\n  ^\n  |-- db\n  |-- tailer\n  |-- viewer-core\n        ^\n        |-- viewer-ui\n              ^\n              |-- viewer-shell\n\nkernel depends on protocol, db, and viewer-core for runtime/read contracts."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-kernel-packages-must-not-8": {
+      "id": "b-00-overview-kernel-packages-must-not-8",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernel packages must not import Spectre packages, Spectre paths, or Spectre naming. Apps consume the kernel through package exports and adapters."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-child-nodes-9": {
+      "id": "b-00-overview-child-nodes-9",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Child Nodes"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-10-protocol-10-protoc-10": {
+      "id": "b-00-overview-10-protocol-10-protoc-10",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "10-protocol/",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/10-protocol/00-overview.md",
+              "label": "10-protocol/"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-trace-protocol-types-and-11": {
+      "id": "b-00-overview-trace-protocol-types-and-11",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Trace protocol types and event factories."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-20-kernel-20-kernel-0-12": {
+      "id": "b-00-overview-20-kernel-20-kernel-0-12",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "20-kernel/",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/20-kernel/00-overview.md",
+              "label": "20-kernel/"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-runtime-package-kernel-13": {
+      "id": "b-00-overview-runtime-package-kernel-13",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Runtime package: kernel instance, registry, spawn pipeline, context, subagents, run context."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-30-db-30-db-00-overvi-14": {
+      "id": "b-00-overview-30-db-30-db-00-overvi-14",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "30-db/",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/30-db/00-overview.md",
+              "label": "30-db/"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-drizzle-schema-and-query-15": {
+      "id": "b-00-overview-drizzle-schema-and-query-15",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Drizzle schema and query helpers for containers, Pi sessions, agent runs, and trace events."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-40-tailer-40-tailer-0-16": {
+      "id": "b-00-overview-40-tailer-40-tailer-0-16",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "40-tailer/",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/40-tailer/00-overview.md",
+              "label": "40-tailer/"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-jsonl-ingestion-pieces-17": {
+      "id": "b-00-overview-jsonl-ingestion-pieces-17",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "JSONL ingestion pieces: mapper, cursor store, file reader, watcher, queue, health."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-50-read-api-50-read-a-18": {
+      "id": "b-00-overview-50-read-api-50-read-a-18",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "50-read-api/",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/50-read-api/00-overview.md",
+              "label": "50-read-api/"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-elysia-route-factory-and-19": {
+      "id": "b-00-overview-elysia-route-factory-and-19",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Elysia route factory and DB read helpers consumed by viewer-core."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-60-viewer-60-viewer-0-20": {
+      "id": "b-00-overview-60-viewer-60-viewer-0-20",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "60-viewer/",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/60-viewer/00-overview.md",
+              "label": "60-viewer/"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-viewer-dtos-trace-trans-21": {
+      "id": "b-00-overview-viewer-dtos-trace-trans-21",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Viewer DTOs, trace transforms, UI components, and shell."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-70-app-adapters-70-ap-22": {
+      "id": "b-00-overview-70-app-adapters-70-ap-22",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "70-app-adapters/",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/70-app-adapters/00-overview.md",
+              "label": "70-app-adapters/"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-host-apps-such-as-sp-23": {
+      "id": "b-00-overview-how-host-apps-such-as-sp-23",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How host apps such as Spectre connect domain state to kernel packages, including the "
+        },
+        {
+          "insert": "application setup guide",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/70-app-adapters/10-application-setup.md",
+              "label": "application setup guide"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-99-appendix-99-append-24": {
+      "id": "b-00-overview-99-appendix-99-append-24",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "99-appendix/",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/99-appendix/00-overview.md",
+              "label": "99-appendix/"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-development-setup-valid-25": {
+      "id": "b-00-overview-development-setup-valid-25",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Development setup, validation, and package linking notes."
+        }
+      ],
+      "children": []
+    }
+  }
+}

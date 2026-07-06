@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-99-appendix-10-dev-setup",
+  "title": "Dev Setup",
+  "root": "b-10-dev-setup-root-21",
+  "blocks": {
+    "b-10-dev-setup-root-21": {
+      "id": "b-10-dev-setup-root-21",
+      "flavour": "paragraph",
+      "props": {
+        "concepts": [
+          "dev-setup",
+          "bun",
+          "typecheck",
+          "tests",
+          "boundary-check"
+        ],
+        "covers": "Development setup and validation commands for the pi-agent-kernel repository.",
+        "depends-on": [
+          "../00-overview.md"
+        ]
+      },
+      "children": [
+        "b-10-dev-setup-dev-setup-1",
+        "b-10-dev-setup-this-repository-is-a-bun-2",
+        "b-10-dev-setup-divider-3",
+        "b-10-dev-setup-install-4",
+        "b-10-dev-setup-bash-5",
+        "b-10-dev-setup-validation-6",
+        "b-10-dev-setup-bash-7",
+        "b-10-dev-setup-test-boundaries-is-the-8",
+        "b-10-dev-setup-package-typechecks-9",
+        "b-10-dev-setup-bash-10",
+        "b-10-dev-setup-basic-workbench-11",
+        "b-10-dev-setup-bash-12",
+        "b-10-dev-setup-this-starts-the-non-spec-13",
+        "b-10-dev-setup-viewer-http-127-0-0-14",
+        "b-10-dev-setup-api-http-127-0-0-1-8-15",
+        "b-10-dev-setup-use-it-when-checking-tha-16",
+        "b-10-dev-setup-current-recommended-manu-17",
+        "b-10-dev-setup-when-changing-package-bo-18",
+        "b-10-dev-setup-bash-19",
+        "b-10-dev-setup-expected-result-app-spe-20"
+      ]
+    },
+    "b-10-dev-setup-dev-setup-1": {
+      "id": "b-10-dev-setup-dev-setup-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Dev Setup"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-this-repository-is-a-bun-2": {
+      "id": "b-10-dev-setup-this-repository-is-a-bun-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This repository is a Bun workspace."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-divider-3": {
+      "id": "b-10-dev-setup-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-dev-setup-install-4": {
+      "id": "b-10-dev-setup-install-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Install"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-bash-5": {
+      "id": "b-10-dev-setup-bash-5",
+      "flavour": "code",
+      "props": {
+        "language": "bash"
+      },
+      "text": [
+        {
+          "insert": "bun install"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-validation-6": {
+      "id": "b-10-dev-setup-validation-6",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Validation"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-bash-7": {
+      "id": "b-10-dev-setup-bash-7",
+      "flavour": "code",
+      "props": {
+        "language": "bash"
+      },
+      "text": [
+        {
+          "insert": "bun run test:boundaries\nbun run typecheck\nbun run test"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-test-boundaries-is-the-8": {
+      "id": "b-10-dev-setup-test-boundaries-is-the-8",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "test:boundaries",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the portability gate. It checks that kernel packages do not reference Spectre packages, Spectre paths, or known Spectre-only names."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-package-typechecks-9": {
+      "id": "b-10-dev-setup-package-typechecks-9",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Package Typechecks"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-bash-10": {
+      "id": "b-10-dev-setup-bash-10",
+      "flavour": "code",
+      "props": {
+        "language": "bash"
+      },
+      "text": [
+        {
+          "insert": "bun run typecheck:protocol\nbun run typecheck:db\nbun run typecheck:kernel\nbun run typecheck:tailer\nbun run typecheck:viewer-core\nbun run typecheck:viewer-ui\nbun run typecheck:viewer-shell"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-basic-workbench-11": {
+      "id": "b-10-dev-setup-basic-workbench-11",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Basic Workbench"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-bash-12": {
+      "id": "b-10-dev-setup-bash-12",
+      "flavour": "code",
+      "props": {
+        "language": "bash"
+      },
+      "text": [
+        {
+          "insert": "bun run dev:basic"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-this-starts-the-non-spec-13": {
+      "id": "b-10-dev-setup-this-starts-the-non-spec-13",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This starts the non-Spectre in-memory workbench:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-viewer-http-127-0-0-14": {
+      "id": "b-10-dev-setup-viewer-http-127-0-0-14",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Viewer: "
+        },
+        {
+          "insert": "http://127.0.0.1:5174",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-api-http-127-0-0-1-8-15": {
+      "id": "b-10-dev-setup-api-http-127-0-0-1-8-15",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "API: "
+        },
+        {
+          "insert": "http://127.0.0.1:8788",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-use-it-when-checking-tha-16": {
+      "id": "b-10-dev-setup-use-it-when-checking-tha-16",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use it when checking that the kernel runtime facade, context loader catalog, protocol events, read API, viewer-core transforms, and viewer shell still work together."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-current-recommended-manu-17": {
+      "id": "b-10-dev-setup-current-recommended-manu-17",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Current Recommended Manual Check"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-when-changing-package-bo-18": {
+      "id": "b-10-dev-setup-when-changing-package-bo-18",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "When changing package boundaries, run:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-bash-19": {
+      "id": "b-10-dev-setup-bash-19",
+      "flavour": "code",
+      "props": {
+        "language": "bash"
+      },
+      "text": [
+        {
+          "insert": "rg -n \"@spectre|\\\\.spectre|Spectre|SPECTRE|apps/backend|apps/frontend|checkpoint-slice|SessionStateManager\" packages docs"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dev-setup-expected-result-app-spe-20": {
+      "id": "b-10-dev-setup-expected-result-app-spe-20",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Expected result: app-specific names may appear in docs only when explaining adapter boundaries. They should not appear in package source."
+        }
+      ],
+      "children": []
+    }
+  }
+}

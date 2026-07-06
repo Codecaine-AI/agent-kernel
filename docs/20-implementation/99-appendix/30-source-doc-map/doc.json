@@ -1,0 +1,572 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-99-appendix-30-source-doc-map",
+  "title": "Source Doc Map",
+  "root": "b-30-source-doc-map-root-19",
+  "blocks": {
+    "b-30-source-doc-map-root-19": {
+      "id": "b-30-source-doc-map-root-19",
+      "flavour": "paragraph",
+      "props": {
+        "concepts": [
+          "docs-migration",
+          "source-map",
+          "spectre-docs",
+          "kernel-docs",
+          "adapter-docs"
+        ],
+        "covers": "Mapping from original Spectre documentation to the promoted kernel documentation and Spectre adapter documentation.",
+        "depends-on": [
+          "../00-overview.md",
+          "../70-app-adapters/00-overview.md"
+        ]
+      },
+      "children": [
+        "b-30-source-doc-map-source-doc-map-1",
+        "b-30-source-doc-map-the-kernel-docs-were-pro-2",
+        "b-30-source-doc-map-divider-3",
+        "b-30-source-doc-map-promoted-into-kernel-doc-4",
+        "b-30-source-doc-map-original-spectre-doc-5",
+        "b-30-source-doc-map-stays-in-spectre-6",
+        "b-30-source-doc-map-these-remain-application-7",
+        "b-30-source-doc-map-spectre-session-phase-se-8",
+        "b-30-source-doc-map-sessionstatemanager-9",
+        "b-30-source-doc-map-spec-plan-build-docs-10",
+        "b-30-source-doc-map-checkpoint-and-task-grap-11",
+        "b-30-source-doc-map-spectre-pending-asks-and-12",
+        "b-30-source-doc-map-spectre-project-worktree-13",
+        "b-30-source-doc-map-spectre-phase-panels-and-14",
+        "b-30-source-doc-map-spectre-specific-jsonl-c-15",
+        "b-30-source-doc-map-those-should-be-document-16",
+        "b-30-source-doc-map-rewrite-terms-17",
+        "b-30-source-doc-map-spectre-term-kernel-18"
+      ]
+    },
+    "b-30-source-doc-map-source-doc-map-1": {
+      "id": "b-30-source-doc-map-source-doc-map-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Source Doc Map"
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-the-kernel-docs-were-pro-2": {
+      "id": "b-30-source-doc-map-the-kernel-docs-were-pro-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel docs were promoted from Spectre docs, but they were not copied verbatim. Spectre-specific names and paths were rewritten into portable kernel terms."
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-divider-3": {
+      "id": "b-30-source-doc-map-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-30-source-doc-map-promoted-into-kernel-doc-4": {
+      "id": "b-30-source-doc-map-promoted-into-kernel-doc-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Promoted Into Kernel Docs"
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-original-spectre-doc-5": {
+      "id": "b-30-source-doc-map-original-spectre-doc-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| Original Spectre Doc | Kernel Destination |\n|---|---|\n| "
+        },
+        {
+          "insert": "docs/.drafts/agent-kernel-platform.design.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "docs/00-foundation/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "docs/10-system-design/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " |\n| "
+        },
+        {
+          "insert": "docs/.drafts/agent-kernel-contracts.design.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "docs/10-system-design/30-event-protocol.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "docs/20-implementation/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " |\n| "
+        },
+        {
+          "insert": "docs/20-implementation/10-backend/10-agent-kernel/00-overview.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "docs/20-implementation/20-kernel/00-overview.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " |\n| "
+        },
+        {
+          "insert": "docs/20-implementation/10-backend/10-agent-kernel/10-pipeline.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "docs/20-implementation/20-kernel/10-spawn-pipeline.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " |\n| "
+        },
+        {
+          "insert": "docs/20-implementation/10-backend/10-agent-kernel/30-adapters.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "docs/20-implementation/20-kernel/10-spawn-pipeline.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "docs/20-implementation/70-app-adapters/00-overview.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " |\n| "
+        },
+        {
+          "insert": "docs/20-implementation/10-backend/10-agent-kernel/40-per-agent-loaders.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "docs/20-implementation/20-kernel/30-context-loaders.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " |\n| "
+        },
+        {
+          "insert": "docs/20-implementation/10-backend/10-agent-kernel/60-domain-guard.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "docs/20-implementation/20-kernel/10-spawn-pipeline.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " |\n| "
+        },
+        {
+          "insert": "docs/20-implementation/10-backend/10-agent-kernel/70-subagents/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "docs/20-implementation/20-kernel/40-subagents.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " |\n| "
+        },
+        {
+          "insert": "docs/20-implementation/15-tailer/00-overview.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "docs/20-implementation/40-tailer/00-overview.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " |\n| "
+        },
+        {
+          "insert": "docs/20-implementation/30-database/00-overview.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "docs/20-implementation/30-db/00-overview.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " |\n| "
+        },
+        {
+          "insert": "docs/20-implementation/12-data-backend/00-overview.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "docs/20-implementation/50-read-api/00-overview.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " |\n| "
+        },
+        {
+          "insert": "docs/10-system-design/20-event-system-linkages.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "docs/10-system-design/20-observability-model.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " |\n| Spectre trace viewer implementation docs and objective notes | "
+        },
+        {
+          "insert": "docs/10-system-design/40-viewer-model.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "docs/20-implementation/60-viewer/00-overview.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " |"
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-stays-in-spectre-6": {
+      "id": "b-30-source-doc-map-stays-in-spectre-6",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Stays In Spectre"
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-these-remain-application-7": {
+      "id": "b-30-source-doc-map-these-remain-application-7",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These remain application docs and should not be absorbed into the kernel:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-spectre-session-phase-se-8": {
+      "id": "b-30-source-doc-map-spectre-session-phase-se-8",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre session phase semantics"
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-sessionstatemanager-9": {
+      "id": "b-30-source-doc-map-sessionstatemanager-9",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "SessionStateManager",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-spec-plan-build-docs-10": {
+      "id": "b-30-source-doc-map-spec-plan-build-docs-10",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "spec, plan, build, docs, intake, onboarding services"
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-checkpoint-and-task-grap-11": {
+      "id": "b-30-source-doc-map-checkpoint-and-task-grap-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "checkpoint and task graph behavior"
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-spectre-pending-asks-and-12": {
+      "id": "b-30-source-doc-map-spectre-pending-asks-and-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre pending asks and answer routes"
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-spectre-project-worktree-13": {
+      "id": "b-30-source-doc-map-spectre-project-worktree-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre project/worktree/git behavior"
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-spectre-phase-panels-and-14": {
+      "id": "b-30-source-doc-map-spectre-phase-panels-and-14",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre phase panels and workflow UI"
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-spectre-specific-jsonl-c-15": {
+      "id": "b-30-source-doc-map-spectre-specific-jsonl-c-15",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre-specific JSONL compatibility markers"
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-those-should-be-document-16": {
+      "id": "b-30-source-doc-map-those-should-be-document-16",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Those should be documented as Spectre adapters on top of the kernel."
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-rewrite-terms-17": {
+      "id": "b-30-source-doc-map-rewrite-terms-17",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Rewrite Terms"
+        }
+      ],
+      "children": []
+    },
+    "b-30-source-doc-map-spectre-term-kernel-18": {
+      "id": "b-30-source-doc-map-spectre-term-kernel-18",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| Spectre Term | Kernel Term |\n|---|---|\n| Spectre session id | "
+        },
+        {
+          "insert": "appSessionId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " when referring to host correlation |\n| Spectre session grouping | container |\n| Spectre phase | opaque "
+        },
+        {
+          "insert": "phase",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " label |\n| Spectre checkpoint/task group | app workflow metadata |\n| "
+        },
+        {
+          "insert": "@spectre/database/events",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "@agent-kernel/protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " |\n| Spectre DB trace helpers | "
+        },
+        {
+          "insert": "@agent-kernel/db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " plus app adapter |\n| Spectre trace page | viewer-core/ui/shell packages plus app plugins |"
+        }
+      ],
+      "children": []
+    }
+  }
+}

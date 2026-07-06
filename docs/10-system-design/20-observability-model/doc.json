@@ -1,0 +1,403 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-20-observability-model",
+  "title": "Observability Model",
+  "root": "b-20-observability-model-root-25",
+  "blocks": {
+    "b-20-observability-model-root-25": {
+      "id": "b-20-observability-model-root-25",
+      "flavour": "paragraph",
+      "props": {
+        "code-ref": "packages/db/src/schema/, packages/db/src/actions/read-api.ts, packages/viewer-core/src/build-trace-spans.ts",
+        "concepts": [
+          "observability",
+          "containers",
+          "pi-agent-sessions",
+          "agent-runs",
+          "trace-events",
+          "explicit-linkage",
+          "tailer",
+          "read-api"
+        ],
+        "covers": "Observability model for containers, Pi agent sessions, agent runs, trace events, and explicit linkage rules.",
+        "depends-on": [
+          "../00-foundation/20-principles.md",
+          "30-event-protocol.md"
+        ]
+      },
+      "children": [
+        "b-20-observability-model-observability-model-1",
+        "b-20-observability-model-the-kernel-observability-2",
+        "b-20-observability-model-divider-3",
+        "b-20-observability-model-core-records-4",
+        "b-20-observability-model-record-meaning-5",
+        "b-20-observability-model-identity-layers-6",
+        "b-20-observability-model-appsessionid-is-host-a-7",
+        "b-20-observability-model-containerid-is-kernel-8",
+        "b-20-observability-model-pisessionid-links-even-9",
+        "b-20-observability-model-runid-identifies-a-ker-10",
+        "b-20-observability-model-linkage-rule-11",
+        "b-20-observability-model-if-a-relationship-is-kno-12",
+        "b-20-observability-model-an-agent-run-in-a-contai-13",
+        "b-20-observability-model-a-run-in-an-app-phase-ca-14",
+        "b-20-observability-model-a-subagent-spawned-by-a-15",
+        "b-20-observability-model-a-nested-run-carries-pa-16",
+        "b-20-observability-model-a-child-pi-session-carri-17",
+        "b-20-observability-model-the-viewer-may-use-times-18",
+        "b-20-observability-model-event-sources-19",
+        "b-20-observability-model-kernel-side-events-come-20",
+        "b-20-observability-model-agent-side-events-come-f-21",
+        "b-20-observability-model-the-viewer-treats-both-a-22",
+        "b-20-observability-model-compatibility-fields-23",
+        "b-20-observability-model-the-current-extraction-s-24"
+      ]
+    },
+    "b-20-observability-model-observability-model-1": {
+      "id": "b-20-observability-model-observability-model-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Observability Model"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-the-kernel-observability-2": {
+      "id": "b-20-observability-model-the-kernel-observability-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel observability model answers a simple question: what work ran, where did it belong, who spawned it, and what happened inside it?"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-divider-3": {
+      "id": "b-20-observability-model-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-20-observability-model-core-records-4": {
+      "id": "b-20-observability-model-core-records-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Core Records"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-record-meaning-5": {
+      "id": "b-20-observability-model-record-meaning-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| Record | Meaning |\n|---|---|\n| Container | Generic grouping unit for app work. It has an id, label, status, optional parent container, phase label, phase vocabulary, working paths, and metadata. |\n| Pi agent session | Pi SDK conversation identity for one agent session. This is the durable link to JSONL-sourced events. |\n| Agent run | One processing loop inside a Pi session, usually tied to one user prompt or subagent dispatch. |\n| Trace event | Time-ordered event row for prompts, context, messages, tools, lifecycle, containers, phases, warnings, and errors. |"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-identity-layers-6": {
+      "id": "b-20-observability-model-identity-layers-6",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Identity Layers"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-appsessionid-is-host-a-7": {
+      "id": "b-20-observability-model-appsessionid-is-host-a-7",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "appSessionId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is host-app correlation. It lets Spectre or another app link kernel rows back to app-owned workflow rows."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-containerid-is-kernel-8": {
+      "id": "b-20-observability-model-containerid-is-kernel-8",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is kernel grouping identity. Trace reads and viewer rendering should prefer containers because containers are the portable grouping model."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-pisessionid-links-even-9": {
+      "id": "b-20-observability-model-pisessionid-links-even-9",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "piSessionId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " links events to the Pi session row after the tailer resolves the JSONL transport session id."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-runid-identifies-a-ker-10": {
+      "id": "b-20-observability-model-runid-identifies-a-ker-10",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "runId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " identifies a kernel-created run. Where available, run identity should be emitted directly rather than inferred later."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-linkage-rule-11": {
+      "id": "b-20-observability-model-linkage-rule-11",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Linkage Rule"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-if-a-relationship-is-kno-12": {
+      "id": "b-20-observability-model-if-a-relationship-is-kno-12",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "If a relationship is known at emit time, write the relationship explicitly:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-an-agent-run-in-a-contai-13": {
+      "id": "b-20-observability-model-an-agent-run-in-a-contai-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "an agent run in a container carries "
+        },
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-a-run-in-an-app-phase-ca-14": {
+      "id": "b-20-observability-model-a-run-in-an-app-phase-ca-14",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "a run in an app phase carries "
+        },
+        {
+          "insert": "phase",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-a-subagent-spawned-by-a-15": {
+      "id": "b-20-observability-model-a-subagent-spawned-by-a-15",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "a subagent spawned by a tool carries "
+        },
+        {
+          "insert": "parentToolUseId",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-a-nested-run-carries-pa-16": {
+      "id": "b-20-observability-model-a-nested-run-carries-pa-16",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "a nested run carries "
+        },
+        {
+          "insert": "parentRunId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " when known"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-a-child-pi-session-carri-17": {
+      "id": "b-20-observability-model-a-child-pi-session-carri-17",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "a child Pi session carries "
+        },
+        {
+          "insert": "parentId",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-the-viewer-may-use-times-18": {
+      "id": "b-20-observability-model-the-viewer-may-use-times-18",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The viewer may use timestamps for ordering, but not for structural parentage when an explicit ID is available."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-event-sources-19": {
+      "id": "b-20-observability-model-event-sources-19",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Event Sources"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-kernel-side-events-come-20": {
+      "id": "b-20-observability-model-kernel-side-events-come-20",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernel-side events come from the runtime and app adapters through trace writers."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-agent-side-events-come-f-21": {
+      "id": "b-20-observability-model-agent-side-events-come-f-21",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Agent-side events come from Pi JSONL ingestion through the tailer."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-the-viewer-treats-both-a-22": {
+      "id": "b-20-observability-model-the-viewer-treats-both-a-22",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The viewer treats both as one trace stream. Source is used for display and debugging, not for splitting the mental model."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-compatibility-fields-23": {
+      "id": "b-20-observability-model-compatibility-fields-23",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Compatibility Fields"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-the-current-extraction-s-24": {
+      "id": "b-20-observability-model-the-current-extraction-s-24",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The current extraction still carries "
+        },
+        {
+          "insert": "appSessionId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " because Spectre has existing rows and routes keyed by app sessions. That is acceptable as a generic host-app correlation field. New kernel read paths should resolve from containers first and only fall back to app-session identity for compatibility."
+        }
+      ],
+      "children": []
+    }
+  }
+}

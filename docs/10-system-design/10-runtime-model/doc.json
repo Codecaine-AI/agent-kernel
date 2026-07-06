@@ -1,0 +1,1000 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-10-runtime-model",
+  "title": "Runtime Model",
+  "root": "b-10-runtime-model-root-56",
+  "blocks": {
+    "b-10-runtime-model-root-56": {
+      "id": "b-10-runtime-model-root-56",
+      "flavour": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/index.ts, packages/kernel/src/spawn-pipeline/, packages/kernel/src/context/, packages/kernel/src/subagents/",
+        "concepts": [
+          "runtime-model",
+          "create-kernel",
+          "spawn-pipeline",
+          "run-context",
+          "context-loader",
+          "subagents",
+          "pi-session"
+        ],
+        "covers": "Runtime model for the kernel: createKernel, spawn adapters, agent registry, context assembly, Pi session creation, run context, and subagents.",
+        "depends-on": [
+          "../00-foundation/30-boundaries.md"
+        ]
+      },
+      "children": [
+        "b-10-runtime-model-runtime-model-1",
+        "b-10-runtime-model-the-runtime-model-is-int-2",
+        "b-10-runtime-model-divider-3",
+        "b-10-runtime-model-shape-4",
+        "b-10-runtime-model-text-5",
+        "b-10-runtime-model-kernel-instance-6",
+        "b-10-runtime-model-createkernel-config-c-7",
+        "b-10-runtime-model-a-stable-kernel-id-8",
+        "b-10-runtime-model-per-kernel-concurrency-s-9",
+        "b-10-runtime-model-a-spawnagent-adapter-10",
+        "b-10-runtime-model-optional-agentmanager-11",
+        "b-10-runtime-model-runtime-controls-such-as-12",
+        "b-10-runtime-model-the-instance-api-lets-ap-13",
+        "b-10-runtime-model-spawn-pipeline-14",
+        "b-10-runtime-model-the-full-db-backed-spawn-15",
+        "b-10-runtime-model-the-pipeline-sequence-is-16",
+        "b-10-runtime-model-resolve-working-director-17",
+        "b-10-runtime-model-load-the-parsed-agent-de-18",
+        "b-10-runtime-model-resolve-variables-and-re-19",
+        "b-10-runtime-model-build-or-reuse-a-pi-sess-20",
+        "b-10-runtime-model-load-private-and-shared-21",
+        "b-10-runtime-model-create-the-pi-agentsess-22",
+        "b-10-runtime-model-pre-insert-pi-session-an-23",
+        "b-10-runtime-model-emit-system-prompt-and-c-24",
+        "b-10-runtime-model-build-and-inject-agent-c-25",
+        "b-10-runtime-model-subscribe-to-session-eve-26",
+        "b-10-runtime-model-build-runcontext-and-t-27",
+        "b-10-runtime-model-close-the-agent-run-and-28",
+        "b-10-runtime-model-run-context-29",
+        "b-10-runtime-model-runcontext-is-an-async-30",
+        "b-10-runtime-model-appsessionid-appsess-31",
+        "b-10-runtime-model-runid-parentrunid-32",
+        "b-10-runtime-model-tracewriter-33",
+        "b-10-runtime-model-pisessionsdir-workin-34",
+        "b-10-runtime-model-optional-statemanager-35",
+        "b-10-runtime-model-pisessionuuid-contai-36",
+        "b-10-runtime-model-the-statemanager-slot-37",
+        "b-10-runtime-model-context-assembly-38",
+        "b-10-runtime-model-the-context-builder-give-39",
+        "b-10-runtime-model-kernel-base-loaders-are-40",
+        "b-10-runtime-model-file-41",
+        "b-10-runtime-model-directory-42",
+        "b-10-runtime-model-skill-43",
+        "b-10-runtime-model-command-44",
+        "b-10-runtime-model-text-45",
+        "b-10-runtime-model-apps-can-register-custom-46",
+        "b-10-runtime-model-subagents-47",
+        "b-10-runtime-model-the-subagent-manager-coo-48",
+        "b-10-runtime-model-per-agent-records-49",
+        "b-10-runtime-model-background-concurrency-q-50",
+        "b-10-runtime-model-abort-and-stop-behavior-51",
+        "b-10-runtime-model-result-delivery-52",
+        "b-10-runtime-model-parent-pi-session-to-chi-53",
+        "b-10-runtime-model-parenttooluseid-propag-54",
+        "b-10-runtime-model-subagent-execution-re-en-55"
+      ]
+    },
+    "b-10-runtime-model-runtime-model-1": {
+      "id": "b-10-runtime-model-runtime-model-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Runtime Model"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-runtime-model-is-int-2": {
+      "id": "b-10-runtime-model-the-runtime-model-is-int-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The runtime model is intentionally layered. The kernel owns the shape of a run, but the host app supplies app state, agent catalogs, tool factories, database access, and domain behavior."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-divider-3": {
+      "id": "b-10-runtime-model-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-runtime-model-shape-4": {
+      "id": "b-10-runtime-model-shape-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Shape"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-text-5": {
+      "id": "b-10-runtime-model-text-5",
+      "flavour": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "Host app\n  creates kernel instance\n  provides spawn adapters and app-specific factories\n        |\n        v\n@agent-kernel/kernel\n  registry -> prompt resolver -> Pi session factory\n  context builder -> run context -> turn trigger\n  subagent manager can re-enter the same spawn path\n        |\n        v\nPi SDK\n  owns the model turn loop and JSONL session output"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-kernel-instance-6": {
+      "id": "b-10-runtime-model-kernel-instance-6",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Kernel Instance"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-createkernel-config-c-7": {
+      "id": "b-10-runtime-model-createkernel-config-c-7",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "createKernel(config)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " creates an instance with:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-a-stable-kernel-id-8": {
+      "id": "b-10-runtime-model-a-stable-kernel-id-8",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "a stable kernel id"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-per-kernel-concurrency-s-9": {
+      "id": "b-10-runtime-model-per-kernel-concurrency-s-9",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "per-kernel concurrency settings"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-a-spawnagent-adapter-10": {
+      "id": "b-10-runtime-model-a-spawnagent-adapter-10",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "a "
+        },
+        {
+          "insert": "spawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " adapter"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-optional-agentmanager-11": {
+      "id": "b-10-runtime-model-optional-agentmanager-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "optional "
+        },
+        {
+          "insert": "AgentManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " creation"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-runtime-controls-such-as-12": {
+      "id": "b-10-runtime-model-runtime-controls-such-as-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "runtime controls such as "
+        },
+        {
+          "insert": "setMaxBackgroundAgents()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "dispose()",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-instance-api-lets-ap-13": {
+      "id": "b-10-runtime-model-the-instance-api-lets-ap-13",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The instance API lets apps run the kernel without relying on global singleton state."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-spawn-pipeline-14": {
+      "id": "b-10-runtime-model-spawn-pipeline-14",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Spawn Pipeline"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-full-db-backed-spawn-15": {
+      "id": "b-10-runtime-model-the-full-db-backed-spawn-15",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The full DB-backed spawn path lives in "
+        },
+        {
+          "insert": "packages/kernel/src/spawn-pipeline/spawn-agent.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". It requires an adapter bundle because the kernel does not know an app's catalog roots, tools, DB handle, or app session binding by itself."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-pipeline-sequence-is-16": {
+      "id": "b-10-runtime-model-the-pipeline-sequence-is-16",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The pipeline sequence is:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-resolve-working-director-17": {
+      "id": "b-10-runtime-model-resolve-working-director-17",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Resolve working directory and app session identity."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-load-the-parsed-agent-de-18": {
+      "id": "b-10-runtime-model-load-the-parsed-agent-de-18",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Load the parsed agent definition."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-resolve-variables-and-re-19": {
+      "id": "b-10-runtime-model-resolve-variables-and-re-19",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Resolve variables and render the system prompt."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-build-or-reuse-a-pi-sess-20": {
+      "id": "b-10-runtime-model-build-or-reuse-a-pi-sess-20",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Build or reuse a Pi session manager."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-load-private-and-shared-21": {
+      "id": "b-10-runtime-model-load-private-and-shared-21",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Load private and shared tool factories."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-create-the-pi-agentsess-22": {
+      "id": "b-10-runtime-model-create-the-pi-agentsess-22",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Create the Pi "
+        },
+        {
+          "insert": "AgentSession",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-pre-insert-pi-session-an-23": {
+      "id": "b-10-runtime-model-pre-insert-pi-session-an-23",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Pre-insert Pi session and agent-run rows."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-emit-system-prompt-and-c-24": {
+      "id": "b-10-runtime-model-emit-system-prompt-and-c-24",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Emit system prompt and context lifecycle events."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-build-and-inject-agent-c-25": {
+      "id": "b-10-runtime-model-build-and-inject-agent-c-25",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Build and inject agent context when a resolver exists."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-subscribe-to-session-eve-26": {
+      "id": "b-10-runtime-model-subscribe-to-session-eve-26",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Subscribe to session events for streaming and turn limits."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-build-runcontext-and-t-27": {
+      "id": "b-10-runtime-model-build-runcontext-and-t-27",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Build "
+        },
+        {
+          "insert": "RunContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and trigger the Pi turn."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-close-the-agent-run-and-28": {
+      "id": "b-10-runtime-model-close-the-agent-run-and-28",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Close the agent run and emit completion status."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-run-context-29": {
+      "id": "b-10-runtime-model-run-context-29",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Run Context"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-runcontext-is-an-async-30": {
+      "id": "b-10-runtime-model-runcontext-is-an-async-30",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "RunContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is an async-local scope for one run. It carries kernel identity plus app-provided identity:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-appsessionid-appsess-31": {
+      "id": "b-10-runtime-model-appsessionid-appsess-31",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "appSessionId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "appSessionSlug",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "appSessionDir",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-runid-parentrunid-32": {
+      "id": "b-10-runtime-model-runid-parentrunid-32",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "runId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "parentRunId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "agentName",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-tracewriter-33": {
+      "id": "b-10-runtime-model-tracewriter-33",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "traceWriter",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-pisessionsdir-workin-34": {
+      "id": "b-10-runtime-model-pisessionsdir-workin-34",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "piSessionsDir",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "workingDir",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-optional-statemanager-35": {
+      "id": "b-10-runtime-model-optional-statemanager-35",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "optional "
+        },
+        {
+          "insert": "stateManager",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-pisessionuuid-contai-36": {
+      "id": "b-10-runtime-model-pisessionuuid-contai-36",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "piSessionUuid",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "phase",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-statemanager-slot-37": {
+      "id": "b-10-runtime-model-the-statemanager-slot-37",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "stateManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " slot is app-provided. Spectre uses it for "
+        },
+        {
+          "insert": "SessionStateManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; other apps can supply their own object or nothing."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-context-assembly-38": {
+      "id": "b-10-runtime-model-context-assembly-38",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Context Assembly"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-context-builder-give-39": {
+      "id": "b-10-runtime-model-the-context-builder-give-39",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The context builder gives an agent a typed "
+        },
+        {
+          "insert": "SpawnContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", walks declared loaders through a "
+        },
+        {
+          "insert": "LoaderCatalog",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", emits per-loader lifecycle events, and hands the loaded results to the agent's "
+        },
+        {
+          "insert": "assemble()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " function."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-kernel-base-loaders-are-40": {
+      "id": "b-10-runtime-model-kernel-base-loaders-are-40",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernel base loaders are:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-file-41": {
+      "id": "b-10-runtime-model-file-41",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "file",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-directory-42": {
+      "id": "b-10-runtime-model-directory-42",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "directory",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-skill-43": {
+      "id": "b-10-runtime-model-skill-43",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "skill",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-command-44": {
+      "id": "b-10-runtime-model-command-44",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "command",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-text-45": {
+      "id": "b-10-runtime-model-text-45",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "text",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-apps-can-register-custom-46": {
+      "id": "b-10-runtime-model-apps-can-register-custom-46",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Apps can register custom loaders by kind. A loader such as "
+        },
+        {
+          "insert": "checkpoint-slice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " belongs in Spectre because it reads Spectre's workflow state."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-subagents-47": {
+      "id": "b-10-runtime-model-subagents-47",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Subagents"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-subagent-manager-coo-48": {
+      "id": "b-10-runtime-model-the-subagent-manager-coo-48",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The subagent manager coordinates foreground and background agent runs inside an active parent run. It owns:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-per-agent-records-49": {
+      "id": "b-10-runtime-model-per-agent-records-49",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "per-agent records"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-background-concurrency-q-50": {
+      "id": "b-10-runtime-model-background-concurrency-q-50",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "background concurrency queue"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-abort-and-stop-behavior-51": {
+      "id": "b-10-runtime-model-abort-and-stop-behavior-51",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "abort and stop behavior"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-result-delivery-52": {
+      "id": "b-10-runtime-model-result-delivery-52",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "result delivery"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-parent-pi-session-to-chi-53": {
+      "id": "b-10-runtime-model-parent-pi-session-to-chi-53",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "parent Pi session to child Pi session link markers"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-parenttooluseid-propag-54": {
+      "id": "b-10-runtime-model-parenttooluseid-propag-54",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "parentToolUseId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " propagation"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-subagent-execution-re-en-55": {
+      "id": "b-10-runtime-model-subagent-execution-re-en-55",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Subagent execution re-enters the same spawn adapter, so primary agents and subagents share the same runtime contracts."
+        }
+      ],
+      "children": []
+    }
+  }
+}

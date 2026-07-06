@@ -1,0 +1,555 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-60-viewer-00-overview",
+  "title": "Viewer Packages",
+  "root": "b-00-overview-root-38",
+  "blocks": {
+    "b-00-overview-root-38": {
+      "id": "b-00-overview-root-38",
+      "flavour": "paragraph",
+      "props": {
+        "code-ref": "packages/viewer-core/src/, packages/viewer-ui/src/, packages/viewer-shell/src/",
+        "concepts": [
+          "viewer-core",
+          "viewer-ui",
+          "viewer-shell",
+          "trace-builder",
+          "kernel-trace-viewer",
+          "plugin-slots"
+        ],
+        "covers": "Viewer implementation packages: viewer-core DTOs and trace transforms, viewer-ui tree/detail components, and viewer-shell KernelTraceViewer with plugin slots.",
+        "depends-on": [
+          "../../10-system-design/40-viewer-model.md",
+          "../50-read-api/00-overview.md"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-viewer-packages-1",
+        "b-00-overview-the-viewer-packages-turn-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-agent-kernel-viewer-co-4",
+        "b-00-overview-viewer-core-owns-browser-5",
+        "b-00-overview-kernel-trace-read-paths-6",
+        "b-00-overview-kernel-trace-dtos-7",
+        "b-00-overview-buildtracespans-events-8",
+        "b-00-overview-event-pairing-9",
+        "b-00-overview-run-bucketing-10",
+        "b-00-overview-phase-grouping-11",
+        "b-00-overview-container-grouping-12",
+        "b-00-overview-parent-tool-call-nesting-13",
+        "b-00-overview-span-attributes-and-fact-14",
+        "b-00-overview-this-package-should-not-15",
+        "b-00-overview-agent-kernel-viewer-ui-16",
+        "b-00-overview-viewer-ui-owns-reusable-17",
+        "b-00-overview-treeview-18",
+        "b-00-overview-spancard-19",
+        "b-00-overview-spandetailpanel-20",
+        "b-00-overview-trace-filtering-and-look-21",
+        "b-00-overview-style-and-theme-helpers-22",
+        "b-00-overview-it-consumes-viewer-core-23",
+        "b-00-overview-agent-kernel-viewer-sh-24",
+        "b-00-overview-viewer-shell-exports-ke-25",
+        "b-00-overview-trace-level-filter-26",
+        "b-00-overview-expand-collapse-all-27",
+        "b-00-overview-optional-all-expanded-in-28",
+        "b-00-overview-selected-span-state-29",
+        "b-00-overview-optional-controlled-sele-30",
+        "b-00-overview-plugin-slots-for-contain-31",
+        "b-00-overview-current-scope-32",
+        "b-00-overview-the-current-shell-is-a-v-33",
+        "b-00-overview-workflow-specific-panes-34",
+        "b-00-overview-styling-standard-35",
+        "b-00-overview-spectre-is-the-reference-36",
+        "b-00-overview-examples-must-use-the-sh-37"
+      ]
+    },
+    "b-00-overview-viewer-packages-1": {
+      "id": "b-00-overview-viewer-packages-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Viewer Packages"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-viewer-packages-turn-2": {
+      "id": "b-00-overview-the-viewer-packages-turn-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The viewer packages turn kernel trace read responses into a reusable UI."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-agent-kernel-viewer-co-4": {
+      "id": "b-00-overview-agent-kernel-viewer-co-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/viewer-core",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-viewer-core-owns-browser-5": {
+      "id": "b-00-overview-viewer-core-owns-browser-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Viewer-core owns browser-safe data contracts and trace transforms:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-kernel-trace-read-paths-6": {
+      "id": "b-00-overview-kernel-trace-read-paths-6",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "KERNEL_TRACE_READ_PATHS",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-kernel-trace-dtos-7": {
+      "id": "b-00-overview-kernel-trace-dtos-7",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "kernel trace DTOs"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-buildtracespans-events-8": {
+      "id": "b-00-overview-buildtracespans-events-8",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "buildTraceSpans(events, piSessions, agentRuns)",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-event-pairing-9": {
+      "id": "b-00-overview-event-pairing-9",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "event pairing"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-run-bucketing-10": {
+      "id": "b-00-overview-run-bucketing-10",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "run bucketing"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-phase-grouping-11": {
+      "id": "b-00-overview-phase-grouping-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "phase grouping"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-container-grouping-12": {
+      "id": "b-00-overview-container-grouping-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "container grouping"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-parent-tool-call-nesting-13": {
+      "id": "b-00-overview-parent-tool-call-nesting-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "parent tool-call nesting"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-span-attributes-and-fact-14": {
+      "id": "b-00-overview-span-attributes-and-fact-14",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "span attributes and factories"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-this-package-should-not-15": {
+      "id": "b-00-overview-this-package-should-not-15",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This package should not import Drizzle schema or app DB types."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-kernel-viewer-ui-16": {
+      "id": "b-00-overview-agent-kernel-viewer-ui-16",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/viewer-ui",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-viewer-ui-owns-reusable-17": {
+      "id": "b-00-overview-viewer-ui-owns-reusable-17",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Viewer-ui owns reusable React components for trace rendering:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-treeview-18": {
+      "id": "b-00-overview-treeview-18",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "TreeView",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-spancard-19": {
+      "id": "b-00-overview-spancard-19",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "SpanCard",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-spandetailpanel-20": {
+      "id": "b-00-overview-spandetailpanel-20",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "SpanDetailPanel",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-trace-filtering-and-look-21": {
+      "id": "b-00-overview-trace-filtering-and-look-21",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "trace filtering and lookup helpers"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-style-and-theme-helpers-22": {
+      "id": "b-00-overview-style-and-theme-helpers-22",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "style and theme helpers"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-it-consumes-viewer-core-23": {
+      "id": "b-00-overview-it-consumes-viewer-core-23",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "It consumes viewer-core/protocol types and Agent Prism span types."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-kernel-viewer-sh-24": {
+      "id": "b-00-overview-agent-kernel-viewer-sh-24",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/viewer-shell",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-viewer-shell-exports-ke-25": {
+      "id": "b-00-overview-viewer-shell-exports-ke-25",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Viewer-shell exports "
+        },
+        {
+          "insert": "KernelTraceViewer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the mountable base trace viewer. It renders a split tree/detail layout with:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-trace-level-filter-26": {
+      "id": "b-00-overview-trace-level-filter-26",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "trace level filter"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-expand-collapse-all-27": {
+      "id": "b-00-overview-expand-collapse-all-27",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "expand/collapse all"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-optional-all-expanded-in-28": {
+      "id": "b-00-overview-optional-all-expanded-in-28",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "optional all-expanded initial state"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-selected-span-state-29": {
+      "id": "b-00-overview-selected-span-state-29",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "selected span state"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-optional-controlled-sele-30": {
+      "id": "b-00-overview-optional-controlled-sele-30",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "optional controlled selection"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-plugin-slots-for-contain-31": {
+      "id": "b-00-overview-plugin-slots-for-contain-31",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "plugin slots for container header, toolbar trailing content, empty state, and detail placeholder"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-current-scope-32": {
+      "id": "b-00-overview-current-scope-32",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Current Scope"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-current-shell-is-a-v-33": {
+      "id": "b-00-overview-the-current-shell-is-a-v-33",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The current shell is a v1 base viewer extracted from Spectre's active trace page. It proves the package boundary and gives apps a day-zero trace UI."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-workflow-specific-panes-34": {
+      "id": "b-00-overview-workflow-specific-panes-34",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Workflow-specific panes, richer plugin registries, and custom app event renderers can be added as the adapter needs become clearer."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-styling-standard-35": {
+      "id": "b-00-overview-styling-standard-35",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Styling Standard"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-spectre-is-the-reference-36": {
+      "id": "b-00-overview-spectre-is-the-reference-36",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spectre is the reference UI for the kernel viewer. The shared viewer packages should stay aligned with the Spectre-iterated components, while host applications provide a Tailwind/theme layer that maps the Agent Prism token names used by the components."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-examples-must-use-the-sh-37": {
+      "id": "b-00-overview-examples-must-use-the-sh-37",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Examples must use the shared viewer packages and generated Tailwind utilities from package source. They should not hand-write CSS shims for Tailwind class names."
+        }
+      ],
+      "children": []
+    }
+  }
+}

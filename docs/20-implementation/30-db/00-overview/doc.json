@@ -1,0 +1,371 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-30-db-00-overview",
+  "title": "Database Package",
+  "root": "b-00-overview-root-20",
+  "blocks": {
+    "b-00-overview-root-20": {
+      "id": "b-00-overview-root-20",
+      "flavour": "paragraph",
+      "props": {
+        "code-ref": "packages/db/src/schema/, packages/db/src/actions/",
+        "concepts": [
+          "db",
+          "drizzle",
+          "containers",
+          "pi-agent-sessions",
+          "agent-runs",
+          "trace-events",
+          "read-api-helpers"
+        ],
+        "covers": "Implementation of @agent-kernel/db: Drizzle schema and query helpers for containers, Pi agent sessions, agent runs, trace events, and kernel trace reads.",
+        "depends-on": [
+          "../../10-system-design/20-observability-model.md"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-database-package-1",
+        "b-00-overview-agent-kernel-db-owns-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-schema-4",
+        "b-00-overview-table-purpose-5",
+        "b-00-overview-containers-6",
+        "b-00-overview-containers-are-the-kerne-7",
+        "b-00-overview-apps-can-map-their-domai-8",
+        "b-00-overview-pi-agent-sessions-9",
+        "b-00-overview-pi-agent-sessions-track-10",
+        "b-00-overview-agent-runs-11",
+        "b-00-overview-an-agent-run-represents-12",
+        "b-00-overview-trace-events-13",
+        "b-00-overview-trace-events-store-the-p-14",
+        "b-00-overview-read-helpers-15",
+        "b-00-overview-actions-read-api-ts-pr-16",
+        "b-00-overview-listcontainertree-db-r-17",
+        "b-00-overview-getkerneltracereadrows-18",
+        "b-00-overview-these-are-lower-level-he-19"
+      ]
+    },
+    "b-00-overview-database-package-1": {
+      "id": "b-00-overview-database-package-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Database Package"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-kernel-db-owns-2": {
+      "id": "b-00-overview-agent-kernel-db-owns-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@agent-kernel/db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " owns the kernel observability schema and server-side query helpers. Apps compose these table definitions into their own Drizzle setup."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-schema-4": {
+      "id": "b-00-overview-schema-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Schema"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-table-purpose-5": {
+      "id": "b-00-overview-table-purpose-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| Table | Purpose |\n|---|---|\n| "
+        },
+        {
+          "insert": "containers",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Generic grouping unit for app work and viewer navigation |\n| "
+        },
+        {
+          "insert": "pi_agent_sessions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Pi SDK session identity, parent Pi session linkage, agent status, model, phase/container labels |\n| "
+        },
+        {
+          "insert": "agent_runs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | One run inside a Pi session, including container, phase, status, and parent tool call |\n| "
+        },
+        {
+          "insert": "trace_events",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Event stream rows typed by the protocol envelope |"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-containers-6": {
+      "id": "b-00-overview-containers-6",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Containers"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-containers-are-the-kerne-7": {
+      "id": "b-00-overview-containers-are-the-kerne-7",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Containers are the kernel's portable grouping primitive. They carry label, status, parent container, working paths, phase label, phase vocabulary, metadata, and timestamps."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-apps-can-map-their-domai-8": {
+      "id": "b-00-overview-apps-can-map-their-domai-8",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Apps can map their domain work units to containers without the kernel learning app workflow semantics."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-pi-agent-sessions-9": {
+      "id": "b-00-overview-pi-agent-sessions-9",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Pi Agent Sessions"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-pi-agent-sessions-track-10": {
+      "id": "b-00-overview-pi-agent-sessions-track-10",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Pi agent sessions track the durable Pi conversation identity for each agent. The table stores parent-child relationships, app-session correlation, container/phase labels, display labels, agent names, status, model, and timestamps."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-runs-11": {
+      "id": "b-00-overview-agent-runs-11",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Agent Runs"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-an-agent-run-represents-12": {
+      "id": "b-00-overview-an-agent-run-represents-12",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An agent run represents one processing loop. Runs link to Pi sessions and carry explicit structural fields such as "
+        },
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "phase",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "parentToolUseId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-trace-events-13": {
+      "id": "b-00-overview-trace-events-13",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Trace Events"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-trace-events-store-the-p-14": {
+      "id": "b-00-overview-trace-events-store-the-p-14",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Trace events store the protocol envelope as DB rows. The "
+        },
+        {
+          "insert": "type",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "source",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " columns are open strings so app-specific events can pass through."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-read-helpers-15": {
+      "id": "b-00-overview-read-helpers-15",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Read Helpers"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-actions-read-api-ts-pr-16": {
+      "id": "b-00-overview-actions-read-api-ts-pr-16",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "actions/read-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " provides:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-listcontainertree-db-r-17": {
+      "id": "b-00-overview-listcontainertree-db-r-17",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "listContainerTree(db, rootContainerId)",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-getkerneltracereadrows-18": {
+      "id": "b-00-overview-getkerneltracereadrows-18",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "getKernelTraceReadRows(db, identity, opts)",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-these-are-lower-level-he-19": {
+      "id": "b-00-overview-these-are-lower-level-he-19",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These are lower-level helpers used by app-mounted read API adapters. They prefer container identity and use app-session identity as a compatibility bridge when supplied."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-00-overview",
+  "title": "System Design",
+  "root": "b-00-overview-root-15",
+  "blocks": {
+    "b-00-overview-root-15": {
+      "id": "b-00-overview-root-15",
+      "flavour": "paragraph",
+      "props": {
+        "concepts": [
+          "system-design",
+          "runtime-model",
+          "observability-model",
+          "event-protocol",
+          "viewer-model",
+          "app-adapter"
+        ],
+        "covers": "System design overview for the Pi Agent Kernel platform: runtime, observability, protocol, viewer, and app adapter models.",
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-system-design-1",
+        "b-00-overview-the-kernel-is-organized-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-child-nodes-4",
+        "b-00-overview-10-runtime-model-md-10-5",
+        "b-00-overview-how-agents-context-sub-6",
+        "b-00-overview-20-observability-model-7",
+        "b-00-overview-how-containers-pi-sessi-8",
+        "b-00-overview-30-event-protocol-md-3-9",
+        "b-00-overview-the-event-envelope-core-10",
+        "b-00-overview-40-viewer-model-md-40-11",
+        "b-00-overview-how-viewer-core-viewer-12",
+        "b-00-overview-50-app-adapter-model-md-13",
+        "b-00-overview-how-apps-such-as-spectre-14"
+      ]
+    },
+    "b-00-overview-system-design-1": {
+      "id": "b-00-overview-system-design-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "System Design"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-kernel-is-organized-2": {
+      "id": "b-00-overview-the-kernel-is-organized-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel is organized around a small set of system concepts: agents are spawned inside app-provided context, execution emits protocol events, events are stored and read through kernel contracts, and the viewer renders those contracts with optional app plugins."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-child-nodes-4": {
+      "id": "b-00-overview-child-nodes-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Child Nodes"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-10-runtime-model-md-10-5": {
+      "id": "b-00-overview-10-runtime-model-md-10-5",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "10-runtime-model.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/10-system-design/10-runtime-model.md",
+              "label": "10-runtime-model.md"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-agents-context-sub-6": {
+      "id": "b-00-overview-how-agents-context-sub-6",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How agents, context, subagents, run context, and app adapters compose at runtime."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-20-observability-model-7": {
+      "id": "b-00-overview-20-observability-model-7",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "20-observability-model.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/10-system-design/20-observability-model.md",
+              "label": "20-observability-model.md"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-containers-pi-sessi-8": {
+      "id": "b-00-overview-how-containers-pi-sessi-8",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How containers, Pi sessions, runs, events, and explicit linkages form the trace graph."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-30-event-protocol-md-3-9": {
+      "id": "b-00-overview-30-event-protocol-md-3-9",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "30-event-protocol.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/10-system-design/30-event-protocol.md",
+              "label": "30-event-protocol.md"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-event-envelope-core-10": {
+      "id": "b-00-overview-the-event-envelope-core-10",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The event envelope, core event catalog, trace levels, and open extension model."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-40-viewer-model-md-40-11": {
+      "id": "b-00-overview-40-viewer-model-md-40-11",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "40-viewer-model.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/10-system-design/40-viewer-model.md",
+              "label": "40-viewer-model.md"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-viewer-core-viewer-12": {
+      "id": "b-00-overview-how-viewer-core-viewer-12",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How viewer-core, viewer-ui, and viewer-shell turn trace data into a base UI."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-50-app-adapter-model-md-13": {
+      "id": "b-00-overview-50-app-adapter-model-md-13",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "50-app-adapter-model.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/10-system-design/50-app-adapter-model.md",
+              "label": "50-app-adapter-model.md"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-apps-such-as-spectre-14": {
+      "id": "b-00-overview-how-apps-such-as-spectre-14",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How apps such as Spectre mount and extend the kernel without moving workflow semantics into it."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,685 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-70-app-adapters-00-overview",
+  "title": "App Adapters",
+  "root": "b-00-overview-root-47",
+  "blocks": {
+    "b-00-overview-root-47": {
+      "id": "b-00-overview-root-47",
+      "flavour": "paragraph",
+      "props": {
+        "concepts": [
+          "app-adapter",
+          "spectre-adapter",
+          "session-mapping",
+          "custom-loader",
+          "state-manager",
+          "viewer-plugins",
+          "tailer-wrapper"
+        ],
+        "covers": "Implementation guidance for host app adapters, using Spectre as the reference application without making Spectre concepts kernel concepts.",
+        "depends-on": [
+          "../../00-foundation/30-boundaries.md",
+          "../20-kernel/00-overview.md",
+          "../50-read-api/00-overview.md"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-app-adapters-1",
+        "b-00-overview-app-adapters-connect-hos-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-required-adapter-work-4",
+        "b-00-overview-a-host-app-usually-needs-5",
+        "b-00-overview-kernel-tables-in-its-mig-6",
+        "b-00-overview-app-workflow-tables-that-7",
+        "b-00-overview-createkernel-configu-8",
+        "b-00-overview-createspawnagent-ada-9",
+        "b-00-overview-a-trace-writer-implement-10",
+        "b-00-overview-agent-catalog-roots-11",
+        "b-00-overview-shared-tool-factories-12",
+        "b-00-overview-custom-context-loaders-13",
+        "b-00-overview-app-session-binding-mark-14",
+        "b-00-overview-tailer-wrapper-with-db-i-15",
+        "b-00-overview-read-api-service-impleme-16",
+        "b-00-overview-viewer-shell-integration-17",
+        "b-00-overview-child-nodes-18",
+        "b-00-overview-10-application-setup-md-19",
+        "b-00-overview-step-by-step-guide-for-w-20",
+        "b-00-overview-spectre-reference-adapte-21",
+        "b-00-overview-spectre-should-keep-thes-22",
+        "b-00-overview-spectre-session-rows-and-23",
+        "b-00-overview-sessionstatemanager-24",
+        "b-00-overview-spec-plan-build-docs-25",
+        "b-00-overview-project-worktree-git-beh-26",
+        "b-00-overview-checkpoint-slice-loade-27",
+        "b-00-overview-domain-tools-that-write-28",
+        "b-00-overview-durable-ask-tables-and-a-29",
+        "b-00-overview-phase-specific-ui-panels-30",
+        "b-00-overview-spectre-should-consume-t-31",
+        "b-00-overview-protocol-event-types-and-32",
+        "b-00-overview-kernel-db-tables-and-que-33",
+        "b-00-overview-spawn-pipeline-and-run-c-34",
+        "b-00-overview-registry-parsing-mechani-35",
+        "b-00-overview-tailer-primitives-36",
+        "b-00-overview-read-api-route-factory-37",
+        "b-00-overview-viewer-core-ui-shell-pac-38",
+        "b-00-overview-adapter-tests-39",
+        "b-00-overview-adapters-should-be-teste-40",
+        "b-00-overview-no-kernel-package-import-41",
+        "b-00-overview-app-packages-depending-o-42",
+        "b-00-overview-trace-writes-carrying-co-43",
+        "b-00-overview-subagents-carrying-paren-44",
+        "b-00-overview-custom-loaders-living-in-45",
+        "b-00-overview-viewer-pages-consuming-v-46"
+      ]
+    },
+    "b-00-overview-app-adapters-1": {
+      "id": "b-00-overview-app-adapters-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "App Adapters"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-app-adapters-connect-hos-2": {
+      "id": "b-00-overview-app-adapters-connect-hos-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "App adapters connect host workflow semantics to kernel packages. They are intentionally specific."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-required-adapter-work-4": {
+      "id": "b-00-overview-required-adapter-work-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Required Adapter Work"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-a-host-app-usually-needs-5": {
+      "id": "b-00-overview-a-host-app-usually-needs-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A host app usually needs to provide:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-kernel-tables-in-its-mig-6": {
+      "id": "b-00-overview-kernel-tables-in-its-mig-6",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "kernel tables in its migration pipeline"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-app-workflow-tables-that-7": {
+      "id": "b-00-overview-app-workflow-tables-that-7",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app workflow tables that reference kernel containers or app-session ids"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-createkernel-configu-8": {
+      "id": "b-00-overview-createkernel-configu-8",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "createKernel()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " configuration"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-createspawnagent-ada-9": {
+      "id": "b-00-overview-createspawnagent-ada-9",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "createSpawnAgent()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " adapters"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-a-trace-writer-implement-10": {
+      "id": "b-00-overview-a-trace-writer-implement-10",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "a trace writer implementation"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-catalog-roots-11": {
+      "id": "b-00-overview-agent-catalog-roots-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "agent catalog roots"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-shared-tool-factories-12": {
+      "id": "b-00-overview-shared-tool-factories-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "shared tool factories"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-custom-context-loaders-13": {
+      "id": "b-00-overview-custom-context-loaders-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "custom context loaders"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-app-session-binding-mark-14": {
+      "id": "b-00-overview-app-session-binding-mark-14",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app session binding markers for JSONL"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-tailer-wrapper-with-db-i-15": {
+      "id": "b-00-overview-tailer-wrapper-with-db-i-15",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "tailer wrapper with DB insert/upsert behavior"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-read-api-service-impleme-16": {
+      "id": "b-00-overview-read-api-service-impleme-16",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "read API service implementation"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-viewer-shell-integration-17": {
+      "id": "b-00-overview-viewer-shell-integration-17",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "viewer shell integration"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-child-nodes-18": {
+      "id": "b-00-overview-child-nodes-18",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Child Nodes"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-10-application-setup-md-19": {
+      "id": "b-00-overview-10-application-setup-md-19",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "10-application-setup.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/70-app-adapters/10-application-setup.md",
+              "label": "10-application-setup.md"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-step-by-step-guide-for-w-20": {
+      "id": "b-00-overview-step-by-step-guide-for-w-20",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Step-by-step guide for wiring a host application around the kernel packages, including package linking, database composition, kernel creation, custom loaders, tailer wrapping, read API mounting, and viewer setup."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-spectre-reference-adapte-21": {
+      "id": "b-00-overview-spectre-reference-adapte-21",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Spectre Reference Adapter"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-spectre-should-keep-thes-22": {
+      "id": "b-00-overview-spectre-should-keep-thes-22",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spectre should keep these app-side:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-spectre-session-rows-and-23": {
+      "id": "b-00-overview-spectre-session-rows-and-23",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre session rows and phase state"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-sessionstatemanager-24": {
+      "id": "b-00-overview-sessionstatemanager-24",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "SessionStateManager",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-spec-plan-build-docs-25": {
+      "id": "b-00-overview-spec-plan-build-docs-25",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "spec, plan, build, docs, intake, onboarding services"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-project-worktree-git-beh-26": {
+      "id": "b-00-overview-project-worktree-git-beh-26",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "project/worktree/git behavior"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-checkpoint-slice-loade-27": {
+      "id": "b-00-overview-checkpoint-slice-loade-27",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "checkpoint-slice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " loader"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-domain-tools-that-write-28": {
+      "id": "b-00-overview-domain-tools-that-write-28",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "domain tools that write Spectre state"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-durable-ask-tables-and-a-29": {
+      "id": "b-00-overview-durable-ask-tables-and-a-29",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "durable ask tables and answer routes"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-phase-specific-ui-panels-30": {
+      "id": "b-00-overview-phase-specific-ui-panels-30",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "phase-specific UI panels"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-spectre-should-consume-t-31": {
+      "id": "b-00-overview-spectre-should-consume-t-31",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spectre should consume these kernel surfaces:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-protocol-event-types-and-32": {
+      "id": "b-00-overview-protocol-event-types-and-32",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "protocol event types and factories"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-kernel-db-tables-and-que-33": {
+      "id": "b-00-overview-kernel-db-tables-and-que-33",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "kernel DB tables and query helpers"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-spawn-pipeline-and-run-c-34": {
+      "id": "b-00-overview-spawn-pipeline-and-run-c-34",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "spawn pipeline and run context"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-registry-parsing-mechani-35": {
+      "id": "b-00-overview-registry-parsing-mechani-35",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "registry/parsing mechanics"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-tailer-primitives-36": {
+      "id": "b-00-overview-tailer-primitives-36",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "tailer primitives"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-read-api-route-factory-37": {
+      "id": "b-00-overview-read-api-route-factory-37",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "read API route factory"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-viewer-core-ui-shell-pac-38": {
+      "id": "b-00-overview-viewer-core-ui-shell-pac-38",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "viewer-core/ui/shell packages"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-adapter-tests-39": {
+      "id": "b-00-overview-adapter-tests-39",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Adapter Tests"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-adapters-should-be-teste-40": {
+      "id": "b-00-overview-adapters-should-be-teste-40",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Adapters should be tested for:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-no-kernel-package-import-41": {
+      "id": "b-00-overview-no-kernel-package-import-41",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "no kernel package importing app code"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-app-packages-depending-o-42": {
+      "id": "b-00-overview-app-packages-depending-o-42",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app packages depending on kernel package exports only"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-trace-writes-carrying-co-43": {
+      "id": "b-00-overview-trace-writes-carrying-co-43",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "trace writes carrying container ids"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-subagents-carrying-paren-44": {
+      "id": "b-00-overview-subagents-carrying-paren-44",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "subagents carrying parent tool-use ids"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-custom-loaders-living-in-45": {
+      "id": "b-00-overview-custom-loaders-living-in-45",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "custom loaders living in the app"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-viewer-pages-consuming-v-46": {
+      "id": "b-00-overview-viewer-pages-consuming-v-46",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "viewer pages consuming viewer-core DTOs, not database schema"
+        }
+      ],
+      "children": []
+    }
+  }
+}

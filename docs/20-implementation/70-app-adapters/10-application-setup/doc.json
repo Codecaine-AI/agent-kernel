@@ -1,0 +1,1290 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-70-app-adapters-10-application-setup",
+  "title": "Application Setup",
+  "root": "b-10-application-setup-root-83",
+  "blocks": {
+    "b-10-application-setup-root-83": {
+      "id": "b-10-application-setup-root-83",
+      "flavour": "paragraph",
+      "props": {
+        "concepts": [
+          "application-setup",
+          "host-app",
+          "adapter",
+          "workspace",
+          "create-kernel",
+          "read-api",
+          "viewer",
+          "tailer"
+        ],
+        "covers": "How to set up a host application on top of the Pi Agent Kernel packages without moving app-specific workflow semantics into the kernel.",
+        "depends-on": [
+          "00-overview.md",
+          "../../00-foundation/30-boundaries.md",
+          "../../10-system-design/50-app-adapter-model.md"
+        ]
+      },
+      "children": [
+        "b-10-application-setup-application-setup-1",
+        "b-10-application-setup-a-host-application-is-th-2",
+        "b-10-application-setup-divider-3",
+        "b-10-application-setup-mental-model-4",
+        "b-10-application-setup-text-5",
+        "b-10-application-setup-the-dependency-direction-6",
+        "b-10-application-setup-what-not-to-copy-from-sp-7",
+        "b-10-application-setup-spectre-has-an-apps-bac-8",
+        "b-10-application-setup-when-starting-a-new-app-9",
+        "b-10-application-setup-kernel-instance-ts-sho-10",
+        "b-10-application-setup-run-context-ts-shows-h-11",
+        "b-10-application-setup-spawn-pipeline-and-12",
+        "b-10-application-setup-spectre-specific-loaders-13",
+        "b-10-application-setup-a-new-app-should-create-14",
+        "b-10-application-setup-step-1-link-the-kernel-15",
+        "b-10-application-setup-during-active-developmen-16",
+        "b-10-application-setup-json-17",
+        "b-10-application-setup-then-app-packages-can-de-18",
+        "b-10-application-setup-json-19",
+        "b-10-application-setup-after-package-contracts-20",
+        "b-10-application-setup-step-2-compose-persiste-21",
+        "b-10-application-setup-the-kernel-provides-reus-22",
+        "b-10-application-setup-the-usual-shape-is-23",
+        "b-10-application-setup-text-24",
+        "b-10-application-setup-the-app-should-keep-doma-25",
+        "b-10-application-setup-step-3-create-a-kernel-26",
+        "b-10-application-setup-the-app-adapter-creates-27",
+        "b-10-application-setup-ts-28",
+        "b-10-application-setup-the-spawn-adapter-is-whe-29",
+        "b-10-application-setup-step-4-define-app-sessi-30",
+        "b-10-application-setup-the-kernel-uses-containe-31",
+        "b-10-application-setup-text-32",
+        "b-10-application-setup-use-app-owned-workflow-t-33",
+        "b-10-application-setup-step-5-register-custom-34",
+        "b-10-application-setup-kernel-loaders-should-st-35",
+        "b-10-application-setup-ts-36",
+        "b-10-application-setup-if-a-loader-reads-app-ta-37",
+        "b-10-application-setup-step-6-emit-protocol-ev-38",
+        "b-10-application-setup-use-agent-kernel-proto-39",
+        "b-10-application-setup-ts-40",
+        "b-10-application-setup-the-app-decides-when-dom-41",
+        "b-10-application-setup-step-7-wrap-the-tailer-42",
+        "b-10-application-setup-agent-kernel-tailer-p-43",
+        "b-10-application-setup-watch-directory-44",
+        "b-10-application-setup-cursor-snapshot-path-45",
+        "b-10-application-setup-database-connection-46",
+        "b-10-application-setup-queue-insert-upsert-call-47",
+        "b-10-application-setup-app-session-binding-mark-48",
+        "b-10-application-setup-lifecycle-subagent-custo-49",
+        "b-10-application-setup-new-apps-should-prefer-g-50",
+        "b-10-application-setup-step-8-mount-the-kernel-51",
+        "b-10-application-setup-the-read-api-route-facto-52",
+        "b-10-application-setup-ts-53",
+        "b-10-application-setup-keep-product-routes-sepa-54",
+        "b-10-application-setup-step-9-mount-the-viewer-55",
+        "b-10-application-setup-the-base-viewer-path-is-56",
+        "b-10-application-setup-text-57",
+        "b-10-application-setup-the-host-app-owns-surrou-58",
+        "b-10-application-setup-step-10-add-boundary-te-59",
+        "b-10-application-setup-every-host-app-should-ha-60",
+        "b-10-application-setup-kernel-packages-do-not-i-61",
+        "b-10-application-setup-kernel-packages-do-not-r-62",
+        "b-10-application-setup-app-specific-loader-name-63",
+        "b-10-application-setup-app-packages-depend-on-e-64",
+        "b-10-application-setup-no-duplicate-local-copie-65",
+        "b-10-application-setup-this-turns-the-adapter-b-66",
+        "b-10-application-setup-minimal-app-checklist-67",
+        "b-10-application-setup-link-or-install-agent-68",
+        "b-10-application-setup-add-kernel-schema-to-the-69",
+        "b-10-application-setup-create-app-workflow-sess-70",
+        "b-10-application-setup-create-a-small-app-kerne-71",
+        "b-10-application-setup-provide-a-spawn-adapter-72",
+        "b-10-application-setup-register-app-owned-custo-73",
+        "b-10-application-setup-wrap-the-tailer-if-jsonl-74",
+        "b-10-application-setup-mount-the-kernel-read-ap-75",
+        "b-10-application-setup-mount-kerneltraceviewer-76",
+        "b-10-application-setup-add-boundary-tests-77",
+        "b-10-application-setup-spectre-as-reference-78",
+        "b-10-application-setup-spectre-is-useful-becaus-79",
+        "b-10-application-setup-read-spectre-this-way-80",
+        "b-10-application-setup-text-81",
+        "b-10-application-setup-that-separation-is-the-t-82"
+      ]
+    },
+    "b-10-application-setup-application-setup-1": {
+      "id": "b-10-application-setup-application-setup-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Application Setup"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-a-host-application-is-th-2": {
+      "id": "b-10-application-setup-a-host-application-is-th-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A host application is the product-specific layer above the kernel. It owns workflow state, domain tools, routing, product UI, and persistence choices while consuming "
+        },
+        {
+          "insert": "@agent-kernel/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " packages for runtime, observability, trace reading, tailing, and viewer primitives."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-divider-3": {
+      "id": "b-10-application-setup-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-application-setup-mental-model-4": {
+      "id": "b-10-application-setup-mental-model-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Mental Model"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-text-5": {
+      "id": "b-10-application-setup-text-5",
+      "flavour": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "host app packages\n  backend adapter\n  database composition\n  domain agents/tools/loaders\n  tailer wrapper\n  read API mount\n  frontend viewer mount\n        |\n        v\n@agent-kernel/* packages\n  protocol\n  db\n  kernel\n  tailer\n  viewer-core\n  viewer-ui\n  viewer-shell"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-the-dependency-direction-6": {
+      "id": "b-10-application-setup-the-dependency-direction-6",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The dependency direction is one-way. App code imports kernel packages. Kernel packages must not import app code or know app concepts."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-what-not-to-copy-from-sp-7": {
+      "id": "b-10-application-setup-what-not-to-copy-from-sp-7",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "What Not To Copy From Spectre"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-spectre-has-an-apps-bac-8": {
+      "id": "b-10-application-setup-spectre-has-an-apps-bac-8",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spectre has an "
+        },
+        {
+          "insert": "apps/backend/src/agent-kernel/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " directory because it was the original extraction site. In Spectre today, many files in that directory are compatibility wrappers or adapter files that forward to "
+        },
+        {
+          "insert": "@agent-kernel/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " while preserving old import paths."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-when-starting-a-new-app-9": {
+      "id": "b-10-application-setup-when-starting-a-new-app-9",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "When starting a new app, do not copy Spectre's "
+        },
+        {
+          "insert": "apps/backend/src/agent-kernel/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tree as if it were kernel source. Use it only as a reference for the app-adapter pattern:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-kernel-instance-ts-sho-10": {
+      "id": "b-10-application-setup-kernel-instance-ts-sho-10",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "kernel-instance.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " shows how Spectre configures "
+        },
+        {
+          "insert": "createKernel()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-run-context-ts-shows-h-11": {
+      "id": "b-10-application-setup-run-context-ts-shows-h-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "run-context.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " shows how Spectre maps old session identity to generic app-session identity."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-spawn-pipeline-and-12": {
+      "id": "b-10-application-setup-spawn-pipeline-and-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "spawn-pipeline/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "subagents/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " contain many transitional re-export shims."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-spectre-specific-loaders-13": {
+      "id": "b-10-application-setup-spectre-specific-loaders-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre-specific loaders, tools, phase transitions, and "
+        },
+        {
+          "insert": "SessionStateManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " stay in Spectre."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-a-new-app-should-create-14": {
+      "id": "b-10-application-setup-a-new-app-should-create-14",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A new app should create a small adapter surface with app-owned names and import kernel package exports directly."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-step-1-link-the-kernel-15": {
+      "id": "b-10-application-setup-step-1-link-the-kernel-15",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Step 1: Link The Kernel Packages"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-during-active-developmen-16": {
+      "id": "b-10-application-setup-during-active-developmen-16",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "During active development, use either a workspace/submodule or local workspace package path:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-json-17": {
+      "id": "b-10-application-setup-json-17",
+      "flavour": "code",
+      "props": {
+        "language": "json"
+      },
+      "text": [
+        {
+          "insert": "{\n  \"workspaces\": [\n    \"apps/*\",\n    \"packages/pi-agent-kernel/packages/*\"\n  ]\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-then-app-packages-can-de-18": {
+      "id": "b-10-application-setup-then-app-packages-can-de-18",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Then app packages can depend on kernel packages with "
+        },
+        {
+          "insert": "workspace:*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ":"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-json-19": {
+      "id": "b-10-application-setup-json-19",
+      "flavour": "code",
+      "props": {
+        "language": "json"
+      },
+      "text": [
+        {
+          "insert": "{\n  \"dependencies\": {\n    \"@agent-kernel/kernel\": \"workspace:*\",\n    \"@agent-kernel/protocol\": \"workspace:*\",\n    \"@agent-kernel/db\": \"workspace:*\",\n    \"@agent-kernel/tailer\": \"workspace:*\",\n    \"@agent-kernel/viewer-core\": \"workspace:*\",\n    \"@agent-kernel/viewer-shell\": \"workspace:*\",\n    \"@agent-kernel/viewer-ui\": \"workspace:*\"\n  }\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-after-package-contracts-20": {
+      "id": "b-10-application-setup-after-package-contracts-20",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "After package contracts stabilize, published package versions can replace "
+        },
+        {
+          "insert": "workspace:*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-step-2-compose-persiste-21": {
+      "id": "b-10-application-setup-step-2-compose-persiste-21",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Step 2: Compose Persistence"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-the-kernel-provides-reus-22": {
+      "id": "b-10-application-setup-the-kernel-provides-reus-22",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel provides reusable schema and read helpers in "
+        },
+        {
+          "insert": "@agent-kernel/db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The host app decides how those tables enter its migration system."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-the-usual-shape-is-23": {
+      "id": "b-10-application-setup-the-usual-shape-is-23",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The usual shape is:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-text-24": {
+      "id": "b-10-application-setup-text-24",
+      "flavour": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "app database package\n  app workflow tables\n  app project/user/session tables\n  kernel table exports from @agent-kernel/db/schema\n  app-specific actions and joins"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-the-app-should-keep-doma-25": {
+      "id": "b-10-application-setup-the-app-should-keep-doma-25",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The app should keep domain workflow rows separate from kernel observability rows. Link them through generic correlation fields such as app session identity or kernel container ids."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-step-3-create-a-kernel-26": {
+      "id": "b-10-application-setup-step-3-create-a-kernel-26",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Step 3: Create A Kernel Instance"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-the-app-adapter-creates-27": {
+      "id": "b-10-application-setup-the-app-adapter-creates-27",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The app adapter creates the kernel instance and supplies the app-specific spawn implementation."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-ts-28": {
+      "id": "b-10-application-setup-ts-28",
+      "flavour": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "import { createKernel, AgentManager } from \"@agent-kernel/kernel\";\n\nexport function createAppKernel() {\n  let kernel!: ReturnType<typeof createKernel>;\n\n  kernel = createKernel({\n    id: \"my-app\",\n    concurrency: {\n      maxBackgroundAgents: 4,\n    },\n    spawnAgent: async (name, prompt, ctx, opts) => {\n      return spawnAgentThroughMyApp(name, prompt, ctx, opts);\n    },\n    createAgentManager: ({ maxConcurrentBackgroundAgents }) =>\n      new AgentManager(undefined, maxConcurrentBackgroundAgents, undefined, {\n        spawnAgent: (name, prompt, ctx, opts) => kernel.spawnAgent(name, prompt, ctx, opts),\n      }),\n  });\n\n  return kernel;\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-the-spawn-adapter-is-whe-29": {
+      "id": "b-10-application-setup-the-spawn-adapter-is-whe-29",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The spawn adapter is where the host app wires model resolution, app session identity, working directories, trace writers, agent catalog roots, and app run context."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-step-4-define-app-sessi-30": {
+      "id": "b-10-application-setup-step-4-define-app-sessi-30",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Step 4: Define App Session And Container Mapping"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-the-kernel-uses-containe-31": {
+      "id": "b-10-application-setup-the-kernel-uses-containe-31",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel uses containers as portable grouping units. The app can keep its own workflow sessions and map them to containers."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-text-32": {
+      "id": "b-10-application-setup-text-32",
+      "flavour": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "app session row\n  id\n  topic\n  workflow status\n  current app phase\n  kernel_container_id -> kernel containers.id"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-use-app-owned-workflow-t-33": {
+      "id": "b-10-application-setup-use-app-owned-workflow-t-33",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use app-owned workflow tables for product semantics. Use kernel rows for runtime and observability."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-step-5-register-custom-34": {
+      "id": "b-10-application-setup-step-5-register-custom-34",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Step 5: Register Custom Loaders App-Side"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-kernel-loaders-should-st-35": {
+      "id": "b-10-application-setup-kernel-loaders-should-st-35",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernel loaders should stay generic. App-specific loaders should live in the host app and be registered into the loader catalog."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-ts-36": {
+      "id": "b-10-application-setup-ts-36",
+      "flavour": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "import { createDefaultCatalog } from \"@agent-kernel/kernel/context/loaders\";\n\nconst catalog = createDefaultCatalog();\n\ncatalog.register({\n  kind: \"my-workflow-slice\",\n  async load(input, ctx) {\n    const state = await loadMyWorkflowState(ctx.appSessionId);\n    return {\n      status: \"ok\",\n      content: JSON.stringify(state, null, 2),\n      bytes: 0,\n      fromCache: false,\n    };\n  },\n});"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-if-a-loader-reads-app-ta-37": {
+      "id": "b-10-application-setup-if-a-loader-reads-app-ta-37",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "If a loader reads app tables, app artifacts, or product workflow state, it belongs in the app adapter."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-step-6-emit-protocol-ev-38": {
+      "id": "b-10-application-setup-step-6-emit-protocol-ev-38",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Step 6: Emit Protocol Events Through A Trace Writer"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-use-agent-kernel-proto-39": {
+      "id": "b-10-application-setup-use-agent-kernel-proto-39",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use "
+        },
+        {
+          "insert": "@agent-kernel/protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " factories for trace events and write them into the app-composed kernel tables."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-ts-40": {
+      "id": "b-10-application-setup-ts-40",
+      "flavour": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "import { createAgentRunStartEvent } from \"@agent-kernel/protocol\";\n\nawait traceWriter.submit(\n  createAgentRunStartEvent(appSessionId, userId, runId, agentName, {\n    containerId,\n    phase,\n  }),\n);"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-the-app-decides-when-dom-41": {
+      "id": "b-10-application-setup-the-app-decides-when-dom-41",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The app decides when domain-level events happen. The event protocol gives those events a portable shape."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-step-7-wrap-the-tailer-42": {
+      "id": "b-10-application-setup-step-7-wrap-the-tailer-42",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Step 7: Wrap The Tailer"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-agent-kernel-tailer-p-43": {
+      "id": "b-10-application-setup-agent-kernel-tailer-p-43",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@agent-kernel/tailer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " provides file watching, JSONL reading, event mapping, cursor storage, queueing, and health primitives. The app wrapper supplies:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-watch-directory-44": {
+      "id": "b-10-application-setup-watch-directory-44",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "watch directory"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-cursor-snapshot-path-45": {
+      "id": "b-10-application-setup-cursor-snapshot-path-45",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "cursor snapshot path"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-database-connection-46": {
+      "id": "b-10-application-setup-database-connection-46",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "database connection"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-queue-insert-upsert-call-47": {
+      "id": "b-10-application-setup-queue-insert-upsert-call-47",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "queue insert/upsert callbacks"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-app-session-binding-mark-48": {
+      "id": "b-10-application-setup-app-session-binding-mark-48",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app-session binding marker names"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-lifecycle-subagent-custo-49": {
+      "id": "b-10-application-setup-lifecycle-subagent-custo-49",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "lifecycle/subagent custom marker names if compatibility is needed"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-new-apps-should-prefer-g-50": {
+      "id": "b-10-application-setup-new-apps-should-prefer-g-50",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "New apps should prefer generic marker names. Existing apps can configure compatibility names."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-step-8-mount-the-kernel-51": {
+      "id": "b-10-application-setup-step-8-mount-the-kernel-51",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Step 8: Mount The Kernel Read API"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-the-read-api-route-facto-52": {
+      "id": "b-10-application-setup-the-read-api-route-facto-52",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The read API route factory lives in "
+        },
+        {
+          "insert": "@agent-kernel/kernel/read-api",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The app provides a service that resolves app routes into kernel read DTOs."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-ts-53": {
+      "id": "b-10-application-setup-ts-53",
+      "flavour": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "import { createKernelTraceReadApi } from \"@agent-kernel/kernel/read-api\";\n\napp.use(\n  createKernelTraceReadApi({\n    async getTraceSessionDetail(id, query) {\n      return readKernelTraceForAppSession(id, query);\n    },\n    async listTraceSessions(query) {\n      return listKernelTraceSessions(query);\n    },\n  }),\n);"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-keep-product-routes-sepa-54": {
+      "id": "b-10-application-setup-keep-product-routes-sepa-54",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Keep product routes separate from kernel read routes. Product routes can join app workflow state; kernel read routes should return viewer-core DTOs."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-step-9-mount-the-viewer-55": {
+      "id": "b-10-application-setup-step-9-mount-the-viewer-55",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Step 9: Mount The Viewer"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-the-base-viewer-path-is-56": {
+      "id": "b-10-application-setup-the-base-viewer-path-is-56",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The base viewer path is:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-text-57": {
+      "id": "b-10-application-setup-text-57",
+      "flavour": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "read API response\n  -> @agent-kernel/viewer-core transforms\n  -> @agent-kernel/viewer-shell KernelTraceViewer"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-the-host-app-owns-surrou-58": {
+      "id": "b-10-application-setup-the-host-app-owns-surrou-58",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The host app owns surrounding navigation, headers, filters, and workflow panels. Generic trace tree behavior belongs in viewer packages; domain interpretation belongs in the host app."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-step-10-add-boundary-te-59": {
+      "id": "b-10-application-setup-step-10-add-boundary-te-59",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Step 10: Add Boundary Tests"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-every-host-app-should-ha-60": {
+      "id": "b-10-application-setup-every-host-app-should-ha-60",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every host app should have a portability check:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-kernel-packages-do-not-i-61": {
+      "id": "b-10-application-setup-kernel-packages-do-not-i-61",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "kernel packages do not import app packages"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-kernel-packages-do-not-r-62": {
+      "id": "b-10-application-setup-kernel-packages-do-not-r-62",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "kernel packages do not reference app paths"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-app-specific-loader-name-63": {
+      "id": "b-10-application-setup-app-specific-loader-name-63",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app-specific loader names do not appear in kernel packages"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-app-packages-depend-on-e-64": {
+      "id": "b-10-application-setup-app-packages-depend-on-e-64",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app packages depend on exported kernel package paths"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-no-duplicate-local-copie-65": {
+      "id": "b-10-application-setup-no-duplicate-local-copie-65",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "no duplicate local copies of "
+        },
+        {
+          "insert": "@agent-kernel/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " exist outside the chosen package source"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-this-turns-the-adapter-b-66": {
+      "id": "b-10-application-setup-this-turns-the-adapter-b-66",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This turns the adapter boundary into a testable contract instead of a convention."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-minimal-app-checklist-67": {
+      "id": "b-10-application-setup-minimal-app-checklist-67",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Minimal App Checklist"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-link-or-install-agent-68": {
+      "id": "b-10-application-setup-link-or-install-agent-68",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Link or install "
+        },
+        {
+          "insert": "@agent-kernel/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-add-kernel-schema-to-the-69": {
+      "id": "b-10-application-setup-add-kernel-schema-to-the-69",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Add kernel schema to the app migration path."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-create-app-workflow-sess-70": {
+      "id": "b-10-application-setup-create-app-workflow-sess-70",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Create app workflow/session tables."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-create-a-small-app-kerne-71": {
+      "id": "b-10-application-setup-create-a-small-app-kerne-71",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Create a small app kernel adapter with "
+        },
+        {
+          "insert": "createKernel()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-provide-a-spawn-adapter-72": {
+      "id": "b-10-application-setup-provide-a-spawn-adapter-72",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Provide a spawn adapter and trace writer."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-register-app-owned-custo-73": {
+      "id": "b-10-application-setup-register-app-owned-custo-73",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Register app-owned custom loaders."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-wrap-the-tailer-if-jsonl-74": {
+      "id": "b-10-application-setup-wrap-the-tailer-if-jsonl-74",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Wrap the tailer if JSONL ingestion is needed."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-mount-the-kernel-read-ap-75": {
+      "id": "b-10-application-setup-mount-the-kernel-read-ap-75",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Mount the kernel read API."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-mount-kerneltraceviewer-76": {
+      "id": "b-10-application-setup-mount-kerneltraceviewer-76",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Mount "
+        },
+        {
+          "insert": "KernelTraceViewer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or compose "
+        },
+        {
+          "insert": "viewer-ui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " directly."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-add-boundary-tests-77": {
+      "id": "b-10-application-setup-add-boundary-tests-77",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Add boundary tests."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-spectre-as-reference-78": {
+      "id": "b-10-application-setup-spectre-as-reference-78",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Spectre As Reference"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-spectre-is-useful-becaus-79": {
+      "id": "b-10-application-setup-spectre-is-useful-becaus-79",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spectre is useful because it shows a real vertical app using the kernel. It is also noisy because it still carries compatibility paths from the extraction."
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-read-spectre-this-way-80": {
+      "id": "b-10-application-setup-read-spectre-this-way-80",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Read Spectre this way:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-text-81": {
+      "id": "b-10-application-setup-text-81",
+      "flavour": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "packages/pi-agent-kernel/packages/*   kernel source of truth\napps/backend/src/agent-kernel/*       Spectre backend adapter and compatibility shims\napps/backend/src/agent-catalog/*      Spectre agents, tools, and custom loaders\napps/database/*                       Spectre schema composed with kernel schema\napps/tailer/*                         Spectre tailer wrapper\napps/frontend/*                       Spectre viewer mount and workflow UI"
+        }
+      ],
+      "children": []
+    },
+    "b-10-application-setup-that-separation-is-the-t-82": {
+      "id": "b-10-application-setup-that-separation-is-the-t-82",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "That separation is the template for a new application."
+        }
+      ],
+      "children": []
+    }
+  }
+}

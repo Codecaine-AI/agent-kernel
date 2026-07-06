@@ -1,0 +1,561 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-20-kernel-30-context-loaders",
+  "title": "Context Loaders",
+  "root": "b-30-context-loaders-root-35",
+  "blocks": {
+    "b-30-context-loaders-root-35": {
+      "id": "b-30-context-loaders-root-35",
+      "flavour": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/context/",
+        "concepts": [
+          "context-builder",
+          "agent-context-resolver",
+          "spawn-context",
+          "loader-catalog",
+          "custom-loader",
+          "accumulation-guard"
+        ],
+        "covers": "Context builder implementation: AgentContextResolver, SpawnContext, loader declarations, open loader catalog, base loaders, custom app loaders, and lifecycle events.",
+        "depends-on": [
+          "10-spawn-pipeline.md"
+        ]
+      },
+      "children": [
+        "b-30-context-loaders-context-loaders-1",
+        "b-30-context-loaders-the-context-builder-is-t-2",
+        "b-30-context-loaders-divider-3",
+        "b-30-context-loaders-resolver-contract-4",
+        "b-30-context-loaders-an-agent-context-sidecar-5",
+        "b-30-context-loaders-ts-6",
+        "b-30-context-loaders-loaders-declares-the-i-7",
+        "b-30-context-loaders-spawn-context-8",
+        "b-30-context-loaders-spawncontext-carries-9",
+        "b-30-context-loaders-agent-name-10",
+        "b-30-context-loaders-caller-variables-11",
+        "b-30-context-loaders-caller-identity-12",
+        "b-30-context-loaders-runtime-state-13",
+        "b-30-context-loaders-paths-14",
+        "b-30-context-loaders-optional-app-session-dat-15",
+        "b-30-context-loaders-sessiondata-is-opaque-16",
+        "b-30-context-loaders-loader-catalog-17",
+        "b-30-context-loaders-createloadercatalog-18",
+        "b-30-context-loaders-base-kernel-loader-kinds-19",
+        "b-30-context-loaders-file-20",
+        "b-30-context-loaders-directory-21",
+        "b-30-context-loaders-skill-22",
+        "b-30-context-loaders-command-23",
+        "b-30-context-loaders-text-24",
+        "b-30-context-loaders-apps-register-custom-kin-25",
+        "b-30-context-loaders-custom-loader-declaratio-26",
+        "b-30-context-loaders-lifecycle-events-27",
+        "b-30-context-loaders-the-context-builder-emit-28",
+        "b-30-context-loaders-context-build-started-29",
+        "b-30-context-loaders-context-input-resolved-30",
+        "b-30-context-loaders-context-build-completed-31",
+        "b-30-context-loaders-these-events-make-contex-32",
+        "b-30-context-loaders-accumulation-guard-33",
+        "b-30-context-loaders-the-runtime-injects-rend-34"
+      ]
+    },
+    "b-30-context-loaders-context-loaders-1": {
+      "id": "b-30-context-loaders-context-loaders-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Context Loaders"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-the-context-builder-is-t-2": {
+      "id": "b-30-context-loaders-the-context-builder-is-t-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The context builder is the dynamic half of an agent prompt. It loads runtime data and hands it to an agent-owned assembler."
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-divider-3": {
+      "id": "b-30-context-loaders-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-30-context-loaders-resolver-contract-4": {
+      "id": "b-30-context-loaders-resolver-contract-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Resolver Contract"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-an-agent-context-sidecar-5": {
+      "id": "b-30-context-loaders-an-agent-context-sidecar-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An agent context sidecar exports:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-ts-6": {
+      "id": "b-30-context-loaders-ts-6",
+      "flavour": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "interface AgentContextResolver {\n  loaders: LoaderDeclaration[];\n  assemble(loaded: LoadedMap, ctx: SpawnContext): string | Promise<string>;\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-loaders-declares-the-i-7": {
+      "id": "b-30-context-loaders-loaders-declares-the-i-7",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "loaders",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " declares the inputs. "
+        },
+        {
+          "insert": "assemble()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " decides how to render them into model-facing context."
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-spawn-context-8": {
+      "id": "b-30-context-loaders-spawn-context-8",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Spawn Context"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-spawncontext-carries-9": {
+      "id": "b-30-context-loaders-spawncontext-carries-9",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "SpawnContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " carries:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-agent-name-10": {
+      "id": "b-30-context-loaders-agent-name-10",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "agent name"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-caller-variables-11": {
+      "id": "b-30-context-loaders-caller-variables-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "caller variables"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-caller-identity-12": {
+      "id": "b-30-context-loaders-caller-identity-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "caller identity"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-runtime-state-13": {
+      "id": "b-30-context-loaders-runtime-state-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "runtime state"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-paths-14": {
+      "id": "b-30-context-loaders-paths-14",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "paths"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-optional-app-session-dat-15": {
+      "id": "b-30-context-loaders-optional-app-session-dat-15",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "optional app session data"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-sessiondata-is-opaque-16": {
+      "id": "b-30-context-loaders-sessiondata-is-opaque-16",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "sessionData",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is opaque to the kernel. Tests and app adapters may prefill it to avoid duplicate DB reads or support synthetic sessions."
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-loader-catalog-17": {
+      "id": "b-30-context-loaders-loader-catalog-17",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Loader Catalog"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-createloadercatalog-18": {
+      "id": "b-30-context-loaders-createloadercatalog-18",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "createLoaderCatalog()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " creates an in-memory registry keyed by "
+        },
+        {
+          "insert": "kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Duplicate kinds fail at registration time. Unknown kinds fail at resolution time."
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-base-kernel-loader-kinds-19": {
+      "id": "b-30-context-loaders-base-kernel-loader-kinds-19",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Base kernel loader kinds are:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-file-20": {
+      "id": "b-30-context-loaders-file-20",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "file",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-directory-21": {
+      "id": "b-30-context-loaders-directory-21",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "directory",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-skill-22": {
+      "id": "b-30-context-loaders-skill-22",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "skill",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-command-23": {
+      "id": "b-30-context-loaders-command-23",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "command",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-text-24": {
+      "id": "b-30-context-loaders-text-24",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "text",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-apps-register-custom-kin-25": {
+      "id": "b-30-context-loaders-apps-register-custom-kin-25",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Apps register custom kinds. Spectre's "
+        },
+        {
+          "insert": "checkpoint-slice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the reference custom loader because it reads Spectre-specific plan/build state."
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-custom-loader-declaratio-26": {
+      "id": "b-30-context-loaders-custom-loader-declaratio-26",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Custom loader declarations require a "
+        },
+        {
+          "insert": "kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and may carry loader-specific parameters. The kernel treats those parameters opaquely and passes the declaration to the registered loader."
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-lifecycle-events-27": {
+      "id": "b-30-context-loaders-lifecycle-events-27",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Lifecycle Events"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-the-context-builder-emit-28": {
+      "id": "b-30-context-loaders-the-context-builder-emit-28",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The context builder emits:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-context-build-started-29": {
+      "id": "b-30-context-loaders-context-build-started-29",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "context_build_started",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-context-input-resolved-30": {
+      "id": "b-30-context-loaders-context-input-resolved-30",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "context_input_resolved",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " once per loader"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-context-build-completed-31": {
+      "id": "b-30-context-loaders-context-build-completed-31",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "context_build_completed",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-these-events-make-contex-32": {
+      "id": "b-30-context-loaders-these-events-make-contex-32",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These events make context debugging visible in the same trace stream as tool calls and messages."
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-accumulation-guard-33": {
+      "id": "b-30-context-loaders-accumulation-guard-33",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Accumulation Guard"
+        }
+      ],
+      "children": []
+    },
+    "b-30-context-loaders-the-runtime-injects-rend-34": {
+      "id": "b-30-context-loaders-the-runtime-injects-rend-34",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The runtime injects rendered context as a custom message entry and checks for an existing entry by agent name. This prevents duplicate context blocks when a Pi session is reused."
+        }
+      ],
+      "children": []
+    }
+  }
+}

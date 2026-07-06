@@ -1,0 +1,479 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-30-event-protocol",
+  "title": "Event Protocol",
+  "root": "b-30-event-protocol-root-25",
+  "blocks": {
+    "b-30-event-protocol-root-25": {
+      "id": "b-30-event-protocol-root-25",
+      "flavour": "paragraph",
+      "props": {
+        "code-ref": "packages/protocol/src/envelope.ts, packages/protocol/src/types.ts, packages/protocol/src/factories.ts",
+        "concepts": [
+          "event-protocol",
+          "trace-event",
+          "event-type",
+          "trace-level",
+          "trace-source",
+          "app-events"
+        ],
+        "covers": "Event protocol design: TraceEvent envelope, core event types, trace levels, sources, and app extension behavior.",
+        "depends-on": [
+          "20-observability-model.md"
+        ]
+      },
+      "children": [
+        "b-30-event-protocol-event-protocol-1",
+        "b-30-event-protocol-agent-kernel-protocol-2",
+        "b-30-event-protocol-divider-3",
+        "b-30-event-protocol-envelope-4",
+        "b-30-event-protocol-every-trace-event-has-th-5",
+        "b-30-event-protocol-ts-6",
+        "b-30-event-protocol-pisessionuuid-is-trans-7",
+        "b-30-event-protocol-core-event-families-8",
+        "b-30-event-protocol-the-core-catalog-covers-9",
+        "b-30-event-protocol-agent-lifecycle-agent-10",
+        "b-30-event-protocol-pi-lifecycle-pi-agent-11",
+        "b-30-event-protocol-spawn-lifecycle-system-12",
+        "b-30-event-protocol-conversation-user-mess-13",
+        "b-30-event-protocol-tools-tool-call-p-14",
+        "b-30-event-protocol-grouping-phase-co-15",
+        "b-30-event-protocol-diagnostics-error-w-16",
+        "b-30-event-protocol-the-protocol-currently-a-17",
+        "b-30-event-protocol-open-strings-18",
+        "b-30-event-protocol-eventtype-and-traceso-19",
+        "b-30-event-protocol-unknown-event-types-shou-20",
+        "b-30-event-protocol-trace-levels-21",
+        "b-30-event-protocol-trace-levels-are-viewer-22",
+        "b-30-event-protocol-level-name-purpose-23",
+        "b-30-event-protocol-the-kernel-assigns-level-24"
+      ]
+    },
+    "b-30-event-protocol-event-protocol-1": {
+      "id": "b-30-event-protocol-event-protocol-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Event Protocol"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-agent-kernel-protocol-2": {
+      "id": "b-30-event-protocol-agent-kernel-protocol-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@agent-kernel/protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " defines the event contract shared by the runtime, DB helpers, tailer, read API, and viewer packages."
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-divider-3": {
+      "id": "b-30-event-protocol-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-30-event-protocol-envelope-4": {
+      "id": "b-30-event-protocol-envelope-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Envelope"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-every-trace-event-has-th-5": {
+      "id": "b-30-event-protocol-every-trace-event-has-th-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every trace event has the same envelope:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-ts-6": {
+      "id": "b-30-event-protocol-ts-6",
+      "flavour": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "interface TraceEvent {\n  eventId: string;\n  appSessionId: string;\n  containerId?: string;\n  userId: string;\n  type: EventType;\n  source: TraceSource;\n  agentId?: string;\n  traceLevel: TraceLevel;\n  eventData: EventData;\n  spanId?: string;\n  parentEventId?: string;\n  timestamp: string;\n  piSessionUuid?: string;\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-pisessionuuid-is-trans-7": {
+      "id": "b-30-event-protocol-pisessionuuid-is-trans-7",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "piSessionUuid",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is transport-only. The tailer or write helper resolves it to persisted Pi session identity."
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-core-event-families-8": {
+      "id": "b-30-event-protocol-core-event-families-8",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Core Event Families"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-the-core-catalog-covers-9": {
+      "id": "b-30-event-protocol-the-core-catalog-covers-9",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The core catalog covers:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-agent-lifecycle-agent-10": {
+      "id": "b-30-event-protocol-agent-lifecycle-agent-10",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "agent lifecycle: "
+        },
+        {
+          "insert": "agent_session_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "agent_run_*",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-pi-lifecycle-pi-agent-11": {
+      "id": "b-30-event-protocol-pi-lifecycle-pi-agent-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi lifecycle: "
+        },
+        {
+          "insert": "pi_agent_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "pi_turn_*",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-spawn-lifecycle-system-12": {
+      "id": "b-30-event-protocol-spawn-lifecycle-system-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "spawn lifecycle: "
+        },
+        {
+          "insert": "system_prompt_resolved",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "context_build_*",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-conversation-user-mess-13": {
+      "id": "b-30-event-protocol-conversation-user-mess-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "conversation: "
+        },
+        {
+          "insert": "user_message",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "assistant_message",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-tools-tool-call-p-14": {
+      "id": "b-30-event-protocol-tools-tool-call-p-14",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "tools: "
+        },
+        {
+          "insert": "tool_call_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "pre_tool_hook",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "post_tool_hook",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-grouping-phase-co-15": {
+      "id": "b-30-event-protocol-grouping-phase-co-15",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "grouping: "
+        },
+        {
+          "insert": "phase_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "container_*",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-diagnostics-error-w-16": {
+      "id": "b-30-event-protocol-diagnostics-error-w-16",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "diagnostics: "
+        },
+        {
+          "insert": "error",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "warning",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-the-protocol-currently-a-17": {
+      "id": "b-30-event-protocol-the-protocol-currently-a-17",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The protocol currently also includes UI ask event names because they existed before the split. Those are a promotion candidate. Spectre's durable ask storage and payload semantics remain app-side until the generic human-in-the-loop contract is finalized."
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-open-strings-18": {
+      "id": "b-30-event-protocol-open-strings-18",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Open Strings"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-eventtype-and-traceso-19": {
+      "id": "b-30-event-protocol-eventtype-and-traceso-19",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "EventType",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "TraceSource",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are open string unions. That lets apps register or pass through app-specific event types without blocking storage, tailing, streaming, or generic viewing."
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-unknown-event-types-shou-20": {
+      "id": "b-30-event-protocol-unknown-event-types-shou-20",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Unknown event types should still flow end to end and render as generic trace rows."
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-trace-levels-21": {
+      "id": "b-30-event-protocol-trace-levels-21",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Trace Levels"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-trace-levels-are-viewer-22": {
+      "id": "b-30-event-protocol-trace-levels-are-viewer-22",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Trace levels are viewer filtering hints:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-level-name-purpose-23": {
+      "id": "b-30-event-protocol-level-name-purpose-23",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| Level | Name | Purpose |\n|---|---|---|\n| 0 | Summary | User-visible conversation |\n| 1 | Processing | Main execution and tool activity |\n| 2 | Debug | Lifecycle, grouping, warnings, errors |\n| 3 | Internal | Pi internals and high-volume details |"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-the-kernel-assigns-level-24": {
+      "id": "b-30-event-protocol-the-kernel-assigns-level-24",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel assigns levels through protocol factories. Apps may use the same convention for custom events."
+        }
+      ],
+      "children": []
+    }
+  }
+}

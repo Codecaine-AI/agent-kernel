@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "id": "00-foundation-30-boundaries",
+  "title": "Boundaries",
+  "root": "b-30-boundaries-root-22",
+  "blocks": {
+    "b-30-boundaries-root-22": {
+      "id": "b-30-boundaries-root-22",
+      "flavour": "paragraph",
+      "props": {
+        "concepts": [
+          "boundaries",
+          "kernel-core",
+          "app-adapter",
+          "spectre",
+          "ownership",
+          "custom-loaders",
+          "custom-tools"
+        ],
+        "covers": "Kernel versus application ownership boundaries, including which concepts stay core and which must be supplied by adapters like Spectre.",
+        "depends-on": [
+          "20-principles.md"
+        ]
+      },
+      "children": [
+        "b-30-boundaries-boundaries-1",
+        "b-30-boundaries-the-kernel-owns-the-reus-2",
+        "b-30-boundaries-divider-3",
+        "b-30-boundaries-kernel-owns-4",
+        "b-30-boundaries-area-kernel-responsi-5",
+        "b-30-boundaries-apps-own-6",
+        "b-30-boundaries-area-app-responsibil-7",
+        "b-30-boundaries-adapter-layer-8",
+        "b-30-boundaries-the-adapter-layer-is-the-9",
+        "b-30-boundaries-for-spectre-that-adapter-10",
+        "b-30-boundaries-app-session-to-kernel-co-11",
+        "b-30-boundaries-app-db-schema-composing-12",
+        "b-30-boundaries-spectre-agent-catalog-ro-13",
+        "b-30-boundaries-spectre-state-manager-in-14",
+        "b-30-boundaries-spectre-custom-context-l-15",
+        "b-30-boundaries-spectre-tailer-configura-16",
+        "b-30-boundaries-spectre-data-backend-mou-17",
+        "b-30-boundaries-spectre-viewer-shell-plu-18",
+        "b-30-boundaries-promotion-rule-19",
+        "b-30-boundaries-a-feature-starts-app-sid-20",
+        "b-30-boundaries-durable-human-in-the-loo-21"
+      ]
+    },
+    "b-30-boundaries-boundaries-1": {
+      "id": "b-30-boundaries-boundaries-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Boundaries"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-the-kernel-owns-the-reus-2": {
+      "id": "b-30-boundaries-the-kernel-owns-the-reus-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel owns the reusable runtime and observability foundation. A host application owns workflow semantics and product behavior."
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-divider-3": {
+      "id": "b-30-boundaries-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-30-boundaries-kernel-owns-4": {
+      "id": "b-30-boundaries-kernel-owns-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Kernel Owns"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-area-kernel-responsi-5": {
+      "id": "b-30-boundaries-area-kernel-responsi-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| Area | Kernel Responsibility |\n|---|---|\n| Protocol | Trace event envelope, core event types, trace levels, factories, source conventions |\n| Runtime | "
+        },
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", spawn adapter surface, run context, spawn pipeline, turn limits |\n| Agent definitions | Frontmatter parsing, registry, variable validation, dynamic sidecar loading |\n| Context | Base loader catalog and context assembly contract |\n| Subagents | In-process agent manager, queueing, parent tool-call linkage |\n| Observability DB | Containers, Pi agent sessions, agent runs, trace events, read helpers |\n| Tailer | Pi JSONL reading, cursoring, event mapping, queueing, health primitives |\n| Read API | Versioned trace read routes that viewer-core can target |\n| Viewer | Trace DTOs, trace span transforms, reusable tree/detail UI, base viewer shell |"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-apps-own-6": {
+      "id": "b-30-boundaries-apps-own-6",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Apps Own"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-area-app-responsibil-7": {
+      "id": "b-30-boundaries-area-app-responsibil-7",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| Area | App Responsibility |\n|---|---|\n| Workflow state | App session rows, phase slices, task/checkpoint graphs, project docs, local artifacts |\n| Workflow rules | When phases start/end, how gates work, what \"done\" means |\n| Domain tools | Tools that mutate app rows or app files |\n| Custom loaders | Loaders that read app-specific state, such as Spectre's checkpoint slice |\n| App APIs | Routes that start, stop, resume, answer, or mutate workflow artifacts |\n| Viewer extensions | Panels and renderers that interpret app-specific labels or custom events |"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-adapter-layer-8": {
+      "id": "b-30-boundaries-adapter-layer-8",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Adapter Layer"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-the-adapter-layer-is-the-9": {
+      "id": "b-30-boundaries-the-adapter-layer-is-the-9",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The adapter layer is the code that joins a host app to the kernel. It should be explicit and small enough to audit."
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-for-spectre-that-adapter-10": {
+      "id": "b-30-boundaries-for-spectre-that-adapter-10",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "For Spectre that adapter includes:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-app-session-to-kernel-co-11": {
+      "id": "b-30-boundaries-app-session-to-kernel-co-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app session to kernel container mapping"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-app-db-schema-composing-12": {
+      "id": "b-30-boundaries-app-db-schema-composing-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app DB schema composing kernel tables"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-spectre-agent-catalog-ro-13": {
+      "id": "b-30-boundaries-spectre-agent-catalog-ro-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre agent catalog roots and shared tool factories"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-spectre-state-manager-in-14": {
+      "id": "b-30-boundaries-spectre-state-manager-in-14",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre state manager injection"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-spectre-custom-context-l-15": {
+      "id": "b-30-boundaries-spectre-custom-context-l-15",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre custom context loaders"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-spectre-tailer-configura-16": {
+      "id": "b-30-boundaries-spectre-tailer-configura-16",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre tailer configuration and compatibility event names"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-spectre-data-backend-mou-17": {
+      "id": "b-30-boundaries-spectre-data-backend-mou-17",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre data-backend mount for the kernel read API"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-spectre-viewer-shell-plu-18": {
+      "id": "b-30-boundaries-spectre-viewer-shell-plu-18",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre viewer shell plugins and phase-specific panels"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-promotion-rule-19": {
+      "id": "b-30-boundaries-promotion-rule-19",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Promotion Rule"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-a-feature-starts-app-sid-20": {
+      "id": "b-30-boundaries-a-feature-starts-app-sid-20",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A feature starts app-side when its generic shape is unclear. It can move into the kernel only after it proves useful beyond one app and can be expressed without app workflow semantics."
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-durable-human-in-the-loo-21": {
+      "id": "b-30-boundaries-durable-human-in-the-loo-21",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Durable human-in-the-loop asks are a good example. The suspend/resume mechanics are generic. Spectre's ask rows and payloads remain app-side until the kernel has a clean cross-app contract."
+        }
+      ],
+      "children": []
+    }
+  }
+}

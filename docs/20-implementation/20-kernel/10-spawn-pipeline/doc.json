@@ -1,0 +1,630 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-20-kernel-10-spawn-pipeline",
+  "title": "Spawn Pipeline",
+  "root": "b-10-spawn-pipeline-root-32",
+  "blocks": {
+    "b-10-spawn-pipeline-root-32": {
+      "id": "b-10-spawn-pipeline-root-32",
+      "flavour": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/spawn-pipeline/spawn-agent.ts, packages/kernel/src/spawn-pipeline/pi-session-factory/, packages/kernel/src/spawn-pipeline/session/, packages/kernel/src/spawn-pipeline/runtime/",
+        "concepts": [
+          "spawn-pipeline",
+          "create-spawn-agent",
+          "pi-session",
+          "lifecycle-emitter",
+          "run-context",
+          "db-preinsert",
+          "context-injection"
+        ],
+        "covers": "Spawn pipeline implementation: createSpawnAgent adapter contract, system prompt resolution, Pi session creation, DB pre-insert, lifecycle emissions, context injection, run context, and turn trigger.",
+        "depends-on": [
+          "00-overview.md",
+          "30-context-loaders.md"
+        ]
+      },
+      "children": [
+        "b-10-spawn-pipeline-spawn-pipeline-1",
+        "b-10-spawn-pipeline-createspawnagent-adapte-2",
+        "b-10-spawn-pipeline-divider-3",
+        "b-10-spawn-pipeline-adapter-contract-4",
+        "b-10-spawn-pipeline-the-spawn-pipeline-is-po-5",
+        "b-10-spawn-pipeline-adapter-why-it-is-in-6",
+        "b-10-spawn-pipeline-sequence-7",
+        "b-10-spawn-pipeline-resolve-cwd-from-opts-8",
+        "b-10-spawn-pipeline-require-appsessionid-f-9",
+        "b-10-spawn-pipeline-build-runtime-state-from-10",
+        "b-10-spawn-pipeline-load-the-parsed-agent-de-11",
+        "b-10-spawn-pipeline-resolve-variables-and-re-12",
+        "b-10-spawn-pipeline-build-or-reuse-a-pi-sess-13",
+        "b-10-spawn-pipeline-load-context-and-private-14",
+        "b-10-spawn-pipeline-build-the-scoped-tool-fa-15",
+        "b-10-spawn-pipeline-create-a-pi-agentsessio-16",
+        "b-10-spawn-pipeline-pre-insert-pi-agent-ses-17",
+        "b-10-spawn-pipeline-resolve-the-lifecycle-em-18",
+        "b-10-spawn-pipeline-emit-system-prompt-reso-19",
+        "b-10-spawn-pipeline-build-context-and-inject-20",
+        "b-10-spawn-pipeline-subscribe-to-pi-session-21",
+        "b-10-spawn-pipeline-build-async-local-runco-22",
+        "b-10-spawn-pipeline-emit-agent-run-start-23",
+        "b-10-spawn-pipeline-trigger-the-pi-turn-24",
+        "b-10-spawn-pipeline-update-run-status-and-em-25",
+        "b-10-spawn-pipeline-context-injection-26",
+        "b-10-spawn-pipeline-dynamic-context-is-inser-27",
+        "b-10-spawn-pipeline-system-prompts-are-froze-28",
+        "b-10-spawn-pipeline-observability-ordering-29",
+        "b-10-spawn-pipeline-the-pipeline-creates-db-30",
+        "b-10-spawn-pipeline-this-is-the-key-differen-31"
+      ]
+    },
+    "b-10-spawn-pipeline-spawn-pipeline-1": {
+      "id": "b-10-spawn-pipeline-spawn-pipeline-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Spawn Pipeline"
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-createspawnagent-adapte-2": {
+      "id": "b-10-spawn-pipeline-createspawnagent-adapte-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "createSpawnAgent(adapters)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " builds the runtime function that executes one agent prompt through Pi."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-divider-3": {
+      "id": "b-10-spawn-pipeline-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-spawn-pipeline-adapter-contract-4": {
+      "id": "b-10-spawn-pipeline-adapter-contract-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Adapter Contract"
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-the-spawn-pipeline-is-po-5": {
+      "id": "b-10-spawn-pipeline-the-spawn-pipeline-is-po-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The spawn pipeline is portable because app-specific operations are injected:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-adapter-why-it-is-in-6": {
+      "id": "b-10-spawn-pipeline-adapter-why-it-is-in-6",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| Adapter | Why It Is Injected |\n|---|---|\n| "
+        },
+        {
+          "insert": "loadAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | App controls catalog roots and agent names |\n| "
+        },
+        {
+          "insert": "loadAgentResolver",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | App controls where "
+        },
+        {
+          "insert": "context.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sidecars live |\n| "
+        },
+        {
+          "insert": "buildPrivateRegisterFactory",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | App controls private tools |\n| "
+        },
+        {
+          "insert": "buildToolFactories",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | App controls shared tools and allowlists |\n| "
+        },
+        {
+          "insert": "createContextCatalog",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | App can register custom loaders |\n| "
+        },
+        {
+          "insert": "createSpawnContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | App can attach app session snapshots and paths |\n| "
+        },
+        {
+          "insert": "getDb",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Host app owns DB connection lifecycle |\n| "
+        },
+        {
+          "insert": "createAppSessionBinding",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | App controls JSONL metadata used by the tailer |"
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-sequence-7": {
+      "id": "b-10-spawn-pipeline-sequence-7",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Sequence"
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-resolve-cwd-from-opts-8": {
+      "id": "b-10-spawn-pipeline-resolve-cwd-from-opts-8",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Resolve "
+        },
+        {
+          "insert": "cwd",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from "
+        },
+        {
+          "insert": "opts.workingDir",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or parent Pi context."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-require-appsessionid-f-9": {
+      "id": "b-10-spawn-pipeline-require-appsessionid-f-9",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Require "
+        },
+        {
+          "insert": "appSessionId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for DB-backed tracking."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-build-runtime-state-from-10": {
+      "id": "b-10-spawn-pipeline-build-runtime-state-from-10",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Build runtime state from app session identity."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-load-the-parsed-agent-de-11": {
+      "id": "b-10-spawn-pipeline-load-the-parsed-agent-de-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Load the parsed agent definition."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-resolve-variables-and-re-12": {
+      "id": "b-10-spawn-pipeline-resolve-variables-and-re-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Resolve variables and render the static system prompt."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-build-or-reuse-a-pi-sess-13": {
+      "id": "b-10-spawn-pipeline-build-or-reuse-a-pi-sess-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Build or reuse a Pi session manager."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-load-context-and-private-14": {
+      "id": "b-10-spawn-pipeline-load-context-and-private-14",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Load context and private tool sidecars."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-build-the-scoped-tool-fa-15": {
+      "id": "b-10-spawn-pipeline-build-the-scoped-tool-fa-15",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Build the scoped tool factory list."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-create-a-pi-agentsessio-16": {
+      "id": "b-10-spawn-pipeline-create-a-pi-agentsessio-16",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Create a Pi "
+        },
+        {
+          "insert": "AgentSession",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-pre-insert-pi-agent-ses-17": {
+      "id": "b-10-spawn-pipeline-pre-insert-pi-agent-ses-17",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Pre-insert "
+        },
+        {
+          "insert": "pi_agent_sessions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "agent_runs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-resolve-the-lifecycle-em-18": {
+      "id": "b-10-spawn-pipeline-resolve-the-lifecycle-em-18",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Resolve the lifecycle emitter."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-emit-system-prompt-reso-19": {
+      "id": "b-10-spawn-pipeline-emit-system-prompt-reso-19",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Emit "
+        },
+        {
+          "insert": "system_prompt_resolved",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-build-context-and-inject-20": {
+      "id": "b-10-spawn-pipeline-build-context-and-inject-20",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Build context and inject one "
+        },
+        {
+          "insert": "agent-context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " custom message if needed."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-subscribe-to-pi-session-21": {
+      "id": "b-10-spawn-pipeline-subscribe-to-pi-session-21",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Subscribe to Pi session events for streaming and turn limits."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-build-async-local-runco-22": {
+      "id": "b-10-spawn-pipeline-build-async-local-runco-22",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Build async-local "
+        },
+        {
+          "insert": "RunContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-emit-agent-run-start-23": {
+      "id": "b-10-spawn-pipeline-emit-agent-run-start-23",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Emit "
+        },
+        {
+          "insert": "agent_run_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-trigger-the-pi-turn-24": {
+      "id": "b-10-spawn-pipeline-trigger-the-pi-turn-24",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Trigger the Pi turn."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-update-run-status-and-em-25": {
+      "id": "b-10-spawn-pipeline-update-run-status-and-em-25",
+      "flavour": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Update run status and emit "
+        },
+        {
+          "insert": "agent_run_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-context-injection-26": {
+      "id": "b-10-spawn-pipeline-context-injection-26",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Context Injection"
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-dynamic-context-is-inser-27": {
+      "id": "b-10-spawn-pipeline-dynamic-context-is-inser-27",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Dynamic context is inserted as a custom message entry, guarded by agent name. Reusing a Pi session should not duplicate context blocks."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-system-prompts-are-froze-28": {
+      "id": "b-10-spawn-pipeline-system-prompts-are-froze-28",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "System prompts are frozen at Pi session creation time. Context is assembled per spawn and stored in the Pi transcript so future turns can replay it."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-observability-ordering-29": {
+      "id": "b-10-spawn-pipeline-observability-ordering-29",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Observability Ordering"
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-the-pipeline-creates-db-30": {
+      "id": "b-10-spawn-pipeline-the-pipeline-creates-db-30",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The pipeline creates DB rows before emitting run events or triggering the Pi turn. That lets later kernel events and tailer-ingested agent events refer to existing session/run records."
+        }
+      ],
+      "children": []
+    },
+    "b-10-spawn-pipeline-this-is-the-key-differen-31": {
+      "id": "b-10-spawn-pipeline-this-is-the-key-differen-31",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This is the key difference between a runnable agent helper and a debuggable kernel runtime."
+        }
+      ],
+      "children": []
+    }
+  }
+}

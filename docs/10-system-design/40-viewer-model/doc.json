@@ -1,0 +1,396 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-40-viewer-model",
+  "title": "Viewer Model",
+  "root": "b-40-viewer-model-root-25",
+  "blocks": {
+    "b-40-viewer-model-root-25": {
+      "id": "b-40-viewer-model-root-25",
+      "flavour": "paragraph",
+      "props": {
+        "code-ref": "packages/viewer-core/src/, packages/viewer-ui/src/, packages/viewer-shell/src/KernelTraceViewer.tsx",
+        "concepts": [
+          "viewer",
+          "viewer-core",
+          "viewer-ui",
+          "viewer-shell",
+          "trace-spans",
+          "plugin-slots"
+        ],
+        "covers": "Viewer model for turning kernel read API data into trace spans and a reusable base viewer shell with app plugin slots.",
+        "depends-on": [
+          "20-observability-model.md",
+          "30-event-protocol.md"
+        ]
+      },
+      "children": [
+        "b-40-viewer-model-viewer-model-1",
+        "b-40-viewer-model-the-viewer-is-part-of-th-2",
+        "b-40-viewer-model-divider-3",
+        "b-40-viewer-model-package-layers-4",
+        "b-40-viewer-model-package-responsibili-5",
+        "b-40-viewer-model-data-flow-6",
+        "b-40-viewer-model-text-7",
+        "b-40-viewer-model-base-shell-8",
+        "b-40-viewer-model-kerneltraceviewer-rend-9",
+        "b-40-viewer-model-optional-app-provided-co-10",
+        "b-40-viewer-model-trace-level-controls-11",
+        "b-40-viewer-model-expand-collapse-controls-12",
+        "b-40-viewer-model-trace-tree-13",
+        "b-40-viewer-model-selected-span-detail-pan-14",
+        "b-40-viewer-model-empty-and-detail-placeho-15",
+        "b-40-viewer-model-the-v1-shell-is-intentio-16",
+        "b-40-viewer-model-app-plugins-17",
+        "b-40-viewer-model-apps-should-extend-the-v-18",
+        "b-40-viewer-model-spectre-examples-19",
+        "b-40-viewer-model-a-session-header-rendere-20",
+        "b-40-viewer-model-spec-plan-build-or-do-21",
+        "b-40-viewer-model-custom-renderers-for-app-22",
+        "b-40-viewer-model-app-badges-for-cost-bra-23",
+        "b-40-viewer-model-if-a-workflow-needs-more-24"
+      ]
+    },
+    "b-40-viewer-model-viewer-model-1": {
+      "id": "b-40-viewer-model-viewer-model-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Viewer Model"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-viewer-is-part-of-th-2": {
+      "id": "b-40-viewer-model-the-viewer-is-part-of-th-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The viewer is part of the kernel, not an optional demo. A new app should be able to render useful trace views before it builds custom workflow UI."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-divider-3": {
+      "id": "b-40-viewer-model-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-40-viewer-model-package-layers-4": {
+      "id": "b-40-viewer-model-package-layers-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Package Layers"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-package-responsibili-5": {
+      "id": "b-40-viewer-model-package-responsibili-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| Package | Responsibility |\n|---|---|\n| "
+        },
+        {
+          "insert": "@agent-kernel/viewer-core",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | API paths, DTOs, trace span transforms, linkage resolution |\n| "
+        },
+        {
+          "insert": "@agent-kernel/viewer-ui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Reusable trace tree, span cards, detail panels, visual utilities |\n| "
+        },
+        {
+          "insert": "@agent-kernel/viewer-shell",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Mountable base trace viewer shell with plugin slots |"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-data-flow-6": {
+      "id": "b-40-viewer-model-data-flow-6",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Data Flow"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-text-7": {
+      "id": "b-40-viewer-model-text-7",
+      "flavour": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "kernel read API response\n  session/container metadata\n  Pi sessions\n  agent runs\n  trace events\n        |\n        v\nviewer-core buildTraceSpans()\n        |\n        v\nviewer-ui TreeView + SpanDetailPanel\n        |\n        v\nviewer-shell KernelTraceViewer"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-base-shell-8": {
+      "id": "b-40-viewer-model-base-shell-8",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Base Shell"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-kerneltraceviewer-rend-9": {
+      "id": "b-40-viewer-model-kerneltraceviewer-rend-9",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "KernelTraceViewer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " renders:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-optional-app-provided-co-10": {
+      "id": "b-40-viewer-model-optional-app-provided-co-10",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "optional app-provided container header"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-trace-level-controls-11": {
+      "id": "b-40-viewer-model-trace-level-controls-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "trace level controls"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-expand-collapse-controls-12": {
+      "id": "b-40-viewer-model-expand-collapse-controls-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "expand/collapse controls"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-trace-tree-13": {
+      "id": "b-40-viewer-model-trace-tree-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "trace tree"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-selected-span-detail-pan-14": {
+      "id": "b-40-viewer-model-selected-span-detail-pan-14",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "selected span detail panel"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-empty-and-detail-placeho-15": {
+      "id": "b-40-viewer-model-empty-and-detail-placeho-15",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "empty and detail placeholder plugin slots"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-v1-shell-is-intentio-16": {
+      "id": "b-40-viewer-model-the-v1-shell-is-intentio-16",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The v1 shell is intentionally narrow. It is enough to validate the package boundary and reuse the active Spectre trace page, while leaving room for deeper workflow panels later."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-app-plugins-17": {
+      "id": "b-40-viewer-model-app-plugins-17",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "App Plugins"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-apps-should-extend-the-v-18": {
+      "id": "b-40-viewer-model-apps-should-extend-the-v-18",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Apps should extend the viewer through registered UI, not by forking the kernel viewer packages."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-spectre-examples-19": {
+      "id": "b-40-viewer-model-spectre-examples-19",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spectre examples:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-a-session-header-rendere-20": {
+      "id": "b-40-viewer-model-a-session-header-rendere-20",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "a session header rendered above the trace tree"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-spec-plan-build-or-do-21": {
+      "id": "b-40-viewer-model-spec-plan-build-or-do-21",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "spec, plan, build, or docs panels beside the trace viewer"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-custom-renderers-for-app-22": {
+      "id": "b-40-viewer-model-custom-renderers-for-app-22",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "custom renderers for app-specific event payloads"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-app-badges-for-cost-bra-23": {
+      "id": "b-40-viewer-model-app-badges-for-cost-bra-23",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app badges for cost, branch, checkpoint, phase, or review status"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-if-a-workflow-needs-more-24": {
+      "id": "b-40-viewer-model-if-a-workflow-needs-more-24",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "If a workflow needs more control than the shell exposes, it can compose "
+        },
+        {
+          "insert": "viewer-ui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " directly while still using "
+        },
+        {
+          "insert": "viewer-core",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " transforms and DTOs."
+        }
+      ],
+      "children": []
+    }
+  }
+}

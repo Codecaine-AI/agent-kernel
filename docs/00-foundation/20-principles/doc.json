@@ -1,0 +1,549 @@
+{
+  "schemaVersion": 1,
+  "id": "00-foundation-20-principles",
+  "title": "Principles",
+  "root": "b-20-principles-root-35",
+  "blocks": {
+    "b-20-principles-root-35": {
+      "id": "b-20-principles-root-35",
+      "flavour": "paragraph",
+      "props": {
+        "concepts": [
+          "principles",
+          "portability",
+          "explicit-linkage",
+          "adapters",
+          "observability",
+          "workspace-packages",
+          "model-routing",
+          "token-cost"
+        ],
+        "covers": "Foundational principles for preserving portability across runtime, protocol, storage, tailer, read API, and viewer packages.",
+        "depends-on": [
+          "30-boundaries.md",
+          "../10-system-design/20-observability-model.md"
+        ]
+      },
+      "children": [
+        "b-20-principles-principles-1",
+        "b-20-principles-these-are-the-rules-that-2",
+        "b-20-principles-divider-3",
+        "b-20-principles-runtime-is-generic-work-4",
+        "b-20-principles-the-kernel-may-know-how-5",
+        "b-20-principles-apps-may-attach-those-me-6",
+        "b-20-principles-observability-is-a-core-7",
+        "b-20-principles-the-protocol-database-s-8",
+        "b-20-principles-for-token-hungry-systems-9",
+        "b-20-principles-any-model-per-agent-10",
+        "b-20-principles-agents-are-declarative-d-11",
+        "b-20-principles-the-kernel-keeps-model-c-12",
+        "b-20-principles-relationships-are-emitte-13",
+        "b-20-principles-when-a-parent-relationsh-14",
+        "b-20-principles-timestamps-order-events-15",
+        "b-20-principles-app-identity-is-generic-16",
+        "b-20-principles-the-kernel-can-carry-an-17",
+        "b-20-principles-adapters-are-allowed-to-18",
+        "b-20-principles-the-kernel-should-stay-n-19",
+        "b-20-principles-spectre-creates-app-sess-20",
+        "b-20-principles-spectre-registers-the-c-21",
+        "b-20-principles-spectre-provides-sessio-22",
+        "b-20-principles-spectre-mounts-the-kerne-23",
+        "b-20-principles-spectre-registers-viewer-24",
+        "b-20-principles-packages-are-the-unit-of-25",
+        "b-20-principles-the-package-boundary-mat-26",
+        "b-20-principles-the-current-packages-are-27",
+        "b-20-principles-agent-kernel-protocol-28",
+        "b-20-principles-agent-kernel-db-29",
+        "b-20-principles-agent-kernel-kernel-30",
+        "b-20-principles-agent-kernel-tailer-31",
+        "b-20-principles-agent-kernel-viewer-co-32",
+        "b-20-principles-agent-kernel-viewer-ui-33",
+        "b-20-principles-agent-kernel-viewer-sh-34"
+      ]
+    },
+    "b-20-principles-principles-1": {
+      "id": "b-20-principles-principles-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Principles"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-these-are-the-rules-that-2": {
+      "id": "b-20-principles-these-are-the-rules-that-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These are the rules that keep the kernel a sound foundation for token-hungry vertical harnesses as it grows out of Spectre. The kernel is "
+        },
+        {
+          "insert": "opinionated about engineering discipline",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " — observability, control, and model routing — and "
+        },
+        {
+          "insert": "neutral about your vertical's workflow semantics",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-divider-3": {
+      "id": "b-20-principles-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-20-principles-runtime-is-generic-work-4": {
+      "id": "b-20-principles-runtime-is-generic-work-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Runtime Is Generic, Workflow Is App-Side"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-the-kernel-may-know-how-5": {
+      "id": "b-20-principles-the-kernel-may-know-how-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel may know how to spawn an agent, resolve context, emit lifecycle events, store trace rows, and render a run tree. It must not know what a Spectre spec, plan, checkpoint, build task, or docs phase means."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-apps-may-attach-those-me-6": {
+      "id": "b-20-principles-apps-may-attach-those-me-6",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Apps may attach those meanings through opaque labels, metadata, registered loaders, registered tools, and viewer plugins."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-observability-is-a-core-7": {
+      "id": "b-20-principles-observability-is-a-core-7",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Observability Is A Core Contract"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-the-protocol-database-s-8": {
+      "id": "b-20-principles-the-protocol-database-s-8",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The protocol, database schema, tailer, read API, and viewer packages are one platform surface. A kernel feature is not complete until its behavior can be stored, read, and viewed."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-for-token-hungry-systems-9": {
+      "id": "b-20-principles-for-token-hungry-systems-9",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "For token-hungry systems this is how spend stays accountable: if work cannot be attributed and inspected, it cannot be budgeted or improved. Observability is the feedback loop that lets a vertical route tokens effectively instead of burning them blindly."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-any-model-per-agent-10": {
+      "id": "b-20-principles-any-model-per-agent-10",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Any Model, Per Agent"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-agents-are-declarative-d-11": {
+      "id": "b-20-principles-agents-are-declarative-d-11",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Agents are declarative definitions, not hardcoded to a single model. A vertical must be free to route each agent to the model that earns its tokens — cheap models for fan-out and routine work, strong models for the hard steps."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-the-kernel-keeps-model-c-12": {
+      "id": "b-20-principles-the-kernel-keeps-model-c-12",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel keeps model choice on the agent definition and the spawn path, not baked into runtime assumptions, so a harness can mix providers and capability tiers within a single pipeline and measure each one's cost-effectiveness through the same trace surface."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-relationships-are-emitte-13": {
+      "id": "b-20-principles-relationships-are-emitte-13",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Relationships Are Emitted, Not Reconstructed"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-when-a-parent-relationsh-14": {
+      "id": "b-20-principles-when-a-parent-relationsh-14",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "When a parent relationship is known at emit time, the event or row carries an explicit ID. Containers, phases, parent runs, and parent tool calls are linkage fields, not timestamp guesses."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-timestamps-order-events-15": {
+      "id": "b-20-principles-timestamps-order-events-15",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Timestamps order events. They do not prove parentage."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-app-identity-is-generic-16": {
+      "id": "b-20-principles-app-identity-is-generic-16",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "App Identity Is Generic"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-the-kernel-can-carry-an-17": {
+      "id": "b-20-principles-the-kernel-can-carry-an-17",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel can carry an "
+        },
+        {
+          "insert": "appSessionId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", an app slug, app paths, and app metadata because every host needs to correlate kernel work with its own domain rows. Those fields are generic host-app identity. They must not imply Spectre's database structure."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-adapters-are-allowed-to-18": {
+      "id": "b-20-principles-adapters-are-allowed-to-18",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Adapters Are Allowed To Be Specific"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-the-kernel-should-stay-n-19": {
+      "id": "b-20-principles-the-kernel-should-stay-n-19",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel should stay neutral. Adapters are where specificity belongs:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-spectre-creates-app-sess-20": {
+      "id": "b-20-principles-spectre-creates-app-sess-20",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre creates app sessions and maps them to kernel containers."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-spectre-registers-the-c-21": {
+      "id": "b-20-principles-spectre-registers-the-c-21",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre registers the "
+        },
+        {
+          "insert": "checkpoint-slice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " loader."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-spectre-provides-sessio-22": {
+      "id": "b-20-principles-spectre-provides-sessio-22",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre provides "
+        },
+        {
+          "insert": "SessionStateManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to app tools through run context."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-spectre-mounts-the-kerne-23": {
+      "id": "b-20-principles-spectre-mounts-the-kerne-23",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre mounts the kernel read API in its data backend."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-spectre-registers-viewer-24": {
+      "id": "b-20-principles-spectre-registers-viewer-24",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Spectre registers viewer panels for spec, plan, build, and docs."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-packages-are-the-unit-of-25": {
+      "id": "b-20-principles-packages-are-the-unit-of-25",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Packages Are The Unit Of Portability"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-the-package-boundary-mat-26": {
+      "id": "b-20-principles-the-package-boundary-mat-26",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The package boundary matters more than the repository boundary. A package under "
+        },
+        {
+          "insert": "packages/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " must be portable before it is useful to split into a separate repo."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-the-current-packages-are-27": {
+      "id": "b-20-principles-the-current-packages-are-27",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The current packages are:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-agent-kernel-protocol-28": {
+      "id": "b-20-principles-agent-kernel-protocol-28",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/protocol",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-agent-kernel-db-29": {
+      "id": "b-20-principles-agent-kernel-db-29",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/db",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-agent-kernel-kernel-30": {
+      "id": "b-20-principles-agent-kernel-kernel-30",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/kernel",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-agent-kernel-tailer-31": {
+      "id": "b-20-principles-agent-kernel-tailer-31",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/tailer",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-agent-kernel-viewer-co-32": {
+      "id": "b-20-principles-agent-kernel-viewer-co-32",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/viewer-core",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-agent-kernel-viewer-ui-33": {
+      "id": "b-20-principles-agent-kernel-viewer-ui-33",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/viewer-ui",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-agent-kernel-viewer-sh-34": {
+      "id": "b-20-principles-agent-kernel-viewer-sh-34",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/viewer-shell",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    }
+  }
+}

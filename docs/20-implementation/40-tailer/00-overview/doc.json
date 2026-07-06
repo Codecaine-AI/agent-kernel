@@ -1,0 +1,438 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-40-tailer-00-overview",
+  "title": "Tailer Package",
+  "root": "b-00-overview-root-25",
+  "blocks": {
+    "b-00-overview-root-25": {
+      "id": "b-00-overview-root-25",
+      "flavour": "paragraph",
+      "props": {
+        "code-ref": "packages/tailer/src/",
+        "concepts": [
+          "tailer",
+          "jsonl",
+          "event-mapper",
+          "cursor-store",
+          "event-queue",
+          "file-reader",
+          "directory-watcher",
+          "health"
+        ],
+        "covers": "Implementation of @agent-kernel/tailer: Pi JSONL mapping, session binding, lifecycle custom events, cursoring, queueing, file reading, directory watching, backpressure, and health.",
+        "depends-on": [
+          "../../10-system-design/20-observability-model.md",
+          "../10-protocol/00-overview.md"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-tailer-package-1",
+        "b-00-overview-agent-kernel-tailer-c-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-components-4",
+        "b-00-overview-component-purpose-5",
+        "b-00-overview-event-mapping-6",
+        "b-00-overview-the-mapper-understands-p-7",
+        "b-00-overview-session-8",
+        "b-00-overview-message-9",
+        "b-00-overview-model-change-10",
+        "b-00-overview-custom-11",
+        "b-00-overview-skipped-informational-ev-12",
+        "b-00-overview-it-emits-protocol-events-13",
+        "b-00-overview-session-binding-14",
+        "b-00-overview-pi-jsonl-starts-with-pi-15",
+        "b-00-overview-the-marker-name-and-fiel-16",
+        "b-00-overview-lifecycle-custom-events-17",
+        "b-00-overview-the-mapper-defaults-to-18",
+        "b-00-overview-agent-kernel-pi-lifecyc-19",
+        "b-00-overview-agent-kernel-subagent-l-20",
+        "b-00-overview-apps-may-override-these-21",
+        "b-00-overview-backpressure-and-recover-22",
+        "b-00-overview-the-queue-has-a-bounded-23",
+        "b-00-overview-cursor-snapshots-let-the-24"
+      ]
+    },
+    "b-00-overview-tailer-package-1": {
+      "id": "b-00-overview-tailer-package-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Tailer Package"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-kernel-tailer-c-2": {
+      "id": "b-00-overview-agent-kernel-tailer-c-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@agent-kernel/tailer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " contains reusable Pi JSONL ingestion primitives. A host app wraps these primitives with DB inserts, watch paths, and app-specific marker names."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-components-4": {
+      "id": "b-00-overview-components-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Components"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-component-purpose-5": {
+      "id": "b-00-overview-component-purpose-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| Component | Purpose |\n|---|---|\n| "
+        },
+        {
+          "insert": "createTailerConfig",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Normalizes watch path, cursor path, batch sizes, retry limits, and health port |\n| "
+        },
+        {
+          "insert": "EventMapper",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Maps Pi JSONL events to protocol "
+        },
+        {
+          "insert": "TraceEvent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "s |\n| "
+        },
+        {
+          "insert": "EventQueue",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Batches trace events and retries failed inserts |\n| "
+        },
+        {
+          "insert": "CursorStore",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Tracks byte offsets and writes crash-recovery snapshots |\n| "
+        },
+        {
+          "insert": "FileReader",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Reads appended JSONL lines from a file |\n| "
+        },
+        {
+          "insert": "DirectoryWatcher",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Watches a directory tree and manages readers |\n| health route | Exposes queue, reader, pressure, DB, and uptime state |"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-event-mapping-6": {
+      "id": "b-00-overview-event-mapping-6",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Event Mapping"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-mapper-understands-p-7": {
+      "id": "b-00-overview-the-mapper-understands-p-7",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The mapper understands Pi events such as:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-session-8": {
+      "id": "b-00-overview-session-8",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "session",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-message-9": {
+      "id": "b-00-overview-message-9",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "message",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-model-change-10": {
+      "id": "b-00-overview-model-change-10",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "model_change",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-custom-11": {
+      "id": "b-00-overview-custom-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "custom",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-skipped-informational-ev-12": {
+      "id": "b-00-overview-skipped-informational-ev-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "skipped informational events"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-it-emits-protocol-events-13": {
+      "id": "b-00-overview-it-emits-protocol-events-13",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "It emits protocol events for user messages, assistant messages, tool call starts/ends, agent session starts, and lifecycle custom events."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-session-binding-14": {
+      "id": "b-00-overview-session-binding-14",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Session Binding"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-pi-jsonl-starts-with-pi-15": {
+      "id": "b-00-overview-pi-jsonl-starts-with-pi-15",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Pi JSONL starts with Pi's own session id. The kernel mapper can hold events until it sees an app session binding marker. Once an app session id is known, pending events are stamped and released."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-marker-name-and-fiel-16": {
+      "id": "b-00-overview-the-marker-name-and-fiel-16",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The marker name and field names are configurable through "
+        },
+        {
+          "insert": "EventMapperOptions.sessionBinding",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Spectre can use its compatibility marker while new apps can use kernel-native marker names."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-lifecycle-custom-events-17": {
+      "id": "b-00-overview-lifecycle-custom-events-17",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Lifecycle Custom Events"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-mapper-defaults-to-18": {
+      "id": "b-00-overview-the-mapper-defaults-to-18",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The mapper defaults to:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-kernel-pi-lifecyc-19": {
+      "id": "b-00-overview-agent-kernel-pi-lifecyc-19",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "agent-kernel:pi-lifecycle",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-kernel-subagent-l-20": {
+      "id": "b-00-overview-agent-kernel-subagent-l-20",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "agent-kernel:subagent-link",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-apps-may-override-these-21": {
+      "id": "b-00-overview-apps-may-override-these-21",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Apps may override these to support existing JSONL streams."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-backpressure-and-recover-22": {
+      "id": "b-00-overview-backpressure-and-recover-22",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Backpressure And Recovery"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-queue-has-a-bounded-23": {
+      "id": "b-00-overview-the-queue-has-a-bounded-23",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The queue has a bounded capacity. When full, callers can pause reading and resume once the queue drains."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-cursor-snapshots-let-the-24": {
+      "id": "b-00-overview-cursor-snapshots-let-the-24",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Cursor snapshots let the tailer recover from process restarts. Re-read overlap is expected and handled by idempotent event insertion on the app side."
+        }
+      ],
+      "children": []
+    }
+  }
+}

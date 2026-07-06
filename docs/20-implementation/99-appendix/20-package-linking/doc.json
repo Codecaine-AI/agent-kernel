@@ -1,0 +1,555 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-99-appendix-20-package-linking",
+  "title": "Package Linking",
+  "root": "b-20-package-linking-root-34",
+  "blocks": {
+    "b-20-package-linking-root-34": {
+      "id": "b-20-package-linking-root-34",
+      "flavour": "paragraph",
+      "props": {
+        "concepts": [
+          "package-linking",
+          "workspace",
+          "monorepo",
+          "repo-split",
+          "submodule",
+          "private-registry",
+          "spectre"
+        ],
+        "covers": "Current and intended package linking model between Spectre's local workspace packages and the standalone pi-agent-kernel repository.",
+        "depends-on": [
+          "../../00-foundation/20-principles.md",
+          "../70-app-adapters/00-overview.md"
+        ]
+      },
+      "children": [
+        "b-20-package-linking-package-linking-1",
+        "b-20-package-linking-there-are-two-states-to-2",
+        "b-20-package-linking-divider-3",
+        "b-20-package-linking-current-state-4",
+        "b-20-package-linking-spectre-still-has-local-5",
+        "b-20-package-linking-agent-kernel-protocol-6",
+        "b-20-package-linking-agent-kernel-db-7",
+        "b-20-package-linking-agent-kernel-kernel-8",
+        "b-20-package-linking-agent-kernel-tailer-9",
+        "b-20-package-linking-agent-kernel-viewer-co-10",
+        "b-20-package-linking-agent-kernel-viewer-ui-11",
+        "b-20-package-linking-agent-kernel-viewer-sh-12",
+        "b-20-package-linking-spectre-s-root-package-13",
+        "b-20-package-linking-json-14",
+        "b-20-package-linking-so-spectre-apps-import-t-15",
+        "b-20-package-linking-the-standalone-pi-agent-16",
+        "b-20-package-linking-why-both-exist-right-now-17",
+        "b-20-package-linking-the-local-package-split-18",
+        "b-20-package-linking-that-means-there-is-temp-19",
+        "b-20-package-linking-intended-source-of-truth-20",
+        "b-20-package-linking-once-the-next-split-step-21",
+        "b-20-package-linking-spectre-should-stop-owni-22",
+        "b-20-package-linking-mechanism-when-to-us-23",
+        "b-20-package-linking-recommended-next-step-24",
+        "b-20-package-linking-use-a-git-submodule-firs-25",
+        "b-20-package-linking-sketch-26",
+        "b-20-package-linking-text-27",
+        "b-20-package-linking-then-update-spectre-root-28",
+        "b-20-package-linking-json-29",
+        "b-20-package-linking-at-that-point-spectre-a-30",
+        "b-20-package-linking-later-registry-model-31",
+        "b-20-package-linking-after-the-package-contra-32",
+        "b-20-package-linking-that-future-shape-is-cle-33"
+      ]
+    },
+    "b-20-package-linking-package-linking-1": {
+      "id": "b-20-package-linking-package-linking-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Package Linking"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-there-are-two-states-to-2": {
+      "id": "b-20-package-linking-there-are-two-states-to-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "There are two states to keep distinct: the current local extraction state and the intended externalized state."
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-divider-3": {
+      "id": "b-20-package-linking-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-20-package-linking-current-state-4": {
+      "id": "b-20-package-linking-current-state-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Current State"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-spectre-still-has-local-5": {
+      "id": "b-20-package-linking-spectre-still-has-local-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spectre still has local "
+        },
+        {
+          "insert": "packages/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " workspace packages with the same package names:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-agent-kernel-protocol-6": {
+      "id": "b-20-package-linking-agent-kernel-protocol-6",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/protocol",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-agent-kernel-db-7": {
+      "id": "b-20-package-linking-agent-kernel-db-7",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/db",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-agent-kernel-kernel-8": {
+      "id": "b-20-package-linking-agent-kernel-kernel-8",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/kernel",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-agent-kernel-tailer-9": {
+      "id": "b-20-package-linking-agent-kernel-tailer-9",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/tailer",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-agent-kernel-viewer-co-10": {
+      "id": "b-20-package-linking-agent-kernel-viewer-co-10",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/viewer-core",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-agent-kernel-viewer-ui-11": {
+      "id": "b-20-package-linking-agent-kernel-viewer-ui-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/viewer-ui",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-agent-kernel-viewer-sh-12": {
+      "id": "b-20-package-linking-agent-kernel-viewer-sh-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/viewer-shell",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-spectre-s-root-package-13": {
+      "id": "b-20-package-linking-spectre-s-root-package-13",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spectre's root "
+        },
+        {
+          "insert": "package.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " includes:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-json-14": {
+      "id": "b-20-package-linking-json-14",
+      "flavour": "code",
+      "props": {
+        "language": "json"
+      },
+      "text": [
+        {
+          "insert": "{\n  \"workspaces\": [\"apps/*\", \"packages/*\"]\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-so-spectre-apps-import-t-15": {
+      "id": "b-20-package-linking-so-spectre-apps-import-t-15",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "So Spectre apps import the local in-Spectre packages through "
+        },
+        {
+          "insert": "workspace:*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-the-standalone-pi-agent-16": {
+      "id": "b-20-package-linking-the-standalone-pi-agent-16",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The standalone "
+        },
+        {
+          "insert": "pi-agent-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " repo is currently a clean seed of those packages. Spectre is not yet consuming the standalone repo."
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-why-both-exist-right-now-17": {
+      "id": "b-20-package-linking-why-both-exist-right-now-17",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Why Both Exist Right Now"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-the-local-package-split-18": {
+      "id": "b-20-package-linking-the-local-package-split-18",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The local package split came first because it let Spectre keep running while the boundaries were enforced. The standalone repo was then created as the target home for the kernel packages."
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-that-means-there-is-temp-19": {
+      "id": "b-20-package-linking-that-means-there-is-temp-19",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "That means there is temporary duplication. It should not stay that way long term."
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-intended-source-of-truth-20": {
+      "id": "b-20-package-linking-intended-source-of-truth-20",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Intended Source Of Truth"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-once-the-next-split-step-21": {
+      "id": "b-20-package-linking-once-the-next-split-step-21",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Once the next split step starts, "
+        },
+        {
+          "insert": "pi-agent-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " should become the source of truth for "
+        },
+        {
+          "insert": "@agent-kernel/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-spectre-should-stop-owni-22": {
+      "id": "b-20-package-linking-spectre-should-stop-owni-22",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spectre should stop owning separate copies of those packages and consume them by one of these mechanisms:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-mechanism-when-to-us-23": {
+      "id": "b-20-package-linking-mechanism-when-to-us-23",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| Mechanism | When To Use |\n|---|---|\n| Git submodule workspace | Best next step while APIs are still changing and both repos need local development |\n| Private registry packages | Best later step after the package API stabilizes |\n| Git dependency | Possible bridge, but less ergonomic for multi-package workspace development |"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-recommended-next-step-24": {
+      "id": "b-20-package-linking-recommended-next-step-24",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Recommended Next Step"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-use-a-git-submodule-firs-25": {
+      "id": "b-20-package-linking-use-a-git-submodule-firs-25",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use a git submodule first."
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-sketch-26": {
+      "id": "b-20-package-linking-sketch-26",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Sketch:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-text-27": {
+      "id": "b-20-package-linking-text-27",
+      "flavour": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "Spectre/\n  apps/\n  packages/\n    pi-agent-kernel/        git submodule -> Codecaine-AI/pi-agent-kernel\n      packages/\n        protocol/\n        db/\n        kernel/\n        tailer/\n        viewer-core/\n        viewer-ui/\n        viewer-shell/"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-then-update-spectre-root-28": {
+      "id": "b-20-package-linking-then-update-spectre-root-28",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Then update Spectre root workspaces to include the submodule packages:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-json-29": {
+      "id": "b-20-package-linking-json-29",
+      "flavour": "code",
+      "props": {
+        "language": "json"
+      },
+      "text": [
+        {
+          "insert": "{\n  \"workspaces\": [\n    \"apps/*\",\n    \"packages/pi-agent-kernel/packages/*\"\n  ]\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-at-that-point-spectre-a-30": {
+      "id": "b-20-package-linking-at-that-point-spectre-a-30",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "At that point, Spectre apps can keep importing "
+        },
+        {
+          "insert": "@agent-kernel/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with "
+        },
+        {
+          "insert": "workspace:*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", but the code comes from the standalone repo."
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-later-registry-model-31": {
+      "id": "b-20-package-linking-later-registry-model-31",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Later Registry Model"
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-after-the-package-contra-32": {
+      "id": "b-20-package-linking-after-the-package-contra-32",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "After the package contracts stabilize, publish the packages to a private registry and replace "
+        },
+        {
+          "insert": "workspace:*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in Spectre app packages with pinned versions."
+        }
+      ],
+      "children": []
+    },
+    "b-20-package-linking-that-future-shape-is-cle-33": {
+      "id": "b-20-package-linking-that-future-shape-is-cle-33",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "That future shape is cleaner for consumers but worse while the API is still changing quickly."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,395 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-10-protocol-00-overview",
+  "title": "Protocol Package",
+  "root": "b-00-overview-root-22",
+  "blocks": {
+    "b-00-overview-root-22": {
+      "id": "b-00-overview-root-22",
+      "flavour": "paragraph",
+      "props": {
+        "code-ref": "packages/protocol/src/envelope.ts, packages/protocol/src/types.ts, packages/protocol/src/factories.ts",
+        "concepts": [
+          "protocol",
+          "trace-event",
+          "event-factory",
+          "trace-source",
+          "trace-level",
+          "event-data"
+        ],
+        "covers": "Implementation of @agent-kernel/protocol: TraceEvent envelope, trace sources, trace levels, event data types, open event catalog, and event factories.",
+        "depends-on": [
+          "../../10-system-design/30-event-protocol.md"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-protocol-package-1",
+        "b-00-overview-agent-kernel-protocol-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-files-4",
+        "b-00-overview-file-purpose-5",
+        "b-00-overview-envelope-details-6",
+        "b-00-overview-traceevent-stores-app-7",
+        "b-00-overview-tracesource-exposes-ke-8",
+        "b-00-overview-event-types-9",
+        "b-00-overview-eventtype-has-known-co-10",
+        "b-00-overview-kernel-core-event-famili-11",
+        "b-00-overview-agent-and-pi-lifecycle-12",
+        "b-00-overview-prompt-and-context-build-13",
+        "b-00-overview-conversation-messages-14",
+        "b-00-overview-tool-lifecycle-15",
+        "b-00-overview-phases-and-containers-16",
+        "b-00-overview-warnings-and-errors-17",
+        "b-00-overview-the-current-package-stil-18",
+        "b-00-overview-factory-use-19",
+        "b-00-overview-use-protocol-factories-w-20",
+        "b-00-overview-unknown-or-app-specific-21"
+      ]
+    },
+    "b-00-overview-protocol-package-1": {
+      "id": "b-00-overview-protocol-package-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Protocol Package"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-kernel-protocol-2": {
+      "id": "b-00-overview-agent-kernel-protocol-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@agent-kernel/protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the shared contract package. Runtime emitters, DB actions, tailer mapping, viewer DTOs, and apps all type against it."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-files-4": {
+      "id": "b-00-overview-files-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Files"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-file-purpose-5": {
+      "id": "b-00-overview-file-purpose-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| File | Purpose |\n|---|---|\n| "
+        },
+        {
+          "insert": "src/envelope.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "TraceEvent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "TraceSource",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and source constants |\n| "
+        },
+        {
+          "insert": "src/types.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | trace levels, event type catalog, event data interfaces |\n| "
+        },
+        {
+          "insert": "src/factories.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | helpers that construct correctly shaped events |\n| "
+        },
+        {
+          "insert": "src/index.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | public package export |"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-envelope-details-6": {
+      "id": "b-00-overview-envelope-details-6",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Envelope Details"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-traceevent-stores-app-7": {
+      "id": "b-00-overview-traceevent-stores-app-7",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "TraceEvent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " stores app correlation ("
+        },
+        {
+          "insert": "appSessionId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), optional kernel grouping ("
+        },
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), event identity, source, trace level, typed payload, timestamp, and optional span/parent ids."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-tracesource-exposes-ke-8": {
+      "id": "b-00-overview-tracesource-exposes-ke-8",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "TraceSource",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " exposes kernel, app, and agent constants, but the type is open-string compatible so host apps can pass custom sources if needed."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-event-types-9": {
+      "id": "b-00-overview-event-types-9",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Event Types"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-eventtype-has-known-co-10": {
+      "id": "b-00-overview-eventtype-has-known-co-10",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "EventType",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " has known constants and remains open to app-specific strings."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-kernel-core-event-famili-11": {
+      "id": "b-00-overview-kernel-core-event-famili-11",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernel-core event families include:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-and-pi-lifecycle-12": {
+      "id": "b-00-overview-agent-and-pi-lifecycle-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "agent and Pi lifecycle"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-prompt-and-context-build-13": {
+      "id": "b-00-overview-prompt-and-context-build-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "prompt and context build lifecycle"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-conversation-messages-14": {
+      "id": "b-00-overview-conversation-messages-14",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "conversation messages"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-tool-lifecycle-15": {
+      "id": "b-00-overview-tool-lifecycle-15",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "tool lifecycle"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-phases-and-containers-16": {
+      "id": "b-00-overview-phases-and-containers-16",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "phases and containers"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-warnings-and-errors-17": {
+      "id": "b-00-overview-warnings-and-errors-17",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "warnings and errors"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-current-package-stil-18": {
+      "id": "b-00-overview-the-current-package-stil-18",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The current package still includes UI ask event data because ask events existed before extraction. Spectre-specific ask storage remains app-side."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-factory-use-19": {
+      "id": "b-00-overview-factory-use-19",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Factory Use"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-use-protocol-factories-w-20": {
+      "id": "b-00-overview-use-protocol-factories-w-20",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use protocol factories when kernel or app code emits standard events. Factories assign event ids, sources, timestamps, trace levels, and payload shapes consistently."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-unknown-or-app-specific-21": {
+      "id": "b-00-overview-unknown-or-app-specific-21",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Unknown or app-specific event types can still be inserted and rendered generically when they follow the envelope."
+        }
+      ],
+      "children": []
+    }
+  }
+}

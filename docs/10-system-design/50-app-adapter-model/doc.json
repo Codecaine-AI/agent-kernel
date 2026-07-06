@@ -1,0 +1,470 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-50-app-adapter-model",
+  "title": "App Adapter Model",
+  "root": "b-50-app-adapter-model-root-28",
+  "blocks": {
+    "b-50-app-adapter-model-root-28": {
+      "id": "b-50-app-adapter-model-root-28",
+      "flavour": "paragraph",
+      "props": {
+        "concepts": [
+          "app-adapter",
+          "host-app",
+          "spectre-adapter",
+          "custom-loader",
+          "custom-tool",
+          "package-linking"
+        ],
+        "covers": "App adapter design: how host applications compose kernel packages while keeping workflow state, tools, loaders, routes, and panels app-owned.",
+        "depends-on": [
+          "../00-foundation/30-boundaries.md",
+          "10-runtime-model.md",
+          "40-viewer-model.md"
+        ]
+      },
+      "children": [
+        "b-50-app-adapter-model-app-adapter-model-1",
+        "b-50-app-adapter-model-an-app-adapter-turns-the-2",
+        "b-50-app-adapter-model-divider-3",
+        "b-50-app-adapter-model-adapter-responsibilities-4",
+        "b-50-app-adapter-model-an-app-adapter-typically-5",
+        "b-50-app-adapter-model-kernel-instance-configur-6",
+        "b-50-app-adapter-model-spawn-adapters-and-db-ha-7",
+        "b-50-app-adapter-model-app-session-to-kernel-co-8",
+        "b-50-app-adapter-model-agent-catalog-roots-9",
+        "b-50-app-adapter-model-shared-tool-factories-10",
+        "b-50-app-adapter-model-private-tool-sidecar-loa-11",
+        "b-50-app-adapter-model-custom-context-loaders-12",
+        "b-50-app-adapter-model-run-context-app-state-13",
+        "b-50-app-adapter-model-app-specific-event-emitt-14",
+        "b-50-app-adapter-model-tailer-watch-paths-and-c-15",
+        "b-50-app-adapter-model-read-api-mount-and-respo-16",
+        "b-50-app-adapter-model-viewer-plugins-and-custo-17",
+        "b-50-app-adapter-model-spectre-reference-mappin-18",
+        "b-50-app-adapter-model-kernel-concept-spect-19",
+        "b-50-app-adapter-model-repo-split-implication-20",
+        "b-50-app-adapter-model-the-standalone-kernel-re-21",
+        "b-50-app-adapter-model-the-package-graph-should-22",
+        "b-50-app-adapter-model-text-23",
+        "b-50-app-adapter-model-that-graph-is-the-import-24",
+        "b-50-app-adapter-model-spectre-compatibility-no-25",
+        "b-50-app-adapter-model-spectre-still-has-backen-26",
+        "b-50-app-adapter-model-a-new-app-should-not-rec-27"
+      ]
+    },
+    "b-50-app-adapter-model-app-adapter-model-1": {
+      "id": "b-50-app-adapter-model-app-adapter-model-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "App Adapter Model"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-an-app-adapter-turns-the-2": {
+      "id": "b-50-app-adapter-model-an-app-adapter-turns-the-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An app adapter turns the generic kernel into a product-specific agent system. It should be explicit, testable, and mostly one-way: app code can depend on kernel packages, but kernel packages must not depend on app code."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-divider-3": {
+      "id": "b-50-app-adapter-model-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-50-app-adapter-model-adapter-responsibilities-4": {
+      "id": "b-50-app-adapter-model-adapter-responsibilities-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Adapter Responsibilities"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-an-app-adapter-typically-5": {
+      "id": "b-50-app-adapter-model-an-app-adapter-typically-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An app adapter typically provides:"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-kernel-instance-configur-6": {
+      "id": "b-50-app-adapter-model-kernel-instance-configur-6",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "kernel instance configuration"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-spawn-adapters-and-db-ha-7": {
+      "id": "b-50-app-adapter-model-spawn-adapters-and-db-ha-7",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "spawn adapters and DB handles"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-app-session-to-kernel-co-8": {
+      "id": "b-50-app-adapter-model-app-session-to-kernel-co-8",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app session to kernel container mapping"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-agent-catalog-roots-9": {
+      "id": "b-50-app-adapter-model-agent-catalog-roots-9",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "agent catalog roots"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-shared-tool-factories-10": {
+      "id": "b-50-app-adapter-model-shared-tool-factories-10",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "shared tool factories"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-private-tool-sidecar-loa-11": {
+      "id": "b-50-app-adapter-model-private-tool-sidecar-loa-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "private tool sidecar loading"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-custom-context-loaders-12": {
+      "id": "b-50-app-adapter-model-custom-context-loaders-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "custom context loaders"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-run-context-app-state-13": {
+      "id": "b-50-app-adapter-model-run-context-app-state-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "run-context app state"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-app-specific-event-emitt-14": {
+      "id": "b-50-app-adapter-model-app-specific-event-emitt-14",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app-specific event emitters"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-tailer-watch-paths-and-c-15": {
+      "id": "b-50-app-adapter-model-tailer-watch-paths-and-c-15",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "tailer watch paths and custom marker names"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-read-api-mount-and-respo-16": {
+      "id": "b-50-app-adapter-model-read-api-mount-and-respo-16",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "read API mount and response mapping"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-viewer-plugins-and-custo-17": {
+      "id": "b-50-app-adapter-model-viewer-plugins-and-custo-17",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "viewer plugins and custom payload renderers"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-spectre-reference-mappin-18": {
+      "id": "b-50-app-adapter-model-spectre-reference-mappin-18",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Spectre Reference Mapping"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-kernel-concept-spect-19": {
+      "id": "b-50-app-adapter-model-kernel-concept-spect-19",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| Kernel Concept | Spectre Adapter Mapping |\n|---|---|\n| Container | Spectre session/workflow grouping, with app state kept in Spectre tables |\n| App session identity | Spectre session id, slug, and session directory |\n| Phase label | "
+        },
+        {
+          "insert": "spec",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "plan",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "build",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "docs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or other Spectre workflow labels |\n| Custom loader | "
+        },
+        {
+          "insert": "checkpoint-slice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", which reads Spectre plan/build state |\n| App state manager | "
+        },
+        {
+          "insert": "SessionStateManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " passed through run context |\n| Domain tools | Spectre tools that mutate spec, plan, build, docs, projects, or asks |\n| Viewer plugin | Spectre session header and phase-specific panels |"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-repo-split-implication-20": {
+      "id": "b-50-app-adapter-model-repo-split-implication-20",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Repo Split Implication"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-the-standalone-kernel-re-21": {
+      "id": "b-50-app-adapter-model-the-standalone-kernel-re-21",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The standalone kernel repository is the source of truth for "
+        },
+        {
+          "insert": "@agent-kernel/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " packages. A host app can consume it as a workspace submodule during active development, or as published package versions once contracts stabilize."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-the-package-graph-should-22": {
+      "id": "b-50-app-adapter-model-the-package-graph-should-22",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The package graph should not change:"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-text-23": {
+      "id": "b-50-app-adapter-model-text-23",
+      "flavour": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "Spectre apps -> @agent-kernel/* packages\n@agent-kernel/* packages -> no Spectre imports"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-that-graph-is-the-import-24": {
+      "id": "b-50-app-adapter-model-that-graph-is-the-import-24",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "That graph is the important contract. Git topology is the delivery mechanism."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-spectre-compatibility-no-25": {
+      "id": "b-50-app-adapter-model-spectre-compatibility-no-25",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Spectre Compatibility Note"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-spectre-still-has-backen-26": {
+      "id": "b-50-app-adapter-model-spectre-still-has-backen-26",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spectre still has backend files named "
+        },
+        {
+          "insert": "apps/backend/src/agent-kernel/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " because the kernel was extracted from that path. In the current split, those files are app adapter code and compatibility shims around the standalone packages, not the portable kernel source of truth."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-a-new-app-should-not-rec-27": {
+      "id": "b-50-app-adapter-model-a-new-app-should-not-rec-27",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A new app should not recreate the Spectre backend tree. It should create a small app-specific adapter and import kernel package exports directly. The implementation guide for that setup lives in "
+        },
+        {
+          "insert": "20-implementation/70-app-adapters/10-application-setup.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/70-app-adapters/10-application-setup.md",
+              "label": "20-implementation/70-app-adapters/10-application-setup.md"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    }
+  }
+}

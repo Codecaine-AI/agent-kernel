@@ -1,0 +1,513 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-50-read-api-00-overview",
+  "title": "Read API",
+  "root": "b-00-overview-root-31",
+  "blocks": {
+    "b-00-overview-root-31": {
+      "id": "b-00-overview-root-31",
+      "flavour": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/read-api.ts, packages/viewer-core/src/api.ts, packages/db/src/actions/read-api.ts",
+        "concepts": [
+          "read-api",
+          "elysia",
+          "viewer-core",
+          "trace-sessions",
+          "containers",
+          "route-factory"
+        ],
+        "covers": "Kernel trace read API implementation: Elysia route factory, viewer-core path constants, read service contract, DB helper relationship, limits, and app mounting.",
+        "depends-on": [
+          "../30-db/00-overview.md",
+          "../60-viewer/00-overview.md"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-read-api-1",
+        "b-00-overview-the-read-api-is-the-stab-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-route-factory-4",
+        "b-00-overview-createkerneltracereadap-5",
+        "b-00-overview-default-prefix-kernel-6",
+        "b-00-overview-routes-7",
+        "b-00-overview-route-purpose-8",
+        "b-00-overview-service-contract-9",
+        "b-00-overview-the-route-factory-accept-10",
+        "b-00-overview-optional-listtracesessi-11",
+        "b-00-overview-required-gettracesessio-12",
+        "b-00-overview-optional-getcontainertr-13",
+        "b-00-overview-the-service-is-app-provi-14",
+        "b-00-overview-query-handling-15",
+        "b-00-overview-the-api-accepts-16",
+        "b-00-overview-after-for-incremental-17",
+        "b-00-overview-limit-clamped-by-rout-18",
+        "b-00-overview-defaults-are-intentional-19",
+        "b-00-overview-viewer-contract-20",
+        "b-00-overview-agent-kernel-viewer-co-21",
+        "b-00-overview-the-response-dtos-includ-22",
+        "b-00-overview-session-metadata-23",
+        "b-00-overview-optional-container-metad-24",
+        "b-00-overview-container-tree-25",
+        "b-00-overview-pi-sessions-26",
+        "b-00-overview-agent-runs-27",
+        "b-00-overview-trace-events-28",
+        "b-00-overview-app-mounting-29",
+        "b-00-overview-spectre-currently-mounts-30"
+      ]
+    },
+    "b-00-overview-read-api-1": {
+      "id": "b-00-overview-read-api-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Read API"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-read-api-is-the-stab-2": {
+      "id": "b-00-overview-the-read-api-is-the-stab-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The read API is the stable route surface between kernel trace storage and viewer-core."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-route-factory-4": {
+      "id": "b-00-overview-route-factory-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Route Factory"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-createkerneltracereadap-5": {
+      "id": "b-00-overview-createkerneltracereadap-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "createKernelTraceReadApi(service, options)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " creates an Elysia module. Apps mount it inside their own HTTP service."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-default-prefix-kernel-6": {
+      "id": "b-00-overview-default-prefix-kernel-6",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Default prefix: "
+        },
+        {
+          "insert": "/kernel",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-routes-7": {
+      "id": "b-00-overview-routes-7",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Routes:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-route-purpose-8": {
+      "id": "b-00-overview-route-purpose-8",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| Route | Purpose |\n|---|---|\n| "
+        },
+        {
+          "insert": "GET /kernel/trace-sessions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | List trace sessions when the host provides list support |\n| "
+        },
+        {
+          "insert": "GET /kernel/trace-sessions/:id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Read one trace session detail |\n| "
+        },
+        {
+          "insert": "GET /kernel/containers/:containerId/trace",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Read a trace by kernel container id |"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-service-contract-9": {
+      "id": "b-00-overview-service-contract-9",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Service Contract"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-route-factory-accept-10": {
+      "id": "b-00-overview-the-route-factory-accept-10",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The route factory accepts a "
+        },
+        {
+          "insert": "KernelTraceReadService",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ":"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-optional-listtracesessi-11": {
+      "id": "b-00-overview-optional-listtracesessi-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "optional "
+        },
+        {
+          "insert": "listTraceSessions(query)",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-required-gettracesessio-12": {
+      "id": "b-00-overview-required-gettracesessio-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "required "
+        },
+        {
+          "insert": "getTraceSessionDetail(id, query)",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-optional-getcontainertr-13": {
+      "id": "b-00-overview-optional-getcontainertr-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "optional "
+        },
+        {
+          "insert": "getContainerTrace(containerId, query)",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-service-is-app-provi-14": {
+      "id": "b-00-overview-the-service-is-app-provi-14",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The service is app-provided because each app knows how to resolve app sessions, root containers, compatibility ids, auth, and tenancy."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-query-handling-15": {
+      "id": "b-00-overview-query-handling-15",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Query Handling"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-api-accepts-16": {
+      "id": "b-00-overview-the-api-accepts-16",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The API accepts:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-after-for-incremental-17": {
+      "id": "b-00-overview-after-for-incremental-17",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "after",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for incremental reads"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-limit-clamped-by-rout-18": {
+      "id": "b-00-overview-limit-clamped-by-rout-18",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "limit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", clamped by route options"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-defaults-are-intentional-19": {
+      "id": "b-00-overview-defaults-are-intentional-19",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Defaults are intentionally conservative: 5000 fallback, 10000 maximum."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-viewer-contract-20": {
+      "id": "b-00-overview-viewer-contract-20",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Viewer Contract"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-kernel-viewer-co-21": {
+      "id": "b-00-overview-agent-kernel-viewer-co-21",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@agent-kernel/viewer-core",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " exports "
+        },
+        {
+          "insert": "KERNEL_TRACE_READ_PATHS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for the current v1 routes. Viewer code should use those constants rather than hard-coded paths."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-response-dtos-includ-22": {
+      "id": "b-00-overview-the-response-dtos-includ-22",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The response DTOs include:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-session-metadata-23": {
+      "id": "b-00-overview-session-metadata-23",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "session metadata"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-optional-container-metad-24": {
+      "id": "b-00-overview-optional-container-metad-24",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "optional container metadata"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-container-tree-25": {
+      "id": "b-00-overview-container-tree-25",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "container tree"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-pi-sessions-26": {
+      "id": "b-00-overview-pi-sessions-26",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi sessions"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-runs-27": {
+      "id": "b-00-overview-agent-runs-27",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "agent runs"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-trace-events-28": {
+      "id": "b-00-overview-trace-events-28",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "trace events"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-app-mounting-29": {
+      "id": "b-00-overview-app-mounting-29",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "App Mounting"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-spectre-currently-mounts-30": {
+      "id": "b-00-overview-spectre-currently-mounts-30",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spectre currently mounts this route module in its data backend and adapts Spectre session ids to kernel container ids. Future apps should mount the same route module and supply their own resolver service."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,563 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-20-kernel-00-overview",
+  "title": "Kernel Package",
+  "root": "b-00-overview-root-30",
+  "blocks": {
+    "b-00-overview-root-30": {
+      "id": "b-00-overview-root-30",
+      "flavour": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/",
+        "concepts": [
+          "kernel-package",
+          "create-kernel",
+          "spawn-pipeline",
+          "agent-registry",
+          "context-builder",
+          "subagents",
+          "run-context"
+        ],
+        "covers": "Implementation overview of @agent-kernel/kernel: createKernel, spawn runtime, agent registry, context assembly, subagents, events, and read API route exports.",
+        "depends-on": [
+          "../../10-system-design/10-runtime-model.md"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-kernel-package-1",
+        "b-00-overview-agent-kernel-kernel-o-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-public-areas-4",
+        "b-00-overview-export-purpose-5",
+        "b-00-overview-current-runtime-shape-6",
+        "b-00-overview-the-kernel-package-inclu-7",
+        "b-00-overview-a-generic-createkernel-8",
+        "b-00-overview-the-extracted-db-backed-9",
+        "b-00-overview-the-spawn-pipeline-accep-10",
+        "b-00-overview-agent-lookup-11",
+        "b-00-overview-context-resolver-loading-12",
+        "b-00-overview-private-tool-factory-loa-13",
+        "b-00-overview-shared-tool-factory-cons-14",
+        "b-00-overview-context-catalog-creation-15",
+        "b-00-overview-spawn-context-creation-16",
+        "b-00-overview-db-access-17",
+        "b-00-overview-app-session-binding-mark-18",
+        "b-00-overview-logging-19",
+        "b-00-overview-this-keeps-app-knowledge-20",
+        "b-00-overview-implementation-nodes-21",
+        "b-00-overview-10-spawn-pipeline-md-1-22",
+        "b-00-overview-how-createspawnagent-23",
+        "b-00-overview-20-agent-registry-md-2-24",
+        "b-00-overview-how-agent-definitions-ar-25",
+        "b-00-overview-30-context-loaders-md-26",
+        "b-00-overview-how-agent-context-resolv-27",
+        "b-00-overview-40-subagents-md-40-sub-28",
+        "b-00-overview-how-subagent-orchestrati-29"
+      ]
+    },
+    "b-00-overview-kernel-package-1": {
+      "id": "b-00-overview-kernel-package-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Kernel Package"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-kernel-kernel-o-2": {
+      "id": "b-00-overview-agent-kernel-kernel-o-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@agent-kernel/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " owns the reusable runtime pieces. It does not own app workflow semantics."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-public-areas-4": {
+      "id": "b-00-overview-public-areas-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Public Areas"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-export-purpose-5": {
+      "id": "b-00-overview-export-purpose-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "| Export | Purpose |\n|---|---|\n| "
+        },
+        {
+          "insert": ".",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", concurrency config, and top-level re-exports |\n| "
+        },
+        {
+          "insert": "./agent-registry",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | agent parsing and registry |\n| "
+        },
+        {
+          "insert": "./context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "./context/loaders",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | context resolver contracts and loader catalog |\n| "
+        },
+        {
+          "insert": "./events",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | lifecycle emitter helpers |\n| "
+        },
+        {
+          "insert": "./read-api",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | Elysia trace read API route factory |\n| "
+        },
+        {
+          "insert": "./run-context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | async-local run identity |\n| "
+        },
+        {
+          "insert": "./spawn-pipeline",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | DB-backed Pi spawn pipeline |\n| "
+        },
+        {
+          "insert": "./subagents",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " | "
+        },
+        {
+          "insert": "AgentManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and subagent support |"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-current-runtime-shape-6": {
+      "id": "b-00-overview-current-runtime-shape-6",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Current Runtime Shape"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-kernel-package-inclu-7": {
+      "id": "b-00-overview-the-kernel-package-inclu-7",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel package includes both:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-a-generic-createkernel-8": {
+      "id": "b-00-overview-a-generic-createkernel-8",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "a generic "
+        },
+        {
+          "insert": "createKernel(config)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " instance API"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-extracted-db-backed-9": {
+      "id": "b-00-overview-the-extracted-db-backed-9",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "the extracted DB-backed spawn pipeline used by Spectre's adapter"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-spawn-pipeline-accep-10": {
+      "id": "b-00-overview-the-spawn-pipeline-accep-10",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The spawn pipeline accepts adapter functions for app-specific pieces:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-lookup-11": {
+      "id": "b-00-overview-agent-lookup-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "agent lookup"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-context-resolver-loading-12": {
+      "id": "b-00-overview-context-resolver-loading-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "context resolver loading"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-private-tool-factory-loa-13": {
+      "id": "b-00-overview-private-tool-factory-loa-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "private tool factory loading"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-shared-tool-factory-cons-14": {
+      "id": "b-00-overview-shared-tool-factory-cons-14",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "shared tool factory construction"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-context-catalog-creation-15": {
+      "id": "b-00-overview-context-catalog-creation-15",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "context catalog creation"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-spawn-context-creation-16": {
+      "id": "b-00-overview-spawn-context-creation-16",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "spawn context creation"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-db-access-17": {
+      "id": "b-00-overview-db-access-17",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "DB access"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-app-session-binding-mark-18": {
+      "id": "b-00-overview-app-session-binding-mark-18",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app session binding markers"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-logging-19": {
+      "id": "b-00-overview-logging-19",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "logging"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-this-keeps-app-knowledge-20": {
+      "id": "b-00-overview-this-keeps-app-knowledge-20",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This keeps app knowledge out of the package while preserving a complete runtime."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-implementation-nodes-21": {
+      "id": "b-00-overview-implementation-nodes-21",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Implementation Nodes"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-10-spawn-pipeline-md-1-22": {
+      "id": "b-00-overview-10-spawn-pipeline-md-1-22",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "10-spawn-pipeline.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/20-kernel/10-spawn-pipeline.md",
+              "label": "10-spawn-pipeline.md"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-createspawnagent-23": {
+      "id": "b-00-overview-how-createspawnagent-23",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How "
+        },
+        {
+          "insert": "createSpawnAgent()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " runs the full Pi spawn pipeline."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-20-agent-registry-md-2-24": {
+      "id": "b-00-overview-20-agent-registry-md-2-24",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "20-agent-registry.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/20-kernel/20-agent-registry.md",
+              "label": "20-agent-registry.md"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-agent-definitions-ar-25": {
+      "id": "b-00-overview-how-agent-definitions-ar-25",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How agent definitions are parsed, indexed, and validated."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-30-context-loaders-md-26": {
+      "id": "b-00-overview-30-context-loaders-md-26",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "30-context-loaders.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/20-kernel/30-context-loaders.md",
+              "label": "30-context-loaders.md"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-agent-context-resolv-27": {
+      "id": "b-00-overview-how-agent-context-resolv-27",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How agent context resolvers and loader catalogs work."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-40-subagents-md-40-sub-28": {
+      "id": "b-00-overview-40-subagents-md-40-sub-28",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "40-subagents.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/20-kernel/40-subagents.md",
+              "label": "40-subagents.md"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-subagent-orchestrati-29": {
+      "id": "b-00-overview-how-subagent-orchestrati-29",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How subagent orchestration reuses the same spawn path."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,420 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-20-kernel-40-subagents",
+  "title": "Subagents",
+  "root": "b-40-subagents-root-28",
+  "blocks": {
+    "b-40-subagents-root-28": {
+      "id": "b-40-subagents-root-28",
+      "flavour": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/subagents/",
+        "concepts": [
+          "subagents",
+          "agent-manager",
+          "background-agents",
+          "spawn-and-wait",
+          "parent-tool-use-id",
+          "run-context"
+        ],
+        "covers": "Subagent implementation: AgentManager, foreground/background spawn, concurrency queue, parent tool-call linkage, run context propagation, steering, cleanup, and notifications.",
+        "depends-on": [
+          "10-spawn-pipeline.md"
+        ]
+      },
+      "children": [
+        "b-40-subagents-subagents-1",
+        "b-40-subagents-subagents-are-managed-ag-2",
+        "b-40-subagents-divider-3",
+        "b-40-subagents-agentmanager-4",
+        "b-40-subagents-agentmanager-owns-5",
+        "b-40-subagents-agent-records-6",
+        "b-40-subagents-foreground-spawnandwait-7",
+        "b-40-subagents-background-spawn-8",
+        "b-40-subagents-background-concurrency-l-9",
+        "b-40-subagents-queued-background-work-10",
+        "b-40-subagents-stop-and-cleanup-behavio-11",
+        "b-40-subagents-tool-use-counters-12",
+        "b-40-subagents-result-and-error-storage-13",
+        "b-40-subagents-it-requires-a-spawnagen-14",
+        "b-40-subagents-foreground-and-backgroun-15",
+        "b-40-subagents-foreground-agents-bypass-16",
+        "b-40-subagents-background-agents-enter-17",
+        "b-40-subagents-parent-linkage-18",
+        "b-40-subagents-when-a-subagent-is-spawn-19",
+        "b-40-subagents-current-app-session-iden-20",
+        "b-40-subagents-current-container-id-21",
+        "b-40-subagents-current-phase-22",
+        "b-40-subagents-parenttooluseid-23",
+        "b-40-subagents-optional-parent-run-id-24",
+        "b-40-subagents-it-also-writes-a-custom-25",
+        "b-40-subagents-steering-26",
+        "b-40-subagents-the-manager-can-store-st-27"
+      ]
+    },
+    "b-40-subagents-subagents-1": {
+      "id": "b-40-subagents-subagents-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Subagents"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-subagents-are-managed-ag-2": {
+      "id": "b-40-subagents-subagents-are-managed-ag-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Subagents are managed agent runs spawned from inside another agent's turn."
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-divider-3": {
+      "id": "b-40-subagents-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-40-subagents-agentmanager-4": {
+      "id": "b-40-subagents-agentmanager-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "AgentManager"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-agentmanager-owns-5": {
+      "id": "b-40-subagents-agentmanager-owns-5",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "AgentManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " owns:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-agent-records-6": {
+      "id": "b-40-subagents-agent-records-6",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "agent records"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-foreground-spawnandwait-7": {
+      "id": "b-40-subagents-foreground-spawnandwait-7",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "foreground "
+        },
+        {
+          "insert": "spawnAndWait",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-background-spawn-8": {
+      "id": "b-40-subagents-background-spawn-8",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "background "
+        },
+        {
+          "insert": "spawn",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-background-concurrency-l-9": {
+      "id": "b-40-subagents-background-concurrency-l-9",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "background concurrency limits"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-queued-background-work-10": {
+      "id": "b-40-subagents-queued-background-work-10",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "queued background work"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-stop-and-cleanup-behavio-11": {
+      "id": "b-40-subagents-stop-and-cleanup-behavio-11",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "stop and cleanup behavior"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-tool-use-counters-12": {
+      "id": "b-40-subagents-tool-use-counters-12",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "tool-use counters"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-result-and-error-storage-13": {
+      "id": "b-40-subagents-result-and-error-storage-13",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "result and error storage"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-it-requires-a-spawnagen-14": {
+      "id": "b-40-subagents-it-requires-a-spawnagen-14",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "It requires a "
+        },
+        {
+          "insert": "spawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " adapter. That keeps subagent orchestration independent from the concrete runtime host."
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-foreground-and-backgroun-15": {
+      "id": "b-40-subagents-foreground-and-backgroun-15",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Foreground And Background"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-foreground-agents-bypass-16": {
+      "id": "b-40-subagents-foreground-agents-bypass-16",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Foreground agents bypass the background queue and are awaited directly."
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-background-agents-enter-17": {
+      "id": "b-40-subagents-background-agents-enter-17",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Background agents enter a FIFO queue when the concurrency limit is reached. The default limit is 4, and the kernel instance can adjust it."
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-parent-linkage-18": {
+      "id": "b-40-subagents-parent-linkage-18",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Parent Linkage"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-when-a-subagent-is-spawn-19": {
+      "id": "b-40-subagents-when-a-subagent-is-spawn-19",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "When a subagent is spawned from a tool call, the manager forwards:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-current-app-session-iden-20": {
+      "id": "b-40-subagents-current-app-session-iden-20",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "current app session identity from "
+        },
+        {
+          "insert": "RunContext",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-current-container-id-21": {
+      "id": "b-40-subagents-current-container-id-21",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "current container id"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-current-phase-22": {
+      "id": "b-40-subagents-current-phase-22",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "current phase"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-parenttooluseid-23": {
+      "id": "b-40-subagents-parenttooluseid-23",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "parentToolUseId",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-optional-parent-run-id-24": {
+      "id": "b-40-subagents-optional-parent-run-id-24",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "optional parent run id"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-it-also-writes-a-custom-25": {
+      "id": "b-40-subagents-it-also-writes-a-custom-25",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "It also writes a custom parent/child Pi session marker to the parent Pi session when both session ids are known. The tailer uses that marker to link Pi sessions into a tree."
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-steering-26": {
+      "id": "b-40-subagents-steering-26",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Steering"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-the-manager-can-store-st-27": {
+      "id": "b-40-subagents-the-manager-can-store-st-27",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The manager can store steering messages before a subagent session exists and flush them once the session is created. This lets callers interact with long-running subagents without breaking the runtime abstraction."
+        }
+      ],
+      "children": []
+    }
+  }
+}

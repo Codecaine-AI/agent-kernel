@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-99-appendix-00-overview",
+  "title": "Appendix",
+  "root": "b-00-overview-root-13",
+  "blocks": {
+    "b-00-overview-root-13": {
+      "id": "b-00-overview-root-13",
+      "flavour": "paragraph",
+      "props": {
+        "concepts": [
+          "appendix",
+          "dev-setup",
+          "package-linking",
+          "docs-migration",
+          "examples"
+        ],
+        "covers": "Operational appendix for development setup, package linking, source documentation mapping, and runnable examples.",
+        "depends-on": [
+          "../00-overview.md"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-appendix-1",
+        "b-00-overview-the-appendix-collects-op-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-child-nodes-4",
+        "b-00-overview-10-dev-setup-md-10-dev-5",
+        "b-00-overview-install-validation-typ-6",
+        "b-00-overview-20-package-linking-md-7",
+        "b-00-overview-current-and-intended-lin-8",
+        "b-00-overview-30-source-doc-map-md-3-9",
+        "b-00-overview-mapping-from-promoted-sp-10",
+        "b-00-overview-40-basic-workbench-md-11",
+        "b-00-overview-runnable-in-memory-kerne-12"
+      ]
+    },
+    "b-00-overview-appendix-1": {
+      "id": "b-00-overview-appendix-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Appendix"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-appendix-collects-op-2": {
+      "id": "b-00-overview-the-appendix-collects-op-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The appendix collects operational notes that support the kernel packages but are not themselves package internals."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-child-nodes-4": {
+      "id": "b-00-overview-child-nodes-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Child Nodes"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-10-dev-setup-md-10-dev-5": {
+      "id": "b-00-overview-10-dev-setup-md-10-dev-5",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "10-dev-setup.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/99-appendix/10-dev-setup.md",
+              "label": "10-dev-setup.md"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-install-validation-typ-6": {
+      "id": "b-00-overview-install-validation-typ-6",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Install, validation, typecheck, and portability-gate commands."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-20-package-linking-md-7": {
+      "id": "b-00-overview-20-package-linking-md-7",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "20-package-linking.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/99-appendix/20-package-linking.md",
+              "label": "20-package-linking.md"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-current-and-intended-lin-8": {
+      "id": "b-00-overview-current-and-intended-lin-8",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Current and intended linking model between Spectre and the standalone kernel repository."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-30-source-doc-map-md-3-9": {
+      "id": "b-00-overview-30-source-doc-map-md-3-9",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "30-source-doc-map.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/99-appendix/30-source-doc-map.md",
+              "label": "30-source-doc-map.md"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-mapping-from-promoted-sp-10": {
+      "id": "b-00-overview-mapping-from-promoted-sp-10",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Mapping from promoted Spectre docs into portable kernel docs and Spectre adapter docs."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-40-basic-workbench-md-11": {
+      "id": "b-00-overview-40-basic-workbench-md-11",
+      "flavour": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "40-basic-workbench.md",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "docs/20-implementation/99-appendix/40-basic-workbench.md",
+              "label": "40-basic-workbench.md"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-runnable-in-memory-kerne-12": {
+      "id": "b-00-overview-runnable-in-memory-kerne-12",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Runnable in-memory kernel workbench for inspecting kernel runtime, context loading, read API, and viewer wiring."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,465 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-99-appendix-40-basic-workbench",
+  "title": "Basic Kernel Workbench",
+  "root": "b-40-basic-workbench-root-27",
+  "blocks": {
+    "b-40-basic-workbench-root-27": {
+      "id": "b-40-basic-workbench-root-27",
+      "flavour": "paragraph",
+      "props": {
+        "code-ref": "examples/basic-kernel/",
+        "concepts": [
+          "basic-workbench",
+          "examples",
+          "kernel-runtime",
+          "context-loaders",
+          "read-api",
+          "viewer-shell"
+        ],
+        "covers": "Basic kernel workbench example that boots a non-Spectre in-memory harness and renders kernel traces through the viewer shell.",
+        "depends-on": [
+          "10-dev-setup.md",
+          "../20-kernel/30-context-loaders.md",
+          "../50-read-api/00-overview.md",
+          "../60-viewer/00-overview.md"
+        ]
+      },
+      "children": [
+        "b-40-basic-workbench-basic-kernel-workbench-1",
+        "b-40-basic-workbench-examples-basic-kernel-2",
+        "b-40-basic-workbench-divider-3",
+        "b-40-basic-workbench-run-4",
+        "b-40-basic-workbench-bash-5",
+        "b-40-basic-workbench-the-launcher-starts-two-6",
+        "b-40-basic-workbench-api-http-127-0-0-1-8-7",
+        "b-40-basic-workbench-viewer-http-127-0-0-8",
+        "b-40-basic-workbench-the-api-exposes-the-kern-9",
+        "b-40-basic-workbench-what-it-wires-10",
+        "b-40-basic-workbench-the-workbench-exercises-11",
+        "b-40-basic-workbench-text-12",
+        "b-40-basic-workbench-runtime-shape-13",
+        "b-40-basic-workbench-src-server-ts-owns-the-14",
+        "b-40-basic-workbench-src-kernel-demo-store-t-15",
+        "b-40-basic-workbench-src-main-tsx-fetches-t-16",
+        "b-40-basic-workbench-src-styles-css-tailw-17",
+        "b-40-basic-workbench-boundary-intent-18",
+        "b-40-basic-workbench-this-example-is-delibera-19",
+        "b-40-basic-workbench-a-kernel-instance-20",
+        "b-40-basic-workbench-app-defined-context-load-21",
+        "b-40-basic-workbench-protocol-event-emission-22",
+        "b-40-basic-workbench-read-api-responses-23",
+        "b-40-basic-workbench-viewer-core-transforms-24",
+        "b-40-basic-workbench-a-mountable-viewer-shell-25",
+        "b-40-basic-workbench-spectre-should-consume-t-26"
+      ]
+    },
+    "b-40-basic-workbench-basic-kernel-workbench-1": {
+      "id": "b-40-basic-workbench-basic-kernel-workbench-1",
+      "flavour": "heading",
+      "props": {
+        "level": 1
+      },
+      "text": [
+        {
+          "insert": "Basic Kernel Workbench"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-examples-basic-kernel-2": {
+      "id": "b-40-basic-workbench-examples-basic-kernel-2",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "examples/basic-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is a minimal host application for inspecting the kernel outside Spectre. It uses an in-memory store so the workbench can run without Postgres or a Spectre session database."
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-divider-3": {
+      "id": "b-40-basic-workbench-divider-3",
+      "flavour": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-40-basic-workbench-run-4": {
+      "id": "b-40-basic-workbench-run-4",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Run"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-bash-5": {
+      "id": "b-40-basic-workbench-bash-5",
+      "flavour": "code",
+      "props": {
+        "language": "bash"
+      },
+      "text": [
+        {
+          "insert": "bun run dev:basic"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-the-launcher-starts-two-6": {
+      "id": "b-40-basic-workbench-the-launcher-starts-two-6",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The launcher starts two local processes:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-api-http-127-0-0-1-8-7": {
+      "id": "b-40-basic-workbench-api-http-127-0-0-1-8-7",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "API: "
+        },
+        {
+          "insert": "http://127.0.0.1:8788",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-viewer-http-127-0-0-8": {
+      "id": "b-40-basic-workbench-viewer-http-127-0-0-8",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Viewer: "
+        },
+        {
+          "insert": "http://127.0.0.1:5174",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-the-api-exposes-the-kern-9": {
+      "id": "b-40-basic-workbench-the-api-exposes-the-kern-9",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The API exposes the kernel read routes under "
+        },
+        {
+          "insert": "/kernel/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and workbench-specific demo routes under "
+        },
+        {
+          "insert": "/api/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-what-it-wires-10": {
+      "id": "b-40-basic-workbench-what-it-wires-10",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "What It Wires"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-the-workbench-exercises-11": {
+      "id": "b-40-basic-workbench-the-workbench-exercises-11",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The workbench exercises the core package path:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-text-12": {
+      "id": "b-40-basic-workbench-text-12",
+      "flavour": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "@agent-kernel/kernel\n  createKernel()\n  buildContext()\n  createDefaultCatalog()\n    text loader\n    memory loader registered by the host app\n\n@agent-kernel/protocol\n  trace event factories\n\n@agent-kernel/kernel/read-api\n  createKernelTraceReadApi()\n\n@agent-kernel/viewer-core\n  KERNEL_TRACE_READ_PATHS\n  buildTraceSpans()\n\n@agent-kernel/viewer-shell\n  KernelTraceViewer"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-runtime-shape-13": {
+      "id": "b-40-basic-workbench-runtime-shape-13",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Runtime Shape"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-src-server-ts-owns-the-14": {
+      "id": "b-40-basic-workbench-src-server-ts-owns-the-14",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "src/server.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " owns the Elysia API and injects the in-memory store into the read API factory."
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-src-kernel-demo-store-t-15": {
+      "id": "b-40-basic-workbench-src-kernel-demo-store-t-15",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "src/kernel-demo-store.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " owns the demo kernel instance, synthetic container/session/run rows, protocol events, and the custom "
+        },
+        {
+          "insert": "memory",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " context loader."
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-src-main-tsx-fetches-t-16": {
+      "id": "b-40-basic-workbench-src-main-tsx-fetches-t-16",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "src/main.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " fetches the read API response, transforms events into trace spans, and renders "
+        },
+        {
+          "insert": "KernelTraceViewer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-src-styles-css-tailw-17": {
+      "id": "b-40-basic-workbench-src-styles-css-tailw-17",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "src/styles.css",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "tailwind.config.cjs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "postcss.config.cjs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " provide the example's Tailwind pipeline and Spectre-compatible viewer tokens. The example wrapper uses Tailwind utility classes; it does not define a separate named CSS component system."
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-boundary-intent-18": {
+      "id": "b-40-basic-workbench-boundary-intent-18",
+      "flavour": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Boundary Intent"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-this-example-is-delibera-19": {
+      "id": "b-40-basic-workbench-this-example-is-delibera-19",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This example is deliberately not a Spectre adapter. It proves the extracted kernel can stand up a host harness with:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-a-kernel-instance-20": {
+      "id": "b-40-basic-workbench-a-kernel-instance-20",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "a kernel instance"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-app-defined-context-load-21": {
+      "id": "b-40-basic-workbench-app-defined-context-load-21",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app-defined context loaders"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-protocol-event-emission-22": {
+      "id": "b-40-basic-workbench-protocol-event-emission-22",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "protocol event emission"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-read-api-responses-23": {
+      "id": "b-40-basic-workbench-read-api-responses-23",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "read API responses"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-viewer-core-transforms-24": {
+      "id": "b-40-basic-workbench-viewer-core-transforms-24",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "viewer-core transforms"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-a-mountable-viewer-shell-25": {
+      "id": "b-40-basic-workbench-a-mountable-viewer-shell-25",
+      "flavour": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "a mountable viewer shell"
+        }
+      ],
+      "children": []
+    },
+    "b-40-basic-workbench-spectre-should-consume-t-26": {
+      "id": "b-40-basic-workbench-spectre-should-consume-t-26",
+      "flavour": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spectre should consume the same packages through a Spectre adapter layer rather than requiring these packages to know about Spectre sessions, phases, checkpoints, or task graphs."
+        }
+      ],
+      "children": []
+    }
+  }
+}
