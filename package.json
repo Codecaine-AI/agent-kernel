@@ -5,7 +5,7 @@
   "type": "module",
   "workspaces": ["packages/*", "examples/*"],
   "scripts": {
-    "docs": "bun packages/docs-framework/packages/docs-cli/src/index.ts",
+    "docs": "bun tools/docs-framework/packages/docs-cli/src/index.ts",
     "dev:basic": "bun run --cwd examples/basic-kernel dev",
     "test": "bun run test:boundaries && bun run test:packages",
     "test:boundaries": "bun run scripts/check-package-boundaries.ts",
