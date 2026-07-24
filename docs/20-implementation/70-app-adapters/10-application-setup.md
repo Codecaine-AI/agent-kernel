@@ -1,6 +1,6 @@
 ---
 covers: "How to set up a host application on top of the Pi Agent Kernel packages without moving app-specific workflow semantics into the kernel."
-concepts: [application-setup, host-app, adapter, workspace, create-kernel, read-api, viewer, transcript-recovery]
+concepts: [application-setup, host-app, adapter, workspace, create-kernel, read-api, viewer, transcript-recovery, models-process, model-access]
 depends-on: [00-overview.md, ../../00-foundation/30-boundaries.md, ../../10-system-design/50-app-adapter-model.md]
 ---
 
@@ -162,6 +162,30 @@ export const tools = defineTools((pi, runtime) => {
 The kernel binds the sidecar to the config `toolRuntime` at spawn time; the registry harvests the tool names at boot so they enter the allowlist automatically.
 
 Shared tools that should be available across many agents can still come from the `sharedTools` config slot. Tools that only make sense for one agent should use the colocated `tools.ts` path so the implementation, prompt, and manifest stay together.
+
+### Model Access: The Models Process, Not Auth
+
+Kernels do not use interactive provider auth. The standard pattern is that every kernel points at the local **models process** — a proxy/load-balancer endpoint that owns the real provider credentials — through a custom provider in the `piAgentDir` `models.json`:
+
+```json
+{
+  "providers": {
+    "codex-lb": {
+      "baseUrl": "http://127.0.0.1:2455/backend-api/codex",
+      "api": "openai-responses",
+      "apiKey": "<local proxy token>",
+      "models": [{ "id": "gpt-5.5", "reasoning": true, "input": ["text", "image"] }]
+    }
+  }
+}
+```
+
+- `auth.json` in the `piAgentDir` stays an empty object (`{}`) — no `/login` flow, no provider keys on disk in any kernel.
+- The `apiKey` here is a token for the local proxy, not an upstream provider secret; the proxy holds upstream credentials in one place for all kernels.
+- Agent manifests and kernel `models.aliases` resolve to model ids served by the proxy provider, so retargeting a fleet is still one config edit.
+- This keeps kernels headless-safe (no interactive auth on boot) and makes model routing observable at a single endpoint.
+
+`examples/simple-research-kernel/.pi-agent/` is the reference: a `codex-lb` provider in `models.json`, an empty `auth.json`. New kernels should copy that shape.
 
 ## Step 4: Define App Container Mapping
 

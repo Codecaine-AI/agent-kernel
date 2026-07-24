@@ -38,6 +38,7 @@ import {
   type ErrorData,
   type PhaseEndData,
   type PhaseStartData,
+  type PiRequestSnapshotData,
   type PostToolHookData,
   type PreToolHookData,
   type SystemPromptResolvedData,
@@ -345,6 +346,24 @@ const EVENT_SPECS: Record<string, EventSpec> = {
       attrs: [["block_type", d?.block_type]],
     }),
   }),
+  [EventType.PI_REQUEST_SNAPSHOT]: spec<PiRequestSnapshotData>({
+    category: "llm_call",
+    title: (d) => `Context window · turn ${d.turn_number}`,
+    point: (d) => ({
+      // The sanitized per-message refs ride along as input JSON so the
+      // detail-panel renderer can show the per-message table without
+      // re-parsing span.raw.
+      input: asJson(d?.message_refs),
+      attrs: [
+        ["turn_number", d?.turn_number],
+        ["prompt_hash", d?.prompt_hash],
+        ["system_prompt_blob_hash", d?.system_prompt_blob_hash],
+        ["message_count", d?.message_count],
+        ["total_text_chars", d?.total_text_chars],
+        ["total_image_count", d?.total_image_count],
+      ],
+    }),
+  }),
   [EventType.TOOL_CALL_START]: spec<ToolCallStartData, ToolCallEndData>({
     category: "tool_execution",
     title: (d) => (isSpawner(d) ? spawnerTitle(d) : d.tool_name),
@@ -506,6 +525,12 @@ export function extractSpanPayload(paired: PairedEvent): SpanPayload {
   pushAttr(attrs, "trace_level", sourceEvent.traceLevel);
   pushAttr(attrs, "event_type", sourceEvent.type);
   pushAttr(attrs, "container_id", sourceEvent.containerId);
+  // The request-snapshot renderer needs the envelope runId to fetch
+  // /runs/:runId/turns/:n/context. Scoped to this event type so every other
+  // span's attribute set (and the characterization snapshots) stay unchanged.
+  if (sourceEvent.type === EventType.PI_REQUEST_SNAPSHOT) {
+    pushAttr(attrs, "run_id", sourceEvent.runId);
+  }
 
   let payload: Payload;
   if (paired.kind === "pair") {

@@ -41,6 +41,7 @@ import {
   type PhaseStartData,
   type PiAgentEndData,
   type PiAgentStartData,
+  type PiRequestSnapshotData,
   type PiTurnEndData,
   type PiTurnStartData,
   type PostToolHookData,
@@ -354,6 +355,31 @@ export function createPiTurnEndEvent(
     eventData: data,
     source: TraceSource.AGENT,
     traceLevel: TraceLevel.INTERNAL,
+    spanId: opts?.spanId,
+    parentEventId: opts?.parentEventId,
+  });
+}
+
+/**
+ * Per-turn request snapshot — the exact context sent to the model for one
+ * turn, by blob reference (see PiRequestSnapshotData). DEBUG level so it
+ * surfaces at the viewer's L2 "FULL" level alongside system prompts and
+ * context, not buried at INTERNAL with the Pi turn boundaries.
+ */
+export function createPiRequestSnapshotEvent(
+  ids: TraceEventIds,
+  data: PiRequestSnapshotData,
+  opts?: {
+    spanId?: string;
+    parentEventId?: string;
+  },
+): TraceEvent {
+  return createEvent({
+    type: EventType.PI_REQUEST_SNAPSHOT,
+    ids,
+    eventData: data,
+    source: TraceSource.KERNEL,
+    traceLevel: TraceLevel.DEBUG,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
   });

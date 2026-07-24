@@ -6,6 +6,7 @@ import type { PromptDocument } from "@codecaine-ai/prompt-kit";
 import {
 	KERNEL_CATALOG_PATHS,
 	type CatalogAgentDetail,
+	type CatalogContextPreview,
 	type CatalogManifestSaveResult,
 	type CatalogPromptSaveResult,
 	type PromptRevisionListResponse,
@@ -27,9 +28,9 @@ export interface AgentPromptLabContainerProps {
 	agentName: string;
 	className?: string;
 	/**
-	 * Read-only assembled context preview for the CONTEXT view. Trace-derived
-	 * (the kernel catalog detail carries only the manifest + prompt), so the
-	 * host threads it in from its viewer definitions when available.
+	 * Host override for the CONTEXT view. The catalog detail payload already
+	 * carries an assembled context preview; pass this only to substitute a
+	 * trace-derived preview from the host's viewer definitions.
 	 */
 	context?: LabContextPreview;
 }
@@ -205,7 +206,7 @@ export function AgentPromptLabContainer({
 						editable: true,
 					}}
 					onManifestSave={handleManifestSave}
-					context={context}
+					context={context ?? toLabContextPreview(detail.context)}
 					revisionsZone={
 						<RevisionHistoryPanel
 							revisions={revisions}
@@ -236,6 +237,17 @@ function readManifestFields(detail: CatalogAgentDetail, agentName: string): Mani
 		name: typeof manifest.name === "string" ? manifest.name : agentName,
 		model: typeof manifest.model === "string" ? manifest.model : "",
 		description: typeof manifest.description === "string" ? manifest.description : "",
+	};
+}
+
+function toLabContextPreview(
+	preview: CatalogContextPreview | null | undefined,
+): LabContextPreview | undefined {
+	if (!preview) return undefined;
+	return {
+		renderedContext: preview.renderedContext,
+		inputs: preview.inputs,
+		modulePath: preview.modulePath,
 	};
 }
 

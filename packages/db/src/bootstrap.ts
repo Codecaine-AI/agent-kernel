@@ -96,6 +96,17 @@ export async function ensureKernelObservabilitySchema(
   `);
 
   db.run(sql`
+    CREATE TABLE IF NOT EXISTS trace_blobs (
+      hash            TEXT PRIMARY KEY,
+      kind            TEXT NOT NULL,
+      mime_type       TEXT NOT NULL,
+      byte_length     INTEGER NOT NULL,
+      data            BLOB NOT NULL,
+      created_at      TEXT NOT NULL
+    )
+  `);
+
+  db.run(sql`
     CREATE TABLE IF NOT EXISTS prompt_revisions (
       hash            TEXT PRIMARY KEY,
       agent_name      TEXT NOT NULL,

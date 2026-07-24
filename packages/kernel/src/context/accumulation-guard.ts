@@ -60,6 +60,16 @@ export function hasAgentContext(
 	return false;
 }
 
+/** Content blocks accepted by pi's appendCustomMessageEntry. */
+type ContextEntryBlock =
+	| { type: "text"; text: string }
+	| { type: "image"; data: string; mimeType: string };
+
+/**
+ * Text-only results inject the bare rendered string; results carrying
+ * contextImages inject a content-block array (text first, then images) so
+ * the images participate in the LLM context alongside the rendered text.
+ */
 export function injectAgentContext(
 	session: AppendableSession,
 	agentName: string,
@@ -74,15 +84,24 @@ export function injectAgentContext(
 	const mgr = session.sessionManager as unknown as {
 		appendCustomMessageEntry(
 			customType: string,
-			content: string,
+			content: string | ContextEntryBlock[],
 			display: boolean,
 			details: AgentContextEntryData,
 		): string;
 	};
-	mgr.appendCustomMessageEntry(
-		AGENT_CONTEXT_MARKER,
-		result.renderedContext,
-		false,
-		details,
-	);
+	const images = result.contextImages ?? [];
+	const content: string | ContextEntryBlock[] =
+		images.length === 0
+			? result.renderedContext
+			: [
+					{ type: "text", text: result.renderedContext },
+					...images.map(
+						(img): ContextEntryBlock => ({
+							type: "image",
+							data: img.data,
+							mimeType: img.mimeType,
+						}),
+					),
+				];
+	mgr.appendCustomMessageEntry(AGENT_CONTEXT_MARKER, content, false, details);
 }

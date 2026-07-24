@@ -5,7 +5,7 @@ import {
 } from "@agent-kernel/db";
 import { canonicalizePrompt } from "@codecaine-ai/prompt-kit";
 
-import type { AgentRegistry } from "./registry/types";
+import type { AgentDefinition, AgentRegistry } from "./registry/types";
 
 /**
  * Upsert one prompt_revisions row per catalog agent whose prompt is a
@@ -34,4 +34,31 @@ export async function registerPromptRevisions(
 		);
 	}
 	return revisions;
+}
+
+/**
+ * Refresh one agent's prompt from disk (registry.refreshAgentPromptFromDisk)
+ * and, when the document actually changed, upsert its prompt_revisions row
+ * with source "disk-sync" so revision history and per-revision stats cover
+ * out-of-band edits. A file that fails to stat or validate serves the cached
+ * definition unchanged — callers keep answering from the last good read.
+ * Throws only for a name that is not in the registry.
+ */
+export async function syncAgentPromptFromDisk(
+	db: KernelDatabase | null,
+	registry: AgentRegistry,
+	name: string,
+): Promise<AgentDefinition> {
+	const { def, changed, error } = registry.refreshAgentPromptFromDisk(name);
+	if (error || !changed || !db) return def;
+	await upsertPromptRevision(db, {
+		hash: def.promptHash,
+		agentName: def.name,
+		schemaVersion: def.promptDocument.schemaVersion,
+		document: canonicalizePrompt(def.promptDocument),
+		renderedText: def.parsed.body,
+		source: "disk-sync",
+		createdAt: new Date().toISOString(),
+	});
+	return def;
 }

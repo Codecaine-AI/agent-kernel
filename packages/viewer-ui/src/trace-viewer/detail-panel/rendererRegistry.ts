@@ -8,6 +8,7 @@ import { AssistantMessageRenderer } from "./renderers/AssistantMessageRenderer";
 import { ContextBuildRenderer } from "./renderers/ContextBuildRenderer";
 import { WarningRenderer } from "./renderers/WarningRenderer";
 import { UsageAggregateRenderer } from "./renderers/UsageAggregateRenderer";
+import { RequestSnapshotRenderer } from "./renderers/RequestSnapshotRenderer";
 
 export type PrimaryRenderer = ComponentType<RendererProps>;
 
@@ -21,6 +22,7 @@ export const rendererRegistry: Record<string, PrimaryRenderer> = {
   context_build_completed: ContextBuildRenderer,
   warning: WarningRenderer,
   error: WarningRenderer,
+  pi_request_snapshot: RequestSnapshotRenderer,
   // Container / phase / agent-session / run spans carry no I/O of their own —
   // render a usage aggregate folded from the workspace's runs instead.
   container_container: UsageAggregateRenderer,

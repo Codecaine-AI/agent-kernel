@@ -19,6 +19,8 @@ export interface AgentDefinition {
 	promptHash: string;
 	/** Absolute path of the prompt.json the document was loaded from. */
 	promptFile: string;
+	/** mtimeMs of promptFile when the document was read (disk-freshness check). */
+	promptFileMtimeMs: number;
 	/** Context sidecar (context.ts), attached by filename convention. */
 	contextResolver: AgentContextResolver | null;
 	contextModulePath: string | null;
@@ -47,6 +49,21 @@ export interface AgentRegistry {
 	 * RegistryError when the on-disk document fails validation.
 	 */
 	reloadAgentPrompt(name: string): AgentDefinition;
+	/**
+	 * Cheap disk-freshness check for an agent's prompt.json: stat the file and,
+	 * when its mtime differs from the cached read, re-validate + hot-swap the
+	 * entry exactly like reloadAgentPrompt. A formatting-only rewrite (same
+	 * canonical hash) refreshes the cached mtime without swapping. A file that
+	 * fails to stat or validate (e.g. a mid-edit half-written document) leaves
+	 * the cached entry untouched — including its mtime, so the next call
+	 * retries — and reports the failure as `error` instead of throwing.
+	 * Throws only for a name that is not in the registry, like get().
+	 */
+	refreshAgentPromptFromDisk(name: string): {
+		def: AgentDefinition;
+		changed: boolean;
+		error: RegistryError | null;
+	};
 	/**
 	 * Re-read an agent's agent.json from disk, re-normalize + re-validate it
 	 * (schema shape, tool-profile expansion, spawner-target constraints), and

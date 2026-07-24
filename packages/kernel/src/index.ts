@@ -10,7 +10,12 @@
 import type { ExtensionContext, ExtensionFactory } from "@mariozechner/pi-coding-agent";
 import type { KernelDatabase } from "@agent-kernel/db";
 
-import { buildRegistry, registerPromptRevisions, type AgentRegistry } from "./agent-registry";
+import {
+	buildRegistry,
+	registerPromptRevisions,
+	syncAgentPromptFromDisk,
+	type AgentRegistry,
+} from "./agent-registry";
 import {
 	createKernelCatalogService,
 	type KernelCatalogService,
@@ -20,6 +25,7 @@ import {
 	createDefaultCatalog,
 	type AppSessionData,
 	type Loader,
+	type LoaderCatalog,
 } from "./context";
 import { runTraceDoctor, type DoctorReport } from "./doctor";
 import type { ModelPriceTable } from "./emitter";
@@ -119,6 +125,12 @@ export interface CreateKernelConfig<TToolRuntime = unknown> {
 	piLifecycleCustomType?: string;
 	/** Custom type for parent-session subagent link entries. */
 	subagentLinkCustomType?: string;
+	/**
+	 * Capture per-turn pi_request_snapshot events (system prompt + sanitized
+	 * context messages into trace_blobs) for every spawn. Default true;
+	 * per-spawn `opts.captureRequestSnapshots` overrides.
+	 */
+	captureRequestSnapshots?: boolean;
 	logger?: KernelLogger;
 }
 
@@ -235,6 +247,15 @@ export function createKernel<TToolRuntime = unknown>(
 		return runtimePromise;
 	}
 
+	// One loader-catalog factory for both consumers — the spawn pipeline and
+	// the catalog service's context preview — so a declaration resolves the
+	// same way in a preview as it does in a real spawn.
+	function createContextLoaderCatalog(): LoaderCatalog {
+		const catalog = createDefaultCatalog();
+		for (const loader of config.loaders ?? []) catalog.register(loader);
+		return catalog;
+	}
+
 	async function buildRuntime(): Promise<KernelRuntime> {
 		const roots = config.catalog?.roots ?? [];
 		if (roots.length === 0) {
@@ -270,11 +291,7 @@ export function createKernel<TToolRuntime = unknown>(
 					);
 			},
 			buildToolFactories: (agentConfig) => config.sharedTools?.(agentConfig) ?? [],
-			createContextCatalog: () => {
-				const catalog = createDefaultCatalog();
-				for (const loader of config.loaders ?? []) catalog.register(loader);
-				return catalog;
-			},
+			createContextCatalog: createContextLoaderCatalog,
 			getDb: () => requireDb("spawnAgent"),
 			modelPrices: config.models?.prices,
 			createSessionBinding: config.createSessionBinding ?? defaultSessionBinding,
@@ -292,7 +309,9 @@ export function createKernel<TToolRuntime = unknown>(
 		opts: KernelSpawnOptions = {},
 	): Promise<KernelSpawnAgentResult> {
 		const { registry, spawn } = await runtime();
-		const def = registry.get(name);
+		// Disk-freshness: a prompt.json rewritten out-of-band hot-swaps in (and
+		// registers its disk-sync revision) before the spawn freezes a prompt.
+		const def = await syncAgentPromptFromDisk(config.db ?? null, registry, name);
 		// Validates the variant up front and resolves its display label; the
 		// pipeline re-resolves the config through the same pure function.
 		const resolved = resolveSpawnConfig(def, opts.variant, config.models?.aliases);
@@ -309,6 +328,8 @@ export function createKernel<TToolRuntime = unknown>(
 			piAgentDir: opts.piAgentDir ?? config.piAgentDir,
 			userId: opts.userId ?? config.defaultUserId,
 			traceWriter: opts.traceWriter ?? (config.db ? traceWriter() : undefined),
+			captureRequestSnapshots:
+				opts.captureRequestSnapshots ?? config.captureRequestSnapshots,
 			stateManager: opts.stateManager ?? appCtx?.stateManager ?? null,
 			sessionData: opts.sessionData ?? appCtx?.sessionData,
 		};
@@ -350,6 +371,7 @@ export function createKernel<TToolRuntime = unknown>(
 				db: () => requireDb("catalogApiService"),
 				allowWrites: opts.allowWrites ?? false,
 				modelAliases: () => Object.keys(config.models?.aliases ?? {}),
+				contextCatalog: createContextLoaderCatalog,
 			});
 		},
 		spawnAgent,

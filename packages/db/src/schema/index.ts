@@ -24,6 +24,7 @@ export {
   type RunTrigger,
 } from "./agent-runs";
 export { traceEvents } from "./trace-events";
+export { traceBlobs } from "./trace-blobs";
 export {
   promptRevisions,
   PROMPT_REVISION_SOURCE,

@@ -49,7 +49,7 @@ export function ContextSurface({ context }: { context?: LabContextPreview }) {
 				<div className="flex min-h-0 flex-1 items-center justify-center p-6">
 					<p className="max-w-64 text-center text-[12px] leading-relaxed text-muted-foreground/70">
 						{context?.modulePath
-							? "No context captured for this agent yet — run it once to capture the assembled context."
+							? "The context preview could not be assembled for this agent."
 							: "This agent has no context module."}
 					</p>
 				</div>

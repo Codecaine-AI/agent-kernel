@@ -40,6 +40,8 @@ export type {
 	ErrorData,
 	PhaseEndData,
 	PhaseStartData,
+	PiRequestSnapshotData,
+	PiRequestSnapshotMessageRef,
 	PostToolHookData,
 	PreToolHookData,
 	SystemPromptResolvedData,

@@ -2,6 +2,11 @@ export { TreeView } from "./trace-viewer/TreeView";
 export { SpanDetailPanel } from "./trace-viewer/SpanDetailPanel";
 export type { UsageContext } from "./trace-viewer/detail-panel/types";
 export {
+	TraceViewerApiContext,
+	useTraceViewerApi,
+	type TraceViewerApiContextValue,
+} from "./trace-viewer/detail-panel/TraceViewerApiContext";
+export {
 	UsageSummaryPanel,
 	type UsageSummaryPanelProps,
 } from "./trace-viewer/UsageSummaryPanel";

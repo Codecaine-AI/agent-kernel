@@ -4,6 +4,7 @@ import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 export const PROMPT_REVISION_SOURCE = {
   REGISTRY_BOOT: "registry-boot",
   LAB_SAVE: "lab-save",
+  DISK_SYNC: "disk-sync",
   MIGRATION: "migration",
 } as const;
 

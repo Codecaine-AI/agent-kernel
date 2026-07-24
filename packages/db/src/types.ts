@@ -3,6 +3,7 @@ import type {
   containers,
   piAgentSessions,
   promptRevisions,
+  traceBlobs,
   traceEvents,
 } from "./schema";
 
@@ -20,3 +21,6 @@ export type NewAgentRun = typeof agentRuns.$inferInsert;
 
 export type PromptRevision = typeof promptRevisions.$inferSelect;
 export type NewPromptRevision = typeof promptRevisions.$inferInsert;
+
+export type TraceBlob = typeof traceBlobs.$inferSelect;
+export type NewTraceBlob = typeof traceBlobs.$inferInsert;

@@ -20,6 +20,22 @@ export interface CatalogAgentListResponse {
 	agents: CatalogAgentSummary[];
 }
 
+/** One resolved context input within `CatalogContextPreview.inputs`. */
+export interface CatalogContextInput {
+	loaderKind: string;
+	inputRef: string;
+	status: "ok" | "empty" | "error";
+	bytes: number;
+}
+
+/** Assembled context preview carried on `GET /kernel/catalog/agents/:name`. */
+export interface CatalogContextPreview {
+	modulePath: string | null;
+	inputs: CatalogContextInput[];
+	/** Null when no preview could be assembled. */
+	renderedContext: string | null;
+}
+
 /** Response of `GET /kernel/catalog/agents/:name`. */
 export interface CatalogAgentDetail {
 	manifest: Record<string, unknown>;
@@ -29,6 +45,11 @@ export interface CatalogAgentDetail {
 	declaredVariables: string[];
 	/** Model alias keys (models.aliases config) — datalist suggestions for the model field. */
 	modelAliases: string[];
+	/**
+	 * Assembled context preview — null when the agent has no context module.
+	 * Optional so payloads from kernels that omit the field still typecheck.
+	 */
+	context?: CatalogContextPreview | null;
 }
 
 /** Body of `PUT /kernel/catalog/agents/:name/manifest`. */

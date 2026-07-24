@@ -252,6 +252,7 @@ async function loadOne(
 		const { document: promptDocument, promptFile } = loadPromptJson(manifestFile);
 		const promptState = buildAgentPromptState(manifest, promptDocument, manifestFile);
 
+		const promptFileMtimeMs = statSync(promptFile).mtimeMs;
 		const contextModulePath = existsSync(contextFileAbs) ? contextFileAbs : null;
 		const toolsModulePath = existsSync(toolsFileAbs) ? toolsFileAbs : null;
 		const contextResolver = contextModulePath
@@ -293,6 +294,7 @@ async function loadOne(
 				promptDocument,
 				promptHash: promptState.promptHash,
 				promptFile,
+				promptFileMtimeMs,
 				contextResolver,
 				contextModulePath,
 				privateTools,
@@ -394,6 +396,33 @@ export async function buildRegistry(
 		);
 	}
 
+	// Shared prompt hot-swap: the single place a cached definition takes on a
+	// re-read prompt.json (document, hash, rendered body, warnings, mtime), so
+	// the lab-save reload and the disk-freshness refresh cannot drift.
+	function hotSwapPrompt(
+		current: AgentDefinition,
+		document: PromptDocument,
+		promptFile: string,
+		state: AgentPromptState,
+		promptFileMtimeMs: number,
+	): AgentDefinition {
+		const next: AgentDefinition = {
+			...current,
+			promptDocument: document,
+			promptHash: state.promptHash,
+			promptFile,
+			promptFileMtimeMs,
+			parsed: {
+				...current.parsed,
+				body: state.body,
+				promptHash: state.promptHash,
+			},
+			warnings: state.warnings,
+		};
+		defs.set(current.name, next);
+		return next;
+	}
+
 	return {
 		get(name: string): AgentDefinition {
 			const def = defs.get(name);
@@ -416,20 +445,67 @@ export async function buildRegistry(
 				document,
 				current.manifestFile,
 			);
-			const next: AgentDefinition = {
-				...current,
-				promptDocument: document,
-				promptHash: state.promptHash,
+			return hotSwapPrompt(
+				current,
+				document,
 				promptFile,
-				parsed: {
-					...current.parsed,
-					body: state.body,
-					promptHash: state.promptHash,
-				},
-				warnings: state.warnings,
-			};
-			defs.set(name, next);
-			return next;
+				state,
+				statSync(promptFile).mtimeMs,
+			);
+		},
+		refreshAgentPromptFromDisk(name: string) {
+			const current = defs.get(name);
+			if (!current) throw new Error(`Agent not found in registry: ${name}`);
+
+			// stat first: an unchanged mtime answers without touching file
+			// contents, so read-path callers can refresh on every request.
+			let mtimeMs: number;
+			try {
+				mtimeMs = statSync(current.promptFile).mtimeMs;
+			} catch (err) {
+				const msg = err instanceof Error ? err.message : String(err);
+				return {
+					def: current,
+					changed: false,
+					error: new RegistryError(current.manifestFile, [
+						`prompt.json stat failed: ${msg}`,
+					]),
+				};
+			}
+			if (mtimeMs === current.promptFileMtimeMs) {
+				return { def: current, changed: false, error: null };
+			}
+
+			try {
+				const { document, promptFile } = loadPromptJson(current.manifestFile);
+				const state = buildAgentPromptState(
+					current.manifest,
+					document,
+					current.manifestFile,
+				);
+				if (state.promptHash === current.promptHash) {
+					// Formatting-only rewrite: same canonical document, new bytes.
+					// Remember the mtime so the next check stays a bare stat.
+					const next: AgentDefinition = { ...current, promptFileMtimeMs: mtimeMs };
+					defs.set(name, next);
+					return { def: next, changed: false, error: null };
+				}
+				return {
+					def: hotSwapPrompt(current, document, promptFile, state, mtimeMs),
+					changed: true,
+					error: null,
+				};
+			} catch (err) {
+				// A failing document (e.g. a mid-edit half-written file) keeps the
+				// cached entry — and its mtime, so the next call retries the read.
+				const error =
+					err instanceof RegistryError
+						? err
+						: new RegistryError(current.manifestFile, [
+								err instanceof Error ? err.message : String(err),
+							]);
+				return { def: current, changed: false, error };
+			}
 		},
 		reloadAgentManifest(name: string): AgentDefinition {
 			const current = defs.get(name);
