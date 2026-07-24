@@ -4,11 +4,13 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 import {
 	SpanDetailPanel,
+	TraceViewerApiContext,
 	TreeView,
 	collectSpanIds,
 	filterSpansByTraceLevel,
 	findSpanInTree,
 	type SpanCardViewOptions,
+	type TraceViewerApiContextValue,
 	type UsageContext,
 } from "@agent-kernel/viewer-ui";
 
@@ -71,6 +73,13 @@ export interface KernelTraceViewerProps {
 	 */
 	iconSide?: SpanCardViewOptions["iconSide"];
 	iconStyle?: SpanCardViewOptions["iconStyle"];
+	/**
+	 * Base URL of the kernel trace read API. When set, detail renderers that
+	 * reference content-addressed payloads (e.g. pi_request_snapshot) can fetch
+	 * blobs / per-turn context on demand; when absent they degrade to their
+	 * offline summaries.
+	 */
+	apiBase?: string;
 }
 
 export function KernelTraceViewer({
@@ -83,6 +92,7 @@ export function KernelTraceViewer({
 	usageContext,
 	iconSide,
 	iconStyle,
+	apiBase,
 }: KernelTraceViewerProps) {
 	const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
 	const [expandedSpansIds, setExpandedSpansIds] = useState<string[]>([]);
@@ -115,6 +125,11 @@ export function KernelTraceViewer({
 	const selectedSpan = useMemo(
 		() => (selectedId ? findSpanInTree(filteredSpans, selectedId) : null),
 		[filteredSpans, selectedId],
+	);
+
+	const apiContextValue = useMemo<TraceViewerApiContextValue>(
+		() => ({ apiBase: apiBase ?? null }),
+		[apiBase],
 	);
 
 	const spanCardViewOptions = useMemo<SpanCardViewOptions | undefined>(
@@ -178,12 +193,14 @@ export function KernelTraceViewer({
 					</div>
 				</div>
 				<div className="w-[37.5%] overflow-hidden rounded-[3px] border border-border bg-card">
-					{selectedSpan ? (
-						<SpanDetailPanel span={selectedSpan} usageContext={usageContext} />
-					) : (
-						plugins?.detailOverride ??
-						plugins?.detailPlaceholder ?? <SpanDetailPanel span={null} />
-					)}
+					<TraceViewerApiContext.Provider value={apiContextValue}>
+						{selectedSpan ? (
+							<SpanDetailPanel span={selectedSpan} usageContext={usageContext} />
+						) : (
+							plugins?.detailOverride ??
+							plugins?.detailPlaceholder ?? <SpanDetailPanel span={null} />
+						)}
+					</TraceViewerApiContext.Provider>
 				</div>
 			</div>
 		</div>

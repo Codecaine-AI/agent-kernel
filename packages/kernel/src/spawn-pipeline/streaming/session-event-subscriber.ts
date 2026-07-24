@@ -7,6 +7,7 @@ import type {
 	KernelSpawnResult,
 	KernelSpawnRuntimeOptions,
 } from "../types";
+import type { RequestSnapshotRecorder } from "./request-snapshot";
 
 export interface SessionSubscription<TSession extends KernelAgentSessionLike> {
 	unsub(): void;
@@ -22,6 +23,8 @@ export function subscribeToSession<TSession extends KernelAgentSessionLike>(
 	maxTurns: number | undefined,
 	/** In-process kernel emitter fed from this same subscription (Phase 2). */
 	emitter?: KernelEmitter,
+	/** Optional per-turn request snapshot recorder (absent = no-op). */
+	snapshotRecorder?: RequestSnapshotRecorder,
 ): SessionSubscription<TSession> {
 	let turnCount = 0;
 	let softLimitReached = false;
@@ -31,6 +34,11 @@ export function subscribeToSession<TSession extends KernelAgentSessionLike>(
 	let lastAssistantText = "";
 
 	const unsub = session.subscribe((event: KernelAgentSessionEventLike) => {
+		// The snapshot recorder observes turn_start first, so the captured
+		// context predates any emitter/control side effects. Its handleEvent is
+		// synchronous, defers all IO to an internal tail, and never throws, so
+		// existing behavior cannot be disturbed.
+		snapshotRecorder?.handleEvent(event, session);
 		// The emitter observes the event before any control action (turn-limit
 		// steer/abort) mutates the session.
 		emitter?.handleEvent(event);

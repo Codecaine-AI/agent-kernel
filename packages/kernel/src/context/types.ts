@@ -95,9 +95,30 @@ export interface LoadedInput {
 
 export type LoadedMap = ReadonlyArray<LoadedInput>;
 
+/**
+ * Image block carried alongside spawn-time context. `data` is the
+ * base64-encoded image payload; `mimeType` is its media type (e.g.
+ * "image/png"). Shape matches the pi ImageContent block minus the `type`
+ * discriminant, which the injection layer adds.
+ */
+export interface ContextImage {
+	data: string;
+	mimeType: string;
+}
+
 export interface AgentContextResolver {
 	loaders: LoaderDeclaration[];
 	assemble(loaded: LoadedMap, ctx: SpawnContext): string | Promise<string>;
+	/**
+	 * Optional image hook, separate from the string-typed loader/assemble
+	 * path. Runs after assemble(); returned images ride along with the
+	 * rendered text as image blocks in the injected context entry. Resolvers
+	 * without the hook keep pure-text behavior.
+	 */
+	assembleImages?(
+		loaded: LoadedMap,
+		ctx: SpawnContext,
+	): ReadonlyArray<ContextImage> | Promise<ReadonlyArray<ContextImage>>;
 }
 
 export interface BuildContextOptions {
@@ -117,8 +138,14 @@ export interface InputsSummaryEntry {
 export interface BuildContextResult {
 	renderedContext: string;
 	loaded: LoadedMap;
+	/**
+	 * UTF-8 byte length of renderedContext only. Image payloads are excluded;
+	 * each image's base64 length is readable off contextImages[n].data.length.
+	 */
 	totalBytes: number;
 	inputsSummary: InputsSummaryEntry[];
+	/** Present only when the resolver's image hook returned at least one image. */
+	contextImages?: ReadonlyArray<ContextImage>;
 }
 
 /**

@@ -13,6 +13,7 @@
  * entrypoint stays SQLite-only.
  */
 import {
+  customType,
   foreignKey,
   index,
   integer,
@@ -22,6 +23,16 @@ import {
   text,
   unique,
 } from "drizzle-orm/pg-core";
+
+/**
+ * Postgres bytea, surfaced as a Buffer to match the SQLite BLOB column
+ * (drizzle-orm/pg-core has no built-in bytea type).
+ */
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
 
 export const containers = pgTable(
   "containers",
@@ -153,6 +164,15 @@ export const traceEvents = pgTable(
     index("idx_events_run").on(table.runId),
   ],
 );
+
+export const traceBlobs = pgTable("trace_blobs", {
+  hash: text("hash").primaryKey(),
+  kind: text("kind").notNull(),
+  mimeType: text("mime_type").notNull(),
+  byteLength: integer("byte_length").notNull(),
+  data: bytea("data").notNull(),
+  createdAt: text("created_at").notNull(),
+});
 
 export const promptRevisions = pgTable("prompt_revisions", {
   hash: text("hash").primaryKey(),

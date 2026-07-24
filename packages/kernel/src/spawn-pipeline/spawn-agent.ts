@@ -39,6 +39,10 @@ import { makeRuntimeState } from "./runtime/runtime-state";
 import { buildSessionManager } from "./session/session-manager-builder";
 import { setupPiSessionAndRun } from "./session/pi-session-db-init";
 import { triggerRun } from "./session/turn-trigger";
+import {
+	createRequestSnapshotRecorder,
+	type RequestSnapshotRecorder,
+} from "./streaming/request-snapshot";
 import { subscribeToSession } from "./streaming/session-event-subscriber";
 import { emitAgentRunEnd, emitAgentRunStart } from "./trace/agent-run-trace";
 import { createRunUsageRecorder, type RunUsageRecorder } from "./trace/usage-rollup";
@@ -105,6 +109,12 @@ export interface KernelSpawnOptions {
 		contentBlocks?: PiToolResultBlock[];
 	};
 	reuseExistingSession?: boolean;
+	/**
+	 * Capture a per-turn pi_request_snapshot (system prompt + sanitized
+	 * context messages into trace_blobs) at every turn_start. Defaults to
+	 * true; only effective when the spawn has a trace writer.
+	 */
+	captureRequestSnapshots?: boolean;
 }
 
 export interface KernelSpawnAgentResult {
@@ -294,6 +304,20 @@ export function createSpawnAgent(
 			: undefined;
 		kernelEmitter?.emitSessionStart();
 
+		// Per-turn request snapshots: same envelope ids as the emitter's turn
+		// events, so snapshot.turn_number lines up with pi_turn_start in the
+		// run's trace. All IO is deferred behind the recorder's own tail.
+		const snapshotRecorder: RequestSnapshotRecorder | undefined =
+			traceWriter && (opts.captureRequestSnapshots ?? true)
+				? createRequestSnapshotRecorder({
+						db,
+						traceWriter,
+						ids,
+						promptHash: resolved.promptHash ?? null,
+						logger: log,
+					})
+				: undefined;
+
 		const emitter = resolveLifecycleEmitter(name, {
 			traceWriter,
 			ids,
@@ -330,7 +354,13 @@ export function createSpawnAgent(
 		const maxTurns = normalizeMaxTurns(
 			opts.maxTurns ?? resolved.config.maxTurns ?? getDefaultMaxTurns(),
 		);
-		const sub = subscribeToSession(session, opts, maxTurns, kernelEmitter);
+		const sub = subscribeToSession(
+			session,
+			opts,
+			maxTurns,
+			kernelEmitter,
+			snapshotRecorder,
+		);
 
 		const stateManager = opts.stateManager ?? null;
 		const runCtx = buildRunContext(
@@ -375,6 +405,7 @@ export function createSpawnAgent(
 			// assistant_message emission, so the outbound event id is sourced
 			// from the emitter's deterministic id.
 			await kernelEmitter?.settle();
+			await snapshotRecorder?.flush();
 			const runUsage = kernelEmitter?.runUsage();
 			const outboundEventId = kernelEmitter?.outboundEventId();
 			if (traceWriter) {
@@ -403,6 +434,7 @@ export function createSpawnAgent(
 				error: err instanceof Error ? err.message : String(err),
 			});
 			await kernelEmitter?.settle().catch(() => {});
+			await snapshotRecorder?.flush().catch(() => {});
 			if (traceWriter) {
 				emitAgentRunEnd(
 					traceWriter,

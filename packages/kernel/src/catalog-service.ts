@@ -39,9 +39,17 @@ import {
 import {
 	buildAgentPromptState,
 	RegistryError,
+	syncAgentPromptFromDisk,
+	type AgentDefinition,
 	type AgentRegistry,
 } from "./agent-registry";
 import { validateAgentManifestShape } from "./agent-definition";
+import {
+	buildContext,
+	createSpawnContext,
+	type AgentContextResolver,
+	type LoaderCatalog,
+} from "./context";
 
 /** One row of `GET .../catalog/agents`. */
 export interface KernelCatalogAgentSummary {
@@ -53,6 +61,27 @@ export interface KernelCatalogAgentSummary {
 	valid: boolean;
 }
 
+/** One declared context input with its preview-resolution outcome. */
+export interface KernelCatalogContextInput {
+	loaderKind: string;
+	inputRef: string;
+	status: "ok" | "empty" | "error";
+	bytes: number;
+}
+
+/**
+ * Preview of an agent's assembled context, built from the context.ts sidecar
+ * against manifest variable defaults and no session data. Session-dependent
+ * inputs render as placeholders in `renderedContext`; `inputs` carries the
+ * true per-loader statuses. `renderedContext` is null when the preview cannot
+ * be built (no loader catalog wired, or the resolver throws).
+ */
+export interface KernelCatalogContextPreview {
+	modulePath: string | null;
+	inputs: KernelCatalogContextInput[];
+	renderedContext: string | null;
+}
+
 /** Response body of `GET .../catalog/agents/:name`. */
 export interface KernelCatalogAgentDetail {
 	manifest: Record<string, unknown>;
@@ -62,6 +91,8 @@ export interface KernelCatalogAgentDetail {
 	declaredVariables: string[];
 	/** Model alias keys from the kernel's models.aliases config (datalist suggestions). */
 	modelAliases: string[];
+	/** null when the agent has no context.ts sidecar. */
+	context: KernelCatalogContextPreview | null;
 }
 
 /** Partial manifest patch accepted by `PUT .../catalog/agents/:name/manifest`. */
@@ -123,6 +154,13 @@ export interface CreateKernelCatalogServiceOptions {
 	 * accessor lets the kernel thread its live config without a dependency.
 	 */
 	modelAliases?: () => string[];
+	/**
+	 * Loader catalog used to resolve context.ts declarations for the agent
+	 * detail preview — the same catalog the spawn pipeline uses, so preview
+	 * and spawn resolve loaders identically. Absent: detail answers with a
+	 * context block whose renderedContext is null.
+	 */
+	contextCatalog?: () => LoaderCatalog;
 }
 
 /**
@@ -149,11 +187,99 @@ export function createKernelCatalogService(
 	const allowWrites = opts.allowWrites ?? false;
 	const modelAliases = opts.modelAliases ?? (() => []);
 
+	// Revisions + stats live in the db, but the read surface must keep
+	// answering (from the cached registry) when no db was configured — the
+	// accessor throws in that case, so disk-sync degrades to registry-only.
+	function tryDb(): KernelDatabase | null {
+		try {
+			return opts.db();
+		} catch {
+			return null;
+		}
+	}
+
+	/**
+	 * Assemble the agent's context.ts against manifest variable defaults and
+	 * no session data. Session-dependent loaders resolve "empty"/"error";
+	 * assemble() sees placeholder content for those inputs while the reported
+	 * input statuses stay true to the build.
+	 */
+	async function buildContextPreview(
+		def: AgentDefinition,
+	): Promise<KernelCatalogContextPreview | null> {
+		const resolver = def.contextResolver;
+		if (!resolver) return null;
+		const catalog = opts.contextCatalog?.();
+		if (!catalog) {
+			return { modulePath: def.contextModulePath, inputs: [], renderedContext: null };
+		}
+
+		const variables: Record<string, unknown> = {};
+		for (const [name, declaration] of Object.entries(def.manifest.variables)) {
+			variables[name] = declaration.default;
+		}
+		const spawnContext = createSpawnContext({
+			agentName: def.name,
+			runtime: { cwd: dirname(def.manifestFile) },
+			variables,
+			caller: { kind: "system", id: "catalog-preview" },
+			sessionData: null,
+		});
+		// Text-only preview: assembleImages is deliberately not forwarded.
+		const previewResolver: AgentContextResolver = {
+			loaders: resolver.loaders,
+			assemble: (loaded, ctx) =>
+				resolver.assemble(
+					loaded.map((input) =>
+						input.status === "ok"
+							? input
+							: {
+									...input,
+									content:
+										input.status === "error"
+											? `(unavailable in preview: ${input.error ?? "loader error"})`
+											: "(assembled per spawn from live session data)",
+								},
+					),
+					ctx,
+				),
+		};
+
+		try {
+			const result = await buildContext({
+				resolver: previewResolver,
+				spawnContext,
+				catalog,
+				emitter: null,
+			});
+			return {
+				modulePath: def.contextModulePath,
+				inputs: result.inputsSummary.map((entry) => ({
+					loaderKind: entry.loader_kind,
+					inputRef: entry.input_ref,
+					status: entry.status,
+					bytes: entry.bytes,
+				})),
+				renderedContext: result.renderedContext,
+			};
+		} catch {
+			// A resolver bug must not take down the detail route — the preview
+			// degrades to declaration metadata only.
+			return { modulePath: def.contextModulePath, inputs: [], renderedContext: null };
+		}
+	}
+
 	return {
 		allowWrites,
 
 		async listAgents() {
 			const registry = await opts.registry();
+			// Disk-freshness: a prompt.json rewritten out-of-band must list with
+			// its current hash, not the one cached at boot.
+			const db = tryDb();
+			for (const def of registry.list()) {
+				await syncAgentPromptFromDisk(db, registry, def.name);
+			}
 			// Registry boot rejects invalid agents wholesale (AggregateError), so
 			// every listed agent validated successfully.
 			return registry.list().map((def) => ({
@@ -167,8 +293,8 @@ export function createKernelCatalogService(
 
 		async getAgentDetail(name) {
 			const registry = await opts.registry();
-			const def = registry.tryGet(name);
-			if (!def) return null;
+			if (!registry.tryGet(name)) return null;
+			const def = await syncAgentPromptFromDisk(tryDb(), registry, name);
 			return {
 				manifest: def.manifest as unknown as Record<string, unknown>,
 				prompt: def.promptDocument,
@@ -176,6 +302,7 @@ export function createKernelCatalogService(
 				rendered: def.parsed.body,
 				declaredVariables: Object.keys(def.manifest.variables),
 				modelAliases: modelAliases(),
+				context: await buildContextPreview(def),
 			};
 		},
 
@@ -296,6 +423,9 @@ export function createKernelCatalogService(
 		async listRevisions(name) {
 			const registry = await opts.registry();
 			if (!registry.tryGet(name)) return null;
+			// Disk-freshness: an out-of-band rewrite gets its disk-sync revision
+			// row upserted before the history is read.
+			await syncAgentPromptFromDisk(tryDb(), registry, name);
 			const rows = await listPromptRevisionsForAgent(opts.db(), name);
 			return rows
 				.map((row) => ({

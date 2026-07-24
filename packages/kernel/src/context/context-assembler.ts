@@ -81,6 +81,15 @@ export async function buildContext(
 	}
 
 	const rendered = await opts.resolver.assemble(loadedArray, opts.spawnContext);
+	// Image hook is independent of the string-typed assemble() path: resolvers
+	// that supply spawn images do so here, and the result carries them through
+	// to injection untouched. An absent hook or an empty return means the
+	// result stays pure-text.
+	const images = opts.resolver.assembleImages
+		? await opts.resolver.assembleImages(loadedArray, opts.spawnContext)
+		: undefined;
+	// totalBytes counts the rendered text only (UTF-8). Image payloads are
+	// deliberately excluded — see BuildContextResult.totalBytes.
 	const totalBytes = Buffer.byteLength(rendered, "utf8");
 	const inputsSummary: InputsSummaryEntry[] = loadedArray.map((li) => ({
 		loader_kind: li.decl.kind,
@@ -100,5 +109,6 @@ export async function buildContext(
 		loaded: loadedArray,
 		totalBytes,
 		inputsSummary,
+		...(images && images.length > 0 ? { contextImages: images } : {}),
 	};
 }

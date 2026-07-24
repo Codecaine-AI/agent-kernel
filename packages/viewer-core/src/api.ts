@@ -12,6 +12,14 @@ export const KERNEL_TRACE_READ_PATHS = {
 	containerTrace(containerId: string): string {
 		return `/kernel/containers/${encodeURIComponent(containerId)}/trace`;
 	},
+	/** Content-addressed trace blob bytes (hash is "b1-<sha256hex>"). */
+	blob(hash: string): string {
+		return `/kernel/blobs/${encodeURIComponent(hash)}`;
+	},
+	/** Per-turn request snapshot context for one agent run. */
+	runTurnContext(runId: string, turnNumber: number): string {
+		return `/kernel/runs/${encodeURIComponent(runId)}/turns/${turnNumber}/context`;
+	},
 } as const;
 
 /**

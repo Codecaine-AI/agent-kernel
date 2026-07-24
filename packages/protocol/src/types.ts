@@ -39,6 +39,7 @@ export const EventType = {
   PI_AGENT_END: "pi_agent_end",
   PI_TURN_START: "pi_turn_start",
   PI_TURN_END: "pi_turn_end",
+  PI_REQUEST_SNAPSHOT: "pi_request_snapshot",
 
   // Spawn Lifecycle
   SYSTEM_PROMPT_RESOLVED: "system_prompt_resolved",
@@ -159,6 +160,48 @@ export interface PiTurnEndData {
   stop_reason?: string;
   /** Token usage for this model call (populated from Phase 2). */
   usage?: TurnUsage;
+}
+
+/**
+ * One context message in a per-turn request snapshot, by reference into the
+ * trace_blobs store (packages/db).
+ */
+export interface PiRequestSnapshotMessageRef {
+  /** trace_blobs hash ("b1-<sha256hex>") of the sanitized message JSON. */
+  blob_hash: string;
+  /** "user" | "assistant" | "toolResult" | custom. */
+  role: string;
+  /** Position in the context message array. */
+  index: number;
+  text_chars: number;
+  image_count: number;
+  tool_call_count: number;
+}
+
+/**
+ * Snapshot of the exact request context sent to the model for one turn.
+ * Message payloads live in the trace_blobs store (packages/db) and are
+ * referenced by content hash.
+ *
+ * Sanitized-message contract — downstream implementers code against this:
+ * a "sanitized message" blob (kind "message", mime "application/json") is
+ * the pi-ai message JSON with every image content block
+ * `{type: "image", data: <base64>, mimeType}` replaced by
+ * `{type: "image", blob_hash: "<b1-...>", mimeType, byte_length}` — the
+ * base64 `data` field removed. Image bytes are stored as separate blobs
+ * (kind "image"). The system prompt is stored as a blob of kind "text",
+ * mime "text/plain".
+ */
+export interface PiRequestSnapshotData {
+  /** 0-based, aligned with pi_turn_start. */
+  turn_number: number;
+  system_prompt_blob_hash: string | null;
+  /** "pk1-" content address when known. */
+  prompt_hash: string | null;
+  message_count: number;
+  message_refs: PiRequestSnapshotMessageRef[];
+  total_text_chars: number;
+  total_image_count: number;
 }
 
 // ─── Spawn Lifecycle ────────────────────────────────────────────────────────
@@ -307,6 +350,7 @@ export type KnownEventData =
   | PiAgentEndData
   | PiTurnStartData
   | PiTurnEndData
+  | PiRequestSnapshotData
   | SystemPromptResolvedData
   | ContextBuildStartedData
   | ContextInputResolvedData

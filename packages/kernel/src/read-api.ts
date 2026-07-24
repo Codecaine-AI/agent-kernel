@@ -15,6 +15,16 @@ export interface KernelTraceReadQuery {
 	limit?: number;
 }
 
+/**
+ * Blob bytes + serving metadata for the content-addressed blob route. `data`
+ * may be a Node Buffer (what the db hands back) or any Uint8Array.
+ */
+export interface KernelTraceBlobPayload {
+	data: Uint8Array | Buffer;
+	mimeType: string;
+	byteLength: number;
+}
+
 export interface KernelTraceReadService<TDetail = unknown, TList = unknown> {
 	/** Primary read: the full trace for one container subtree. */
 	getContainerTrace: (
@@ -26,6 +36,20 @@ export interface KernelTraceReadService<TDetail = unknown, TList = unknown> {
 	 * trace-sessions index. When absent the list route answers 404.
 	 */
 	listSessionContainers?: (query: KernelTraceReadQuery) => Promise<TList>;
+	/**
+	 * Optional blob support: content-addressed trace blob bytes by hash
+	 * ("b1-<sha256hex>"). When absent the blob route answers 404.
+	 */
+	getBlob?: (hash: string) => Promise<KernelTraceBlobPayload | null | undefined>;
+	/**
+	 * Optional per-turn request snapshot support: the resolved model context
+	 * for one turn of one run (see KernelRunTurnContext in read-service.ts).
+	 * When absent the turn-context route answers 404.
+	 */
+	getRunTurnContext?: (
+		runId: string,
+		turnNumber: number,
+	) => Promise<unknown | null | undefined>;
 }
 
 export interface CreateKernelTraceReadApiOptions {
@@ -48,6 +72,19 @@ export function parseKernelTraceLimit(
 function normalizePrefix(prefix: string): string {
 	if (prefix === "/") return "";
 	return prefix.startsWith("/") ? prefix : `/${prefix}`;
+}
+
+/**
+ * Content-address shape for trace blobs ("b1-" + sha256hex). Anything else
+ * 404s before reaching the service/db.
+ */
+const TRACE_BLOB_HASH_RE = /^b1-[0-9a-f]{64}$/;
+
+/** Non-negative integer route param, or null when malformed. */
+function parseTurnNumber(value: string): number | null {
+	if (!/^\d+$/.test(value)) return null;
+	const parsed = Number.parseInt(value, 10);
+	return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
 export function createKernelTraceReadApi<TDetail = unknown, TList = unknown>(
@@ -103,5 +140,70 @@ export function createKernelTraceReadApi<TDetail = unknown, TList = unknown>(
 		.get(`${prefix}/trace-sessions/:id`, ({ params, query, set }) =>
 			// Container-backed: a trace session is a container of kind "session".
 			serveContainerTrace(params.id, query, set),
-		);
+		)
+		.get(`${prefix}/blobs/:hash`, async ({ params, set }) => {
+			if (!service.getBlob) {
+				set.status = 404;
+				return { error: "Kernel trace blob store is not available" };
+			}
+
+			const hash = params.hash;
+			if (!TRACE_BLOB_HASH_RE.test(hash)) {
+				set.status = 404;
+				return { error: "Kernel trace blob not found" };
+			}
+
+			try {
+				const blob = await service.getBlob(hash);
+				if (!blob) {
+					set.status = 404;
+					return { error: `Kernel trace blob ${hash} not found` };
+				}
+
+				// Copy into a fresh ArrayBuffer-backed Uint8Array — Buffer's
+				// SharedArrayBuffer-typed backing store does not satisfy BodyInit.
+				const bytes = new Uint8Array(blob.data.byteLength);
+				bytes.set(blob.data);
+				return new Response(bytes, {
+					headers: {
+						"content-type": blob.mimeType,
+						// Content-addressed by hash, so bytes never change.
+						"cache-control": "public, max-age=31536000, immutable",
+					},
+				});
+			} catch (error) {
+				console.error("Error fetching kernel trace blob:", error);
+				set.status = 500;
+				return { error: "Failed to fetch kernel trace blob" };
+			}
+		})
+		.get(`${prefix}/runs/:runId/turns/:turnNumber/context`, async ({ params, set }) => {
+			if (!service.getRunTurnContext) {
+				set.status = 404;
+				return { error: "Kernel run turn context is not available" };
+			}
+
+			const turnNumber = parseTurnNumber(params.turnNumber);
+			if (turnNumber === null) {
+				set.status = 404;
+				return {
+					error: `Kernel run ${params.runId} turn ${params.turnNumber} context not found`,
+				};
+			}
+
+			try {
+				const context = await service.getRunTurnContext(params.runId, turnNumber);
+				if (!context) {
+					set.status = 404;
+					return {
+						error: `Kernel run ${params.runId} turn ${turnNumber} context not found`,
+					};
+				}
+				return context;
+			} catch (error) {
+				console.error("Error fetching kernel run turn context:", error);
+				set.status = 500;
+				return { error: "Failed to fetch kernel run turn context" };
+			}
+		});
 }
