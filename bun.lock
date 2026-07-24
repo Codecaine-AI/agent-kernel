@@ -5,6 +5,7 @@
     "": {
       "name": "pi-agent-kernel",
       "devDependencies": {
+        "@codecaine-ai/prompt-kit": "git+https://github.com/Codecaine-AI/prompt-kit.git#cf9e9aa7333739f911ea5b64fcd1d8a760e5f511",
         "@types/bun": "latest",
         "typescript": "^5",
       },
@@ -19,7 +20,7 @@
         "@agent-kernel/viewer-core": "workspace:*",
         "@agent-kernel/viewer-shell": "workspace:*",
         "@agent-kernel/viewer-ui": "workspace:*",
-        "@codecaine-ai/prompt-kit": "workspace:*",
+        "@codecaine-ai/prompt-kit": "git+https://github.com/Codecaine-AI/prompt-kit.git#cf9e9aa7333739f911ea5b64fcd1d8a760e5f511",
         "@mariozechner/pi-ai": "^0.70.6",
         "@mariozechner/pi-coding-agent": "^0.70.6",
         "@vitejs/plugin-react": "^4.3.0",
@@ -60,7 +61,7 @@
       "dependencies": {
         "@agent-kernel/db": "workspace:*",
         "@agent-kernel/protocol": "workspace:*",
-        "@codecaine-ai/prompt-kit": "workspace:*",
+        "@codecaine-ai/prompt-kit": "git+https://github.com/Codecaine-AI/prompt-kit.git#cf9e9aa7333739f911ea5b64fcd1d8a760e5f511",
         "@mariozechner/pi-ai": "^0.70.6",
         "@mariozechner/pi-coding-agent": "^0.70.6",
         "elysia": "^1.2.0",
@@ -68,13 +69,6 @@
       "devDependencies": {
         "@types/bun": "latest",
         "drizzle-orm": "^0.45.0",
-      },
-    },
-    "packages/prompt-kit": {
-      "name": "@codecaine-ai/prompt-kit",
-      "version": "0.1.0",
-      "devDependencies": {
-        "@types/bun": "latest",
       },
     },
     "packages/protocol": {
@@ -89,7 +83,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@agent-kernel/protocol": "workspace:*",
-        "@codecaine-ai/prompt-kit": "workspace:*",
+        "@codecaine-ai/prompt-kit": "git+https://github.com/Codecaine-AI/prompt-kit.git#cf9e9aa7333739f911ea5b64fcd1d8a760e5f511",
         "@evilmartians/agent-prism-types": "^0.0.9",
         "@tanstack/react-query": "^5.99.0",
       },
@@ -119,7 +113,7 @@
       "dependencies": {
         "@agent-kernel/protocol": "workspace:*",
         "@agent-kernel/viewer-core": "workspace:*",
-        "@codecaine-ai/prompt-kit": "workspace:*",
+        "@codecaine-ai/prompt-kit": "git+https://github.com/Codecaine-AI/prompt-kit.git#cf9e9aa7333739f911ea5b64fcd1d8a760e5f511",
         "@evilmartians/agent-prism-data": "^0.0.9",
         "@evilmartians/agent-prism-types": "^0.0.9",
         "@radix-ui/react-collapsible": "^1.1.12",
@@ -247,7 +241,7 @@
 
     "@borewit/text-codec": ["@borewit/text-codec@0.2.2", "", {}, "sha512-DDaRehssg1aNrH4+2hnj1B7vnUGEjU6OIlyRdkMd0aUdIUvKXrJfXsy8LVtXAy7DRvYVluWbMspsRhz2lcW0mQ=="],
 
-    "@codecaine-ai/prompt-kit": ["@codecaine-ai/prompt-kit@workspace:packages/prompt-kit"],
+    "@codecaine-ai/prompt-kit": ["@codecaine-ai/prompt-kit@github:Codecaine-AI/prompt-kit#cf9e9aa", {}, "Codecaine-AI-prompt-kit-cf9e9aa", "sha512-YlnlLFKp8kAKZw5WnbFTA4FAooaaV1Kwhtchxz2sCUbVpDRdBytUsbT7dXaSXjb0rJBBX7gk2zSA+pquixcr0w=="],
 
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.21.5", "", { "os": "aix", "cpu": "ppc64" }, "sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ=="],
 
@@ -950,6 +944,14 @@
     "zod": ["zod@4.4.3", "", {}, "sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ=="],
 
     "zod-to-json-schema": ["zod-to-json-schema@3.25.2", "", { "peerDependencies": { "zod": "^3.25.28 || ^4" } }, "sha512-O/PgfnpT1xKSDeQYSCfRI5Gy3hPf91mKVDuYLUHZJMiDFptvP41MSnWofm8dnCm0256ZNfZIM7DSzuSMAFnjHA=="],
+
+    "@agent-kernel/example-simple-research-kernel/@codecaine-ai/prompt-kit": ["@codecaine-ai/prompt-kit@github:Codecaine-AI/prompt-kit#cf9e9aa", {}, "Codecaine-AI-prompt-kit-cf9e9aa", "sha512-YlnlLFKp8kAKZw5WnbFTA4FAooaaV1Kwhtchxz2sCUbVpDRdBytUsbT7dXaSXjb0rJBBX7gk2zSA+pquixcr0w=="],
+
+    "@agent-kernel/kernel/@codecaine-ai/prompt-kit": ["@codecaine-ai/prompt-kit@github:Codecaine-AI/prompt-kit#cf9e9aa", {}, "Codecaine-AI-prompt-kit-cf9e9aa", "sha512-YlnlLFKp8kAKZw5WnbFTA4FAooaaV1Kwhtchxz2sCUbVpDRdBytUsbT7dXaSXjb0rJBBX7gk2zSA+pquixcr0w=="],
+
+    "@agent-kernel/viewer-core/@codecaine-ai/prompt-kit": ["@codecaine-ai/prompt-kit@github:Codecaine-AI/prompt-kit#cf9e9aa", {}, "Codecaine-AI-prompt-kit-cf9e9aa", "sha512-YlnlLFKp8kAKZw5WnbFTA4FAooaaV1Kwhtchxz2sCUbVpDRdBytUsbT7dXaSXjb0rJBBX7gk2zSA+pquixcr0w=="],
+
+    "@agent-kernel/viewer-ui/@codecaine-ai/prompt-kit": ["@codecaine-ai/prompt-kit@github:Codecaine-AI/prompt-kit#cf9e9aa", {}, "Codecaine-AI-prompt-kit-cf9e9aa", "sha512-YlnlLFKp8kAKZw5WnbFTA4FAooaaV1Kwhtchxz2sCUbVpDRdBytUsbT7dXaSXjb0rJBBX7gk2zSA+pquixcr0w=="],
 
     "@babel/helper-compilation-targets/lru-cache": ["lru-cache@5.1.1", "", { "dependencies": { "yallist": "^3.0.2" } }, "sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w=="],
 

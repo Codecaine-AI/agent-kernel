@@ -18,15 +18,13 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-// Relative import: repo-root scripts are outside the workspace packages, so
-// the "@codecaine-ai/prompt-kit" specifier does not resolve from here.
 import {
 	canonicalizePrompt,
 	hashPrompt,
 	renderXmlMarkdown,
 	validatePromptDocumentShape,
 	type PromptDocument,
-} from "../packages/prompt-kit/src/index";
+} from "@codecaine-ai/prompt-kit";
 
 const repoRoot = resolve(import.meta.dir, "..");
 const catalogRoots = process.argv.slice(2).length

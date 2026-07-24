@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@agent-kernel/protocol": "workspace:*",
-    "@codecaine-ai/prompt-kit": "workspace:*",
+    "@codecaine-ai/prompt-kit": "git+https://github.com/Codecaine-AI/prompt-kit.git#cf9e9aa7333739f911ea5b64fcd1d8a760e5f511",
     "@evilmartians/agent-prism-types": "^0.0.9",
     "@tanstack/react-query": "^5.99.0"
   },

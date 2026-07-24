@@ -1,3 +1,0 @@
-[submodule "packages/prompt-kit"]
-	path = packages/prompt-kit
-	url = https://github.com/Codecaine-AI/prompt-kit.git
