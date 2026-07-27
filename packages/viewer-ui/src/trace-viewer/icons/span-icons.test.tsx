@@ -11,6 +11,7 @@ import {
 import {
 	resolveSpanIcon,
 	GROUP_ACCENT,
+	type SpanColorGroup,
 	type SpanDisplayType,
 } from "./resolve-span-icon";
 
@@ -98,15 +99,34 @@ describe("resolveSpanIcon", () => {
 		}
 	});
 
-	test("semantic groups: tool=tool, agent/spawner=orchestration, user/assistant own hues", () => {
+	test("semantic groups: tool activity=tool, agent=orchestration, user/assistant own hues", () => {
 		expect(resolveSpanIcon({ displayType: "tool" }).group).toBe("tool");
 		expect(resolveSpanIcon({ displayType: "agent" }).group).toBe("orchestration");
-		expect(resolveSpanIcon({ displayType: "spawner" }).group).toBe("orchestration");
+		// Spawner dispatch is a tool call — it scans with tool activity.
+		expect(resolveSpanIcon({ displayType: "spawner" }).group).toBe("tool");
 		expect(resolveSpanIcon({ displayType: "user" }).group).toBe("user");
 		expect(resolveSpanIcon({ displayType: "assistant" }).group).toBe("assistant");
-		expect(resolveSpanIcon({ displayType: "system" }).group).toBe("lifecycle");
+		// system spans (context build / system prompt / snapshots) carry the
+		// dedicated context group so they can wear the violet edge accent.
+		expect(resolveSpanIcon({ displayType: "system" }).group).toBe("context");
 		expect(resolveSpanIcon({ displayType: "container" }).group).toBe("lifecycle");
 		expect(resolveSpanIcon({ displayType: "generic" }).group).toBe("meta");
+	});
+
+	test("kind hues: conversation/tool/context carry edge accents, plumbing stays neutral", () => {
+		const accented: SpanColorGroup[] = ["user", "assistant", "tool", "context"];
+		for (const [group, accent] of Object.entries(GROUP_ACCENT)) {
+			if (accented.includes(group as SpanColorGroup)) {
+				// Accent = glyph tint + thin left edge, never a full colored frame.
+				expect(accent.edge).toContain("border-l-");
+				expect(accent.border).toBe("border-border");
+			} else if (group !== "warning" && group !== "error") {
+				// Plumbing groups: quiet frame, muted glyph, no edge accent.
+				expect(accent.edge).toBeUndefined();
+				expect(accent.border).toBe("border-border");
+				expect(accent.text).toBe("text-muted-foreground");
+			}
+		}
 	});
 
 	test("amber/red are reserved: only warning/error status reaches those groups", () => {

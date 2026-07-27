@@ -1,6 +1,7 @@
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import type { AgentContextResolver } from "../context";
+import type { StateModule, WindowPolicy } from "../state/types";
 import { validateAgentManifestShape } from "./agent-manifest-schema";
 
 export {
@@ -32,6 +33,16 @@ export interface AgentVariableDeclaration {
 }
 
 export type AgentExtensionsConfig = true | string[] | false;
+
+/**
+ * Optional `state` block in agent.json. Declaring a window policy activates
+ * the state extension even for an agent with no `state.ts` sidecar — that is
+ * the "base agent, bounded window" case. A manifest with no `state` block and
+ * no sidecar stays a complete pass-through.
+ */
+export interface AgentStateConfig {
+	window?: WindowPolicy;
+}
 
 export type AgentPrivateTools<TRuntime = unknown> = (
 	pi: ExtensionAPI,
@@ -69,6 +80,8 @@ export interface AgentManifest {
 	variables?: Record<string, AgentVariableDeclaration>;
 	/** Sanctioned per-spawn overrides selected via spawn `variant` option. */
 	variants?: Record<string, AgentVariantDefinition>;
+	/** Per-agent state/window configuration (see AgentStateConfig). */
+	state?: AgentStateConfig;
 }
 
 export type NormalizedAgentManifest = AgentManifest & {
@@ -126,4 +139,13 @@ export function defineTools<TRuntime = unknown>(
 	tools: AgentPrivateTools<TRuntime>,
 ): AgentPrivateTools<TRuntime> {
 	return tools;
+}
+
+/**
+ * Typed helper for the optional `state.ts` sidecar — the seed/update/render
+ * contract. Mirrors defineContext / defineTools; re-exported from the kernel
+ * root so agent bundles import it the same way.
+ */
+export function defineState<S>(module: StateModule<S>): StateModule<S> {
+	return module;
 }

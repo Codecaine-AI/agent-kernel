@@ -1,6 +1,6 @@
 ---
-covers: "Design interview and emerging model for a prompt authoring system that produces kernel-ready agent definitions, dynamic context resolvers, and prompt skills."
-concepts: [prompt-system, prompt-harness, prompt-spec, agent-definition, context-resolver, skills, authoring-workflow]
+covers: "Design interview and emerging model for a prompt authoring system that produces kernel-ready agent definitions, dynamic context resolvers, and prompt skills, plus the agent state model (D81-D97) that owns what the model sees each request."
+concepts: [prompt-system, prompt-harness, prompt-spec, agent-definition, context-resolver, skills, authoring-workflow, state-model, three-section-request, state-sidecar, window-policy]
 depends-on: [../00-foundation/30-boundaries.md, 10-runtime-model.md, 50-app-adapter-model.md, ../20-implementation/20-kernel/20-agent-registry.md, ../20-implementation/20-kernel/30-context-loaders.md]
 status: draft
 ---
@@ -184,6 +184,13 @@ The larger model is:
 - context is the dynamic runtime packet assembled around that contract
 - conversation history and user messages are adjacent to context and may overlap conceptually
 - the prompt system should make that boundary explicit without pretending it is always clean
+
+Superseded by D81–D84 (state-shapes.html v4): the boundary is now drawn
+rather than acknowledged as blurry. Reference material that should be visible
+every request is section ② (rebuilt per request from a kernel-held set);
+dynamic working state and the conversation are section ③, owned by a
+`state.ts` sidecar's `render(state)`. `context.ts` no longer holds working
+state, working memory, or conversation slices.
 
 ---
 
@@ -1662,3 +1669,497 @@ also turns the emitter/backfill id-parity guarantee into an intra-package
 test, so the two mapping implementations cannot version-skew. The recovery
 role remains load-bearing: disaster rebuild of a trace database, import of
 sessions run outside the kernel, and schema re-derivation from transcripts.
+
+---
+
+## Amendments — 2026-07-27 State Model Interview
+
+These decisions come from the state-model design interview on 2026-07-27 and
+supersede earlier entries where noted. The design record they were captured
+against is
+[explainers/state-shapes.html](explainers/state-shapes.html); §11 of that
+document is the decision table this section expands. Each entry below cites
+the sections it comes from (numbering as of the 2026-07-27 revision that
+added §6, the bundle tree). As-built implementation:
+[docs/20-implementation/20-kernel/60-agent-state.md](../20-implementation/20-kernel/60-agent-state.md)
+and
+[docs/20-implementation/20-kernel/70-request-snapshots.md](../20-implementation/20-kernel/70-request-snapshots.md).
+
+### D81. The State Is the Observation (new)
+
+Status: decided.
+
+Decision: Each turn, the agent is dropped into the current state and asked
+for the next step — the state is the observation, the model is the policy,
+as in a PPO setup. The consequence that orders everything after it: **the
+messages are part of the state**. Conversation history is not a store that
+sits beside the state; it is one component of it, alongside whatever domain
+components the agent has. There is one state object per agent, and one
+moving piece in every request: the render of that object.
+
+Rationale: v1 optimizes for context control. Every request is deliberately
+constructed and nothing accumulates, so there is no compaction step to
+design and no ever-growing transcript to compress. Restart stays the honesty
+test — a state that cannot restart the work is not the state — and the
+interface falls out of getting the representation right.
+
+Source: state-shapes.html §1, §11.
+
+### D82. The Request Is Three Sections (revises D27)
+
+Status: decided.
+
+Decision: Every provider request the kernel builds has exactly three
+sections, and the kernel builds all three:
+
+- ① **system prompt** — the agent's instructions in XML tags; effectively
+  fixed for the session (frozen at Pi session creation, per D72).
+- ② **context message** — reference material that should be visible on every
+  request: capabilities, skills, style guides, reference sheets. Rebuilt each
+  request from a kernel-held set (id → content), never accumulated in the
+  transcript.
+- ③ **rendered state** — the working picture plus however much recent
+  conversation the renderer chooses to emit. Re-rendered every request by
+  `render(state)`.
+
+D27 modeled dynamic material as one "runtime input packet" and accepted a
+deliberately blurry boundary between context, conversation history, and the
+current turn. That boundary is now drawn: reference material is ②,
+everything that moves is ③, and the conversation lives inside ③ because it is
+part of the state (D81).
+
+Two mechanics make this honest. ② is rebuilt, not pinned: adding a skill
+mid-run adds an entry, losing one removes it, and nothing stale can linger
+because nothing is attached to history. ③ may contain real messages —
+conceptually the recent conversation is state being rendered, but the
+renderer emits it as genuine user/assistant/tool messages, because providers
+require real structure for tool-call pairing and models reason better over
+real turns. The in-flight turn is always real messages.
+
+Bookkeeping for the ② set — entry ids, the skill add/remove API — is decided
+at the kernel build stage.
+
+Implementation note (2026-07-27, as built): the rebuilt-② mechanic is scoped
+to sessions where the state extension is active. There, an agent's
+`context.ts` result becomes the context-set entry `agent-context:<name>` and
+is rendered into one `<context>` message per request. Pass-through agents
+(D83) keep the legacy path: context is injected once as an `agent-context`
+custom message and pinned in the transcript, guarded by agent name. That path
+is current behavior, not the target — see
+[docs/20-implementation/20-kernel/30-context-loaders.md](../20-implementation/20-kernel/30-context-loaders.md)
+and
+[10-spawn-pipeline.md](../20-implementation/20-kernel/10-spawn-pipeline.md).
+
+Source: state-shapes.html §2, §11.
+
+### D83. No Universal State Schema; the Base Agent Is a Normal Agent (new)
+
+Status: decided.
+
+Decision: The kernel defines no state schema. An agent with no `state.ts` is
+a completely normal agent: its state is its messages, no state block, no XML
+ceremony, nothing imposed. A rich agent extends the same object with its own
+domain shape, which the kernel never looks inside.
+
+"Normal agent" comes in two flavors, and the difference is opt-in
+configuration (D85), never a kernel default:
+
+- **Pass-through** — no `state.ts` and no window config. The kernel registers
+  nothing and the session behaves byte-identically to a session run before
+  the state layer existed: unbounded history, no window, no elision marker.
+  Strict back-compat is the point.
+- **Base module** — window config but no `state.ts`. The kernel supplies a
+  bookkeeping-only state and the default renderer, which emits the
+  conversation as a rolling window of real messages with one elision marker
+  where history was cut.
+
+This is the load-bearing piece of the model. The schema-free base case is
+what lets one kernel serve a plain conversational agent and a board editor
+with the same contract and no special cases — the difference is which
+components the agent's state has, not which code path runs.
+
+Inside a window, images past a newest-K cap degrade to one-line stubs before
+whole turns drop. There is no compaction step anywhere, because nothing
+accumulates to compact — and an agent that opts into no window is not
+compacted either, it is simply left as it is today.
+
+Implementation note (2026-07-27, as built): `stateExtensionEnabled` is the
+gate — a `state.ts` sidecar or a `state.window` manifest block. Neither means
+the extension is not registered at all, which is what makes the pass-through
+guarantee mechanical rather than a promise. Contract:
+[docs/20-implementation/20-kernel/60-agent-state.md](../20-implementation/20-kernel/60-agent-state.md).
+
+Source: state-shapes.html §3, §11.
+
+### D84. The `state.ts` Contract — seed / update / render (new; extends D76)
+
+Status: decided.
+
+Decision: An agent that wants more than the base behavior ships a `state.ts`
+sidecar in the agent directory, attached by filename convention like
+`context.ts` and `tools.ts`, exporting three functions:
+
+```ts
+seed(ctx: SpawnContext, prior?: S): S;
+update(state: S, event: SessionEvent): S;
+render(state: S, ctx: RenderContext): RenderOutput;
+```
+
+The kernel decides *when* these run; the agent decides *what* they mean. `S`
+is the agent's own type and the kernel never inspects it. One requirement
+holds over it: `S` must be JSON-serializable, because it snapshots to
+`state.json` (D88).
+
+`render` owns the entire request body after ① and ② — the state block and
+whatever recent conversation it chooses to emit as real messages. There is
+no kernel-side renderer competing with it for that region, and no kernel
+opinion about what a state block looks like.
+
+The exact `SessionEvent` shape `update` receives is deliberately left to the
+kernel build stage.
+
+Implementation note (2026-07-27, as built): `render` returns either a bare
+`AgentMessage[]` — every message counts as conversation tail — or
+`{ messages, stateMessageCount }`, where the leading `stateMessageCount`
+messages are the state block(s) and the rest is the tail. That count is how
+the renderer declares the split *within* section ③, which is what the
+three-section builder turns into `state` and `tail` boundaries and the viewer
+renders structurally (D90). The kernel still has no opinion about what a
+state block contains — only about where the renderer says it ends.
+
+Source: state-shapes.html §4, §11.
+
+### D85. Window Policy Is Per-Agent Configuration (new)
+
+Status: decided.
+
+Decision: How much conversation renders is per-agent configuration, not a
+kernel rule. The kernel ships sizing strategies — turn count, token budget,
+more as they are needed — and each agent's config picks and tunes one.
+Default sizes per strategy are decided at the kernel build stage.
+
+One invariant is kernel-owned and not configurable: **cuts land only on turn
+boundaries**. An assistant `toolCall` and its `toolResult` are never split,
+because providers reject orphaned halves. Everything else about the window
+is the agent's to choose.
+
+Source: state-shapes.html §3, §11.
+
+### D86. Update Per Event, Catch-Up in `context`, Render Per Request (new)
+
+Status: decided.
+
+Decision: `update` is fed one event at a time, in order, as the session
+advances — user message, tool call, tool result, turn boundary — driven by
+Pi's blocking hooks. `render` runs once per provider request, inside the
+`context` hook. Before rendering, `context` applies any events `update` has
+not yet seen (catch-up) and only then renders; when everything is current
+this costs one comparison.
+
+Rationale: measured on `@earendil-works/pi-*@0.82.1`, the message and turn
+hooks block the loop in order, and `context` is the only hook that can
+rewrite the outgoing message array — non-destructively, affecting exactly one
+request and never feeding forward. Per-event update keeps the state current
+without a batch step; the catch-up line is what makes a retry, or the first
+request of a new prompt, unable to render stale state.
+The hook measurements remain documented in
+[explainers/context-fold-projection.html](explainers/context-fold-projection.html)
+§4–§6.
+
+Implementation note (2026-07-27, as built): there is no per-`tool_call` hook
+in the wiring. User-message, tool-call, and tool-result events are *derived*
+from the session message array and folded by pumps hung on `message_end`,
+`tool_result`, `turn_end`, and `context`; only the turn boundary is
+hook-derived, because the transcript cannot reconstruct one. Because every
+pump folds from a single cursor to the array's end, catch-up is idempotent by
+construction rather than by dedupe bookkeeping — the property the decision
+was after. Same ordering, same guarantee, fewer hooks.
+
+Source: state-shapes.html §4, §11.
+
+### D87. Seeding Comes From SpawnContext; Prior State Only When Passed (new)
+
+Status: decided.
+
+Decision: `seed` receives the same `SpawnContext` the context loaders receive
+today — session data, agent config, cwd — plus, optionally, a prior run's
+final state passed in explicitly by the caller. The kernel never auto-loads a
+previous state file.
+
+Rationale: automatic rehydration would make a spawn's starting state a
+function of whatever happened to be on disk, which is precisely the kind of
+invisible input the trace cannot explain. Continuity is a caller decision and
+should be visible as one.
+
+Source: state-shapes.html §4, §11.
+
+### D88. Persistence v1 Is a `state.json` Snapshot (new)
+
+Status: decided.
+
+Decision: v1 persists state as a snapshot only — `state.json`, written after
+each update batch under `.agent-kernel/state/<container>/<agent>/`, through
+the emission sink seam (D92). No action log and no artifact byte-store yet.
+
+The snapshot is also what enforces the JSON-serializable requirement on `S`
+from day one, and what makes state inspectable as an ordinary file while the
+model is being piloted.
+
+Source: state-shapes.html §8, §11; prompt-cache-tiers.html §9.
+
+### D89. No Kernel-Shipped State Tools (new)
+
+Status: decided.
+
+Decision: The kernel ships no state-mutation tools. An agent that wants a
+notes channel, a scratchpad, or an explicit memory write declares its own
+tool in `tools.ts` and handles the resulting event in `update` like any other
+event.
+
+This is an explicit rejection of the kernel-provided `remember`-style tool
+considered during the interview. Such a tool would put a second writer on
+state the kernel is not allowed to look inside, and would add a capability to
+every agent's tool surface that most agents do not want. `update` is already
+the single writer; keeping it the only one is what makes state transitions
+explainable from the event stream.
+
+Source: state-shapes.html §4, §11.
+
+### D90. Full Request Snapshots Stay and Gain Section Tags (new)
+
+Status: decided.
+
+Decision: Per-turn request snapshots keep capturing the full outgoing window
+into content-addressed trace blobs. The builder additionally marks where ①,
+②, and ③ begin, so the viewer can render the exact context window a turn ran
+on as three sections — the turn renderer.
+
+Demoting snapshots to a hash receipt — store the hash, drop the bytes — was
+considered and rejected. The point of the pilot is being able to read the
+window the model actually saw; a receipt only proves that two windows
+differed, at exactly the moment the question is *how*.
+
+Source: state-shapes.html §8, §11.
+
+### D91. Resume Means Multi-Prompt Continuity, Not Crash Recovery (new)
+
+Status: decided.
+
+Decision: "Resume" in v1 means a long-running session taking message after
+message: state lives in the extension across prompts and `update` keeps
+folding it forward. This is inherent in the model rather than a feature.
+
+Crash recovery — rebuilding a live agent from persisted state after process
+death — is explicitly out of scope for v1. `state.json` (D88) is written for
+inspection and transfer, not as a resume image.
+
+Source: state-shapes.html §8, §11.
+
+### D92. One Sink Shape Now, Remote Sink at the Sandbox Stage (extends D74, D75)
+
+Status: decided.
+
+Decision: Trace events, request snapshots, and state writes all emit through
+the same *sink shape* — `submit()`/`flush()` behind a serialized promise
+tail, the pattern the kernel already had in `TraceWriterSink`. In v1 the
+binding is local: `trace.db` plus `state.json`. The sandbox stage adds the
+remote binding — spool file → drain loop → POST — as a sink swap, with no
+conditional paths in the emitter and the same durability semantics in both
+topologies.
+
+Two channels ride the seams: the state channel is acked and deduped on the
+state version; the observability channel is droppable under backpressure. Ack
+and backpressure specifics are decided at the sandbox stage.
+
+Rationale: getting runs, traces, and state out of a sandbox is designed with
+v1 and built at stage 5 (D97). Designing it later is what produces a fork
+between local and sandbox emission; building it later against a seam that
+already exists does not. Details:
+[explainers/prompt-cache-tiers.html](explainers/prompt-cache-tiers.html) §9.
+
+Implementation note (2026-07-27, as built): this is two structurally
+identical seams, not one interface — `TraceWriterSink` (trace events, request
+snapshots) and `StateSink` (state snapshots), each `submit()`/`flush()` with
+a serialized tail, each swappable independently. That satisfies what the
+decision was for: transfer-out is a binding change on both seams, with no
+conditional paths in the emitter or the state extension. Whether the two
+collapse into one interface is open, and is a sandbox-stage call — it only
+matters once a single remote transport carries both channels.
+
+Source: state-shapes.html §9, §11.
+
+### D93. The Canvas Layout-Editor Is the v1 Pilot (new)
+
+Status: decided.
+
+Decision: The canvas layout-editor is the pilot agent for the state model.
+The core code lives in the kernel; the pilot only supplies its own `state.ts`.
+
+Section split: `capabilities`, `style_guide`, and the exemplar /
+contact-sheet images stay in section ② as reference material. The
+`board_state`, `editor_state`, and `user_requests` spawn loaders retire as
+loaders and become state, seeded from the same `sessionData` they read today.
+
+Section ③ policy: **full board every turn** (so it is never stale),
+**close-ups on demand** through the `look` tool, **diff always visible**.
+State tracks the work *around* the canvas document — scope, applied ops,
+lints, views, the request queue — and never holds a copy of the document,
+which stays authoritative where it lives and is re-derived into the board
+block each request. Close-up policy and image caps are decided at the canvas
+build stage.
+
+Source: state-shapes.html §5, §11.
+
+### D94. Retired: the Fold / Projection Vocabulary and the Three-Store Model (retires the model in `explainers/context-fold-projection.html`)
+
+Status: decided.
+
+Decision: The fold/projection vocabulary and the three-store framing — a
+state document, the diffs not yet folded into it, and the message history,
+compiled together per request — are retired. "Fold" is `update`; "project" is
+`render`; the three stores collapse into one state object whose components
+include the messages (D81).
+
+`context-fold-projection.html` stays in the tree and stays authoritative for
+one thing: the **measured Pi 0.82.1 hook behavior** in its §4–§6, which still
+underpins the wiring in D86. Its model sections carry a superseded banner
+pointing at `state-shapes.html`.
+
+Rationale: three stores meant three places a fact could live and sync rules
+between them. The unfolded-diff store existed only because folding was
+assumed too expensive to run on the critical path; the 0.82.1 measurements
+removed that assumption, and with it the store.
+
+Source: state-shapes.html §1, §11.
+
+### D95. Rejected: a Universal State Frame (new)
+
+Status: decided.
+
+Decision: A kernel-imposed universal state frame — every agent's state
+carrying the same top-level fields, sketched during the interview as
+focus / actions / decisions — was considered and rejected. The kernel defines
+no fields.
+
+Rationale: such a frame only fits agents whose work happens to decompose that
+way. A board editor's state is a board; a plain agent's state is its messages.
+A universal frame forces both into vocabulary that describes neither, and
+makes the kernel responsible for the meaning of state it cannot interpret.
+D83 is the positive form of this decision.
+
+Source: state-shapes.html §3, §11.
+
+### D96. Rejected: State as a Transcript-Derived Cache (new)
+
+Status: decided.
+
+Decision: Modeling state as a derived cache over an append-only transcript —
+the transcript remaining the source of truth, state being a recomputable
+compression of it — was considered and rejected. The state object is the
+source of truth, and the messages are one of its components (D81).
+
+Rationale: a derived cache has to answer what happens when it disagrees with
+its source, and the answer is always "rebuild it", which brings replay,
+invalidation, and versioning along behind it. It also inverts what the model
+is for: a board's current geometry is not a compression of the conversation
+that produced it, and domain state that no message contains would have no
+home at all.
+
+Source: state-shapes.html §1, §3, §11.
+
+### D97. Build Order — Docs, Kernel, Viewer, Canvas, Sandbox (new)
+
+Status: decided.
+
+Decision: The state model ships in five stages, in this order:
+
+1. **Docs** — the design record, iterated until the state representation is
+   right. Sign-off gates everything after it.
+2. **Kernel** — the seed/update/render contract, the three-section builder,
+   window policies, snapshot section tags, state through the sink seam.
+   Proves base agents behave like normal agents.
+3. **Viewer** — the three-section turn view. Proves every window is visible
+   while piloting.
+4. **Canvas** — board v1 `state.ts`; the three picture loaders retire. Proves
+   the rich case on a real agent.
+5. **Sandbox** — spool/drain/remote sink and the acked state channel, built
+   and verified working rather than only designed.
+
+Source: state-shapes.html §10, §11.
+
+### D98. The Bundle Is Four Sections, Mirroring the Request (extends D5, D76)
+
+Status: decided.
+
+Decision: An agent bundle is `agent.json` plus four sections — prompt,
+context, tools, state — and each section has two legal shapes: a single file,
+or a folder with an `index.ts` entry point.
+
+```text
+catalog/<agent>/
+  agent.json                              the index: model, thinking, maxTurns, window
+  prompt.json    | prompt/prompt.json     ① source of truth
+  prompt.rendered.md | prompt/system.md   generated markdown render — never hand-edited
+  context.ts     | context/index.ts       ② the inventory of standing context
+  tools.ts       | tools/index.ts         the action surface
+  state.ts       | state/index.ts         ③ how each turn is handled
+```
+
+The bundle mirrors the request (D82): read the tree top to bottom and you
+read the request left to right. Everything that defines *one* agent is one
+vertical slice narrowed by runtime role — rather than horizontal repo layers
+where all loaders live together, all styles live together, and nothing is
+attributable to the agent it serves.
+
+The rules that make the tree load-bearing rather than cosmetic:
+
+- **`prompt.json` is the source of truth; the markdown beside it is
+  generated.** It is rendered through the same prompt-kit `renderXmlMarkdown`
+  the registry uses to build the system prompt, so the file on disk is
+  byte-for-byte the prompt body the model receives, under a generated-file
+  header. It is committed for reading and diffing, never hand-edited, and
+  never parsed.
+- **Scale-down rule.** Every folder collapses back to a single file, and the
+  file form stays permanently legal — `state.ts` alone is not a legacy shape.
+  A base agent is `agent.json` plus a prompt; the *absence* of the other
+  sections is the statement that it is a plain agent (D83).
+- **File-first resolution.** Per section the file form is tried first, the
+  folder form second. When both exist the file wins **silently** — that is
+  what lets a migration leave a one-line re-export shim at the old path —
+  and the losing path is recorded so `doctor --catalog` can report it. A
+  prompt missing in *both* forms is a boot error naming both paths. Folder
+  internals are unconstrained and invisible to discovery: `index.ts` is the
+  only entry point, and `prompt/system.md` is never consulted.
+- **Declarations live in bundles; loader implementations stay
+  app-registered.** The vertical slice owns what *this* agent's context
+  contains, not the machinery that loads it — the D25/D40 boundary is
+  unchanged by the tree.
+- **Sharing is the rule of two.** An asset lives inside one agent's bundle
+  until a second agent needs it; then the *bytes* promote to
+  `catalog/_shared/`, while each consumer still declares it in its own
+  context section. Library *code* stays in `src/`. The test: does this feed a
+  section of *this* agent's request, or is it machinery any agent could run?
+
+Rationale: the four sections were already the runtime's real decomposition —
+D82 named them in the request, D84 gave three of them a contract — but the
+bundle still expressed them as four flat files, which caps an agent at
+however much fits in one file per section. A rich agent's context inventory,
+per-event update rules, and per-block renderers each want their own files;
+without folders they either sprawl into one unreadable module or leak
+sideways into shared repo layers where they stop being attributable to an
+agent. Folders make the slice hold at any size, and the file-first rule means
+nothing about the simple case changes.
+
+Implementation note (2026-07-27, as built): resolution lives in
+`agent-registry/registry/bundle-layout.ts`; `AgentDefinition` gained
+`bundleLayout` (resolved form + shadowed path per section) and
+`renderedPromptFile`. `agent-registry/prompt-snapshot.ts` and the
+`agent-kernel-render-prompts` bin generate the markdown render (with a
+`--check` mode for CI); `runCatalogDoctor` and `doctor-cli --catalog
+[--strict]` audit layouts. Every bundle in both repos is folder-form: the
+`state-three-section-e2e` spike agent and the three Simple Research Kernel
+agents here, and the canvas layout-editor — the exemplar — in its own repo.
+Implementation:
+[docs/20-implementation/20-kernel/20-agent-registry.md](../20-implementation/20-kernel/20-agent-registry.md).
+
+Source: state-shapes.html §6, §11.

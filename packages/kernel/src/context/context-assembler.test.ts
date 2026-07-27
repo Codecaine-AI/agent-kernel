@@ -9,7 +9,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { SessionManager } from "@mariozechner/pi-coding-agent";
+import { SessionManager } from "@earendil-works/pi-coding-agent";
 
 import { buildContext } from "./context-assembler";
 import { AGENT_CONTEXT_MARKER, injectAgentContext } from "./accumulation-guard";

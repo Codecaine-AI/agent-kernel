@@ -1,0 +1,15 @@
+{
+	"$schema": "agent-kernel/agent-v1",
+	"name": "state-demo",
+	"description": "Deterministic e2e agent: base state module + a 2-turn window, driven by an in-memory mock provider.",
+	"model": "mock-e2e/deterministic-e2e",
+	"extensions": false,
+	"maxTurns": 20,
+	"state": {
+		"window": {
+			"strategy": "turns",
+			"maxTurns": 2,
+			"elisionMarker": true
+		}
+	}
+}

@@ -63,6 +63,10 @@ decisions are recorded as D70–D80 in
   `prompt.json` + `prompt.rendered.md` + `context.ts` + `tools.ts`, discovered
   by filename convention. `agent.md`, frontmatter, and `agent.ts` are gone;
   `defineAgent` survives as a typed generator/validator.
+  *(Since superseded by D98: a bundle is four sections — prompt, context,
+  tools, state — each legal as either a single file or a folder with an
+  `index.ts`, resolved file-first. The flat shape above is still valid, it is
+  simply no longer the only one.)*
 - Spawner tools (D77) replace the `canSpawnSubagent` flag:
   `defineSpawnerTool({ spawns: [...] })` gets a kernel-injected scoped
   `dispatch()` that enforces the allowlist, validates against the catalog,

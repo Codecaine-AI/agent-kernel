@@ -1,7 +1,7 @@
 ---
-covers: "System design overview for the Pi Agent Kernel platform: runtime, observability, protocol, viewer, and app adapter models."
+covers: "System design overview for the Pi Agent Kernel platform: runtime, observability, protocol, viewer, app adapter, and prompt/state models."
 type: overview
-concepts: [system-design, runtime-model, observability-model, event-protocol, viewer-model, app-adapter]
+concepts: [system-design, runtime-model, observability-model, event-protocol, viewer-model, app-adapter, prompt-system, state-model]
 ---
 
 # System Design
@@ -31,4 +31,7 @@ How viewer-core, viewer-ui, and viewer-shell turn trace data into a base UI.
 How apps such as Spectre mount and extend the kernel without moving workflow semantics into it.
 
 ### [60-prompt-system-model.md](60-prompt-system-model.md)
-How prompt authoring should produce kernel-ready agent definitions, context resolvers, and prompt skills.
+How prompt authoring should produce kernel-ready agent definitions, context resolvers, and prompt skills. Also carries the decision log, including the agent state model agreed on 2026-07-27 (D81–D97).
+
+### [explainers/](explainers/state-shapes.html)
+Design explainers (HTML, open in a browser). [state-shapes.html](explainers/state-shapes.html) is the current state model — the three-section request, the `seed`/`update`/`render` contract, and the decision table behind D81–D97. [context-fold-projection.html](explainers/context-fold-projection.html) holds the measured Pi 0.82.1 hook behavior; its fold/projection model is superseded (D94). [prompt-cache-tiers.html](explainers/prompt-cache-tiers.html) covers storage and transport, including the pinned emission-seam decisions (D92).

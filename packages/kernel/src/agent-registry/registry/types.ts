@@ -3,9 +3,12 @@ import type { PromptDocument } from "@codecaine-ai/prompt-kit";
 import type { ParsedAgent } from "../../spawn-pipeline/types";
 import type {
 	AgentPrivateTools,
+	AgentStateConfig,
 	NormalizedAgentManifest,
 } from "../../agent-definition";
 import type { AgentContextResolver } from "../../context";
+import type { StateModule } from "../../state/types";
+import type { AgentBundleLayout } from "./bundle-layout";
 
 export interface AgentDefinition {
 	name: string;
@@ -17,19 +20,42 @@ export interface AgentDefinition {
 	promptDocument: PromptDocument;
 	/** Content address of the prompt: "pk1-" + sha256(canonical bytes). */
 	promptHash: string;
-	/** Absolute path of the prompt.json the document was loaded from. */
+	/**
+	 * Absolute path of the prompt.json the document was loaded from —
+	 * `<bundle>/prompt.json` (file form) or `<bundle>/prompt/prompt.json`
+	 * (folder form).
+	 */
 	promptFile: string;
+	/**
+	 * Absolute path of the generated markdown render of promptFile:
+	 * `<bundle>/prompt.rendered.md` in file form, `<bundle>/prompt/system.md`
+	 * in folder form. Never read by the registry — the write path uses it.
+	 */
+	renderedPromptFile: string;
 	/** mtimeMs of promptFile when the document was read (disk-freshness check). */
 	promptFileMtimeMs: number;
-	/** Context sidecar (context.ts), attached by filename convention. */
+	/**
+	 * Which form each bundle section resolved to (file vs folder), plus any
+	 * shadowed path when both forms exist. Reported by doctor and the viewer.
+	 */
+	bundleLayout: AgentBundleLayout;
+	/** Context sidecar (context.ts | context/index.ts), attached by convention. */
 	contextResolver: AgentContextResolver | null;
 	contextModulePath: string | null;
-	/** Tools sidecar (tools.ts), attached by filename convention. */
+	/** Tools sidecar (tools.ts | tools/index.ts), attached by convention. */
 	privateTools: AgentPrivateTools | null;
 	privateToolNames: string[];
 	/** Harvested spawner declarations: tool name → `spawns` allowlist (D77). */
 	spawnerTools: Record<string, string[]>;
 	toolsModulePath: string | null;
+	/**
+	 * State sidecar (state.ts | state/index.ts), attached by convention. null
+	 * keeps the agent on base behavior — its state is its messages.
+	 */
+	stateModule: StateModule | null;
+	stateModulePath: string | null;
+	/** The manifest's `state` block (window policy), or null when absent. */
+	stateConfig: AgentStateConfig | null;
 	coreTools: string[];
 	/** Absolute path of the agent.json manifest. */
 	manifestFile: string;

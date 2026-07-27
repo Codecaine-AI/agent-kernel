@@ -15,12 +15,12 @@
  * `parentToolUseId`, `trigger: "parent-tool"`, and the current run-context
  * identity automatically, so the tool author cannot get these wrong.
  */
-import type { Static, TSchema } from "@mariozechner/pi-ai";
+import type { Static, TSchema } from "@earendil-works/pi-ai";
 import type {
 	AgentToolResult,
 	ToolDefinition,
 	ToolExecutionMode,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 
 import type { AgentRecord } from "../subagents/types";
 

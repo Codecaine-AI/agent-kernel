@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Context fold-back &amp; projection — design explainer</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page:          #f9f9f7;
+    --surface-1:     #fcfcfb;
+    --text-primary:  #0b0b0b;
+    --text-secondary:#52514e;
+    --text-muted:    #898781;
+    --grid:          #e1e0d9;
+    --baseline:      #c3c2b7;
+    --border:        rgba(11,11,11,0.10);
+    --series-1:      #2a78d6;  /* blocking / critical path */
+    --series-2:      #eb6834;  /* lifecycle hook (awaited) */
+    --series-3:      #1baf7a;  /* provider activity */
+    --series-1-wash: rgba(42,120,214,0.10);
+    --race-wash:     rgba(137,135,129,0.14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page:          #0d0d0d;
+      --surface-1:     #1a1a19;
+      --text-primary:  #ffffff;
+      --text-secondary:#c3c2b7;
+      --text-muted:    #898781;
+      --grid:          #2c2c2a;
+      --baseline:      #383835;
+      --border:        rgba(255,255,255,0.10);
+      --series-1:      #3987e5;
+      --series-2:      #d95926;
+      --series-3:      #199e70;
+      --series-1-wash: rgba(57,135,229,0.14);
+      --race-wash:     rgba(137,135,129,0.18);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:          #0d0d0d;
+    --surface-1:     #1a1a19;
+    --text-primary:  #ffffff;
+    --text-secondary:#c3c2b7;
+    --text-muted:    #898781;
+    --grid:          #2c2c2a;
+    --baseline:      #383835;
+    --border:        rgba(255,255,255,0.10);
+    --series-1:      #3987e5;
+    --series-2:      #d95926;
+    --series-3:      #199e70;
+    --series-1-wash: rgba(57,135,229,0.14);
+    --race-wash:     rgba(137,135,129,0.18);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 1060px; margin: 0 auto; padding: 32px 24px 96px; }
+  h1 { font-size: 26px; line-height: 1.25; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 48px 0 8px; }
+  h3 { font-size: 15px; margin: 20px 0 6px; }
+  p  { margin: 8px 0; color: var(--text-primary); }
+  .sub { color: var(--text-secondary); }
+  .muted { color: var(--text-muted); }
+  code, .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.86em;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0 4px;
+  }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin: 14px 0;
+  }
+
+  /* status badges — monochrome by design (chart colors stay reserved for series) */
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    border-radius: 4px;
+    padding: 1px 7px;
+    border: 1px solid var(--baseline);
+    color: var(--text-secondary);
+    vertical-align: 2px;
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+  .badge.measured { background: var(--text-primary); color: var(--page); border-color: var(--text-primary); }
+  .badge.sketch   { border-style: dashed; }
+
+  .topbar { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+  #themeToggle {
+    font: 13px system-ui, sans-serif;
+    color: var(--text-secondary);
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+
+  /* ---- problem visual ---- */
+  .logdemo { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  .logcol { flex: 1 1 280px; }
+  .logmsg {
+    border: 1px solid var(--border);
+    background: var(--surface-1);
+    border-radius: 6px;
+    padding: 5px 10px;
+    margin: 5px 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  .logmsg.stale { color: var(--text-muted); }
+  .logmsg.stale s { text-decoration-color: var(--text-muted); }
+
+  /* ---- model + cycle diagrams ---- */
+  .flow { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 14px 0; }
+  .node {
+    background: var(--surface-1);
+    border: 1px solid var(--baseline);
+    border-radius: 8px;
+    padding: 10px 14px;
+    min-width: 150px;
+    flex: 0 1 auto;
+  }
+  .node b { display: block; font-size: 14px; }
+  .node span { font-size: 12.5px; color: var(--text-secondary); }
+  .arrow {
+    align-self: center;
+    text-align: center;
+    padding: 0 10px;
+    color: var(--text-muted);
+    font-size: 12px;
+    min-width: 76px;
+  }
+  .arrow .glyph { font-size: 18px; color: var(--text-secondary); display: block; line-height: 1; }
+  .loopnote { color: var(--text-muted); font-size: 12.5px; margin-top: 4px; }
+
+  /* ---- cadence / nesting scopes ---- */
+  .scope {
+    border: 1px solid var(--baseline);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 8px 0;
+    background: var(--surface-1);
+  }
+  .scope.inner { background: var(--page); margin: 8px 0; }
+  .scope-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .hookline { display: flex; align-items: baseline; gap: 8px; font-size: 13.5px; padding: 3px 0; }
+  .hookline .dot { width: 8px; height: 8px; border-radius: 2px; flex: 0 0 auto; align-self: center; }
+  .hookline .count { margin-left: auto; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: 12px; }
+  .hookline.compile {
+    font-weight: 600;
+    border-left: 3px solid var(--series-1);
+    margin-left: -12px;
+    padding-left: 9px;
+  }
+
+  /* ---- stepper ---- */
+  .stepper-controls { display: flex; align-items: center; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
+  .stepper-controls button {
+    font: 14px system-ui, sans-serif;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--baseline);
+    background: var(--surface-1);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .stepper-controls button:disabled { opacity: 0.4; cursor: default; }
+  #stepLabel { font-weight: 600; }
+  #stepPhase { font-size: 12.5px; }
+  .panes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media (max-width: 860px) { .panes { grid-template-columns: 1fr; } }
+  .pane {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    min-height: 260px;
+  }
+  .pane h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: 0.03em; color: var(--text-secondary); text-transform: uppercase; }
+  .statesec { margin: 8px 0; }
+  .statesec .k { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .stateline { font-size: 13.5px; padding: 2px 0 2px 8px; border-left: 2px solid transparent; }
+  .stateline.new { border-left-color: var(--text-primary); font-weight: 500; }
+  .diff {
+    font-size: 13.5px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 9px;
+    margin: 5px 0;
+    background: var(--page);
+  }
+  .diff .sign { font-family: ui-monospace, Menlo, monospace; margin-right: 6px; color: var(--text-secondary); }
+  .msg { font-size: 13px; border-radius: 6px; padding: 4px 9px; margin: 5px 0; border: 1px solid var(--border); }
+  .msg .role { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-right: 6px; }
+  .msg.recent { background: var(--series-1-wash); border-color: var(--series-1); }
+  .msg.old { color: var(--text-muted); }
+  .empty { color: var(--text-muted); font-size: 13px; font-style: italic; }
+  .reqstrip { margin-top: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .chip {
+    font-size: 12.5px;
+    border: 1px solid var(--baseline);
+    border-radius: 999px;
+    padding: 2px 10px;
+    background: var(--surface-1);
+    color: var(--text-primary);
+  }
+  .sizebars { margin-top: 10px; max-width: 520px; }
+  .sizebar { display: grid; grid-template-columns: 150px 1fr 44px; gap: 8px; align-items: center; font-size: 12.5px; color: var(--text-secondary); margin: 4px 0; }
+  .sizebar .track { height: 10px; border-radius: 4px; background: var(--page); border: 1px solid var(--border); overflow: hidden; }
+  .sizebar .fill { height: 100%; border-radius: 3px 0 0 3px; }
+  .sizebar .fill.raw { background: var(--text-muted); }
+  .sizebar .fill.proj { background: var(--series-1); }
+  .sizebar .val { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* ---- gantt ---- */
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin: 10px 0 2px; }
+  .legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
+  #gantt { width: 100%; height: auto; display: block; }
+  #ganttwrap { position: relative; }
+  #tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--surface-1);
+    border: 1px solid var(--baseline);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12.5px;
+    color: var(--text-primary);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    display: none;
+    z-index: 5;
+    white-space: nowrap;
+  }
+  #tooltip .t2 { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  table.datatable { border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  table.datatable th, table.datatable td {
+    border: 1px solid var(--grid);
+    padding: 3px 10px;
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+  }
+  table.datatable th { color: var(--text-secondary); font-weight: 600; }
+  details summary { cursor: pointer; color: var(--text-secondary); font-size: 13.5px; }
+
+  .qcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; margin-top: 12px; }
+  .qcards .card { margin: 0; font-size: 13.5px; }
+  ul { margin: 6px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="topbar">
+    <h1>Context fold-back &amp; projection</h1>
+    <button id="themeToggle" aria-label="Toggle color theme">Theme: auto</button>
+  </div>
+  <p class="sub">Agent Kernel design explainer — working doc, updated 2026-07-25 for <code>@earendil-works/pi-*@0.82.1</code></p>
+
+  <div class="card" style="border-color: var(--series-2);">
+    <p><strong>⚠ Re-measured on Pi 0.82.1 — two findings reversed.</strong> <span class="badge measured">MEASURED</span></p>
+    <p>This doc was originally written against <code>@mariozechner/pi-*@0.70.6</code>. That package is now deprecated in favour of <code>@earendil-works/pi-*</code>, and re-running the spike on <strong>0.82.1</strong> shows the agent loop is now <em>strictly sequential</em> where it used to race:</p>
+    <ul>
+      <li><strong>Q2 reversed —</strong> <code>turn_end</code> now <strong>blocks</strong> the loop (it did not before).</li>
+      <li><strong>Q3 resolved —</strong> the race window between <code>turn_end</code> and the next <code>context</code> <strong>no longer exists</strong>.</li>
+      <li><strong>Q4 reversed —</strong> <code>await session.prompt()</code> now settles <em>after</em> all lifecycle handlers, so it <strong>is</strong> a safe end-of-run barrier. 0.82.1 also adds an explicit <code>agent_settled</code> hook.</li>
+      <li><strong>Q1 and Q5 unchanged —</strong> <code>context</code> and <code>tool_call</code> still block; veto still works.</li>
+    </ul>
+    <p class="sub">Consequence for the design: folding in <code>turn_end</code> is now viable and arguably cleaner than folding in <code>context</code> — see §3 and §7. Projection still has to happen in <code>context</code>, because that remains the only hook that can rewrite the outgoing request.</p>
+  </div>
+
+  <div class="card" style="border-color: var(--series-3);">
+    <p><strong>Model superseded — 2026-07-27 design interview.</strong></p>
+    <p>The fold/projection vocabulary and the three-store framing below predate the agreed state model: <strong>one state object per agent, with the messages as part of the state</strong> (the PPO observation), a <code>seed / update / render</code> contract, and a three-section request (system · context · state). "Fold" corresponds to <code>update</code>, "project" to <code>render</code>. See <code>state-shapes.html</code> (v4) for the current model and the full decision table.</p>
+    <p class="sub" style="margin-bottom:0;">What remains authoritative here: the <strong>measured Pi 0.82.1 hook behavior</strong> (§4–§6) — every timing, blocking, and non-destructive-rewrite fact still underpins the wiring.</p>
+  </div>
+
+  <div class="card">
+    <p><strong>TL;DR.</strong> Instead of letting an agent's context be an ever-growing message transcript, the kernel keeps three things: an always-current <strong>state document</strong>, the <strong>diffs</strong> not yet folded into it, and the <strong>message history</strong> as a record. Every provider request is freshly <em>compiled</em> — a projection of state + unfolded diffs + a recent-message window — instead of the raw log. The maintenance step that keeps state current is <strong>fold-back</strong>, and a runtime spike has pinned down exactly where it can safely live in Pi: the <code>context</code> extension hook.</p>
+  </div>
+
+  <h2>1. The problem <span class="badge">PROPOSAL — problem framing</span></h2>
+  <p>Today an agent's context <em>is</em> its transcript. Every turn appends; nothing is ever revised. What is true <em>now</em> is implicit — smeared across old messages — and stale statements sit in the request competing with their own corrections:</p>
+  <div class="logdemo card">
+    <div class="logcol">
+      <div class="muted" style="font-size:12.5px">Append-only transcript (grows forever, sent wholesale)</div>
+      <div class="logmsg stale">turn 1 — “candidates: sqlite, duckdb, lmdb”</div>
+      <div class="logmsg stale">turn 2 — <s>“duckdb looks promising”</s> (now false)</div>
+      <div class="logmsg stale">turn 3 — “constraint: concurrent readers”</div>
+      <div class="logmsg stale">turn 5 — <s>“leaning lmdb”</s> (now false)</div>
+      <div class="logmsg">turn 9 — “decision: sqlite in WAL mode”</div>
+      <div class="logmsg muted">… every provider request re-sends all of it …</div>
+    </div>
+    <div class="logcol">
+      <div class="muted" style="font-size:12.5px">What the model actually needs each turn</div>
+      <div class="logmsg"><b>Current state:</b> goal, constraints, decision</div>
+      <div class="logmsg"><b>What just changed:</b> this turn's deltas</div>
+      <div class="logmsg"><b>Recent conversation:</b> a small verbatim window</div>
+    </div>
+  </div>
+
+  <h2>2. The model: three stores, one compiled request <span class="badge">PROPOSAL</span></h2>
+  <p>The kernel maintains three distinct stores and compiles each provider request from them:</p>
+  <div class="flow" aria-label="Fold-back data flow">
+    <div class="node"><b>Turn activity</b><span>messages, tool results, new facts &amp; decisions</span></div>
+    <div class="arrow"><span class="glyph">→</span>produces deltas</div>
+    <div class="node"><b>Diffs</b><span>changes not yet folded into state</span></div>
+    <div class="arrow"><span class="glyph">→</span>fold-back</div>
+    <div class="node"><b>Current state</b><span>authoritative “what is true now” document</span></div>
+  </div>
+  <div class="flow" aria-label="Projection data flow">
+    <div class="node"><b>Current state</b><span>+ unfolded diffs</span></div>
+    <div class="arrow"><span class="glyph">→</span></div>
+    <div class="node"><b>Message history</b><span>recent window verbatim; older material lives in the state doc</span></div>
+    <div class="arrow"><span class="glyph">→</span>projection</div>
+    <div class="node" style="border-color: var(--series-1);"><b>Provider request</b><span>compiled fresh, every turn, stays compact</span></div>
+  </div>
+  <p>Two verbs carry the whole design: <strong>fold</strong> (diffs → state, so the state doc stays current) and <strong>project</strong> (state + diffs + recent messages → the request). The transcript remains the durable record; it just stops being the thing we ship to the provider wholesale.</p>
+
+  <div class="card">
+    <p><strong>Layered request composition</strong> <span class="badge sketch">SKETCH — open to revision</span></p>
+    <p class="sub">A working sketch of the compiled request, top to bottom — the exact decomposition is <em>not</em> settled:</p>
+    <ul class="sub">
+      <li>static system prompt</li>
+      <li>current-state packet</li>
+      <li>folded history / summaries</li>
+      <li>recent verbatim message window</li>
+      <li>current turn + tool results</li>
+    </ul>
+  </div>
+
+  <h2>3. The turn cycle <span class="badge">PROPOSAL</span></h2>
+  <div class="flow" aria-label="Turn cycle">
+    <div class="node"><b>Run turn N</b><span>model + tools do work</span></div>
+    <div class="arrow"><span class="glyph">→</span></div>
+    <div class="node"><b>Deltas accumulate</b><span>tool results, decisions, appended context</span></div>
+    <div class="arrow"><span class="glyph">→</span>request-compile point</div>
+    <div class="node"><b>Fold, then project</b><span>diffs → state; compile request N+1</span></div>
+    <div class="arrow"><span class="glyph">→</span></div>
+    <div class="node"><b>Provider request N+1</b><span>loop repeats</span></div>
+  </div>
+  <p class="loopnote">The “request-compile point” is not an abstraction we have to invent — it is Pi's <code>context</code> extension hook, which fires immediately before <em>every</em> provider request, is awaited on the loop's critical path, and can rewrite the outgoing message array <span class="badge measured">MEASURED</span>.</p>
+
+  <div class="card">
+    <p><strong>Where the two verbs go, on 0.82.1.</strong> <span class="badge measured">MEASURED — revised</span></p>
+    <p>The original version of this doc argued that <em>both</em> fold and project had to live in <code>context</code>, because <code>turn_end</code> raced the next request and could lose. On 0.82.1 that race is gone — <code>turn_end</code> blocks, and it completes before the next turn's <code>context</code> runs (measured: <code>turn_end[0]</code> ends 2528.8&nbsp;ms, <code>context[2]</code> starts 2832.4&nbsp;ms). So the two verbs can now be split, which is cleaner:</p>
+    <ul>
+      <li><strong>Fold → <code>turn_end</code>.</strong> It is awaited, it fires once per turn (not once per request), and its event payload already carries <code>message</code> and <code>toolResults</code> — exactly the reducer inputs. Folding here also means the fold cost is paid once per turn instead of on every provider request.</li>
+      <li><strong>Project → <code>context</code>.</strong> Still mandatory here: it is the only hook that can rewrite the outgoing message array, and it is the only one that fires per provider request.</li>
+    </ul>
+    <p class="sub">Folding in <code>context</code> still works and remains the more conservative option — it is self-healing, since the projection is recomputed from scratch every request regardless. The split is an optimisation the new ordering makes safe, not a correctness requirement.</p>
+  </div>
+
+  <h2>4. When does the packet compile? <span class="badge measured">MEASURED</span></h2>
+  <p><strong>Not once at loop start — once per provider request.</strong> In an agentic loop, that means many times per user message: one prompt with three tool round-trips compiles the packet four times. Pi's own contract says it outright — <code>context</code> is “fired before <em>each LLM call</em>,” while <code>before_agent_start</code> is “after user submits prompt but <em>before the agent loop</em>.” The spike confirms it: a single <code>session.prompt()</code> fired <code>context</code> twice (304.9&nbsp;ms and 2832.4&nbsp;ms on 0.82.1).</p>
+
+  <div class="card">
+    <div class="scope">
+      <div class="scope-label">session.prompt("…") — one user message</div>
+      <div class="hookline"><span class="dot" style="background: var(--series-1)"></span><span><code>before_agent_start</code> — system prompt assembled here</span><span class="count">×1 per prompt</span></div>
+      <div class="hookline"><span class="dot" style="background: var(--series-2)"></span><span><code>agent_start</code></span><span class="count">×1 per prompt</span></div>
+
+      <div class="scope inner">
+        <div class="scope-label">turn 0</div>
+        <div class="hookline"><span class="dot" style="background: var(--series-2)"></span><span><code>turn_start</code> — awaited</span><span class="count">×1 per turn</span></div>
+        <div class="hookline compile"><span class="dot" style="background: var(--series-1)"></span><span><code>context</code> — fold + project → <b>COMPILE #1</b></span><span class="count">×1 per request</span></div>
+        <div class="hookline"><span class="dot" style="background: var(--series-3)"></span><span>provider request → assistant message + tool calls</span><span class="count">measured 608.6 ms</span></div>
+        <div class="hookline"><span class="dot" style="background: var(--series-1)"></span><span><code>tool_call</code> / <code>tool_result</code> — blocking, veto-capable</span><span class="count">×1 per tool</span></div>
+        <div class="hookline"><span class="dot" style="background: var(--series-2)"></span><span><code>turn_end</code> — awaited; blocks the loop</span><span class="count">×1 per turn</span></div>
+      </div>
+
+      <div class="scope inner">
+        <div class="scope-label">turn 1</div>
+        <div class="hookline compile"><span class="dot" style="background: var(--series-1)"></span><span><code>context</code> — fold + project → <b>COMPILE #2</b></span><span class="count">measured 2832.4 ms</span></div>
+        <div class="hookline"><span class="dot" style="background: var(--series-3)"></span><span>provider request → assistant message, stop</span><span class="count">measured 3133.9 ms</span></div>
+        <div class="hookline"><span class="dot" style="background: var(--series-2)"></span><span><code>turn_end</code> — awaited; blocks the loop</span><span class="count">×1 per turn</span></div>
+      </div>
+
+      <p class="muted" style="font-size: 12.5px; margin: 6px 0 8px;">… the loop keeps adding turns for as long as the model keeps calling tools — each one another compile …</p>
+      <div class="hookline"><span class="dot" style="background: var(--series-2)"></span><span><code>agent_end</code> — awaited; settles <em>before</em> <code>prompt()</code> resolves</span><span class="count">×1 per prompt</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p><strong>What the hook actually permits: total, non-destructive replacement.</strong> <span class="badge measured">MEASURED — source-verified</span></p>
+    <p class="sub">The handler returns <code>{ messages?: AgentMessage[] }</code> and Pi uses it like this (<code>pi-agent-core/agent-loop.js</code>):</p>
+    <div class="scope inner" style="font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; color: var(--text-secondary);">
+      let messages = context.messages;<br>
+      if (config.transformContext) messages = await config.transformContext(messages, signal);<br>
+      const llmMessages = await config.convertToLlm(messages);
+    </div>
+    <ul>
+      <li>The result lands in a <strong>local variable used only for this one request</strong>. <code>context.messages</code> — the session's real accumulating state — is never touched, and handlers are even given a <code>structuredClone</code>, so in-place mutation can't leak back.</li>
+      <li>So you may <strong>replace the array wholesale</strong> — drop everything, synthesize messages, stub every image — without any risk of corrupting session state.</li>
+      <li>But your rewrite <strong>does not feed forward</strong>: the next request's <code>context</code> receives the original transcript again. Projection is <em>recomputed from scratch</em> every time, never incrementally maintained.</li>
+      <li>Therefore <strong>the state doc cannot live in the message array</strong> — writes there evaporate. State and diffs must live in kernel storage and be <em>rendered into</em> each projection. Pi's mechanics require the three-store model.</li>
+      <li>Upside: projection is <strong>idempotent by construction</strong> — a pure function of (session messages + kernel stores). Even a late or failed fold can only make the next projection stale, never corrupt, and staleness self-heals on the following request.</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <p><strong>Consequence: two injection points, two different cadences.</strong> <span class="badge sketch">SKETCH — open</span></p>
+    <ul>
+      <li><strong>System prompt</strong> (<code>before_agent_start</code>, ×1 per prompt) — cheap and cache-stable, but frozen for the whole loop. State folded here goes stale the moment turn 0 produces a tool result.</li>
+      <li><strong>Messages</strong> (<code>context</code>, ×1 per request) — always current, and the only place the packet can reflect what just happened mid-loop. Costs a recompile per request, and rewriting early positions breaks the prompt-cache prefix.</li>
+    </ul>
+    <p class="sub">This is the real knob to decide: how much of the packet is per-prompt (stable, cached) versus per-request (fresh, recompiled). It is the same trade the eviction rule cares about — and it's why fold work on the critical path has to stay cheap.</p>
+  </div>
+
+  <h2>5. Watch it run: four turns, three panes <span class="badge">PROPOSAL — interactive sketch</span></h2>
+  <p class="sub">A simulated session (an agent choosing a database). Step through it: <em>run</em> steps grow the diffs and transcript; <em>fold</em> steps sweep diffs into the state doc at the compile point. Watch the request stay compact while the raw log grows.</p>
+
+  <div class="card">
+    <div class="stepper-controls">
+      <button id="btnPrev">← Prev</button>
+      <button id="btnNext">Next →</button>
+      <button id="btnReset">Reset</button>
+      <span id="stepLabel"></span>
+      <span id="stepPhase" class="muted"></span>
+    </div>
+    <p id="stepNote" class="sub" style="min-height: 2.6em; margin-top: 0;"></p>
+
+    <div class="panes">
+      <div class="pane">
+        <h3>Current state</h3>
+        <div id="paneState"></div>
+      </div>
+      <div class="pane">
+        <h3>Diffs (unfolded)</h3>
+        <div id="paneDiffs"></div>
+      </div>
+      <div class="pane">
+        <h3>Message history</h3>
+        <div id="paneMsgs"></div>
+      </div>
+    </div>
+
+    <div class="reqstrip">
+      <h3 style="font-size:13px; text-transform:uppercase; letter-spacing:0.03em;" class="sub">Compiled provider request at this step</h3>
+      <div id="paneReq" class="chips"></div>
+      <div class="sizebars">
+        <div class="sizebar"><span>Raw transcript</span><span class="track"><span class="fill raw" id="barRaw"></span></span><span class="val" id="valRaw"></span></div>
+        <div class="sizebar"><span>Projected request</span><span class="track"><span class="fill proj" id="barProj"></span></span><span class="val" id="valProj"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>6. Where it hooks into Pi — measured <span class="badge measured">MEASURED</span></h2>
+  <p class="sub">From <code>spikes/pi-hook-blocking/RESULTS.md</code>, re-run on <strong><code>@earendil-works/pi-*@0.82.1</code></strong>: a deterministic mock-provider run of Pi's <code>AgentSession</code> with ~300&nbsp;ms instrumented handlers on every hook (1000&nbsp;ms on <code>turn_end[0]</code>). Every number below is measured, monotonic-clock, relative to <code>prompt.start</code>. Note the shape: <strong>nothing overlaps</strong> — on 0.70.6 this same script produced an overlapping race window.</p>
+
+  <div class="card">
+    <div class="legend">
+      <span><span class="sw" style="background: var(--series-1)"></span>Blocking hook (awaited on the loop's critical path)</span>
+      <span><span class="sw" style="background: var(--series-2)"></span>Lifecycle hook (awaited, per turn/run)</span>
+      <span><span class="sw" style="background: var(--series-3)"></span>Provider request enters</span>
+      <span><span class="sw" style="background: var(--text-primary); width: 3px; border-radius: 1px;"></span>Instant event</span>
+    </div>
+    <div id="ganttwrap">
+      <svg id="gantt" role="img" aria-label="Measured timeline of Pi extension hook executions"></svg>
+      <div id="tooltip"></div>
+    </div>
+    <details>
+      <summary>Data table (all measured events)</summary>
+      <table class="datatable" id="ganttTable">
+        <thead><tr><th>Event</th><th>Kind</th><th>Start (ms)</th><th>End (ms)</th><th>Duration (ms)</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </details>
+  </div>
+
+  <div class="qcards">
+    <div class="card"><b>Q1 — <code>context</code> blocks.</b> <span class="badge measured">MEASURED · unchanged</span><br>Provider entry followed the handler by 1.6&nbsp;ms (607.0&nbsp;→&nbsp;608.6) and 0.3&nbsp;ms (3133.6&nbsp;→&nbsp;3133.9). It runs before every request and can rewrite the message array. <em>Same conclusion on 0.70.6 and 0.82.1.</em></div>
+    <div class="card"><b>Q2 — <code>turn_end</code> blocks.</b> <span class="badge measured">MEASURED · REVERSED</span><br>The slow handler ran 1526.0&nbsp;→&nbsp;2528.8&nbsp;ms and the loop waited: <code>turn_start[1]</code> at 2529.5, <code>context[2]</code> at 2832.4, provider 2 at 3133.9. <em>On 0.70.6 provider 2 entered while it still had ~700&nbsp;ms left.</em></div>
+    <div class="card"><b>Q3 — no race.</b> <span class="badge measured">MEASURED · RESOLVED</span><br>Strictly sequential: <code>turn_end[0]</code> 1526.0&nbsp;→&nbsp;2528.8 → <code>turn_start[1]</code> 2529.5 → <code>context[2]</code> 2832.4 → provider 2 3133.9. Nothing from turn N+1 starts before turn N settles, so a fold in <code>turn_end</code> cannot lose.</div>
+    <div class="card"><b>Q4 — <code>prompt()</code> <em>is</em> a barrier.</b> <span class="badge measured">MEASURED · REVERSED</span><br>It resolved at 3740.3&nbsp;ms — after <code>agent_end</code> settled (3738.6) and coincident with the queue draining (3740.3). 0.82.1 also adds an explicit <code>agent_settled</code> hook. <em>On 0.70.6 it resolved ~1.6&nbsp;s early.</em></div>
+    <div class="card"><b>Q5 — <code>tool_call</code> blocks; veto works.</b> <span class="badge measured">MEASURED · unchanged</span><br>Execution began 1.0&nbsp;ms after the hook ended (919.4&nbsp;→&nbsp;920.4); <code>{ block: true }</code> suppressed the executor and Pi synthesized an error tool result. <em>Same on both versions.</em></div>
+  </div>
+
+  <h2>7. Open questions — where it gets weird <span class="badge">? OPEN</span></h2>
+  <div class="card">
+    <ul>
+      <li><strong><s>End-of-run drain barrier.</s> — RESOLVED on 0.82.1.</strong> <code>await session.prompt()</code> now resolves after <code>agent_end</code> settles (measured), and Pi adds an explicit <code>agent_settled</code> hook: “fired after an agent run has fully settled and no automatic retry, compaction, or queued continuation will run.” No internals-poking required. <em>New sub-question:</em> prefer <code>agent_settled</code> or the <code>prompt()</code> return — the hook is more explicit, the return is simpler.</li>
+      <li><strong>What is authoritative?</strong> If the state doc and the transcript disagree, which wins? Proposal says the state doc is the snapshot of “now” and the transcript is the record — but every consumer (viewer, traces, replay) needs to agree.</li>
+      <li><strong>Diff granularity.</strong> Are diffs structured operations against a typed state doc, prose deltas, or both? This decides how mechanical fold-back can be.</li>
+      <li><strong>Debug &amp; replay.</strong> Fold-back rewrites what the model sees. Either traces capture the compiled projection per request (the request-snapshot work points this way), or the projection stays a pure, versioned function so it can be re-derived offline — pick one deliberately.</li>
+      <li><strong>Fold in <code>turn_end</code> or in <code>context</code>?</strong> 0.82.1 makes both safe. <code>turn_end</code> fires once per turn and hands you <code>message</code> + <code>toolResults</code> directly; <code>context</code> fires once per provider request and is self-healing. The first is cheaper, the second is more forgiving. See §3.</li>
+      <li><strong>Do we still need the request-snapshot trace?</strong> If projection is pure and versioned, the compiled request is re-derivable from the log — making per-request snapshots a debugging convenience rather than a correctness requirement.</li>
+      <li><strong>Prompt-cache prefix vs. rewriting.</strong> Every fold that rewrites early message positions invalidates the provider's cached prefix — and the packet compiles once per <em>request</em>, not per user message (§4). This pushes toward folding at coherent boundaries rather than every request, and toward keeping the stable material in the per-prompt system prompt. Probably the main cost knob of the whole design.</li>
+      <li><strong>Push vs. pull.</strong> If a tool can always return the current version (a fresh screenshot, the current file), stale copies need not ride in context at all — eviction becomes safe because retrieval is available. What is the eviction rule, and which tools must become pull-able to support it? Note the provider constraint: assistant <code>toolCall</code> blocks and their <code>toolResult</code> must be dropped as pairs, though their <em>content</em> can be freely rewritten to a stub.</li>
+      <li><strong>Fold cost is on the critical path.</strong> The <code>context</code> hook blocks the loop, so every millisecond of fold work is added request latency. Cheap folds inline; anything expensive (summarization) must be prepared off-path and only <em>applied</em> in the hook.</li>
+      <li><strong>Compaction-as-projection.</strong> If projection keeps requests small by construction, Pi's separate compaction path may become redundant — or an interference source to disable.</li>
+    </ul>
+  </div>
+
+</main>
+
+<script>
+"use strict";
+
+/* ---------- theme toggle ---------- */
+(function () {
+  const btn = document.getElementById("themeToggle");
+  const modes = ["auto", "light", "dark"];
+  let i = 0;
+  btn.addEventListener("click", function () {
+    i = (i + 1) % modes.length;
+    const m = modes[i];
+    if (m === "auto") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = m;
+    btn.textContent = "Theme: " + m;
+    drawGantt();
+  });
+})();
+
+/* ---------- stepper ---------- */
+// Full snapshots per step; `n: true` marks lines that changed at this step.
+const S = (goal, cons, cand, dec, oq) => ({ Goal: goal, Constraints: cons, Candidates: cand, Decisions: dec, "Open questions": oq });
+const STEPS = [
+  {
+    label: "Turn 1 runs", phase: "run",
+    note: "User sets the task; the agent searches and finds candidates. Deltas pile up as diffs — the state doc hasn't changed yet.",
+    state: S([], [], [], [], []),
+    diffs: [
+      { s: "+", t: "Goal: choose a local DB for the session store" },
+      { s: "+", t: "Candidates: sqlite, duckdb, lmdb" },
+    ],
+    msgs: [
+      { r: "user", t: "Find us a local database for the kernel's session store.", w: "recent" },
+      { r: "asst", t: "Searching… found sqlite, duckdb, lmdb.", w: "recent" },
+    ],
+    req: ["system prompt", "state v0 (empty)", "current user turn"],
+    raw: 2, proj: 3,
+  },
+  {
+    label: "Compile turn 2", phase: "fold — context hook",
+    note: "The context hook fires before the next provider request: fold the diffs into the state doc, then project the request. Diffs pane empties; state is now current.",
+    state: S(
+      [{ t: "Choose a local DB for the session store", n: true }], [],
+      [{ t: "sqlite", n: true }, { t: "duckdb", n: true }, { t: "lmdb", n: true }], [], []),
+    diffs: [],
+    msgs: [
+      { r: "user", t: "Find us a local database for the kernel's session store.", w: "old" },
+      { r: "asst", t: "Searching… found sqlite, duckdb, lmdb.", w: "recent" },
+      { r: "user", t: "Constraint: we need multiple concurrent readers.", w: "recent" },
+    ],
+    req: ["system prompt", "state v1", "recent messages (2)", "current user turn"],
+    raw: 3, proj: 4,
+  },
+  {
+    label: "Turn 2 runs", phase: "run",
+    note: "The agent checks docs against the new constraint. New deltas accumulate as diffs.",
+    state: S(
+      [{ t: "Choose a local DB for the session store" }], [],
+      [{ t: "sqlite" }, { t: "duckdb" }, { t: "lmdb" }], [], []),
+    diffs: [
+      { s: "+", t: "Constraint: concurrent readers" },
+      { s: "±", t: "sqlite: WAL mode → many readers, one writer" },
+      { s: "±", t: "duckdb: single-process focus — weak fit" },
+    ],
+    msgs: [
+      { r: "user", t: "Find us a local database for the kernel's session store.", w: "old" },
+      { r: "asst", t: "Searching… found sqlite, duckdb, lmdb.", w: "old" },
+      { r: "user", t: "Constraint: we need multiple concurrent readers.", w: "recent" },
+      { r: "asst", t: "Checked docs: sqlite WAL handles readers well; duckdb is single-process.", w: "recent" },
+    ],
+    req: ["system prompt", "state v1", "diffs (3, unfolded)", "recent messages (2)"],
+    raw: 4, proj: 5,
+  },
+  {
+    label: "Compile turn 3", phase: "fold — context hook",
+    note: "Fold again: the constraint and candidate notes land in the state doc. Older messages gray out — their content now lives in the state.",
+    state: S(
+      [{ t: "Choose a local DB for the session store" }],
+      [{ t: "Concurrent readers required", n: true }],
+      [{ t: "sqlite — WAL: many readers, one writer", n: true }, { t: "duckdb — single-process focus", n: true }, { t: "lmdb" }],
+      [], []),
+    diffs: [],
+    msgs: [
+      { r: "user", t: "Find us a local database for the kernel's session store.", w: "old" },
+      { r: "asst", t: "Searching… found sqlite, duckdb, lmdb.", w: "old" },
+      { r: "user", t: "Constraint: we need multiple concurrent readers.", w: "old" },
+      { r: "asst", t: "Checked docs: sqlite WAL handles readers well; duckdb is single-process.", w: "recent" },
+      { r: "user", t: "Any of these a bad fit?", w: "recent" },
+    ],
+    req: ["system prompt", "state v2", "recent messages (2)", "current user turn"],
+    raw: 5, proj: 4,
+  },
+  {
+    label: "Turn 3 runs", phase: "run",
+    note: "The agent reasons over the projected state and drops a candidate — a decision and an open question become diffs.",
+    state: S(
+      [{ t: "Choose a local DB for the session store" }],
+      [{ t: "Concurrent readers required" }],
+      [{ t: "sqlite — WAL: many readers, one writer" }, { t: "duckdb — single-process focus" }, { t: "lmdb" }],
+      [], []),
+    diffs: [
+      { s: "−", t: "Candidate duckdb dropped (single-process)" },
+      { s: "+", t: "Open question: write contention under WAL?" },
+    ],
+    msgs: [
+      { r: "user", t: "Find us a local database for the kernel's session store.", w: "old" },
+      { r: "asst", t: "Searching… found sqlite, duckdb, lmdb.", w: "old" },
+      { r: "user", t: "Constraint: we need multiple concurrent readers.", w: "old" },
+      { r: "asst", t: "Checked docs: sqlite WAL handles readers well; duckdb is single-process.", w: "old" },
+      { r: "user", t: "Any of these a bad fit?", w: "recent" },
+      { r: "asst", t: "Dropping duckdb. Remaining risk: write contention under WAL.", w: "recent" },
+    ],
+    req: ["system prompt", "state v2", "diffs (2, unfolded)", "recent messages (2)"],
+    raw: 6, proj: 5,
+  },
+  {
+    label: "Compile turn 4", phase: "fold — context hook",
+    note: "Fold: candidate list shrinks, the decision log and open questions update. The projected request is still roughly the size it was at turn 1.",
+    state: S(
+      [{ t: "Choose a local DB for the session store" }],
+      [{ t: "Concurrent readers required" }],
+      [{ t: "sqlite — WAL: many readers, one writer" }, { t: "lmdb" }],
+      [{ t: "Dropped duckdb (single-process)", n: true }],
+      [{ t: "Write contention under WAL?", n: true }]),
+    diffs: [],
+    msgs: [
+      { r: "user", t: "Find us a local database for the kernel's session store.", w: "old" },
+      { r: "asst", t: "Searching… found sqlite, duckdb, lmdb.", w: "old" },
+      { r: "user", t: "Constraint: we need multiple concurrent readers.", w: "old" },
+      { r: "asst", t: "Checked docs: sqlite WAL handles readers well; duckdb is single-process.", w: "old" },
+      { r: "user", t: "Any of these a bad fit?", w: "old" },
+      { r: "asst", t: "Dropping duckdb. Remaining risk: write contention under WAL.", w: "recent" },
+      { r: "user", t: "Single writer is fine — go with sqlite WAL.", w: "recent" },
+    ],
+    req: ["system prompt", "state v3", "recent messages (2)", "current user turn"],
+    raw: 7, proj: 4,
+  },
+  {
+    label: "Turn 4 runs", phase: "run",
+    note: "The user decides. The final deltas are recorded as diffs.",
+    state: S(
+      [{ t: "Choose a local DB for the session store" }],
+      [{ t: "Concurrent readers required" }],
+      [{ t: "sqlite — WAL: many readers, one writer" }, { t: "lmdb" }],
+      [{ t: "Dropped duckdb (single-process)" }],
+      [{ t: "Write contention under WAL?" }]),
+    diffs: [
+      { s: "+", t: "Decision: sqlite in WAL mode" },
+      { s: "−", t: "Open question resolved: single writer acceptable" },
+    ],
+    msgs: [
+      { r: "user", t: "Find us a local database for the kernel's session store.", w: "old" },
+      { r: "asst", t: "Searching… found sqlite, duckdb, lmdb.", w: "old" },
+      { r: "user", t: "Constraint: we need multiple concurrent readers.", w: "old" },
+      { r: "asst", t: "Checked docs: sqlite WAL handles readers well; duckdb is single-process.", w: "old" },
+      { r: "user", t: "Any of these a bad fit?", w: "old" },
+      { r: "asst", t: "Dropping duckdb. Remaining risk: write contention under WAL.", w: "old" },
+      { r: "user", t: "Single writer is fine — go with sqlite WAL.", w: "recent" },
+      { r: "asst", t: "Recorded: sqlite in WAL mode. Done.", w: "recent" },
+    ],
+    req: ["system prompt", "state v3", "diffs (2, unfolded)", "recent messages (2)"],
+    raw: 8, proj: 5,
+  },
+  {
+    label: "End of run — final fold", phase: "fold — at the settle barrier",
+    note: "The last fold must wait for every handler to settle. On Pi 0.82.1 that is solved: await session.prompt() now resolves after agent_end settles, and there is an explicit agent_settled hook. (On 0.70.6 this needed a manual drain barrier.)",
+    state: S(
+      [{ t: "Choose a local DB for the session store" }],
+      [{ t: "Concurrent readers required" }],
+      [{ t: "sqlite — WAL: many readers, one writer" }, { t: "lmdb" }],
+      [{ t: "Dropped duckdb (single-process)" }, { t: "Decision: sqlite in WAL mode", n: true }],
+      []),
+    diffs: [],
+    msgs: [
+      { r: "user", t: "Find us a local database for the kernel's session store.", w: "old" },
+      { r: "asst", t: "Searching… found sqlite, duckdb, lmdb.", w: "old" },
+      { r: "user", t: "Constraint: we need multiple concurrent readers.", w: "old" },
+      { r: "asst", t: "Checked docs: sqlite WAL handles readers well; duckdb is single-process.", w: "old" },
+      { r: "user", t: "Any of these a bad fit?", w: "old" },
+      { r: "asst", t: "Dropping duckdb. Remaining risk: write contention under WAL.", w: "old" },
+      { r: "user", t: "Single writer is fine — go with sqlite WAL.", w: "old" },
+      { r: "asst", t: "Recorded: sqlite in WAL mode. Done.", w: "recent" },
+    ],
+    req: ["(no further request — state v4 is the durable outcome)"],
+    raw: 8, proj: 0,
+  },
+];
+
+let step = 0;
+const el = (id) => document.getElementById(id);
+
+function renderStep() {
+  const s = STEPS[step];
+  el("stepLabel").textContent = "Step " + (step + 1) + " / " + STEPS.length + " — " + s.label;
+  el("stepPhase").textContent = s.phase === "run" ? "· turn running" : "· " + s.phase;
+  el("stepNote").textContent = s.note;
+
+  const st = el("paneState");
+  st.innerHTML = "";
+  let empty = true;
+  for (const key of Object.keys(s.state)) {
+    const lines = s.state[key];
+    if (!lines.length) continue;
+    empty = false;
+    const sec = document.createElement("div");
+    sec.className = "statesec";
+    const k = document.createElement("div");
+    k.className = "k";
+    k.textContent = key;
+    sec.appendChild(k);
+    for (const line of lines) {
+      const d = document.createElement("div");
+      d.className = "stateline" + (line.n ? " new" : "");
+      d.textContent = line.t;
+      sec.appendChild(d);
+    }
+    st.appendChild(sec);
+  }
+  if (empty) st.innerHTML = '<div class="empty">empty — nothing folded yet</div>';
+
+  const df = el("paneDiffs");
+  df.innerHTML = "";
+  if (!s.diffs.length) {
+    df.innerHTML = '<div class="empty">' + (s.phase === "run" ? "none yet" : "folded into state ✓") + "</div>";
+  } else {
+    for (const d of s.diffs) {
+      const n = document.createElement("div");
+      n.className = "diff";
+      const sign = document.createElement("span");
+      sign.className = "sign";
+      sign.textContent = d.s;
+      n.appendChild(sign);
+      n.appendChild(document.createTextNode(d.t));
+      df.appendChild(n);
+    }
+  }
+
+  const mp = el("paneMsgs");
+  mp.innerHTML = "";
+  for (const m of s.msgs) {
+    const n = document.createElement("div");
+    n.className = "msg " + m.w;
+    const role = document.createElement("span");
+    role.className = "role";
+    role.textContent = m.r;
+    n.appendChild(role);
+    n.appendChild(document.createTextNode(m.t));
+    mp.appendChild(n);
+  }
+  const lg = document.createElement("div");
+  lg.className = "muted";
+  lg.style.fontSize = "12px";
+  lg.style.marginTop = "6px";
+  lg.textContent = "highlighted = projected verbatim window · gray = represented via the state doc";
+  mp.appendChild(lg);
+
+  const rq = el("paneReq");
+  rq.innerHTML = "";
+  for (const c of s.req) {
+    const n = document.createElement("span");
+    n.className = "chip";
+    n.textContent = c;
+    rq.appendChild(n);
+  }
+
+  const maxRaw = STEPS[STEPS.length - 1].raw;
+  el("barRaw").style.width = (s.raw / maxRaw) * 100 + "%";
+  el("barProj").style.width = (s.proj / maxRaw) * 100 + "%";
+  el("valRaw").textContent = s.raw + " msg";
+  el("valProj").textContent = s.proj + " part";
+
+  el("btnPrev").disabled = step === 0;
+  el("btnNext").disabled = step === STEPS.length - 1;
+}
+
+el("btnPrev").addEventListener("click", function () { if (step > 0) { step--; renderStep(); } });
+el("btnNext").addEventListener("click", function () { if (step < STEPS.length - 1) { step++; renderStep(); } });
+el("btnReset").addEventListener("click", function () { step = 0; renderStep(); });
+renderStep();
+
+/* ---------- gantt: measured spike timeline ---------- */
+// Every number below is verbatim from spikes/pi-hook-blocking/RESULTS.md.
+const EVENTS = [
+  { name: "turn_start[0]",          kind: "queue",  t0: 1.5,    t1: 303.6 },
+  { name: "context[1]",             kind: "block",  t0: 304.9,  t1: 607.0 },
+  { name: "provider[1] enters",     kind: "provider", t0: 608.6 },
+  { name: "tool_call[allow]",       kind: "block",  t0: 611.8,  t1: 919.4 },
+  { name: "tool executes (~0 ms)",  kind: "instant", t0: 920.4 },
+  { name: "tool_result[allow]",     kind: "block",  t0: 921.3,  t1: 1222.5 },
+  { name: "tool_call[veto]",        kind: "block",  t0: 1223.9, t1: 1525.3, note: "vetoed — executor never ran" },
+  { name: "turn_end[0]",            kind: "queue",  t0: 1526.0, t1: 2528.8, note: "1000 ms handler — the loop waits for it" },
+  { name: "turn_start[1]",          kind: "queue",  t0: 2529.5, t1: 2832.2 },
+  { name: "context[2]",             kind: "block",  t0: 2832.4, t1: 3133.6, note: "starts only after turn_end[0] settled" },
+  { name: "provider[2] enters",     kind: "provider", t0: 3133.9 },
+  { name: "turn_end[1]",            kind: "queue",  t0: 3134.1, t1: 3435.2 },
+  { name: "agent_end",              kind: "queue",  t0: 3435.7, t1: 3738.6 },
+  { name: "prompt.resolve",         kind: "instant", t0: 3740.3, note: "resolves after everything has settled" },
+  { name: "queue drained",          kind: "instant", t0: 3740.3 },
+];
+const KIND_LABEL = { block: "blocking hook", queue: "lifecycle hook (awaited)", provider: "provider", instant: "instant" };
+const RACE = null; // 0.82.1: no race window — execution is strictly sequential
+const T_MAX = 3900;
+
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function drawGantt() {
+  const svg = el("gantt");
+  const W = 960, GUT = 178, PAD_R = 16, ROW = 27, PAD_T = 10, AXIS_H = 34;
+  const H = PAD_T + EVENTS.length * ROW + AXIS_H;
+  const plotW = W - GUT - PAD_R;
+  const x = (t) => GUT + (t / T_MAX) * plotW;
+  const colors = {
+    block: cssVar("--series-1"),
+    queue: cssVar("--series-2"),
+    provider: cssVar("--series-3"),
+    instant: cssVar("--text-primary"),
+  };
+  const NS = "http://www.w3.org/2000/svg";
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  svg.innerHTML = "";
+  const mk = (tag, attrs) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    svg.appendChild(n);
+    return n;
+  };
+
+  // race-window wash (0.70.6 only; RACE is null on 0.82.1)
+  if (RACE) {
+    mk("rect", { x: x(RACE.t0), y: PAD_T, width: x(RACE.t1) - x(RACE.t0), height: EVENTS.length * ROW, fill: cssVar("--race-wash") });
+  }
+
+  // gridlines + axis ticks every 500 ms
+  for (let t = 0; t <= 3500; t += 500) {
+    mk("line", { x1: x(t), y1: PAD_T, x2: x(t), y2: PAD_T + EVENTS.length * ROW, stroke: cssVar("--grid"), "stroke-width": 1 });
+    const tick = mk("text", { x: x(t), y: PAD_T + EVENTS.length * ROW + 18, "text-anchor": "middle", "font-size": 11, fill: cssVar("--text-muted") });
+    tick.textContent = t;
+    tick.style.fontVariantNumeric = "tabular-nums";
+  }
+  const axisLabel = mk("text", { x: x(T_MAX / 2), y: H - 2, "text-anchor": "middle", "font-size": 11, fill: cssVar("--text-muted") });
+  axisLabel.textContent = "ms since prompt.start (measured)";
+
+  // baseline
+  mk("line", { x1: GUT, y1: PAD_T + EVENTS.length * ROW, x2: W - PAD_R, y2: PAD_T + EVENTS.length * ROW, stroke: cssVar("--baseline"), "stroke-width": 1 });
+
+  EVENTS.forEach((e, i) => {
+    const yMid = PAD_T + i * ROW + ROW / 2;
+    const lbl = mk("text", { x: GUT - 8, y: yMid + 4, "text-anchor": "end", "font-size": 12, fill: cssVar("--text-secondary") });
+    lbl.textContent = e.name;
+
+    let hit;
+    if (e.t1 !== undefined) {
+      const barH = 13;
+      hit = mk("rect", {
+        x: x(e.t0), y: yMid - barH / 2,
+        width: Math.max(2, x(e.t1) - x(e.t0)), height: barH,
+        rx: 4, fill: colors[e.kind],
+        stroke: cssVar("--surface-1"), "stroke-width": 2,
+      });
+    } else {
+      mk("line", { x1: x(e.t0), y1: yMid - 8, x2: x(e.t0), y2: yMid + 8, stroke: colors[e.kind], "stroke-width": 2.5 });
+      hit = mk("rect", { x: x(e.t0) - 7, y: yMid - 11, width: 14, height: 22, fill: "transparent" });
+    }
+    hit.style.cursor = "default";
+    hit.addEventListener("mousemove", (ev) => showTip(ev, e));
+    hit.addEventListener("mouseleave", hideTip);
+  });
+
+  // caption
+  const cap = mk("text", { x: GUT + 6, y: PAD_T + EVENTS.length * ROW - 6, "font-size": 11, fill: cssVar("--text-muted") });
+  cap.textContent = RACE
+    ? "race window: turn_end[0] still in flight while the next turn compiles"
+    : "0.82.1: strictly sequential — no overlap between a turn's lifecycle hooks and the next turn";
+}
+
+const tip = document.getElementById("tooltip");
+function showTip(ev, e) {
+  const wrap = document.getElementById("ganttwrap");
+  const r = wrap.getBoundingClientRect();
+  let html = "<b>" + e.name + "</b> <span class='t2'>(" + KIND_LABEL[e.kind] + ")</span><br>";
+  if (e.t1 !== undefined) {
+    html += "<span class='t2'>" + e.t0.toFixed(1) + " → " + e.t1.toFixed(1) + " ms · " + (e.t1 - e.t0).toFixed(1) + " ms</span>";
+  } else {
+    html += "<span class='t2'>at " + e.t0.toFixed(1) + " ms</span>";
+  }
+  if (e.note) html += "<br><span class='t2'>" + e.note + "</span>";
+  tip.innerHTML = html;
+  tip.style.display = "block";
+  const tx = Math.min(ev.clientX - r.left + 14, r.width - tip.offsetWidth - 4);
+  tip.style.left = Math.max(0, tx) + "px";
+  tip.style.top = (ev.clientY - r.top + 16) + "px";
+}
+function hideTip() { tip.style.display = "none"; }
+
+// data table
+(function () {
+  const tb = document.querySelector("#ganttTable tbody");
+  for (const e of EVENTS) {
+    const tr = document.createElement("tr");
+    const cells = [
+      e.name, KIND_LABEL[e.kind], e.t0.toFixed(1),
+      e.t1 !== undefined ? e.t1.toFixed(1) : "—",
+      e.t1 !== undefined ? (e.t1 - e.t0).toFixed(1) : "—",
+    ];
+    for (const c of cells) {
+      const td = document.createElement("td");
+      td.textContent = c;
+      tr.appendChild(td);
+    }
+    tb.appendChild(tr);
+  }
+})();
+
+drawGantt();
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawGantt);
+</script>
+</body>
+</html>

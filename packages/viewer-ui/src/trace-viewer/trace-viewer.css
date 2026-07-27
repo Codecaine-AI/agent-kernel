@@ -9,8 +9,8 @@
  * by overflow:hidden, so they are revealed top-to-bottom as the space opens —
  * i.e. the section expands downward, with the content visible the whole time.
  *
- * No opacity fade: that was making children look like they appeared "out of
- * thin air" instead of being uncovered by the expanding row.
+ * Opacity stays constant so children read as being uncovered by the expanding
+ * row.
  *
  * Open uses an ease-out curve so it glides open and settles; close uses an
  * ease-in so the row gathers up before disappearing. visibility is toggled
@@ -45,4 +45,33 @@
   .ap-collapsible[data-state="open"] {
     transition: none;
   }
+}
+
+/*
+ * Prompt surfaces share this root marker and consume the same scoped runtime
+ * variables. Defaults live at each consumption site so a host can put style
+ * variables on either this element or an ancestor without a local declaration
+ * unexpectedly shadowing them.
+ */
+.prompt-editor-surface {
+  color: var(--prompt-editor-fg, var(--editor-fg, #E4E4E2));
+  background: var(--prompt-editor-bg, var(--editor-bg, #1E1E1E));
+}
+
+.prompt-editor-surface .prompt-editor-row {
+  background: var(--prompt-editor-row-zebra, transparent);
+}
+
+.prompt-editor-surface .prompt-editor-row:hover {
+  background: var(--prompt-editor-hover-bg, rgb(255 255 255 / 0.05));
+}
+
+.prompt-editor-surface .prompt-editor-grip {
+  color: var(--prompt-editor-grip-color, #8A919C);
+  opacity: var(--prompt-editor-grip-opacity, 0.5);
+}
+
+.prompt-editor-surface .prompt-editor-grip:hover,
+.prompt-editor-surface .prompt-editor-grip:focus-visible {
+  opacity: 1;
 }

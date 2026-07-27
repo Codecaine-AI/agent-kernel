@@ -6,7 +6,7 @@ export function UserMessageRenderer({ span }: RendererProps) {
 
   return (
     <div className="space-y-2">
-      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+      <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em]">
         User{phase && <> · {phase}</>}
       </div>
       <div className="rounded-md bg-muted/30 p-3 text-sm whitespace-pre-wrap break-words">

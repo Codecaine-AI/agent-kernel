@@ -17,6 +17,8 @@
  *      sides and pass trivially.
  */
 
+import { relative } from "node:path";
+
 import {
 	agentRuns,
 	containers,
@@ -24,6 +26,14 @@ import {
 	traceEvents,
 	type KernelDatabase,
 } from "@agent-kernel/db";
+
+import {
+	bundleSections,
+	collectBundleDirs,
+	resolveBundleLayout,
+	type BundleEntryForm,
+	type BundleSection,
+} from "./agent-registry/registry/bundle-layout";
 
 const SAMPLE_LIMIT = 10;
 
@@ -347,6 +357,123 @@ function toolUseIdOf(eventData: unknown): string | undefined {
 		if (typeof value === "string") return value;
 	}
 	return undefined;
+}
+
+/* ------------------------------------------------------------------------ *
+ * Catalog doctor — bundle layout hygiene.
+ *
+ * The registry resolves each bundle section file-first, folder-second, and
+ * when both forms exist the file wins *silently* so a migration can leave a
+ * re-export shim at the old path. Silence is right for resolution and wrong
+ * for review: doctor is where a shim that outlived its migration surfaces.
+ * ------------------------------------------------------------------------ */
+
+/** One bundle section that exists in both the file and the folder form. */
+export interface BundleLayoutWarning {
+	/** Absolute path of the bundle directory. */
+	agentDir: string;
+	section: BundleSection;
+	/** The path discovery actually uses (always the file form here). */
+	resolvedPath: string;
+	/** The path discovery ignores. */
+	shadowedPath: string;
+	message: string;
+}
+
+export interface CatalogBundleSummary {
+	agentDir: string;
+	/** Resolved form per section; null where the section is absent. */
+	forms: Record<BundleSection, BundleEntryForm | null>;
+}
+
+export interface CatalogDoctorReport {
+	checkedAt: string;
+	roots: string[];
+	counts: {
+		bundles: number;
+		fileForm: number;
+		folderForm: number;
+	};
+	bundles: CatalogBundleSummary[];
+	warnings: BundleLayoutWarning[];
+	ok: boolean;
+}
+
+/**
+ * Scan catalog roots for bundle-layout problems. Purely a filesystem check —
+ * it does not import sidecars or validate prompts, so it is safe to run
+ * against a catalog that would fail registry boot.
+ */
+export function runCatalogDoctor(roots: string[]): CatalogDoctorReport {
+	const warnings: BundleLayoutWarning[] = [];
+	const bundles: CatalogBundleSummary[] = [];
+	let fileForm = 0;
+	let folderForm = 0;
+
+	for (const root of roots) {
+		for (const agentDir of collectBundleDirs(root)) {
+			const layout = resolveBundleLayout(agentDir);
+			const forms = {
+				prompt: layout.prompt.form,
+				context: layout.context.form,
+				tools: layout.tools.form,
+				state: layout.state.form,
+			} satisfies Record<BundleSection, BundleEntryForm | null>;
+			for (const [section, entry] of bundleSections(layout)) {
+				if (entry.form === "file") fileForm += 1;
+				if (entry.form === "folder") folderForm += 1;
+				if (!entry.shadowedPath || !entry.path) continue;
+				warnings.push({
+					agentDir,
+					section,
+					resolvedPath: entry.path,
+					shadowedPath: entry.shadowedPath,
+					message:
+						`${section}: both bundle forms present — the registry loads ` +
+						`${relative(agentDir, entry.path)} and ignores ` +
+						`${relative(agentDir, entry.shadowedPath)}. ` +
+						"Keep the file only while it is a re-export shim for the folder; " +
+						"delete it once the migration lands.",
+				});
+			}
+			bundles.push({ agentDir, forms });
+		}
+	}
+
+	return {
+		checkedAt: new Date().toISOString(),
+		roots: [...roots],
+		counts: { bundles: bundles.length, fileForm, folderForm },
+		bundles,
+		warnings,
+		ok: warnings.length === 0,
+	};
+}
+
+/** Human-readable catalog report for the CLI. */
+export function formatCatalogDoctorReport(report: CatalogDoctorReport): string {
+	const lines: string[] = [];
+	lines.push(`agent-kernel doctor — catalog: ${report.roots.join(", ")}`);
+	lines.push(`checked at ${report.checkedAt}`);
+	lines.push(
+		`bundles: ${report.counts.bundles} ` +
+			`(${report.counts.fileForm} file-form section(s), ` +
+			`${report.counts.folderForm} folder-form section(s))`,
+	);
+	lines.push("");
+	if (report.warnings.length === 0) {
+		lines.push("OK — no bundle layout warnings.");
+	} else {
+		lines.push(`WARN — ${report.warnings.length} bundle layout warning(s):`);
+		for (const w of report.warnings) {
+			lines.push("");
+			lines.push(`  ${w.agentDir}`);
+			lines.push(`    ${w.message}`);
+			lines.push(`    resolved: ${w.resolvedPath}`);
+			lines.push(`    shadowed: ${w.shadowedPath}`);
+		}
+	}
+	return lines.join("\n");
 }
 
 /** Human-readable report for the CLI. */

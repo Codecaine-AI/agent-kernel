@@ -67,7 +67,7 @@
 ## Examples
 
 - `examples/simple-research-kernel` is a runnable standalone Simple Research Kernel.
-- The example defines agents in a catalog (`agent.json` + `prompt.json` bundles), loads context sidecars, spawns scout subagents, waits for their reports, reviews gaps, queues a report writer, writes working memory, persists kernel observability rows, and renders traces through the viewer shell.
+- The example defines agents in a catalog (folder-form bundles: `agent.json` + `prompt/` + `context/` + `tools/`), loads context sidecars, spawns scout subagents, waits for their reports, reviews gaps, queues a report writer, writes working memory, persists kernel observability rows, and renders traces through the viewer shell.
 - Start it with `bun run dev:simple-research` — no Postgres, no Docker, no service processes.
 - It runs against a single local SQLite file (`examples/simple-research-kernel/.agent-kernel/trace.db`, WAL mode) created on boot, alongside a local kernel manifest (`.agent-kernel/kernel.json`).
 - The launcher starts the API on `http://127.0.0.1:8788` and the viewer on `http://127.0.0.1:5174`.

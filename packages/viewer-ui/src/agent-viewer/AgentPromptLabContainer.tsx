@@ -13,12 +13,13 @@ import {
 	type PromptRevisionSummary,
 } from "@agent-kernel/viewer-core";
 
-import type { LabContextPreview } from "./PromptInlineLab/ContextSurface";
 import {
 	PromptInlineLab,
+	type LabContextPreview,
 	type ManifestSaveOutcome,
 	type PromptSaveOutcome,
-} from "./PromptInlineLab";
+} from "@codecaine-ai/prompt-kit/ui/lab";
+import type { PromptStyleSettings } from "@codecaine-ai/prompt-kit/ui/style";
 import { RevisionHistoryPanel } from "./RevisionHistoryPanel";
 import { RevisionStatsStrip } from "./RevisionStatsStrip";
 
@@ -33,6 +34,8 @@ export interface AgentPromptLabContainerProps {
 	 * trace-derived preview from the host's viewer definitions.
 	 */
 	context?: LabContextPreview;
+	/** Viewer-only style settings controlled by the host application. */
+	styleSettings?: PromptStyleSettings;
 }
 
 interface ManifestFields {
@@ -53,6 +56,7 @@ export function AgentPromptLabContainer({
 	agentName,
 	className,
 	context,
+	styleSettings,
 }: AgentPromptLabContainerProps) {
 	const origin = trimTrailingSlash(baseUrl);
 	const [detail, setDetail] = useState<CatalogAgentDetail | undefined>(undefined);
@@ -207,6 +211,7 @@ export function AgentPromptLabContainer({
 					}}
 					onManifestSave={handleManifestSave}
 					context={context ?? toLabContextPreview(detail.context)}
+					styleSettings={styleSettings}
 					revisionsZone={
 						<RevisionHistoryPanel
 							revisions={revisions}

@@ -1,0 +1,208 @@
+{
+  "run_id": "afc09387-a461-4065-be1b-24ee20109f4c",
+  "turn_number": 0,
+  "prompt_hash": "pk1-bb16ee876b220b6c8b793f161fecb5c630effbc9eb902048de357fedded77f8e",
+  "system_prompt": "<role>\n    You are the state-demo agent. You exist to exercise the kernel's three-section request builder end to end against a deterministic in-memory provider.\n</role>\n\n<method>\n    Call the probe tool once per prompt, then answer in one short line. Never invent tool names.\n</method>\nCurrent working directory: /Users/Ford/Github Repos/Codecaine/Core/agent-kernel/spikes/state-three-section-e2e/.artifacts",
+  "message_count": 7,
+  "messages": [
+    {
+      "role": "custom",
+      "customType": "kernel:context",
+      "content": [
+        {
+          "type": "text",
+          "text": "<context>\n<state_demo_context>\n<agent>state-demo</agent>\n<input kind=\"text\" status=\"ok\">\nprobe · answer — the probe tool echoes its note back verbatim.\n</input>\n<input kind=\"text\" status=\"ok\">\nQuote marks (\"), ampersands (&), angle brackets (<state>), unicode arrows (→) and × all appear here on purpose.\n</input>\n</state_demo_context>\n</context>"
+        }
+      ],
+      "display": false,
+      "timestamp": 1785172169114
+    },
+    {
+      "role": "custom",
+      "customType": "kernel:state",
+      "content": [
+        {
+          "type": "text",
+          "text": "[turns 1–2 elided]"
+        }
+      ],
+      "display": false,
+      "timestamp": 1785172169114
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Turn three: probe the gamma note."
+        }
+      ],
+      "timestamp": 1785172169102
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "toolCall",
+          "id": "call-3-1",
+          "name": "probe",
+          "arguments": {
+            "note": "run-3"
+          }
+        }
+      ],
+      "api": "mock-e2e-api",
+      "provider": "mock-e2e",
+      "model": "deterministic-e2e",
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "stopReason": "toolUse",
+      "timestamp": 1785172169104
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "call-3-1",
+      "toolName": "probe",
+      "content": [
+        {
+          "type": "text",
+          "text": "probe → run-3"
+        }
+      ],
+      "details": {
+        "note": "run-3"
+      },
+      "isError": false,
+      "timestamp": 1785172169105
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "run 3 complete"
+        }
+      ],
+      "api": "mock-e2e-api",
+      "provider": "mock-e2e",
+      "model": "deterministic-e2e",
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "stopReason": "stop",
+      "timestamp": 1785172169106
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Turn four: probe the delta note."
+        }
+      ],
+      "timestamp": 1785172169113
+    }
+  ],
+  "refs": [
+    {
+      "blob_hash": "b1-eaf1b9d4c49bde98a1bfb06e43fe843d1a1524572f49f7c0ed12c7f2fa76fce0",
+      "role": "custom",
+      "index": 0,
+      "text_chars": 346,
+      "image_count": 0,
+      "tool_call_count": 0
+    },
+    {
+      "blob_hash": "b1-9284a7b8fc56979f22e8373ab3754c37e96ce4e064f2c72043f8eafe53ad1170",
+      "role": "custom",
+      "index": 1,
+      "text_chars": 18,
+      "image_count": 0,
+      "tool_call_count": 0
+    },
+    {
+      "blob_hash": "b1-4fbd84fbc0989605e1e1dcd00658c10f9a90b1d1564a6225db770c34cc705072",
+      "role": "user",
+      "index": 2,
+      "text_chars": 33,
+      "image_count": 0,
+      "tool_call_count": 0
+    },
+    {
+      "blob_hash": "b1-c4abc15486034f07e3ba479ffc67f3b930906c645cefe962b5f796a15d67606d",
+      "role": "assistant",
+      "index": 3,
+      "text_chars": 0,
+      "image_count": 0,
+      "tool_call_count": 1
+    },
+    {
+      "blob_hash": "b1-e46ef6c1b1a5c439846acddcc8be07a0310226f644ea47b83785dfbe6b0691a4",
+      "role": "toolResult",
+      "index": 4,
+      "text_chars": 13,
+      "image_count": 0,
+      "tool_call_count": 0
+    },
+    {
+      "blob_hash": "b1-c8354e2b76f37c291c86b626d39748a6022f8013cbd271a95711877e1d941c12",
+      "role": "assistant",
+      "index": 5,
+      "text_chars": 14,
+      "image_count": 0,
+      "tool_call_count": 0
+    },
+    {
+      "blob_hash": "b1-632c58e61e551693ff96f0f3e572c59098bd1665938ed1a68ed8b793392d30d2",
+      "role": "user",
+      "index": 6,
+      "text_chars": 32,
+      "image_count": 0,
+      "tool_call_count": 0
+    }
+  ],
+  "totals": {
+    "text_chars": 456,
+    "image_count": 0
+  },
+  "sections": [
+    {
+      "kind": "context",
+      "start": 0,
+      "end": 1
+    },
+    {
+      "kind": "state",
+      "start": 1,
+      "end": 2
+    },
+    {
+      "kind": "tail",
+      "start": 2,
+      "end": 7
+    }
+  ]
+}

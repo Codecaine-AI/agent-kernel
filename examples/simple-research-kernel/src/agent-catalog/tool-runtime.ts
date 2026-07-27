@@ -1,6 +1,6 @@
 import { defineSpawnerTool } from "@agent-kernel/kernel/agent-definition";
-import { Type } from "@mariozechner/pi-ai";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { Type } from "@earendil-works/pi-ai";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 export type ToolTextResult = {
 	content: Array<{ type: "text"; text: string }>;

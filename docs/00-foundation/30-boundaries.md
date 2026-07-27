@@ -16,9 +16,10 @@ The kernel owns the reusable runtime and observability foundation. A host applic
 |---|---|
 | Protocol | Trace event envelope, core event types, trace levels, factories, deterministic event ids, source conventions |
 | Runtime | `createKernel` config surface, container identity, run context, spawn pipeline, in-process emitter, turn limits |
-| Agent definitions | `agent.json` manifests, registry, prompt rendering, variable validation, sidecar loading |
+| Agent definitions | `agent.json` manifests, registry, bundle layout resolution (file or folder sections), prompt rendering, variable validation, sidecar loading |
 | Prompt system | Canonical `prompt.json` documents, content-addressed prompt revisions, rendered snapshots, revision registration |
 | Context | Base loader catalog and context assembly contract |
+| Agent state | The `seed`/`update`/`render` sidecar contract and when each runs, window sizing strategies, three-section request assembly, `state.json` snapshot (D81–D92) |
 | Subagents | In-process agent manager, queueing, parent tool-call linkage, steering events |
 | Observability DB | Per-kernel SQLite database, local kernel manifest, containers, Pi agent sessions, agent runs, trace events, prompt revisions, usage rollups, read helpers |
 | Transcript recovery | JSONL backfill/import: whole-file reading, event mapping, idempotent insert with emitter id parity |

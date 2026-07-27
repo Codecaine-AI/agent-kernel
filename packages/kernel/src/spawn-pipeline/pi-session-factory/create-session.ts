@@ -1,20 +1,21 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { getModel, type Model } from "@mariozechner/pi-ai";
+import { getModel, type Model } from "@earendil-works/pi-ai/compat";
 import {
-	AuthStorage,
 	DefaultResourceLoader,
 	ModelRegistry,
+	ModelRuntime,
 	SessionManager,
 	SettingsManager,
 	createAgentSession,
 	type AgentSession,
 	type ExtensionContext,
 	type ExtensionFactory,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 
 import { checkDomainAccess, mapToolToOperation } from "../hooks";
+import type { StateExtensionHandle } from "../../state";
 import type { AgentConfig, DomainRule } from "../types";
 import type { ResolvedAgent } from "../system-prompt-resolver";
 import { resolveModel as fuzzyResolveModel } from "./model-resolver";
@@ -44,6 +45,13 @@ export interface CreatePiSessionInput {
 	thinkingLevel?: string;
 	sessionManager?: SessionManager;
 	toolFactories?: ExtensionFactory[];
+	/**
+	 * The agent's state extension (seed/update/render + three-section request
+	 * builder). Present ONLY when the bundle ships a state.ts sidecar or a
+	 * window config; absent means complete pass-through — nothing registers and
+	 * the session behaves exactly as before.
+	 */
+	stateExtension?: StateExtensionHandle<any> | null;
 	sessionBinding?: SessionBindingInput;
 	piLifecycleCustomType?: string;
 	piAgentDir?: string;
@@ -103,6 +111,7 @@ export async function createPiSession(
 	const extensionFactories: ExtensionFactory[] = [
 		...(input.toolFactories ?? []),
 		...(domain?.length ? [buildDomainGuardFactory(domain, cwd)] : []),
+		...(input.stateExtension ? [input.stateExtension.factory] : []),
 	];
 	if (!input.piAgentDir) {
 		throw new Error("createPiSession requires input.piAgentDir");
@@ -127,9 +136,15 @@ export async function createPiSession(
 	});
 	await loader.reload();
 
-	const authStorage = AuthStorage.create(join(piAgentDir, "auth.json"));
-	const modelRegistry =
-		ctx?.modelRegistry ?? ModelRegistry.create(authStorage, join(piAgentDir, "models.json"));
+	// Pi 0.82: AuthStorage + ModelRegistry.create() were replaced by ModelRuntime,
+	// which owns provider auth and the model catalog. ModelRegistry is still the
+	// synchronous read surface the fuzzy resolver needs (ModelRuntime's own
+	// getAvailable() is async), so we wrap the runtime in one.
+	const modelRuntime = await ModelRuntime.create({
+		authPath: join(piAgentDir, "auth.json"),
+		modelsPath: join(piAgentDir, "models.json"),
+	});
+	const modelRegistry = ctx?.modelRegistry ?? new ModelRegistry(modelRuntime);
 
 	let model: Model<any> | undefined;
 	const config: AgentConfig = resolved.config;
@@ -158,8 +173,7 @@ export async function createPiSession(
 		agentDir: piAgentDir,
 		sessionManager: input.sessionManager ?? SessionManager.create(cwd),
 		settingsManager,
-		authStorage,
-		modelRegistry,
+		modelRuntime,
 		...(model ? { model } : {}),
 		resourceLoader: loader,
 	};
@@ -168,6 +182,10 @@ export async function createPiSession(
 	const { session } = await createAgentSession(
 		sessionOpts as Parameters<typeof createAgentSession>[0],
 	);
+
+	// The state extension reads the live transcript through this handle: its
+	// hooks only fire after creation, so binding here is early enough.
+	input.stateExtension?.bindSession(session as unknown as { messages: any[] });
 
 	if (input.sessionBinding) {
 		(session.sessionManager as unknown as {

@@ -135,13 +135,14 @@ Agent-specific private tools should live beside the agent manifest:
 ```text
 src/agent-catalog/report-writer/
   agent.json
-  prompt.json
-  prompt.rendered.md
-  context.ts
-  tools.ts
+  prompt/
+    prompt.json
+    system.md
+  context/index.ts
+  tools/index.ts
 ```
 
-`agent.json` declares the durable agent config; `prompt.json` is the canonical prompt document; the code sidecars attach by filename convention. `tools.ts` implements the tools for that one agent:
+`agent.json` declares the durable agent config; `prompt.json` is the canonical prompt document (`system.md` is its generated markdown render); the code sidecars attach by convention. Each section may equally be a single file — `prompt.json`, `context.ts`, `tools.ts`, `state.ts` beside the manifest — and resolution is file-first (D98). The tools sidecar implements the tools for that one agent:
 
 ```ts
 import { Type } from "@mariozechner/pi-ai";

@@ -12,7 +12,8 @@
  *   PromptDocument from the lab
  *     -> shape check + validatePrompt against declared variables (errors out)
  *     -> canonicalize + hash
- *     -> write prompt.json + regenerate prompt.rendered.md
+ *     -> write prompt.json + regenerate its markdown render
+ *        (prompt.rendered.md, or prompt/system.md for a folder-form bundle)
  *     -> upsert prompt_revisions (source: "lab-save")
  *     -> hot-swap the in-memory registry entry (next spawn uses the new
  *        prompt, no restart)
@@ -21,7 +22,7 @@
  * service is read-only unless created with `allowWrites: true`.
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 
 import {
 	getPromptRevisionStats,
@@ -43,6 +44,10 @@ import {
 	type AgentDefinition,
 	type AgentRegistry,
 } from "./agent-registry";
+import {
+	RENDERED_SNAPSHOT_HEADER,
+	renderedPromptSnapshot,
+} from "./agent-registry/prompt-snapshot";
 import { validateAgentManifestShape } from "./agent-definition";
 import {
 	buildContext,
@@ -164,18 +169,11 @@ export interface CreateKernelCatalogServiceOptions {
 }
 
 /**
- * Derived prompt.rendered.md content — byte-for-byte identical to the
- * `renderedSnapshot` helper in scripts/render-prompts-to-json.ts (the Phase 3
- * regeneration script, not importable from this package). Keep the two in
- * lockstep: the catalog snapshot test compares committed files against the
- * script's output.
+ * Derived prompt markdown content. Re-exported from the single
+ * implementation in agent-registry/prompt-snapshot.ts so the lab save path,
+ * the regeneration CLI and the catalog snapshot test all emit identical bytes.
  */
-export const RENDERED_SNAPSHOT_HEADER =
-	"<!-- derived from prompt.json — do not edit. regenerate: bun run scripts/render-prompts-to-json.ts -->\n\n";
-
-export function renderedPromptSnapshot(body: string): string {
-	return `${RENDERED_SNAPSHOT_HEADER}${body.endsWith("\n") ? body : `${body}\n`}`;
-}
+export { RENDERED_SNAPSHOT_HEADER, renderedPromptSnapshot };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -330,11 +328,9 @@ export function createKernelCatalogService(
 
 			const canonical = canonicalizePrompt(document);
 			writeFileSync(def.promptFile, canonical, "utf8");
-			writeFileSync(
-				join(dirname(def.promptFile), "prompt.rendered.md"),
-				renderedPromptSnapshot(rendered),
-				"utf8",
-			);
+			// Form-aware: prompt.rendered.md beside a flat prompt.json,
+			// prompt/system.md inside a folder-form bundle.
+			writeFileSync(def.renderedPromptFile, renderedPromptSnapshot(rendered), "utf8");
 
 			await upsertPromptRevision(opts.db(), {
 				hash,

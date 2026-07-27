@@ -29,9 +29,24 @@ const TOP_LEVEL_KEYS = new Set([
 	"toolProfiles",
 	"variables",
 	"variants",
+	"state",
 ]);
 
 const VARIABLE_KEYS = new Set(["default", "description", "optional", "required"]);
+
+const STATE_KEYS = new Set(["window"]);
+
+const WINDOW_KEYS = new Set([
+	"strategy",
+	"maxTurns",
+	"maxTokens",
+	"charsPerToken",
+	"imageTokens",
+	"maxImages",
+	"elisionMarker",
+]);
+
+const WINDOW_STRATEGIES = new Set(["turns", "token-budget"]);
 
 const VARIANT_KEYS = new Set([
 	"model",
@@ -89,6 +104,25 @@ export const agentManifestJsonSchema = {
 					maxTurns: { type: "number" },
 					runInBackground: { type: "boolean" },
 					displayLabel: { type: "string" },
+				},
+			},
+		},
+		state: {
+			type: "object",
+			additionalProperties: false,
+			properties: {
+				window: {
+					type: "object",
+					additionalProperties: false,
+					properties: {
+						strategy: { type: "string", enum: ["turns", "token-budget"] },
+						maxTurns: { type: "number" },
+						maxTokens: { type: "number" },
+						charsPerToken: { type: "number" },
+						imageTokens: { type: "number" },
+						maxImages: { type: "number" },
+						elisionMarker: { type: "boolean" },
+					},
 				},
 			},
 		},
@@ -172,7 +206,67 @@ export function validateAgentManifestShape(
 		}
 	}
 
+	if (value.state !== undefined) validateStateConfig(value.state, errors);
+
 	return { valid: errors.length === 0, errors };
+}
+
+/**
+ * `state.window` is the per-agent window policy (D85). Its presence —
+ * with or without a `state.ts` sidecar — is what activates the state
+ * extension; a manifest without it keeps the pure pass-through path.
+ */
+function validateStateConfig(value: unknown, errors: string[]): void {
+	const path = "manifest.state";
+	if (!isPlainObject(value)) {
+		errors.push(`${path}: expected an object, got ${describe(value)}`);
+		return;
+	}
+	for (const key of Object.keys(value)) {
+		if (!STATE_KEYS.has(key)) errors.push(`${path}.${key}: unknown field`);
+	}
+	if (value.window === undefined) return;
+	const windowPath = `${path}.window`;
+	const windowValue = value.window;
+	if (!isPlainObject(windowValue)) {
+		errors.push(`${windowPath}: expected an object, got ${describe(windowValue)}`);
+		return;
+	}
+	for (const key of Object.keys(windowValue)) {
+		if (!WINDOW_KEYS.has(key)) errors.push(`${windowPath}.${key}: unknown field`);
+	}
+	if (windowValue.strategy !== undefined) {
+		if (
+			typeof windowValue.strategy !== "string" ||
+			!WINDOW_STRATEGIES.has(windowValue.strategy)
+		) {
+			errors.push(
+				`${windowPath}.strategy: expected "turns" or "token-budget", got ${describe(windowValue.strategy)}`,
+			);
+		}
+	}
+	for (const field of [
+		"maxTurns",
+		"maxTokens",
+		"charsPerToken",
+		"imageTokens",
+		"maxImages",
+	] as const) {
+		const member = windowValue[field];
+		if (member !== undefined && typeof member !== "number") {
+			errors.push(
+				`${windowPath}.${field}: expected a number, got ${describe(member)}`,
+			);
+		}
+	}
+	if (
+		windowValue.elisionMarker !== undefined &&
+		typeof windowValue.elisionMarker !== "boolean"
+	) {
+		errors.push(
+			`${windowPath}.elisionMarker: expected a boolean, got ${describe(windowValue.elisionMarker)}`,
+		);
+	}
 }
 
 function validateVariableDeclaration(

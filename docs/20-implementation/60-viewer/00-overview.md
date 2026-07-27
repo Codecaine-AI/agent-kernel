@@ -36,7 +36,7 @@ Viewer-ui owns reusable React components for trace rendering and the prompt lab:
 
 - `TreeView`
 - `SpanCard`
-- `SpanDetailPanel`
+- `SpanDetailPanel` — including the per-turn request-snapshot renderer and its three-section turn view (see [../20-kernel/70-request-snapshots.md](../20-kernel/70-request-snapshots.md))
 - `AgentCatalogViewer`
 - `PromptInlineLab` — inline prompt editor with transactional undo/redo (block edits and metadata edits share one stack, and undo works across a save boundary) and a save flow against the catalog API
 - `RevisionHistoryPanel` — revision list with block-level diffs between any two revisions via `diffPromptDocuments`

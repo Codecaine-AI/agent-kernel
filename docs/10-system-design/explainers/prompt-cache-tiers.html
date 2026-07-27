@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompt layers &amp; where state lives — design explainer</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page:          #f9f9f7;
+    --surface-1:     #fcfcfb;
+    --text-primary:  #0b0b0b;
+    --text-secondary:#52514e;
+    --text-muted:    #898781;
+    --grid:          #e1e0d9;
+    --baseline:      #c3c2b7;
+    --border:        rgba(11,11,11,0.10);
+    --series-1:      #2a78d6;  /* stable / durable */
+    --series-2:      #eb6834;  /* ephemeral / dies */
+    --series-3:      #1baf7a;  /* volatile / in-flight */
+    --wash-1:        rgba(42,120,214,0.10);
+    --wash-2:        rgba(235,104,52,0.10);
+    --wash-3:        rgba(27,175,122,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page:          #0d0d0d;
+      --surface-1:     #1a1a19;
+      --text-primary:  #ffffff;
+      --text-secondary:#c3c2b7;
+      --text-muted:    #898781;
+      --grid:          #2c2c2a;
+      --baseline:      #383835;
+      --border:        rgba(255,255,255,0.10);
+      --series-1:      #3987e5;
+      --series-2:      #d95926;
+      --series-3:      #199e70;
+      --wash-1:        rgba(57,135,229,0.16);
+      --wash-2:        rgba(217,89,38,0.16);
+      --wash-3:        rgba(25,158,112,0.16);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:          #0d0d0d;
+    --surface-1:     #1a1a19;
+    --text-primary:  #ffffff;
+    --text-secondary:#c3c2b7;
+    --text-muted:    #898781;
+    --grid:          #2c2c2a;
+    --baseline:      #383835;
+    --border:        rgba(255,255,255,0.10);
+    --series-1:      #3987e5;
+    --series-2:      #d95926;
+    --series-3:      #199e70;
+    --wash-1:        rgba(57,135,229,0.16);
+    --wash-2:        rgba(217,89,38,0.16);
+    --wash-3:        rgba(25,158,112,0.16);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--text-primary);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 24px 96px; }
+  h1 { font-size: 26px; line-height: 1.25; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 46px 0 8px; }
+  p  { margin: 8px 0; }
+  .sub { color: var(--text-secondary); }
+  .muted { color: var(--text-muted); }
+  code, pre {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  code {
+    font-size: 0.86em; background: var(--surface-1);
+    border: 1px solid var(--border); border-radius: 4px; padding: 0 4px;
+  }
+  pre {
+    font-size: 12.5px; line-height: 1.5; margin: 0;
+    color: var(--text-secondary); overflow-x: auto;
+  }
+  .card {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px; margin: 14px 0;
+  }
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+    border-radius: 4px; padding: 1px 7px; border: 1px solid var(--baseline);
+    color: var(--text-secondary); vertical-align: 2px; margin-left: 6px; white-space: nowrap;
+  }
+  .badge.fact { background: var(--text-primary); color: var(--page); border-color: var(--text-primary); }
+  .badge.sketch { border-style: dashed; }
+
+  .topbar { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+  #themeToggle {
+    font: 13px system-ui, sans-serif; color: var(--text-secondary);
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 10px; cursor: pointer;
+  }
+
+  table { border-collapse: collapse; font-size: 13.5px; margin: 10px 0; width: 100%; }
+  th, td { border: 1px solid var(--grid); padding: 5px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--text-secondary); font-weight: 600; }
+
+  /* ---- horizontal prompt-layer strip ---- */
+  .strip { display: flex; gap: 6px; align-items: stretch; margin: 12px 0 4px; overflow-x: auto; padding-bottom: 4px; }
+  .lay {
+    flex: 1 1 0; min-width: 150px;
+    border: 1px solid var(--baseline); border-radius: 8px;
+    padding: 10px 12px; background: var(--surface-1);
+    cursor: pointer; text-align: left; font: inherit; color: inherit;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .lay:hover { border-color: var(--text-secondary); }
+  .lay.on   { background: var(--wash-1); border-color: var(--series-1); }
+  .lay.hit  { background: var(--wash-2); border-color: var(--series-2); }
+  .lay.vol  { background: var(--wash-3); border-color: var(--series-3); }
+  .lay .n  { font-weight: 600; font-size: 13.5px; }
+  .lay .d  { font-size: 12px; color: var(--text-secondary); }
+  .lay .r  { font-size: 11.5px; color: var(--text-muted); margin-top: auto; padding-top: 6px; }
+  .axis {
+    display: flex; justify-content: space-between;
+    font-size: 11.5px; color: var(--text-muted); letter-spacing: 0.03em;
+    border-top: 1px solid var(--grid); padding-top: 5px; margin-top: 2px;
+  }
+  .simctl { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 12px 0 0; }
+  .simctl button {
+    font: 13px system-ui, sans-serif; padding: 5px 12px; border-radius: 6px;
+    border: 1px solid var(--baseline); background: var(--surface-1);
+    color: var(--text-primary); cursor: pointer;
+  }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-secondary); margin: 8px 0; }
+  .legend .sw { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
+
+  /* ---- horizontal topology ---- */
+  .topo { display: flex; gap: 0; align-items: stretch; flex-wrap: wrap; margin: 14px 0; }
+  .zone {
+    flex: 1 1 250px; border: 1px solid var(--baseline); border-radius: 10px;
+    padding: 12px 14px; background: var(--surface-1);
+  }
+  .zone.eph { border-color: var(--series-2); background: var(--wash-2); }
+  .zone.dur { border-color: var(--series-1); background: var(--wash-1); }
+  .zone h4 { margin: 0 0 2px; font-size: 13.5px; }
+  .zone .life { font-size: 11.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 8px; }
+  .zone ul { margin: 4px 0 0; padding-left: 18px; font-size: 13px; }
+  .zone li { margin: 3px 0; }
+  .chan { align-self: center; padding: 0 12px; text-align: center; min-width: 130px; }
+  .chan .g { font-size: 20px; color: var(--text-secondary); line-height: 1; }
+  .chan .t { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .chan .s { font-size: 11px; color: var(--text-muted); }
+
+  .tree { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin: 12px 0; }
+  .tree pre b { color: var(--text-primary); font-weight: 600; }
+  .tree pre .cm { color: var(--text-muted); }
+
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 820px) { .cols { grid-template-columns: 1fr; } }
+
+  ul { margin: 6px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  .ok::before  { content: "✓ "; }
+  .no::before  { content: "✗ "; }
+  .no { font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="topbar">
+    <h1>Prompt layers &amp; where state lives</h1>
+    <button id="themeToggle" aria-label="Toggle color theme">Theme: auto</button>
+  </div>
+  <p class="sub">Agent Kernel design explainer — companion to <code>context-fold-projection.html</code> — 2026-07-25</p>
+
+  <div class="card">
+    <p><strong>TL;DR.</strong> Order the compiled request by how fast each part changes — system prompt, then capabilities, then state, then history, then the live turn. That ordering is good design on its own (stable things stay put, volatile things stay at the edge); caching happens to reward it, but we're not designing around caching right now. The bigger open question is <strong>where the run's state actually lives on disk</strong>. Today the durable trace DB and the disposable session JSONL sit in the same <code>.agent-kernel/</code> directory. Those two have opposite lifetimes, and in a wipe-after-run sandbox that co-location is the thing that breaks.</p>
+  </div>
+
+  <div class="card" style="border-color: var(--series-1);">
+    <p style="margin-bottom:0;"><strong>Updated by the 2026-07-27 design interview.</strong> The state model now lives in <code>state-shapes.html</code> (v4): one state object per agent (messages included), a <code>seed / update / render</code> contract, and a three-section request. §7's options table below is <strong>superseded</strong> — there is no kernel reducer schema and no kernel <code>remember</code> tool; each agent's <code>state.ts</code> owns shape, update rules, and render. This doc remains the home of the storage layout and the transport design; the agreed transport decisions are pinned at the end of §9.</p>
+  </div>
+
+  <h2>1. The prompt, left to right <span class="badge sketch">SKETCH — open</span></h2>
+  <p>Same five layers, ordered by mutation rate — slowest on the left, most volatile on the right. Everything to the left of a change is untouched; everything to the right gets rebuilt on every request anyway.</p>
+
+  <div class="card">
+    <div class="strip" id="strip"></div>
+    <div class="axis">
+      <span>◀ stable — set once per run</span>
+      <span>rebuilt every request ▶</span>
+    </div>
+    <div class="legend" style="margin-top:12px;">
+      <span><span class="sw" style="background: var(--series-1)"></span>Unaffected by the change</span>
+      <span><span class="sw" style="background: var(--series-2)"></span>Must be rebuilt</span>
+      <span><span class="sw" style="background: var(--series-3)"></span>Rebuilt every request regardless</span>
+    </div>
+    <div class="simctl">
+      <button id="btnReset">Steady state</button>
+      <span class="muted" id="simNote"></span>
+    </div>
+  </div>
+
+  <p class="muted" style="font-size:13px;">Wire-order footnote, so it isn't lost later: the API serializes <code>tools</code> → <code>system</code> → <code>messages</code>, so tool definitions physically precede the system prompt on the wire even though the system prompt is conceptually first. That only matters for cache-prefix purposes — which we're deliberately not optimizing for yet. Layer <em>meaning</em> is what the diagram above is for.</p>
+
+  <h2>2. Where the files live today <span class="badge fact">CURRENT — from the repo</span></h2>
+  <p>Real paths, as the kernel writes them now:</p>
+  <div class="tree">
+<pre>&lt;app-root&gt;/<b>.agent-kernel</b>/
+├── <b>trace.db</b>                                  <span class="cm">← per-kernel SQLite (KERNEL_DB_RELATIVE_PATH)</span>
+├── <b>pi-sessions</b>/
+│   └── &lt;containerId&gt;/
+│       └── &lt;agentName&gt;/
+│           └── &lt;timestamp&gt;_&lt;piSessionUuid&gt;.jsonl  <span class="cm">← Pi's durable transcript</span>
+└── <b>&lt;app&gt;-sessions</b>/                           <span class="cm">← app-owned, e.g. research-sessions/</span>
+    └── &lt;slug&gt;/
+        └── research-memory/                    <span class="cm">← working memory the agent reads/writes</span></pre>
+  </div>
+  <p>Three different things, one root. That's fine on a laptop — and it is exactly the "general place" worth scoping now, because these three do <em>not</em> share a lifetime:</p>
+
+  <table>
+    <thead><tr><th>Path</th><th>Owner</th><th>Lifetime</th><th>Must survive the run?</th></tr></thead>
+    <tbody>
+      <tr><td><code>trace.db</code></td><td>kernel</td><td>long-lived, cross-run</td><td class="ok">yes — it's the record</td></tr>
+      <tr><td><code>pi-sessions/**.jsonl</code></td><td>Pi</td><td>per session</td><td class="no">no — dies with the machine</td></tr>
+      <tr><td><code>&lt;app&gt;-sessions/**</code></td><td>app</td><td>per session</td><td>sometimes — it holds deliverables</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3. The problem in one line <span class="badge">PROPOSAL</span></h2>
+  <p>In a Daytona-style sandbox, <code>&lt;app-root&gt;/.agent-kernel/</code> <em>is inside the sandbox</em>. Wipe the sandbox and you lose the JSONL, the working memory, <strong>and</strong> the trace DB — including the record of everything that just happened. The durable thing and the disposable thing are in the same folder, so the disposable one takes the durable one down with it.</p>
+  <p>The fix isn't a new format; it's a boundary. Split the directory by lifetime, and let only the durable half leave the machine.</p>
+
+  <h2>4. Proposed: run-local vs. durable <span class="badge sketch">SKETCH — open</span></h2>
+  <div class="topo">
+    <div class="zone eph">
+      <h4>Inside the sandbox</h4>
+      <div class="life">ephemeral — assume it is lost</div>
+      <ul>
+        <li><b>In-memory state</b> — what the projection renders from</li>
+        <li><code>pi-sessions/**.jsonl</code> — Pi's transcript, needed for local resume</li>
+        <li><code>state.jsonl</code> — our append-only fold log <span class="muted">(new)</span></li>
+        <li><code>&lt;app&gt;-sessions/**</code> — working memory, deliverables</li>
+      </ul>
+      <p class="muted" style="font-size:12px; margin-bottom:0;">No DB, no network needed. The agent is fully self-sufficient here.</p>
+    </div>
+
+    <div class="chan">
+      <div class="g">──▶</div>
+      <div class="t">state channel</div>
+      <div class="s">ordered, acked, low volume</div>
+      <div class="g" style="margin-top:14px;">──▶</div>
+      <div class="t">observability channel</div>
+      <div class="s">batched, droppable</div>
+    </div>
+
+    <div class="zone dur">
+      <h4>Outside — stable infrastructure</h4>
+      <div class="life">durable — survives the sandbox</div>
+      <ul>
+        <li><b>trace.db</b> — moved <em>out</em> of the sandbox</li>
+        <li><b>state snapshots</b> — each fold, retained</li>
+        <li><b>artifacts</b> — deliverables worth keeping</li>
+      </ul>
+      <p class="muted" style="font-size:12px; margin-bottom:0;">This is what a restart rebuilds from once the sandbox is gone.</p>
+    </div>
+  </div>
+
+  <p>The concrete change to today's layout: <code>trace.db</code> stops being a sibling of <code>pi-sessions/</code>. Inside the sandbox the kernel writes only a local run directory; the trace DB lives wherever the receiver lives. Locally (single machine, no sandbox) the two collapse back into the same folder and nothing changes — the boundary is a deployment concern, not a code fork.</p>
+
+  <div class="card">
+    <p><strong>Why two channels and not one.</strong> A single stream can't be both "never blocks the agent" and "authoritative enough to rebuild from." Folds are small, ordered, and worth an acknowledgement; spans and token counts are high-volume and safe to drop. Splitting them means the 1000-agent write-contention worry lands on the cheap channel, while the channel recovery depends on stays small enough to guarantee.</p>
+  </div>
+
+  <h2>5. What the two files actually contain <span class="badge sketch">SKETCH — shapes are illustrative</span></h2>
+  <div class="cols">
+    <div class="card">
+      <p><strong><code>pi-sessions/…/&lt;ts&gt;_&lt;uuid&gt;.jsonl</code></strong><br><span class="sub">Pi's transcript. One JSON object per line, append-only.</span></p>
+<pre>{"type":"session","id":"019f24d5-…"}
+{"type":"message","message":{
+   "role":"user","content":"Find a DB…"}}
+{"type":"message","message":{
+   "role":"assistant","content":[…]}}
+{"type":"message","message":{
+   "role":"toolResult","toolName":"read",…}}
+{"type":"custom",
+ "customType":"agent-kernel:lifecycle",
+ "data":{"phase":"turn_end","turnIndex":0}}</pre>
+      <p class="muted" style="font-size:12px;">The <code>custom</code> entries are ours — Pi ignores them for LLM context. This is where fold/state entries could also go, via <code>appendCustomEntry()</code>.</p>
+    </div>
+
+    <div class="card">
+      <p><strong>The trace side</strong><br><span class="sub">What leaves the sandbox and lands in <code>trace.db</code>.</span></p>
+<pre>{"type":"user_message",
+ "containerId":"…","runId":"…",
+ "eventData":{…},"ts":"…"}
+{"type":"tool_call_start",
+ "eventData":{"toolName":"read",…}}
+{"type":"pi_turn_end",
+ "eventData":{"turnNumber":0,"usage":{…}}}
+
+<span class="cm">— proposed additions —</span>
+{"type":"state_fold",
+ "eventData":{"foldSeq":3,
+   "diffs":[…],"stateHash":"…"}}
+{"type":"state_snapshot",
+ "eventData":{"foldSeq":3,"state":{…}}}</pre>
+      <p class="muted" style="font-size:12px;">Same identity envelope as existing trace events (<code>containerId</code>/<code>runId</code>), so nothing new is needed to correlate them.</p>
+    </div>
+  </div>
+
+  <p>Whether the state log is a <em>separate</em> <code>state.jsonl</code> or just more <code>custom</code> entries inside Pi's session file is a real fork worth deciding: co-locating keeps one file to ship and one thing to replay; separating keeps our format independent of Pi's and makes the state channel trivial to tail on its own.</p>
+
+  <h2>6. Pi does <em>not</em> re-read the JSONL each turn <span class="badge fact">SOURCE-VERIFIED</span></h2>
+  <p>This is worth stating plainly because it removes a whole class of problem. The agent loop runs off an <strong>in-memory array</strong>; the JSONL is a write-behind log, not the loop's input.</p>
+
+  <div class="topo">
+    <div class="zone dur">
+      <h4>Per turn — in memory</h4>
+      <div class="life">every request</div>
+      <ul>
+        <li><code>agent-loop.js</code> reads <code>context.messages</code></li>
+        <li>new messages are <code>push()</code>ed onto that same array</li>
+        <li>the <code>context</code> hook rewrites a <em>copy</em> for the request</li>
+      </ul>
+      <p class="muted" style="font-size:12px; margin-bottom:0;">The JSONL is never consulted here.</p>
+    </div>
+    <div class="chan">
+      <div class="g">▼</div>
+      <div class="t">append-only write</div>
+      <div class="s">write-behind log</div>
+      <div class="g" style="margin-top:14px;">▲</div>
+      <div class="t">read at load only</div>
+      <div class="s">resume · fork · switch</div>
+    </div>
+    <div class="zone eph">
+      <h4>The JSONL</h4>
+      <div class="life">read only at session load</div>
+      <ul>
+        <li><code>buildSessionContext()</code> parses entries → messages</li>
+        <li>called at construction, resume, fork, and session switch</li>
+        <li><strong>not</strong> called per turn</li>
+      </ul>
+      <p class="muted" style="font-size:12px; margin-bottom:0;">Historical record, not the live input.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <p><strong>So the image question answers itself: there is no handshake, and nothing gets removed from the JSONL.</strong></p>
+    <ul>
+      <li><strong>Turn 3</strong> — the browser tool returns a screenshot. The JSONL records it permanently. That is <em>true</em>: at turn 3, that screenshot existed.</li>
+      <li><strong>Turn 10</strong> — the <code>context</code> hook compiles the request, keeps the 3 most recent images, and replaces older image blocks with a text stub: <code>[screenshot from turn 3 — superseded; call browser_snapshot for current]</code>.</li>
+      <li><strong>The JSONL is untouched. The in-memory array is untouched.</strong> Only the outgoing request differs — and it is recomputed from scratch on the next request anyway.</li>
+      <li><strong>After a restart</strong> — the process reloads the JSONL, gets all the images back in memory, and the <code>context</code> hook applies the same rule on the next request. Same three images. It self-heals; nothing needs to be pre-processed.</li>
+    </ul>
+    <p class="muted">The one real constraint: assistant <code>toolCall</code> blocks and their <code>toolResult</code> must be dropped as <em>pairs</em>. Rewriting block <em>content</em> — an image to a stub — is unrestricted, which is exactly what image eviction needs.</p>
+    <p class="muted">The one real cost: the in-memory array grows for the life of the process even though requests stay small. That's memory pressure, not tokens — and only matters for very long-lived runs.</p>
+  </div>
+
+  <h2>7. How the state actually gets built <span class="badge sketch">SKETCH — pick one</span></h2>
+  <p>Four options, roughly in order of how much determinism they preserve:</p>
+  <table>
+    <thead><tr><th>Approach</th><th>How</th><th>Good</th><th>Bad</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>A · Reducers in code</strong></td>
+        <td>agent bundle ships <code>state.ts</code>: <code>(state, event) =&gt; state</code></td>
+        <td>deterministic, free, testable, replayable</td>
+        <td>only captures what you can express mechanically</td>
+      </tr>
+      <tr>
+        <td><strong>B · Agent-authored</strong></td>
+        <td>an <code>update_state</code> / <code>remember</code> tool the model calls</td>
+        <td>captures judgment and intent</td>
+        <td>costs turns; model may forget; nondeterministic</td>
+      </tr>
+      <tr>
+        <td><strong>C · Fold agent</strong></td>
+        <td>a cheap LLM call at fold time rewrites the state doc</td>
+        <td>handles prose and summarization well</td>
+        <td>latency on the critical path; not replayable</td>
+      </tr>
+      <tr>
+        <td><strong>D · Hybrid</strong></td>
+        <td>A for structured facts, B as an explicit escape hatch</td>
+        <td>deterministic core, human-legible extras</td>
+        <td>two mechanisms to reason about</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="card">
+    <p><strong>Recommendation: start at D — reducers plus a <code>remember</code> tool — and defer the fold agent until something demands it.</strong></p>
+    <p>The argument is replayability, and it compounds with §6. Projection is already a pure function of (messages + state). If <em>state derivation</em> is also pure, then the whole pipeline is deterministic: given the event log, you can rebuild the exact state and the exact compiled request offline. That is what makes trace-based recovery actually work. Put an LLM inside the fold and rebuild stops being reproducible — you'd have to snapshot state rather than derive it, and every debugging session becomes archaeology.</p>
+    <p class="sub">Reducers also fit the existing typed-agent-bundle shape — <code>agent.json</code> + <code>prompt.json</code> + <code>context.ts</code> + <code>tools.ts</code> gains a <code>state.ts</code> sidecar. Same discovery, same validation, same authoring story.</p>
+  </div>
+
+  <div class="card">
+    <p class="sub" style="margin-top:0;">Sketch of what a <code>state.ts</code> sidecar could look like — shape only, not a proposed API:</p>
+<pre>export const initialState = {
+  goal: null, constraints: [], candidates: [],
+  decisions: [], openQuestions: [],
+};
+
+export const reducers = {
+  tool_result(state, ev) {
+    if (ev.toolName !== "read_file") return state;
+    return { ...state, workingSet: add(state.workingSet, ev.path) };
+  },
+  remember(state, ev) {           <span class="cm">// the agent-authored escape hatch</span>
+    return { ...state, decisions: [...state.decisions, ev.text] };
+  },
+};
+
+<span class="cm">// projection reads state; it never writes it</span>
+export function renderState(state) { return xml("current_state", state); }</pre>
+  </div>
+
+  <h2>8. Watch the state file build the window <span class="badge sketch">SKETCH — interactive</span></h2>
+  <p>This is the loop the <code>state.ts</code> sidecar drives. Each step: events arrive → reducers fold them into state → projection renders state + messages into the context window. <strong>State is the ledger; projection applies the policy.</strong> Step through a browser agent whose image cap is 3:</p>
+
+  <div class="card">
+    <div class="simctl" style="margin-top:0;">
+      <button id="sPrev">← Prev</button>
+      <button id="sNext">Next →</button>
+      <button id="sReset">Reset</button>
+      <strong id="sLabel"></strong>
+    </div>
+    <p class="sub" id="sNote" style="min-height:2.4em; margin-top:4px;"></p>
+
+    <div class="topo" style="align-items: stretch;">
+      <div class="zone" style="flex:1 1 210px;">
+        <h4>1 · Events this turn</h4>
+        <div class="life">what happened</div>
+        <div id="pEvents"></div>
+      </div>
+      <div class="chan" style="min-width:96px;">
+        <div class="g">──▶</div>
+        <div class="t">reducers</div>
+        <div class="s" id="pFired">—</div>
+      </div>
+      <div class="zone" style="flex:1 1 230px;">
+        <h4>2 · State after fold</h4>
+        <div class="life">the ledger — keeps everything</div>
+        <div id="pState"></div>
+      </div>
+      <div class="chan" style="min-width:96px;">
+        <div class="g">──▶</div>
+        <div class="t">projection</div>
+        <div class="s">applies policy</div>
+      </div>
+      <div class="zone dur" style="flex:1 1 230px;">
+        <h4>3 · Context window</h4>
+        <div class="life">what the model receives</div>
+        <div id="pWindow"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p><strong>The point of the walkthrough.</strong> At turn 5 the fourth screenshot arrives. Nothing is deleted anywhere — the state ledger holds all four references and the JSONL holds all four images permanently. The <em>projection</em> keeps the newest three live and renders the oldest as a one-line stub. Change the cap to 5 and the next request simply renders differently; no migration, no rewrite, no handshake.</p>
+    <p class="sub">That is what makes the state file "the logic that shows the agent what it's doing": reducers decide what is <em>true</em>, projection decides what is <em>shown</em>, and the two are separate functions so either can change without touching the other.</p>
+  </div>
+
+  <h2>9. Getting traces out — one path, both topologies <span class="badge sketch">SKETCH — open</span></h2>
+  <p>Agreed on the premise: traces should be fired by our code in-process, never by reading the JSONL. That's already the decided architecture (extension-primary emission) and the spike confirmed the extension observes everything the JSONL contains, plus things it never will.</p>
+  <p>The part that needs designing is transport. The way to avoid a sandbox/local fork is to make <strong>every</strong> emit go to a local spool file, and vary only what drains it:</p>
+
+  <div class="topo">
+    <div class="zone">
+      <h4>1 · Emit</h4>
+      <div class="life">in-process, synchronous</div>
+      <p class="sub" style="font-size:13px;">Extension hook appends one line to <code>spool.jsonl</code>. A file append — never a network call, never a DB write. Cannot block the agent, cannot fail because something else is down.</p>
+    </div>
+    <div class="chan"><div class="g">──▶</div><div class="t">cursor</div></div>
+    <div class="zone">
+      <h4>2 · Drain</h4>
+      <div class="life">async loop, tracks a cursor</div>
+      <p class="sub" style="font-size:13px;">Reads forward from the last committed offset, batches, hands to the sink. Advances the cursor only on success. Retries and backs off on failure.</p>
+    </div>
+    <div class="chan"><div class="g">──▶</div><div class="t">sink</div></div>
+    <div class="zone dur">
+      <h4>3 · Sink</h4>
+      <div class="life">the only thing that differs</div>
+      <ul>
+        <li><b>Local:</b> write straight into <code>trace.db</code></li>
+        <li><b>Sandbox:</b> POST batches to the receiver</li>
+      </ul>
+    </div>
+  </div>
+
+  <p>Local dev and sandbox then run <em>identical</em> code with a different sink binding — no conditional paths in the emitter, and the durability semantics are the same in both. The spool is also what makes the two-channel split concrete: state-channel entries hold the cursor until acknowledged, observability entries can be dropped under backpressure without holding anything up.</p>
+  <p class="muted">This also removes the last reason to read JSONL for traces: the spool <em>is</em> the local durable buffer, so a crashed run leaves a spool to drain on restart rather than a transcript to re-derive from.</p>
+
+  <div class="card" style="border-color: var(--series-1);">
+    <p><strong>Pinned — 2026-07-27 interview.</strong></p>
+    <ul style="margin-bottom:0;">
+      <li><strong>One emission seam from v1:</strong> trace events, request snapshots, and state-update / <code>state.json</code> writes all flow through the existing <code>TraceWriterSink</code>-style interface. Transfer-out becomes a sink swap, not a rework.</li>
+      <li><strong>Sandbox stage (build-order stage 5):</strong> spool file → drain loop → remote POST sink, built and <em>verified working</em> in a sandbox-type environment — not just designed.</li>
+      <li><strong>Two channels:</strong> the state channel is acked and deduped on the state version; the observability channel is droppable under backpressure. Ack/backpressure specifics are decided at the sandbox stage.</li>
+      <li><strong>v1 storage:</strong> <code>state.json</code> snapshot per update batch under <code>.agent-kernel/state/&lt;container&gt;/&lt;agent&gt;/</code>; no action log, no artifact byte-store yet.</li>
+    </ul>
+  </div>
+
+  <h2>10. Open questions <span class="badge">? OPEN</span></h2>
+  <div class="card">
+    <ul>
+      <li><strong>One file or two?</strong> Kernel state as <code>custom</code> entries inside Pi's JSONL, or a sibling <code>state.jsonl</code> we own end to end.</li>
+      <li><strong>Where does <code>trace.db</code> go in a sandbox?</strong> If the receiver is remote, is there still a local DB at all, or only a spool file that drains outward?</li>
+      <li><strong>What does a restart actually need?</strong> Enough state to continue the task, or a byte-faithful Pi session it can resume? The first is reconstructible from the trace; the second probably isn't.</li>
+      <li><strong>Working memory and deliverables.</strong> <code>&lt;app&gt;-sessions/</code> holds real output. Does it egress as artifacts, or is losing it acceptable?</li>
+      <li><strong>State channel semantics.</strong> At-least-once with dedupe on <code>foldSeq</code>? What does the agent do when acks stop — proceed, or block?</li>
+      <li><strong>Snapshot vs. replay.</strong> Ship the whole state doc each fold (simple, larger) or only diffs (small, needs ordered replay to rebuild)?</li>
+      <li><strong>Do reducers run on Pi events or kernel trace events?</strong> Trace events are already normalized and already leave the machine — reducing over them means the same input rebuilds state offline. Reducing over raw Pi events is closer to the source but ties state to Pi's shapes.</li>
+      <li><strong>Does the spool replace <code>state.jsonl</code>?</strong> If every fold is already spooled and shipped, a separate local state log may be redundant — unless local resume needs it without a receiver present.</li>
+      <li><strong>In-memory growth on long runs.</strong> Requests stay small under projection, but Pi's array doesn't. Do we ever prune it (Pi's own context-editing/compaction), or accept the memory cost?</li>
+    </ul>
+  </div>
+
+</main>
+
+<script>
+"use strict";
+
+/* ---------- theme toggle ---------- */
+(function () {
+  const btn = document.getElementById("themeToggle");
+  const modes = ["auto", "light", "dark"];
+  let i = 0;
+  btn.addEventListener("click", function () {
+    i = (i + 1) % modes.length;
+    const m = modes[i];
+    if (m === "auto") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = m;
+    btn.textContent = "Theme: " + m;
+  });
+})();
+
+/* ---------- horizontal layer strip ---------- */
+// Conceptual order, slowest-changing first. (Wire order puts tools before
+// system — noted in the prose; it doesn't change the layering's meaning.)
+const LAYERS = [
+  { n: "System prompt", d: "agent identity, standing instructions", r: "never within a run" },
+  { n: "Capabilities",  d: "tool definitions, skill bodies",        r: "rarely" },
+  { n: "State packet",  d: "current-state doc: goals, decisions",   r: "per fold" },
+  { n: "History",       d: "folded summaries + recent window",      r: "appends per turn" },
+  { n: "Live turn",     d: "current turn, tool results, diffs",     r: "every request", volatile: true },
+];
+
+let changedAt = null;
+
+function render() {
+  const strip = document.getElementById("strip");
+  strip.innerHTML = "";
+
+  LAYERS.forEach(function (l, i) {
+    let cls;
+    if (l.volatile) cls = "vol";
+    else if (changedAt !== null && i >= changedAt) cls = "hit";
+    else cls = "on";
+
+    const b = document.createElement("button");
+    b.className = "lay " + cls;
+    b.type = "button";
+    b.innerHTML =
+      '<span class="n">' + l.n + "</span>" +
+      '<span class="d">' + l.d + "</span>" +
+      '<span class="r">changes: ' + l.r + "</span>";
+    b.addEventListener("click", function () {
+      changedAt = (changedAt === i) ? null : i;
+      render();
+    });
+    strip.appendChild(b);
+  });
+
+  document.getElementById("simNote").textContent =
+    changedAt === null
+      ? "Click a layer to change it and see what has to be rebuilt to its right."
+      : 'Changed "' + LAYERS[changedAt].n + '" — everything to its right is rebuilt; everything to its left is untouched.';
+}
+
+document.getElementById("btnReset").addEventListener("click", function () {
+  changedAt = null;
+  render();
+});
+
+render();
+
+/* ---------- §8: state file drives the window ---------- */
+const IMG_CAP = 3;
+
+const STEPS = [
+  {
+    label: "Turn 1 — the ask",
+    note: "A user message arrives. The goal reducer fires; there is nothing else to fold yet.",
+    events: [{ k: "user_message", t: '"Check the pricing page and compare tiers"' }],
+    fired: ["goal"],
+    state: { goal: { v: "compare pricing tiers", n: true }, visited: [], shots: [] },
+    win: [
+      { l: "System prompt", d: "browser agent identity" },
+      { l: "Capabilities", d: "browser_snapshot, navigate, read" },
+      { l: "State packet", d: "goal set; nothing visited yet", n: true },
+      { l: "Live turn", d: "the user message", k: "vol" },
+    ],
+  },
+  {
+    label: "Turn 2 — first screenshot",
+    note: "The agent navigates and snapshots. Two reducers fire: one records the URL, one appends an image reference to the ledger.",
+    events: [
+      { k: "tool_call", t: "navigate(/pricing)" },
+      { k: "tool_result", t: "browser_snapshot → image #1" },
+    ],
+    fired: ["visited", "shots"],
+    state: {
+      goal: { v: "compare pricing tiers" },
+      visited: [{ v: "/pricing", n: true }],
+      shots: [{ v: "#1 @ turn 2", n: true }],
+    },
+    win: [
+      { l: "System prompt", d: "browser agent identity" },
+      { l: "Capabilities", d: "browser_snapshot, navigate, read" },
+      { l: "State packet", d: "goal, 1 page visited", n: true },
+      { l: "Images", d: "#1 live", k: "live" },
+      { l: "Live turn", d: "tool call + result", k: "vol" },
+    ],
+  },
+  {
+    label: "Turn 3 — second screenshot",
+    note: "Same two reducers. The ledger grows; the window still shows every image because we are under the cap.",
+    events: [
+      { k: "tool_call", t: "navigate(/pricing/enterprise)" },
+      { k: "tool_result", t: "browser_snapshot → image #2" },
+    ],
+    fired: ["visited", "shots"],
+    state: {
+      goal: { v: "compare pricing tiers" },
+      visited: [{ v: "/pricing" }, { v: "/pricing/enterprise", n: true }],
+      shots: [{ v: "#1 @ turn 2" }, { v: "#2 @ turn 3", n: true }],
+    },
+    win: [
+      { l: "System prompt", d: "browser agent identity" },
+      { l: "Capabilities", d: "browser_snapshot, navigate, read" },
+      { l: "State packet", d: "goal, 2 pages visited", n: true },
+      { l: "Images", d: "#1, #2 live", k: "live" },
+      { l: "Live turn", d: "tool call + result", k: "vol" },
+    ],
+  },
+  {
+    label: "Turn 4 — at the cap",
+    note: "Three images in the ledger, three in the window. This is the last step where they match.",
+    events: [
+      { k: "tool_call", t: "navigate(/pricing/faq)" },
+      { k: "tool_result", t: "browser_snapshot → image #3" },
+    ],
+    fired: ["visited", "shots"],
+    state: {
+      goal: { v: "compare pricing tiers" },
+      visited: [{ v: "/pricing" }, { v: "/pricing/enterprise" }, { v: "/pricing/faq", n: true }],
+      shots: [{ v: "#1 @ turn 2" }, { v: "#2 @ turn 3" }, { v: "#3 @ turn 4", n: true }],
+    },
+    win: [
+      { l: "System prompt", d: "browser agent identity" },
+      { l: "Capabilities", d: "browser_snapshot, navigate, read" },
+      { l: "State packet", d: "goal, 3 pages visited", n: true },
+      { l: "Images", d: "#1, #2, #3 live", k: "live" },
+      { l: "Live turn", d: "tool call + result", k: "vol" },
+    ],
+  },
+  {
+    label: "Turn 5 — eviction, without deleting anything",
+    note: "A fourth screenshot arrives. The ledger keeps all four and the JSONL keeps all four images permanently — but projection renders only the newest three, stubbing the oldest.",
+    events: [
+      { k: "tool_call", t: "navigate(/pricing/compare)" },
+      { k: "tool_result", t: "browser_snapshot → image #4" },
+    ],
+    fired: ["visited", "shots"],
+    state: {
+      goal: { v: "compare pricing tiers" },
+      visited: [{ v: "/pricing" }, { v: "/pricing/enterprise" }, { v: "/pricing/faq" }, { v: "/pricing/compare", n: true }],
+      shots: [{ v: "#1 @ turn 2" }, { v: "#2 @ turn 3" }, { v: "#3 @ turn 4" }, { v: "#4 @ turn 5", n: true }],
+    },
+    win: [
+      { l: "System prompt", d: "browser agent identity" },
+      { l: "Capabilities", d: "browser_snapshot, navigate, read" },
+      { l: "State packet", d: "goal, 4 pages visited", n: true },
+      { l: "Images", d: "#2, #3, #4 live — #1 → text stub", k: "live", warn: true },
+      { l: "Live turn", d: "tool call + result", k: "vol" },
+    ],
+  },
+];
+
+let si = 0;
+
+function renderStep() {
+  const s = STEPS[si];
+  document.getElementById("sLabel").textContent =
+    "Step " + (si + 1) + " / " + STEPS.length + " — " + s.label;
+  document.getElementById("sNote").textContent = s.note;
+  document.getElementById("pFired").textContent = s.fired.join(" · ");
+
+  const ev = document.getElementById("pEvents");
+  ev.innerHTML = "";
+  s.events.forEach(function (e) {
+    const d = document.createElement("div");
+    d.style.cssText = "font-size:12.5px; margin:5px 0; padding:4px 8px; border:1px solid var(--border); border-radius:6px; background:var(--page);";
+    d.innerHTML = '<span style="color:var(--text-muted); font-size:11px; text-transform:uppercase; letter-spacing:.04em;">' +
+      e.k + "</span><br>" + e.t;
+    ev.appendChild(d);
+  });
+
+  const st = document.getElementById("pState");
+  st.innerHTML = "";
+  Object.keys(s.state).forEach(function (key) {
+    const val = s.state[key];
+    const wrap = document.createElement("div");
+    wrap.style.cssText = "margin:6px 0;";
+    const k = document.createElement("div");
+    k.style.cssText = "font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted);";
+    k.textContent = key;
+    wrap.appendChild(k);
+    const items = Array.isArray(val) ? val : [val];
+    if (items.length === 0) {
+      const e = document.createElement("div");
+      e.style.cssText = "font-size:12.5px; color:var(--text-muted); font-style:italic;";
+      e.textContent = "empty";
+      wrap.appendChild(e);
+    }
+    items.forEach(function (it) {
+      const d = document.createElement("div");
+      d.style.cssText = "font-size:12.5px; padding:1px 0 1px 8px; border-left:2px solid " +
+        (it.n ? "var(--text-primary)" : "transparent") + ";" + (it.n ? "font-weight:500;" : "");
+      d.textContent = it.v;
+      wrap.appendChild(d);
+    });
+    st.appendChild(wrap);
+  });
+
+  const wn = document.getElementById("pWindow");
+  wn.innerHTML = "";
+  s.win.forEach(function (w) {
+    const d = document.createElement("div");
+    let bg = "var(--page)", bd = "var(--border)";
+    if (w.k === "vol") { bg = "var(--wash-3)"; bd = "var(--series-3)"; }
+    if (w.warn)        { bg = "var(--wash-2)"; bd = "var(--series-2)"; }
+    d.style.cssText = "font-size:12.5px; margin:4px 0; padding:4px 8px; border:1px solid " +
+      bd + "; border-radius:6px; background:" + bg + ";";
+    d.innerHTML = "<b>" + w.l + "</b><br><span style='color:var(--text-secondary)'>" + w.d + "</span>";
+    wn.appendChild(d);
+  });
+
+  document.getElementById("sPrev").disabled = si === 0;
+  document.getElementById("sNext").disabled = si === STEPS.length - 1;
+}
+
+document.getElementById("sPrev").addEventListener("click", function () { if (si > 0) { si--; renderStep(); } });
+document.getElementById("sNext").addEventListener("click", function () { if (si < STEPS.length - 1) { si++; renderStep(); } });
+document.getElementById("sReset").addEventListener("click", function () { si = 0; renderStep(); });
+renderStep();
+</script>
+</body>
+</html>

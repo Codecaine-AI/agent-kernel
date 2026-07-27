@@ -1,6 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	type MouseEvent as ReactMouseEvent,
+	type ReactNode,
+} from "react";
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 import {
 	SpanDetailPanel,
@@ -99,6 +107,34 @@ export function KernelTraceViewer({
 	const [level, setLevel] = useState<number>(initialTraceLevel);
 	const didInitExpand = useRef(false);
 
+	// Tree/detail split. The tree is mostly short labels; the detail panel is
+	// where reading happens, so it gets the majority by default (40/60). The
+	// divider is draggable within sane bounds.
+	const [treePct, setTreePct] = useState(40);
+	const splitRef = useRef<HTMLDivElement | null>(null);
+
+	const handleDividerMouseDown = useCallback((event: ReactMouseEvent) => {
+		event.preventDefault();
+		const container = splitRef.current;
+		if (!container) return;
+		const rect = container.getBoundingClientRect();
+		const onMove = (e: MouseEvent) => {
+			if (rect.width <= 0) return;
+			const pct = ((e.clientX - rect.left) / rect.width) * 100;
+			setTreePct(Math.min(65, Math.max(25, pct)));
+		};
+		const onUp = () => {
+			window.removeEventListener("mousemove", onMove);
+			window.removeEventListener("mouseup", onUp);
+			document.body.style.cursor = "";
+			document.body.style.userSelect = "";
+		};
+		window.addEventListener("mousemove", onMove);
+		window.addEventListener("mouseup", onUp);
+		document.body.style.cursor = "col-resize";
+		document.body.style.userSelect = "none";
+	}, []);
+
 	const selectedId = controlledSelectedId ?? internalSelectedId;
 	const setSelectedId = (id: string | null) => {
 		setInternalSelectedId(id);
@@ -164,9 +200,12 @@ export function KernelTraceViewer({
 	return (
 		<div className={className}>
 			{plugins?.containerHeader}
-			<div className="flex min-h-0 flex-1 gap-3 font-mono">
-				<div className="flex w-[62.5%] min-h-0 flex-col overflow-hidden rounded-[3px] border border-border bg-card">
-					<div className="flex h-[72px] shrink-0 items-center gap-4 border-b border-border bg-muted/30 px-3">
+			<div ref={splitRef} className="flex min-h-0 flex-1 font-mono">
+				<div
+					className="flex min-h-0 flex-col overflow-hidden rounded-[3px] border border-border bg-card"
+					style={{ width: `${treePct}%` }}
+				>
+					<div className="flex h-12 shrink-0 items-center gap-4 border-b border-border bg-muted/30 px-3">
 						<TraceLevelSlider
 							levels={TRACE_LEVELS}
 							value={level}
@@ -192,7 +231,17 @@ export function KernelTraceViewer({
 						/>
 					</div>
 				</div>
-				<div className="w-[37.5%] overflow-hidden rounded-[3px] border border-border bg-card">
+				<div
+					role="separator"
+					aria-orientation="vertical"
+					aria-label="Resize tree and detail panels"
+					title="Drag to resize"
+					onMouseDown={handleDividerMouseDown}
+					className="group flex w-2 shrink-0 cursor-col-resize items-stretch justify-center"
+				>
+					<div className="w-px bg-border transition-colors group-hover:bg-status-info-border group-active:bg-status-info-border" />
+				</div>
+				<div className="min-w-0 flex-1 overflow-hidden rounded-[3px] border border-border bg-card">
 					<TraceViewerApiContext.Provider value={apiContextValue}>
 						{selectedSpan ? (
 							<SpanDetailPanel span={selectedSpan} usageContext={usageContext} />

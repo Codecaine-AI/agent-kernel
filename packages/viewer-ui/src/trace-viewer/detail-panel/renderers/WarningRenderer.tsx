@@ -66,7 +66,7 @@ export function WarningRenderer({ span }: RendererProps) {
 
       {checks.length > 0 && (
         <div className="space-y-1.5">
-          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em]">
             Checks
           </h4>
           <div className="flex flex-wrap gap-1.5">
@@ -79,7 +79,7 @@ export function WarningRenderer({ span }: RendererProps) {
 
       {details.length > 0 && (
         <div className="space-y-1.5">
-          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em]">
             Details
           </h4>
           <div className="rounded-md bg-muted/30 p-3 space-y-1">

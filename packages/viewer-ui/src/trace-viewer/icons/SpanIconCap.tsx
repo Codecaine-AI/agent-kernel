@@ -91,9 +91,10 @@ export const SpanIconCap: FC<SpanIconCapProps> = ({
 				"pointer-events-none grid shrink-0 place-items-center self-stretch",
 				accentClassName,
 				divider,
-				// The divider is part of the card frame: it must carry the same
-				// accent as the border, never the theme's neutral border color.
-				"border-current",
+				// The divider is part of the card frame: frames are neutral by
+				// default now, so the hairline matches the neutral border token
+				// (an accent divider inside a neutral frame reads as noise).
+				"border-border",
 				isSolid ? "bg-current" : "bg-transparent",
 				layout === "box" && "absolute left-0 top-0 rounded-tl-[2px]",
 				layout === "inline" &&

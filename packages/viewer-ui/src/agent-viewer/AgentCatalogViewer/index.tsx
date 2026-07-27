@@ -8,7 +8,7 @@ import cn from "classnames";
 import { useMemo, useState, type ReactNode } from "react";
 
 import { AgentPromptLabContainer } from "../AgentPromptLabContainer";
-import type { LabContextPreview } from "../PromptInlineLab/ContextSurface";
+import type { LabContextPreview } from "@codecaine-ai/prompt-kit/ui/lab";
 import type { AgentViewerDefinition } from "../types";
 import { Led, Panel } from "./primitives";
 

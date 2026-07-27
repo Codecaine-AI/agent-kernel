@@ -8,6 +8,18 @@ import type { ResearchHarnessInfo, ResearchRunSummary } from "./types";
 
 export const RESEARCH_KERNEL_ID = "simple-research-kernel";
 
+/**
+ * Base URL handed to KernelTraceViewer so the detail-panel renderers can fetch
+ * content-addressed payloads — snapshot blobs and the per-turn request context
+ * behind the three-section turn view.
+ *
+ * "" is same-origin: the renderers gate on `apiBase === null`, so an empty
+ * prefix stays online and yields relative "/kernel/…" URLs. Vite proxies
+ * /kernel to the API server in dev, and prod serves both together, so
+ * same-origin is right in both — and it needs no `window` at import time.
+ */
+export const KERNEL_TRACE_API_BASE = "";
+
 export type ResearchKernelState = {
 	detail: KernelTraceSessionDetail | null;
 	info: ResearchHarnessInfo;

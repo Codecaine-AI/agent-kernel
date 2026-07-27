@@ -9,10 +9,13 @@
     ".": "./src/index.ts",
     "./styles": "./src/trace-viewer/trace-viewer.css"
   },
+  "scripts": {
+    "test": "bun test src"
+  },
   "dependencies": {
     "@agent-kernel/protocol": "workspace:*",
     "@agent-kernel/viewer-core": "workspace:*",
-    "@codecaine-ai/prompt-kit": "git+https://github.com/Codecaine-AI/prompt-kit.git#cf9e9aa7333739f911ea5b64fcd1d8a760e5f511",
+    "@codecaine-ai/prompt-kit": "link:@codecaine-ai/prompt-kit",
     "@evilmartians/agent-prism-data": "^0.0.9",
     "@evilmartians/agent-prism-types": "^0.0.9",
     "@radix-ui/react-collapsible": "^1.1.12",

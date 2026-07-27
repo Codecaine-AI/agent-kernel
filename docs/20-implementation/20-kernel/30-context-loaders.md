@@ -66,3 +66,5 @@ These events make context debugging visible in the same trace stream as tool cal
 ## Accumulation Guard
 
 The runtime injects rendered context as a custom message entry and checks for an existing entry by agent name. This prevents duplicate context blocks when a Pi session is reused.
+
+Superseded by D82 (`docs/10-system-design/explainers/state-shapes.html` v4): once the context message is rebuilt per request from a kernel-held set, nothing is pinned to history and the guard has nothing to guard — entries are added and removed from the set instead. The guard describes the current transcript-injection implementation.

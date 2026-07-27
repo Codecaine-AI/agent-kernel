@@ -374,4 +374,75 @@ describe("createRequestSnapshotRecorder", () => {
 		await recorder.flush();
 		expect(localEvents.length).toBe(1);
 	});
+	test("recordBuiltRequest stamps section tags and takes over from turn_start", async () => {
+		const localEvents: TraceEvent[] = [];
+		const recorder = createRequestSnapshotRecorder({
+			db: handle.db,
+			traceWriter: { submit: (event) => void localEvents.push(event) },
+			ids: IDS,
+		});
+		const session = makeSession(turnOneMessages());
+		recorder.handleEvent({ type: "agent_start" }, session);
+
+		const built = [
+			{ role: "user", content: [{ type: "text", text: "<context>caps</context>" }] },
+			{ role: "user", content: [{ type: "text", text: "<state v=\"1\"/>" }] },
+			{ role: "user", content: "hello" },
+			{ role: "assistant", content: [{ type: "text", text: "hi" }] },
+		];
+		recorder.recordBuiltRequest(session, {
+			messages: built,
+			sections: [
+				{ kind: "context", start: 0, end: 1 },
+				{ kind: "state", start: 1, end: 2 },
+				{ kind: "tail", start: 2, end: 4 },
+			],
+		});
+		// Once a builder has spoken, the raw-transcript path stands down.
+		recorder.handleEvent({ type: "turn_start" }, session);
+		await recorder.flush();
+
+		expect(localEvents.length).toBe(1);
+		const data = snapshotData(localEvents[0]!);
+		expect(data.turn_number).toBe(0);
+		expect(data.message_count).toBe(4);
+		expect(data.sections).toEqual([
+			{ kind: "context", start: 0, end: 1 },
+			{ kind: "state", start: 1, end: 2 },
+			{ kind: "tail", start: 2, end: 4 },
+		]);
+		// Sections index the snapshot's own ordered message list.
+		expect(data.message_refs.map((ref) => ref.index)).toEqual([0, 1, 2, 3]);
+	});
+
+	test("builderOwnsCapture suppresses the turn_start capture that precedes the first built request", async () => {
+		// Pi fires turn_start BEFORE the context hook the builder runs in. Without
+		// the flag that first turn_start records an extra, untagged snapshot and
+		// pushes every built request's turn_number one past its pi_turn_start.
+		const localEvents: TraceEvent[] = [];
+		const recorder = createRequestSnapshotRecorder({
+			db: handle.db,
+			traceWriter: { submit: (event) => void localEvents.push(event) },
+			ids: IDS,
+			builderOwnsCapture: true,
+		});
+		const session = makeSession(turnOneMessages());
+		recorder.handleEvent({ type: "agent_start" }, session);
+		recorder.handleEvent({ type: "turn_start" }, session);
+		recorder.recordBuiltRequest(session, {
+			messages: [{ role: "user", content: "built" }],
+			sections: [{ kind: "tail", start: 0, end: 1 }],
+		});
+		await recorder.flush();
+
+		expect(localEvents.length).toBe(1);
+		const data = snapshotData(localEvents[0]!);
+		expect(data.turn_number).toBe(0);
+		expect(data.sections).toEqual([{ kind: "tail", start: 0, end: 1 }]);
+	});
+
+	test("a transcript-captured turn carries no sections (old snapshots stay valid)", async () => {
+		const data = await captureOneTurn([{ role: "user", content: "hello" }]);
+		expect(data.sections).toBeUndefined();
+	});
 });

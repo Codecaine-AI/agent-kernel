@@ -361,6 +361,10 @@ const EVENT_SPECS: Record<string, EventSpec> = {
         ["message_count", d?.message_count],
         ["total_text_chars", d?.total_text_chars],
         ["total_image_count", d?.total_image_count],
+        // Three-section boundaries when the turn was assembled by the
+        // builder; undefined (no attribute) on untagged snapshots. Offline
+        // fallback for the read-API's `context.sections`.
+        ["sections", d?.sections ? asJson(d.sections) : undefined],
       ],
     }),
   }),

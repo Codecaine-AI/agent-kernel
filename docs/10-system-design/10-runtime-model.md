@@ -53,12 +53,15 @@ An agent is a directory discovered by its manifest:
 
 ```text
 agent-catalog/<agent-name>/
-  agent.json           manifest: data, JSON-Schema validated (agent-kernel/agent-v1)
-  prompt.json          canonical PromptDocument (content-addressed)
-  prompt.rendered.md   derived snapshot — do not edit
-  context.ts           optional code sidecar, attached by filename
-  tools.ts             optional code sidecar, attached by filename
+  agent.json                              manifest: data, JSON-Schema validated (agent-kernel/agent-v1)
+  prompt.json    | prompt/prompt.json     canonical PromptDocument (content-addressed)
+  prompt.rendered.md | prompt/system.md   generated markdown render — do not edit
+  context.ts     | context/index.ts       optional context sidecar
+  tools.ts       | tools/index.ts         optional private-tools sidecar
+  state.ts       | state/index.ts         optional state sidecar
 ```
+
+Each section has two legal shapes — a single file, or a folder with an `index.ts` entry point — resolved file-first (D98). The bundle mirrors the request: prompt is section ①, context is section ②, state is section ③, and tools are the action surface between them. A base agent is `agent.json` plus a prompt; the absence of the other sections is the statement that it is a plain agent. Resolution details: [20-agent-registry.md](../20-implementation/20-kernel/20-agent-registry.md).
 
 The manifest declares name, description, model (an id or a kernel-config alias), thinking, turn limits, core tools, tool profiles, variables, and named `variants`. `defineAgent` survives as a validator/normalizer helper for tooling that constructs manifests programmatically.
 
@@ -102,6 +105,8 @@ Emit sites build envelope identity through `currentTraceIds()` / `traceIdsOf()` 
 The context builder gives an agent a typed `SpawnContext`, walks declared loaders through a `LoaderCatalog`, emits per-loader lifecycle events, and hands the loaded results to the agent's `assemble()` function.
 
 Kernel base loaders are `file`, `directory`, `skill`, `command`, and `text`. Apps register custom loaders through the `loaders` config slot; a loader that reads app workflow state belongs in the app.
+
+Scope note — superseded by D81–D84 (`explainers/state-shapes.html` v4): assembled context is the *reference* section of a request (section ②), rebuilt per request rather than injected once. The dynamic working picture and the conversation window move to section ③, produced by an agent's optional `state.ts` sidecar (`seed`/`update`/`render`). Loaders that today deliver working state — not reference material — retire into state as agents adopt the sidecar.
 
 ## Subagents
 

@@ -179,6 +179,19 @@ export interface PiRequestSnapshotMessageRef {
 }
 
 /**
+ * One structural section of a per-turn request window, as three-section
+ * request assembly (① system prompt · ② context message · ③ rendered state)
+ * built it. Indices are half-open [start, end) positions into the snapshot's
+ * ordered `message_refs` list. The system prompt is captured as its own blob
+ * and renders as section ①, so it never appears here.
+ */
+export interface PiRequestSnapshotSection {
+  kind: "context" | "state" | "tail";
+  start: number;
+  end: number;
+}
+
+/**
  * Snapshot of the exact request context sent to the model for one turn.
  * Message payloads live in the trace_blobs store (packages/db) and are
  * referenced by content hash.
@@ -202,6 +215,13 @@ export interface PiRequestSnapshotData {
   message_refs: PiRequestSnapshotMessageRef[];
   total_text_chars: number;
   total_image_count: number;
+  /**
+   * Section boundaries of the built request, when the turn was assembled by
+   * the three-section builder. Absent on snapshots captured from a plain
+   * session transcript (including every snapshot written before section tags
+   * existed) — readers must treat a missing `sections` as "untagged".
+   */
+  sections?: PiRequestSnapshotSection[];
 }
 
 // ─── Spawn Lifecycle ────────────────────────────────────────────────────────

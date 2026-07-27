@@ -5,6 +5,7 @@ import {
 } from "@agent-kernel/viewer-core";
 import { KernelTraceViewer, type KernelTraceViewerProps } from "@agent-kernel/viewer-shell";
 
+import { KERNEL_TRACE_API_BASE } from "../../lib/api";
 import type { ResearchHarnessInfo, ResearchRunSummary } from "../../lib/types";
 import type { TraceIconSettings } from "../../lib/style-settings";
 import { formatTraceDate, traceStatusClass } from "../../lib/trace-ui";
@@ -239,6 +240,7 @@ export function ResearchWorkspace({
 						className="flex h-full flex-col"
 						spans={spans}
 						initialTraceLevel={3}
+						apiBase={KERNEL_TRACE_API_BASE}
 						iconSide={traceIcons.side}
 						iconStyle={traceIcons.style}
 					/>

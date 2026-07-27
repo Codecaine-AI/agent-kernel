@@ -65,6 +65,7 @@ export {
 	getSpanStyle,
 	readNumberAttr,
 	readStringAttr,
+	spanDisplayTypeOf,
 	type SpanStyle,
 } from "./trace-viewer/span-style";
 export {
@@ -79,14 +80,40 @@ export {
 	type AgentPrismToken,
 } from "./trace-viewer/theme";
 export { AgentCatalogViewer } from "./agent-viewer/AgentCatalogViewer";
+
+// Prompt authoring — the editing surface, the lab shell, and the style model —
+// belongs to @codecaine-ai/prompt-kit, which owns the prompt document. It is
+// re-exported here so kernel viewers keep a single import for the whole viewer
+// UI; what stays behind in this package is the kernel-specific wiring
+// (AgentPromptLabContainer's catalog fetches, the revision panels).
 export {
 	PromptInlineLab,
+	PromptStyleRail,
 	type PromptInlineLabProps,
+	type PromptStyleRailProps,
 	type PromptSaveOutcome,
 	type ManifestSaveOutcome,
 	type LabManifest,
-} from "./agent-viewer/PromptInlineLab";
-export type { LabContextPreview } from "./agent-viewer/PromptInlineLab/ContextSurface";
+	type LabContextPreview,
+	createPromptLabHistory,
+	type PromptLabHistory,
+	type PromptLabMetaPatch,
+} from "@codecaine-ai/prompt-kit/ui/lab";
+export {
+	loadPromptStyleSettings,
+	normalizePromptStyleSettings,
+	PROMPT_STYLE_DEFAULTS,
+	PROMPT_STYLE_PRESETS,
+	PROMPT_STYLE_STORAGE_KEY,
+	promptStyleVars,
+	savePromptStyleSettings,
+	usePromptStyleSettings,
+	type PromptMonoFontFamily,
+	type PromptRowShading,
+	type PromptStylePresetId,
+	type PromptStyleSettings,
+	type PromptStyleStorage,
+} from "@codecaine-ai/prompt-kit/ui/style";
 export {
 	AgentPromptLabContainer,
 	type AgentPromptLabContainerProps,
@@ -99,11 +126,6 @@ export {
 	RevisionStatsStrip,
 	type RevisionStatsStripProps,
 } from "./agent-viewer/RevisionStatsStrip";
-export {
-	createPromptLabHistory,
-	type PromptLabHistory,
-	type PromptLabMetaPatch,
-} from "./agent-viewer/prompt-lab-history";
 export type {
 	AgentRenderedPrompt,
 	AgentVariableDeclaration,

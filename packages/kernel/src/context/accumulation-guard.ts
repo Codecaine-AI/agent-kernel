@@ -28,6 +28,15 @@ export interface AgentContextEntryData {
 
 interface AppendableSession {
 	sessionManager: unknown;
+	sendCustomMessage?: (
+		message: {
+			customType: string;
+			content: string | ContextEntryBlock[];
+			display: boolean;
+			details: AgentContextEntryData;
+		},
+		options?: { triggerTurn?: boolean },
+	) => Promise<void> | void;
 }
 
 function readEntries(session: AppendableSession): ReadonlyArray<unknown> {
@@ -69,25 +78,24 @@ type ContextEntryBlock =
  * Text-only results inject the bare rendered string; results carrying
  * contextImages inject a content-block array (text first, then images) so
  * the images participate in the LLM context alongside the rendered text.
+ *
+ * Injection MUST go through the AgentSession (sendCustomMessage without
+ * triggerTurn: "appends to state/session, no turn") so the entry lands in
+ * the live agent's message state as well as the session file. Appending to
+ * the sessionManager alone persists the entry — replay and resume see it —
+ * but the running agent's LLM requests never include it, and every fresh
+ * session boots blind.
  */
-export function injectAgentContext(
+export async function injectAgentContext(
 	session: AppendableSession,
 	agentName: string,
 	result: BuildContextResult,
-): void {
+): Promise<void> {
 	const details: AgentContextEntryData = {
 		agentName,
 		inputs: result.inputsSummary,
 		totalBytes: result.totalBytes,
 		writtenAt: new Date().toISOString(),
-	};
-	const mgr = session.sessionManager as unknown as {
-		appendCustomMessageEntry(
-			customType: string,
-			content: string | ContextEntryBlock[],
-			display: boolean,
-			details: AgentContextEntryData,
-		): string;
 	};
 	const images = result.contextImages ?? [];
 	const content: string | ContextEntryBlock[] =
@@ -103,5 +111,24 @@ export function injectAgentContext(
 						}),
 					),
 				];
+	if (typeof session.sendCustomMessage === "function") {
+		await session.sendCustomMessage({
+			customType: AGENT_CONTEXT_MARKER,
+			content,
+			display: false,
+			details,
+		});
+		return;
+	}
+	// Session objects without the live API (tests, bare managers) keep the
+	// persistence-only append.
+	const mgr = session.sessionManager as unknown as {
+		appendCustomMessageEntry(
+			customType: string,
+			content: string | ContextEntryBlock[],
+			display: boolean,
+			details: AgentContextEntryData,
+		): string;
+	};
 	mgr.appendCustomMessageEntry(AGENT_CONTEXT_MARKER, content, false, details);
 }

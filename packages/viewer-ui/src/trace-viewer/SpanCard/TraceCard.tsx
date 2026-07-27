@@ -13,8 +13,10 @@
  *     corner inside the border; content is padded clear of it on the first line.
  *   size "meta" — the reduced info/debug mini-card. Same anatomy, smaller.
  *
- * Color comes from a single `group`: the frame border and the cap accent both
- * resolve from GROUP_ACCENT, so nothing can drift out of its semantic hue.
+ * Color comes from a single `group` via GROUP_ACCENT: frames are NEUTRAL by
+ * default (quiet hairline + muted glyph); only error/warning status colors a
+ * whole frame, and the small structural set (user / assistant / context) wears
+ * a thin left-edge accent. See resolve-span-icon.tsx for the full semantics.
  */
 import type { FC, ReactNode } from "react";
 
@@ -58,8 +60,7 @@ export const TraceCard: FC<TraceCardProps> = ({
 }) => {
 	const isBox = size === "box";
 	const isMeta = size === "meta";
-	const border = GROUP_ACCENT[group].border;
-	const accent = GROUP_ACCENT[group].text;
+	const { border, text: accent, edge } = GROUP_ACCENT[group];
 	const capPad = (isMeta ? SPAN_CAP_SIZE_META : SPAN_CAP_SIZE) + (isMeta ? 6 : 8);
 
 	const cap = (
@@ -82,8 +83,9 @@ export const TraceCard: FC<TraceCardProps> = ({
 				className={cn(
 					// w-fit so short messages hug their content instead of stretching
 					// an empty frame across the row; variants cap growth via max-w.
-					"relative w-fit overflow-hidden rounded-[2px] border text-foreground",
+					"relative w-fit overflow-hidden rounded-[2px] border text-foreground transition-colors hover:bg-muted/30",
 					border,
+					edge,
 					className,
 				)}
 			>
@@ -101,8 +103,9 @@ export const TraceCard: FC<TraceCardProps> = ({
 	return (
 		<div
 			className={cn(
-				"inline-flex max-w-full items-stretch overflow-hidden rounded-[2px] border text-foreground",
+				"inline-flex max-w-full items-stretch overflow-hidden rounded-[2px] border text-foreground transition-colors hover:bg-muted/30",
 				border,
+				edge,
 				side === "right" && "flex-row-reverse",
 				className,
 			)}

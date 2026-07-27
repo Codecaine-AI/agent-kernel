@@ -25,7 +25,7 @@ export function MetadataTab({ span }: RendererProps) {
   return (
     <div className="space-y-5">
       <div className="space-y-1">
-        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em]">
           Metadata
         </h4>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
@@ -64,7 +64,7 @@ export function MetadataTab({ span }: RendererProps) {
 
       {span.attributes && span.attributes.length > 0 && (
         <div className="space-y-1">
-          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em]">
             Attributes
           </h4>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">

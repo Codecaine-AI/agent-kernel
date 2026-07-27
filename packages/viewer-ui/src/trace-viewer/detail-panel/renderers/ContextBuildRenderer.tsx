@@ -1,6 +1,6 @@
 import type { RendererProps } from "../types";
 import { JsonViewer } from "../JsonViewer";
-import { PromptView } from "../PromptView";
+import { PromptView } from "@codecaine-ai/prompt-kit/ui/view";
 import { readNumberAttr, readStringAttr } from "../../span-style";
 
 function tryParseJson(str: string): unknown {
@@ -36,7 +36,7 @@ export function ContextBuildRenderer({ span }: RendererProps) {
       )}
       {span.input && (
         <div className="space-y-1">
-          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <h4 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.14em]">
             Declared Inputs
           </h4>
           {inputsAreObject ? (
@@ -45,7 +45,7 @@ export function ContextBuildRenderer({ span }: RendererProps) {
               className="max-h-[400px] overflow-auto"
             />
           ) : (
-            <pre className="bg-muted/50 rounded-md p-3 text-xs font-sans overflow-auto max-h-96 whitespace-pre-wrap break-words">
+            <pre className="bg-muted/30 rounded-md p-3 text-xs leading-relaxed font-sans overflow-auto max-h-96 whitespace-pre-wrap break-words">
               {span.input}
             </pre>
           )}

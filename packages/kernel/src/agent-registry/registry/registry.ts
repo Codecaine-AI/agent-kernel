@@ -1,18 +1,23 @@
 /**
  * Agent registry — discovers agent directories by their `agent.json`
- * manifest (D76). Each agent bundle is two data files plus two optional code
- * sidecars attached by filename convention:
+ * manifest (D76). Each agent bundle is the manifest plus four sections, each
+ * of which may be a single file or a folder with an `index.ts` entry point
+ * (see bundle-layout.ts for the full discovery contract):
  *
  *   agent-catalog/<agent-name>/
- *     agent.json           manifest (JSON-Schema validated)
- *     prompt.json          canonical PromptDocument (D70)
- *     prompt.rendered.md   derived snapshot
- *     context.ts           optional context sidecar
- *     tools.ts             optional private-tools sidecar
+ *     agent.json                              manifest (JSON-Schema validated)
+ *     prompt.json    | prompt/prompt.json     canonical PromptDocument (D70)
+ *     prompt.rendered.md | prompt/system.md   derived markdown snapshot
+ *     context.ts     | context/index.ts       optional context sidecar
+ *     tools.ts       | tools/index.ts         optional private-tools sidecar
+ *     state.ts       | state/index.ts         optional state sidecar
+ *
+ * The file form always wins when both are present; `doctor` reports the
+ * shadowed folder so migration shims stay visible.
  *
  * Boot fails with an AggregateError of per-agent RegistryErrors.
  */
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
@@ -31,26 +36,18 @@ import {
 	type NormalizedAgentManifest,
 } from "../../agent-definition";
 import type { AgentContextResolver } from "../../context";
+import type { StateModule } from "../../state/types";
 import { SPAWNER_WILDCARD } from "../../agent-definition/spawner-tool";
+import {
+	collectManifestFiles,
+	renderedPromptPathFor,
+	resolveBundleLayout,
+	type AgentBundleLayout,
+} from "./bundle-layout";
 import { harvestPrivateToolsFromRegister } from "./harvest-private-tool-names";
 import type { AgentDefinition, AgentRegistry } from "./types";
 import { RegistryError } from "./types";
 import { validateVariables } from "./validate-variables";
-
-const MANIFEST_FILE_NAME = "agent.json";
-
-function collectManifestFiles(dir: string): string[] {
-	const results: string[] = [];
-	for (const entry of readdirSync(dir, { withFileTypes: true })) {
-		const full = join(dir, entry.name);
-		if (entry.isDirectory()) {
-			results.push(...collectManifestFiles(full));
-		} else if (entry.name === MANIFEST_FILE_NAME) {
-			results.push(full);
-		}
-	}
-	return results.sort((a, b) => a.localeCompare(b));
-}
 
 interface LoadOne {
 	def: AgentDefinition | null;
@@ -83,16 +80,20 @@ interface LoadedPromptJson {
 }
 
 /**
- * Load and shape-validate the sibling `prompt.json` (the canonical prompt
- * artifact per D70). Throws RegistryError on a missing file, unparseable
- * JSON, or a document that fails the PromptDocument shape check.
+ * Load and shape-validate the bundle's `prompt.json` (the canonical prompt
+ * artifact per D70) — `<dir>/prompt.json` first, then `<dir>/prompt/prompt.json`.
+ * Throws RegistryError on a missing file, unparseable JSON, or a document that
+ * fails the PromptDocument shape check.
  */
-function loadPromptJson(manifestFile: string): LoadedPromptJson {
-	const agentDir = dirname(manifestFile);
-	const promptFile = join(agentDir, "prompt.json");
-	if (!existsSync(promptFile)) {
+function loadPromptJson(
+	manifestFile: string,
+	layout: AgentBundleLayout = resolveBundleLayout(dirname(manifestFile)),
+): LoadedPromptJson {
+	const promptFile = layout.prompt.path;
+	if (!promptFile) {
 		throw new RegistryError(manifestFile, [
-			`missing prompt.json: an agent directory must contain a canonical PromptDocument at ${promptFile}`,
+			"missing prompt.json: an agent directory must contain a canonical PromptDocument at " +
+				`${join(layout.dir, "prompt.json")} or ${join(layout.dir, "prompt", "prompt.json")}`,
 		]);
 	}
 	let parsed: unknown;
@@ -114,7 +115,7 @@ function loadPromptJson(manifestFile: string): LoadedPromptJson {
 	return { document: parsed as PromptDocument, promptFile };
 }
 
-/** context.ts sidecar: default export or named `context`, { loaders, assemble }. */
+/** context sidecar (context.ts | context/index.ts): default export or named `context`, { loaders, assemble }. */
 async function importContextSidecar(
 	contextModulePath: string,
 	manifestFile: string,
@@ -154,6 +155,35 @@ async function importToolsSidecar(
 		]);
 	}
 	return candidate as AgentPrivateTools;
+}
+
+/**
+ * state.ts sidecar: default export or named `state`, an object with
+ * seed/update/render. The kernel never looks inside the state itself — the
+ * only structural requirement enforced here is the three functions.
+ */
+async function importStateSidecar(
+	stateModulePath: string,
+	manifestFile: string,
+): Promise<StateModule> {
+	const imported = (await import(pathToFileURL(stateModulePath).href)) as {
+		default?: unknown;
+		state?: unknown;
+	};
+	const candidate = (imported.default ?? imported.state) as
+		| Partial<StateModule>
+		| undefined;
+	if (
+		!candidate ||
+		typeof candidate.seed !== "function" ||
+		typeof candidate.update !== "function" ||
+		typeof candidate.render !== "function"
+	) {
+		throw new RegistryError(manifestFile, [
+			`state.ts must export (default or named "state") an object with seed(), update() and render(): ${stateModulePath}`,
+		]);
+	}
+	return candidate as StateModule;
 }
 
 function expandToolProfiles(
@@ -244,22 +274,28 @@ async function loadOne(
 	toolProfiles: Record<string, string[]>,
 ): Promise<LoadOne> {
 	const agentDir = dirname(manifestFile);
-	const contextFileAbs = join(agentDir, "context.ts");
-	const toolsFileAbs = join(agentDir, "tools.ts");
+	const bundleLayout = resolveBundleLayout(agentDir);
 	try {
 		const manifest = loadManifest(manifestFile);
 		const profileTools = expandToolProfiles(manifest, toolProfiles, manifestFile);
-		const { document: promptDocument, promptFile } = loadPromptJson(manifestFile);
+		const { document: promptDocument, promptFile } = loadPromptJson(
+			manifestFile,
+			bundleLayout,
+		);
 		const promptState = buildAgentPromptState(manifest, promptDocument, manifestFile);
 
 		const promptFileMtimeMs = statSync(promptFile).mtimeMs;
-		const contextModulePath = existsSync(contextFileAbs) ? contextFileAbs : null;
-		const toolsModulePath = existsSync(toolsFileAbs) ? toolsFileAbs : null;
+		const contextModulePath = bundleLayout.context.path;
+		const toolsModulePath = bundleLayout.tools.path;
 		const contextResolver = contextModulePath
 			? await importContextSidecar(contextModulePath, manifestFile)
 			: null;
 		const privateTools = toolsModulePath
 			? await importToolsSidecar(toolsModulePath, manifestFile)
+			: null;
+		const stateModulePath = bundleLayout.state.path;
+		const stateModule = stateModulePath
+			? await importStateSidecar(stateModulePath, manifestFile)
 			: null;
 		const harvested = privateTools
 			? await harvestPrivateToolsFromRegister(privateTools)
@@ -294,13 +330,18 @@ async function loadOne(
 				promptDocument,
 				promptHash: promptState.promptHash,
 				promptFile,
+				renderedPromptFile: renderedPromptPathFor(promptFile),
 				promptFileMtimeMs,
+				bundleLayout,
 				contextResolver,
 				contextModulePath,
 				privateTools,
 				privateToolNames,
 				spawnerTools,
 				toolsModulePath,
+				stateModule,
+				stateModulePath,
+				stateConfig: manifest.state ?? null,
 				coreTools,
 				manifestFile,
 				warnings: promptState.warnings,
@@ -411,6 +452,7 @@ export async function buildRegistry(
 			promptDocument: document,
 			promptHash: state.promptHash,
 			promptFile,
+			renderedPromptFile: renderedPromptPathFor(promptFile),
 			promptFileMtimeMs,
 			parsed: {
 				...current.parsed,
@@ -556,6 +598,7 @@ export async function buildRegistry(
 				...current,
 				manifest,
 				coreTools: manifest.coreTools,
+				stateConfig: manifest.state ?? null,
 				promptHash: promptState.promptHash,
 				parsed: {
 					...current.parsed,

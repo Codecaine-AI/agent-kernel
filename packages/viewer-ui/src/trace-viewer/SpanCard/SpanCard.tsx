@@ -2,12 +2,13 @@
  * SpanCard — Renders a single TraceSpan in the tree view.
  *
  * Dispatches to styled variant components via getSpanDisplay():
- *   UserMessageCard, AssistantMessageCard — inline content cards
- *   ToolCard, UIAskCard, AgentCard — icon + label cards
- *   LifecycleCard — ghost border (zinc) for agent run/session lifecycle
- *   SystemCard — ghost border (teal) for system_prompt_resolved, context_build
+ *   UserMessageCard, AssistantMessageCard — inline content cards (edge accent)
+ *   ToolCard, UIAskCard, AgentCard — icon + label cards (neutral)
+ *   LifecycleCard — neutral card for agent run/session lifecycle
+ *   SystemCard — context-accented card for system_prompt_resolved, context_build
  *
  * Fallback renders span.title for unrecognized event types.
+ * Color semantics live in icons/resolve-span-icon.tsx (GROUP_ACCENT).
  */
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 import type { FC, KeyboardEvent, MouseEvent } from "react";
@@ -22,7 +23,7 @@ import { SpanCardConnector } from "./SpanCardConnector";
 import { SpanCardToggle } from "./SpanCardToggle";
 import { TraceCard } from "./TraceCard";
 import { UserMessageCard, AssistantMessageCard, ToolCard, SpawnerCard, UIAskCard, AgentCard, LifecycleCard, SystemCard, ContainerCard, MetaCard } from "./variants";
-import { readStringAttr } from "../span-style";
+import { readStringAttr, spanDisplayTypeOf } from "../span-style";
 import {
   resolveSpanIcon,
   DEFAULT_ICON_SIDE,
@@ -385,11 +386,16 @@ export const SpanCard: FC<SpanCardProps> = ({
   const iconStyle = viewOptions.iconStyle ?? DEFAULT_VIEW_OPTIONS.iconStyle;
 
   const iconDescriptor = useMemo(() => {
-    const displayType: SpanDisplayType = spanDisplay?.type ?? "generic";
+    // Fallback rows (spanDisplay null → MetaCard) still resolve their kind
+    // through the shared spanDisplayTypeOf() so chip-style rows keep the same
+    // group chrome as everything else — e.g. pi_request_snapshot ("Context
+    // window · turn N") wears the context group's violet edge + glyph tint at
+    // meta weight instead of degrading to neutral generic.
+    const displayType: SpanDisplayType = spanDisplay?.type ?? spanDisplayTypeOf(data);
     const lifecycleLabel =
       spanDisplay?.type === "lifecycle" ? spanDisplay.label : undefined;
     return resolveSpanIcon({ displayType, status: data.status, lifecycleLabel });
-  }, [spanDisplay, data.status]);
+  }, [spanDisplay, data]);
 
   const chrome: SpanCardChrome = {
     descriptor: iconDescriptor,
@@ -428,10 +434,12 @@ export const SpanCard: FC<SpanCardProps> = ({
         <div
           className={cn(
             "relative mb-3 grid w-full items-center",
+            // SELECTION is the single strongest color in the tree: info-cyan
+            // fill + a solid left bar, matching the trace-list selection idiom.
             state.isSelected &&
-              "before:bg-agentprism-muted/75 before:absolute before:-top-2 before:h-2 before:w-full",
+              "before:bg-status-info-fill/60 before:absolute before:-top-2 before:h-2 before:w-full",
             state.isSelected &&
-              "from-agentprism-muted/75 to-agentprism-muted/75 bg-gradient-to-b",
+              "from-status-info-fill/60 to-status-info-fill/60 bg-gradient-to-b shadow-[inset_2px_0_0_0_rgb(var(--status-info))]",
           )}
           style={{
             gridTemplateColumns,
@@ -464,7 +472,7 @@ export const SpanCard: FC<SpanCardProps> = ({
                 {state.isExpanded && (
                   <span
                     aria-hidden="true"
-                    className="bg-agentprism-border-subtle pointer-events-none absolute left-1/2 top-[calc(50%_+_10px)] -bottom-3 w-0.5 -translate-x-1/2"
+                    className="bg-agentprism-border-subtle/80 pointer-events-none absolute left-1/2 top-[calc(50%_+_10px)] -bottom-3 w-px -translate-x-1/2"
                   />
                 )}
               </div>

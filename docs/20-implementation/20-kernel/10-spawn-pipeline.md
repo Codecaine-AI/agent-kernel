@@ -26,7 +26,7 @@ The pipeline used to take an eight-adapter bundle. Those slots are now kernel co
 | `createAppSessionBinding` | config `createSessionBinding` (default marker: `agent-kernel:session-binding`; the pipeline always merges `containerId` + `runId` into the payload) |
 | `logger` | config `logger` |
 
-Private tools live in the agent directory's `tools.ts` and attach by filename convention. The registry harvests private tool names at boot and includes them in the expanded tool allowlist.
+Private tools live in the agent bundle's tools sidecar — `tools.ts`, or `tools/index.ts` in a folder-form bundle — and attach by convention. The registry harvests private tool names at boot and includes them in the expanded tool allowlist.
 
 ## Sequence
 
@@ -35,17 +35,18 @@ Private tools live in the agent directory's `tools.ts` and attach by filename co
 3. Resolve the run `trigger`: explicit option, else `parent-tool` when `parentToolUseId` is set, else `operator`.
 4. Resolve the agent config (variant overrides + model aliases applied).
 5. Resolve variables and render the static system prompt.
-6. Build or reuse a Pi session manager; write the session-binding marker.
-7. Load context and private tool bindings; build the scoped tool factory list.
-8. Create a Pi `AgentSession`.
-9. Pre-insert `pi_agent_sessions` (with `prompt_hash` and the resolved model) and `agent_runs` (with `trigger`).
-10. Attach the in-process kernel emitter.
-11. Emit `system_prompt_resolved` carrying `prompt_hash`.
-12. Build context and inject one `agent-context` custom message if needed.
-13. Subscribe to Pi session events for streaming and turn limits.
-14. Build async-local `RunContext`; emit `agent_run_start`.
-15. Trigger the Pi turn.
-16. Update run status, record the outbound event and usage rollup, and emit `agent_run_end`.
+6. Create the state extension — only when the bundle ships a `state.ts` sidecar or a `state.window` block ([60-agent-state.md](60-agent-state.md)); otherwise nothing is registered and the session stays pass-through.
+7. Build or reuse a Pi session manager; write the session-binding marker.
+8. Load context and private tool bindings; build the scoped tool factory list.
+9. Create a Pi `AgentSession` (the state extension's factory rides in `extensionFactories`, and the handle is bound to the live session).
+10. Pre-insert `pi_agent_sessions` (with `prompt_hash` and the resolved model) and `agent_runs` (with `trigger`).
+11. Attach the in-process kernel emitter and the per-turn request-snapshot recorder ([70-request-snapshots.md](70-request-snapshots.md)); with a state extension present, the recorder captures the builder's request instead of the raw transcript.
+12. Emit `system_prompt_resolved` carrying `prompt_hash`.
+13. Build context. With the state extension active it becomes an `agent-context:<name>` entry in the context set (section ②, rebuilt per request); otherwise it is injected as one `agent-context` custom message as before.
+14. Subscribe to Pi session events for streaming and turn limits.
+15. Build async-local `RunContext`; emit `agent_run_start`.
+16. Trigger the Pi turn.
+17. Update run status, record the outbound event and usage rollup, and emit `agent_run_end`; flush the snapshot recorder and the state sink.
 
 ## In-Process Emitter
 
@@ -58,6 +59,8 @@ Event ids are the deterministic ids from `@agent-kernel/protocol` `ids.ts`: the 
 Dynamic context is inserted as a custom message entry, guarded by agent name. Reusing a Pi session should not duplicate context blocks.
 
 System prompts are frozen at Pi session creation time — which is why `prompt_hash` binds to the session, not the run. Context is assembled per spawn and stored in the Pi transcript so future turns can replay it.
+
+Superseded by D82 (`docs/10-system-design/explainers/state-shapes.html` v4): the context message becomes section ② of the request, rebuilt from a kernel-held set on every request instead of being pinned into the transcript at spawn. Per-spawn injection is the current implementation, not the target.
 
 ## Observability Ordering
 

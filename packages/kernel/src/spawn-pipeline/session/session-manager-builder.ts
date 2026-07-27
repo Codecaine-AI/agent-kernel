@@ -1,6 +1,6 @@
 import { join } from "node:path";
 
-import { SessionManager } from "@mariozechner/pi-coding-agent";
+import { SessionManager } from "@earendil-works/pi-coding-agent";
 
 import type { ResumeToolResultInput } from "../types";
 import { appendResumeToolResult } from "./branch-based-resume";

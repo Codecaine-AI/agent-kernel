@@ -19,18 +19,18 @@ export function JsonViewer({ data, className }: JsonViewerProps) {
 	if (!data) return null;
 
 	return (
-		<div className={cn("overflow-x-auto rounded-md bg-muted/30 font-sans text-[12px] leading-[1.6]", className)}>
+		<div className={cn("overflow-x-auto rounded-md bg-muted/20 font-sans text-[12px] leading-[1.6]", className)}>
 			<table className="w-full border-collapse">
 				<tbody>
 					{lines.map((line, index) => (
-						<tr key={index} className="transition-colors hover:bg-muted/50">
+						<tr key={index} className="transition-colors hover:bg-muted/40">
 							<td
-								className="select-none border-r border-border/70 px-3 text-right align-top text-muted-foreground/50"
+								className="select-none border-r border-border/40 px-2 text-right align-top text-muted-foreground/40"
 								style={{ minWidth: `${gutterWidth + 2}ch` }}
 							>
 								{index + 1}
 							</td>
-							<td className="whitespace-pre px-4">
+							<td className="whitespace-pre px-3">
 								<JsonLine text={line} />
 							</td>
 						</tr>

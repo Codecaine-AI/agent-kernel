@@ -43,7 +43,7 @@ Beside the trace routes, the kernel serves the catalog API over the agent regist
 |---|---|
 | `GET /kernel/catalog/agents` | Registry listing (name, description, model, prompt hash, validity) |
 | `GET /kernel/catalog/agents/:name` | Manifest + prompt document + rendered text + declared variables |
-| `PUT /kernel/catalog/agents/:name/prompt` | Save a `PromptDocument`: validate, canonicalize + hash, write `prompt.json` + regenerate `prompt.rendered.md`, upsert a `prompt_revisions` row (`source: "lab-save"`), respond `{ hash }` (400 with errors on validation failure) |
+| `PUT /kernel/catalog/agents/:name/prompt` | Save a `PromptDocument`: validate, canonicalize + hash, write `prompt.json` + regenerate its markdown render (`prompt/system.md` in folder form, `prompt.rendered.md` in file form), upsert a `prompt_revisions` row (`source: "lab-save"`), respond `{ hash }` (400 with errors on validation failure) |
 | `GET /kernel/catalog/agents/:name/revisions` | Revision history (hash, source, created-at) |
 | `GET /kernel/catalog/agents/:name/revisions/:hash/stats` | Per-revision run analytics: runs, total/avg tokens, cost, failures — joined through `pi_agent_sessions.prompt_hash` |
 

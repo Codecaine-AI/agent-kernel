@@ -1,22 +1,48 @@
 /**
- * Per-turn request snapshot recorder — captures the system prompt and session
- * messages selected by pi-coding-agent's convertToLlm contract at each
- * turn_start into the content-addressed trace_blobs store and emits a
- * pi_request_snapshot trace event referencing the blobs (see
+ * Per-turn request snapshot recorder — captures the system prompt plus the
+ * message window one turn ran on into the content-addressed trace_blobs store
+ * and emits a pi_request_snapshot trace event referencing the blobs (see
  * PiRequestSnapshotData in @agent-kernel/protocol for the sanitized-message
  * contract).
  *
- * Turn-number alignment: the kernel emitter numbers pi_turn_start events with
- * a 0-based turnIndex that resets on agent_start and increments on turn_end.
- * This recorder mirrors that exactly — its counter resets on agent_start and
- * increments per turn_start — so snapshot.turn_number matches the emitter's
- * pi_turn_start turn_number 1:1 (turn events alternate start/end within one
- * agent invocation).
+ * TWO CAPTURE PATHS, chosen per run by `builderOwnsCapture` — never mixed:
  *
- * Safety contract: `handleEvent` is synchronous and never throws. It captures
- * the session state (system prompt string + a shallow slice of the completed
+ *  1. Transcript path (no state extension). `handleEvent` snapshots at each
+ *     `turn_start` from the live session, filtering messages through
+ *     pi-coding-agent's convertToLlm selection contract. This is what the
+ *     model sees because nothing rewrites the outgoing array.
+ *
+ *  2. Builder path (a state extension is registered). The three-section
+ *     builder runs in Pi's `context` hook and rewrites the outgoing array, so
+ *     the transcript is NOT the request; `recordBuiltRequest` records the
+ *     assembled array verbatim, with its section tags. The transcript path is
+ *     stood down for the whole run from construction — not lazily on the first
+ *     built request — because Pi fires `turn_start` BEFORE the `context` hook,
+ *     so a lazy switch would still emit one extra untagged turn-0 snapshot and
+ *     shift every later turn_number by +1.
+ *
+ * Turn numbering: the counter is 0-based, resets on `agent_start`, and
+ * increments once per captured request. The kernel emitter numbers
+ * pi_turn_start events the same way (reset on agent_start, increment on
+ * turn_end), so:
+ *
+ *  - Transcript path: snapshot.turn_number matches the emitter's
+ *    pi_turn_start turn_number 1:1 — one capture per turn_start, and turn
+ *    events alternate start/end within one agent invocation.
+ *  - Builder path: the alignment holds turn-for-turn in the normal case,
+ *    because `context` fires exactly once per turn. It is NOT a guarantee:
+ *    `context` fires once per *provider request*, so a provider retry within
+ *    one turn re-runs the hook and produces an EXTRA snapshot. That snapshot
+ *    consumes a turn_number, after which snapshot numbering runs ahead of
+ *    pi_turn_start for the rest of the agent invocation. Readers correlating
+ *    the two must treat turn_number as "the nth captured request", not as a
+ *    key into turn events. (The extra snapshot is itself accurate — it is a
+ *    real request that really went out.)
+ *
+ * Safety contract: both entry points are synchronous and never throw. They
+ * capture the session state (system prompt string + a shallow slice of the
  * messages — pi messages are immutable once persisted) synchronously, then
- * defers all hashing, blob upserts, and event emission behind an internal
+ * defer all hashing, blob upserts, and event emission behind an internal
  * serialized promise tail (same pattern as trace-writer). Every failure is
  * caught and logged, never thrown into the agent loop.
  */
@@ -30,6 +56,7 @@ import {
 	createPiRequestSnapshotEvent,
 	type PiRequestSnapshotData,
 	type PiRequestSnapshotMessageRef,
+	type PiRequestSnapshotSection,
 	type TraceEventIds,
 } from "@agent-kernel/protocol";
 
@@ -57,18 +84,40 @@ export interface RequestSnapshotRecorderOptions {
 	ids: TraceEventIds;
 	/** ResolvedAgent prompt hash ("pk1-..."); null when not content-addressed. */
 	promptHash?: string | null;
+	/**
+	 * A three-section builder owns capture for this run from the FIRST turn.
+	 * Set it whenever the spawn registered a state extension: Pi fires
+	 * `turn_start` BEFORE the `context` hook the builder runs in, so waiting
+	 * for the first recordBuiltRequest() to stand the transcript path down
+	 * would still record one extra, untagged turn-0 snapshot per run and shift
+	 * every builder-tagged turn_number by +1 against pi_turn_start.
+	 */
+	builderOwnsCapture?: boolean;
 	logger?: RequestSnapshotLoggerLike;
 }
 
 export interface RequestSnapshotRecorder {
 	/**
-	 * Feed one live Pi session event. Snapshots on "turn_start"; resets the
-	 * turn counter on "agent_start" (emitter parity). Synchronous, never
-	 * throws.
+	 * Feed one live Pi session event. Resets the turn counter on
+	 * "agent_start" (emitter parity); snapshots the live transcript on
+	 * "turn_start" — unless a builder owns capture for this run, in which case
+	 * turn_start is ignored entirely. Synchronous, never throws.
 	 */
 	handleEvent(
 		event: KernelAgentSessionEventLike,
 		session: RequestSnapshotSessionLike,
+	): void;
+	/**
+	 * Record the exact message array a three-section builder assembled, with
+	 * its section boundaries — the built request IS the request. Also latches
+	 * the transcript path off, which is belt-and-braces: a spawn that has a
+	 * builder should already have been constructed with `builderOwnsCapture`,
+	 * because turn_start fires before the builder's hook. Synchronous, never
+	 * throws.
+	 */
+	recordBuiltRequest(
+		session: RequestSnapshotSessionLike,
+		built: { messages: any[]; sections?: PiRequestSnapshotSection[] },
 	): void;
 	/** Await all queued snapshot work (blob upserts + event submission). */
 	flush(): Promise<void>;
@@ -113,6 +162,7 @@ interface TurnCapture {
 	turnNumber: number;
 	systemPrompt: string | null;
 	messages: MessageLike[];
+	sections?: PiRequestSnapshotSection[];
 }
 
 export function createRequestSnapshotRecorder(
@@ -123,6 +173,8 @@ export function createRequestSnapshotRecorder(
 
 	let turnNumber = 0;
 	let tail: Promise<void> = Promise.resolve();
+	/** Set once a builder starts supplying requests — see recordBuiltRequest. */
+	let builtRequestSource = opts.builderOwnsCapture === true;
 	/** Blob hashes already upserted by this recorder (skip repeat writes — the transcript is prefix-stable across turns). */
 	const writtenHashes = new Set<string>();
 
@@ -272,6 +324,9 @@ export function createRequestSnapshotRecorder(
 			message_refs: refs,
 			total_text_chars: totalTextChars,
 			total_image_count: totalImageCount,
+			// Absent on transcript-captured turns — readers treat that as
+			// "untagged", exactly like every snapshot written before sections.
+			...(capture.sections ? { sections: capture.sections } : {}),
 		};
 		traceWriter.submit(createPiRequestSnapshotEvent(ids, data));
 	}
@@ -315,10 +370,36 @@ export function createRequestSnapshotRecorder(
 					turnNumber = 0;
 					return;
 				}
-				if (type === "turn_start") record(session);
+				// When a builder owns capture, the transcript is not the
+				// request — turn_start captures nothing at all for this run.
+				if (type === "turn_start" && !builtRequestSource) record(session);
 			} catch (error) {
 				logError("handleEvent", error);
 			}
+		},
+
+		recordBuiltRequest(session, built): void {
+			let capture: TurnCapture;
+			try {
+				builtRequestSource = true;
+				const messages = Array.isArray(built.messages) ? built.messages : [];
+				capture = {
+					turnNumber,
+					systemPrompt:
+						typeof session.systemPrompt === "string"
+							? session.systemPrompt
+							: null,
+					messages: messages as MessageLike[],
+					...(built.sections ? { sections: built.sections } : {}),
+				};
+			} catch (error) {
+				logError("built capture", error);
+				return;
+			}
+			turnNumber += 1;
+			tail = tail
+				.then(() => writeSnapshot(capture))
+				.catch((error) => logError("write", error));
 		},
 
 		async flush(): Promise<void> {

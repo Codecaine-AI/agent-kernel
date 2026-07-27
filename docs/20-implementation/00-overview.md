@@ -18,7 +18,8 @@ packages/
   protocol/      Trace event envelope, event catalog, factories, deterministic ids
   db/            Per-kernel SQLite store, schema (+ pg mirror), manifest, query helpers
   kernel/        Kernel instance, containers, spawn runtime, emitter, registry,
-                 context, subagents, doctor, read API, transcript recovery
+                 context, agent state, subagents, doctor, read API,
+                 transcript recovery
   prompt-kit/    Prompt document model, canonicalization/hash, renderers (submodule)
   viewer-core/   Read/catalog API DTOs, trace span transforms, prompt diff
   viewer-ui/     Trace tree, detail, and prompt lab UI components
@@ -60,7 +61,7 @@ Run `bun run dev:simple-research` — no Docker and no service processes. `bun r
 Trace protocol types and event factories.
 
 ### [20-kernel/](20-kernel/00-overview.md)
-Runtime package: kernel instance, containers, registry, spawn pipeline, emitter, context, subagents, run context, doctor, transcript recovery.
+Runtime package: kernel instance, containers, registry, spawn pipeline, emitter, context, agent state, request snapshots, subagents, run context, doctor, transcript recovery.
 
 ### [30-db/](30-db/00-overview.md)
 SQLite client, kernel manifest, and Drizzle schema/query helpers for containers, Pi sessions, agent runs, trace events, and prompt revisions.

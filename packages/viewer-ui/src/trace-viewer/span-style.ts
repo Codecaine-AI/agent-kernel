@@ -1,9 +1,52 @@
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 
+import type { SpanDisplayType } from "./icons/resolve-span-icon";
+
 export type SpanStyle = {
 	titleClassName: string;
 	indicator?: string;
 };
+
+/**
+ * Resolve the display-type discriminant for a span from its event_type,
+ * mirroring SpanCard's getSpanDisplay() dispatch. Centralized here so the
+ * detail panel (TabShell) can echo the SAME kind accent the tree shows —
+ * keep this switch in sync with SpanCard when new event types are added.
+ */
+export function spanDisplayTypeOf(span: TraceSpan): SpanDisplayType {
+	const eventType = readStringAttr(span, "event_type");
+	switch (eventType) {
+		case "user_message":
+			return "user";
+		case "assistant_message":
+			return "assistant";
+		case "tool_call_start":
+		case "tool_call_end":
+			return readStringAttr(span, "tool_kind") === "spawner"
+				? "spawner"
+				: "tool";
+		case "ui_ask_requested":
+		case "ui_ask_answered":
+			return "ui_ask";
+		case "pi_agent_container":
+			return "agent";
+		case "container_container":
+			return "container";
+		case "provisioning_container":
+		case "agent_run_start":
+		case "agent_run_end":
+		case "agent_session_start":
+		case "agent_session_end":
+			return "lifecycle";
+		case "context_build_started":
+		case "context_build_completed":
+		case "system_prompt_resolved":
+		case "pi_request_snapshot":
+			return "system";
+		default:
+			return "generic";
+	}
+}
 
 export function readStringAttr(
 	span: TraceSpan,

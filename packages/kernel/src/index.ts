@@ -7,7 +7,7 @@
  * dispose(). Genuinely app-shaped injections remain as functions:
  * appContext, loaders, sharedTools, createSessionBinding, logger.
  */
-import type { ExtensionContext, ExtensionFactory } from "@mariozechner/pi-coding-agent";
+import type { ExtensionContext, ExtensionFactory } from "@earendil-works/pi-coding-agent";
 import type { KernelDatabase } from "@agent-kernel/db";
 
 import {
@@ -112,6 +112,13 @@ export interface CreateKernelConfig<TToolRuntime = unknown> {
 	piSessionsDir?: string;
 	/** Default Pi agent dir (auth/models/settings) for spawned sessions. */
 	piAgentDir?: string;
+	/**
+	 * Filesystem root the state.json tree hangs off — snapshots land at
+	 * `<stateRoot>/.agent-kernel/state/<containerId>/<agentName>/state.json`.
+	 * Defaults per-spawn to the spawn's working directory. Only agents with an
+	 * active state extension write anything (D88).
+	 */
+	stateRoot?: string;
 	/** Default actor correlation stamped onto emitted events. */
 	defaultUserId?: string;
 	concurrency?: KernelConcurrencyConfig;
@@ -275,6 +282,13 @@ export function createKernel<TToolRuntime = unknown>(
 				resolveSpawnConfig(registry.get(name), opts.variant, config.models?.aliases)
 					.parsed,
 			loadAgentResolver: async (name) => registry.get(name).contextResolver,
+			loadAgentState: async (name) => {
+				const def = registry.get(name);
+				return {
+					module: def.stateModule,
+					window: def.stateConfig?.window ?? null,
+				};
+			},
 			buildPrivateRegisterFactory: async (name) => {
 				const privateTools = registry.get(name).privateTools;
 				if (!privateTools) return null;
@@ -326,6 +340,7 @@ export function createKernel<TToolRuntime = unknown>(
 			displayLabel: opts.displayLabel ?? resolved.displayLabel,
 			piSessionsDir: opts.piSessionsDir ?? config.piSessionsDir,
 			piAgentDir: opts.piAgentDir ?? config.piAgentDir,
+			stateRoot: opts.stateRoot ?? config.stateRoot,
 			userId: opts.userId ?? config.defaultUserId,
 			traceWriter: opts.traceWriter ?? (config.db ? traceWriter() : undefined),
 			captureRequestSnapshots:
@@ -400,6 +415,7 @@ export * from "./context";
 export * from "./events";
 export * from "./agent-definition";
 export * from "./agent-registry";
+export * from "./state";
 export * from "./spawn-pipeline";
 export * from "./emitter";
 export * from "./spawn-config";

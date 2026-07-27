@@ -37,8 +37,8 @@ The harness exercises the core package path:
   kernel.spawnAgent / kernel.agentManager
   kernel.traceWriter / kernel.readApiService / kernel.doctor()
   default loader catalog + app working-memory loader
-  agent.json / prompt.json / prompt.rendered.md bundles
-  per-agent context.ts and tools.ts sidecars
+  folder-form agent bundles: agent.json + prompt/{prompt.json,system.md}
+  per-agent context/ and tools/ section folders
 
 @agent-kernel/protocol
   trace event factories (app phase/container seeding)
@@ -66,7 +66,7 @@ The harness exercises the core package path:
 
 `src/simple-research-kernel-store.ts` owns the kernel instance (`createKernel` with catalog roots, a model alias, the working-memory loader, an app tool runtime, and per-spawn `appContext`), the live research runtime, session-container creation, subagent fan-out, and completion validation. One research request is one root container of kind `"session"`; identity is derived, never minted.
 
-`src/agent-catalog/*/` holds the coordinator, source scout, and report writer bundles. Each directory contains an `agent.json` manifest, the canonical `prompt.json`, a committed `prompt.rendered.md` snapshot (enforced by `prompt-snapshots.test.ts`), and `context.ts`/`tools.ts` sidecars attached by filename convention.
+`src/agent-catalog/*/` holds the coordinator, source scout, and report writer bundles, all in folder form (D98). Each directory contains an `agent.json` manifest, `prompt/prompt.json` with its committed generated `prompt/system.md` render (enforced by `prompt-snapshots.test.ts`), and `context/index.ts` / `tools/index.ts` section folders. None of the three ships a state section, so all three run pass-through.
 
 `src/agent-catalog/tool-runtime.ts` contains the shared tool registration helpers and the runtime contract that lets agent sidecars call back into app-owned working memory and subagent orchestration without moving those concerns into the kernel package.
 

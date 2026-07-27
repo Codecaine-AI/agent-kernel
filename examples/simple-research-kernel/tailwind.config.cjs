@@ -4,7 +4,12 @@ module.exports = {
 		"./index.html",
 		"./src/**/*.{ts,tsx}",
 		"../../packages/viewer-shell/src/**/*.{ts,tsx}",
-		"../../packages/viewer-ui/src/**/*.{ts,tsx}"
+		"../../packages/viewer-ui/src/**/*.{ts,tsx}",
+		// The prompt-authoring UI lives in the sibling prompt-kit checkout and
+		// reaches this app through a link: dep; Tailwind never scans
+		// node_modules, so its source is named explicitly or the prompt lab
+		// renders naked.
+		"../../../prompt-kit/src/**/*.{ts,tsx}"
 	],
 	theme: {
 		extend: {

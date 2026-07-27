@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>State shapes — what the code actually looks like</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page:        #f9f9f7;
+    --surface:     #fcfcfb;
+    --code-bg:     #fbfbf9;
+    --ink:         #1a1a19;
+    --ink-2:       #52514e;
+    --ink-3:       #898781;
+    --grid:        #e1e0d9;
+    --rule:        #c3c2b7;
+    --border:      rgba(11,11,11,0.10);
+    --accent:      #2a78d6;
+    --warn:        #eb6834;
+    --ok:          #1baf7a;
+    /* code tokens — all ≥4.5:1 on --code-bg (validated) */
+    --t-keyword:   #7c3aed;
+    --t-string:    #0a7d32;
+    --t-comment:   #6b6a66;
+    --t-type:      #1c5cab;
+    --t-number:    #b4460f;
+    --t-fn:        #0f766e;
+    --t-literal:   #a1256f;
+    --t-punct:     #52514e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page:      #0d0d0d;
+      --surface:   #1a1a19;
+      --code-bg:   #17171a;
+      --ink:       #e8e8e3;
+      --ink-2:     #c3c2b7;
+      --ink-3:     #898781;
+      --grid:      #2c2c2a;
+      --rule:      #383835;
+      --border:    rgba(255,255,255,0.10);
+      --accent:    #3987e5;
+      --warn:      #d95926;
+      --ok:        #199e70;
+      --t-keyword: #c4b5fd;
+      --t-string:  #5ddb8a;
+      --t-comment: #8f8e88;
+      --t-type:    #93c5fd;
+      --t-number:  #fbaa72;
+      --t-fn:      #5eead4;
+      --t-literal: #f3a4d0;
+      --t-punct:   #c3c2b7;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:      #0d0d0d;  --surface: #1a1a19;  --code-bg: #17171a;
+    --ink:       #e8e8e3;  --ink-2:   #c3c2b7;  --ink-3:   #898781;
+    --grid:      #2c2c2a;  --rule:    #383835;  --border:  rgba(255,255,255,0.10);
+    --accent:    #3987e5;  --warn:    #d95926;  --ok:      #199e70;
+    --t-keyword: #c4b5fd;  --t-string:#5ddb8a;  --t-comment:#8f8e88;
+    --t-type:    #93c5fd;  --t-number:#fbaa72;  --t-fn:    #5eead4;
+    --t-literal: #f3a4d0;  --t-punct: #c3c2b7;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--page); color:var(--ink);
+         font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:1000px; margin:0 auto; padding:32px 24px 96px; }
+  h1 { font-size:26px; margin:0 0 4px; }
+  h2 { font-size:19px; margin:44px 0 8px; }
+  h3 { font-size:15.5px; margin:26px 0 6px; }
+  p  { margin:8px 0; }
+  .sub { color:var(--ink-2); }
+  .muted { color:var(--ink-3); }
+  .topbar { display:flex; justify-content:space-between; align-items:baseline; gap:16px; }
+  #themeToggle { font:13px system-ui,sans-serif; color:var(--ink-2); background:var(--surface);
+                 border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; }
+  .card { background:var(--surface); border:1px solid var(--border);
+          border-radius:10px; padding:16px 18px; margin:14px 0; }
+  .badge { display:inline-block; font-size:11px; font-weight:600; letter-spacing:.04em;
+           border-radius:4px; padding:1px 7px; border:1px solid var(--rule);
+           color:var(--ink-2); vertical-align:2px; margin-left:6px; white-space:nowrap; }
+  .badge.fact { background:var(--ink); color:var(--page); border-color:var(--ink); }
+  .badge.sketch { border-style:dashed; }
+  .badge.agreed { background:var(--ok); color:var(--page); border-color:var(--ok); }
+  code:not(pre code) { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.86em;
+    background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:0 4px; }
+
+  /* ---- code blocks ---- */
+  figure.code { margin:12px 0; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--code-bg); }
+  figure.code figcaption {
+    font:12px ui-monospace,Menlo,monospace; color:var(--ink-2);
+    background:var(--surface); border-bottom:1px solid var(--border);
+    padding:6px 12px; display:flex; justify-content:space-between; gap:12px;
+  }
+  figure.code figcaption .tag { color:var(--ink-3); font-family:system-ui,sans-serif; font-size:11px;
+    text-transform:uppercase; letter-spacing:.04em; }
+  pre { margin:0; padding:12px 14px; overflow-x:auto;
+        font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; line-height:1.6;
+        color:var(--ink); tab-size:2; }
+  .t-keyword { color:var(--t-keyword); }
+  .t-string  { color:var(--t-string); }
+  .t-comment { color:var(--t-comment); font-style:italic; }
+  .t-type    { color:var(--t-type); }
+  .t-number  { color:var(--t-number); }
+  .t-fn      { color:var(--t-fn); }
+  .t-literal { color:var(--t-literal); }
+  .t-key     { color:var(--t-type); }
+
+  table { border-collapse:collapse; font-size:13.5px; width:100%; margin:10px 0; }
+  th,td { border:1px solid var(--grid); padding:5px 10px; text-align:left; vertical-align:top; }
+  th { color:var(--ink-2); font-weight:600; }
+
+  /* ---- the three sections ---- */
+  .spectrum { display:flex; gap:5px; align-items:stretch; flex-wrap:wrap; }
+  .band { flex:1 1 0; min-width:200px; border:1px solid var(--rule); border-radius:8px;
+          padding:12px 14px; display:flex; flex-direction:column; gap:4px; }
+  .band .ln { font-size:11px; font-weight:600; letter-spacing:.05em; color:var(--ink-3);
+              text-transform:uppercase; }
+  .band .bt { font-weight:600; font-size:14.5px; }
+  .band .bd { font-size:12.5px; color:var(--ink-2); }
+  .band .br { font-size:11.5px; color:var(--ink-3); margin-top:auto; padding-top:8px; }
+  .b1 { background:color-mix(in srgb, var(--accent) 14%, transparent); border-color:var(--accent); }
+  .b2 { background:color-mix(in srgb, var(--accent) 7%,  transparent); }
+  .b3 { background:color-mix(in srgb, var(--ok) 13%, transparent); border-color:var(--ok); }
+  .axis { display:flex; justify-content:space-between; font-size:11.5px; color:var(--ink-3);
+          letter-spacing:.03em; border-top:1px solid var(--grid); padding-top:6px; margin-top:8px; }
+
+  /* ---- window walkthrough ---- */
+  .turnrow { display:flex; gap:3px; align-items:center; margin:10px 0 2px; flex-wrap:wrap; }
+  .turn { flex:0 0 auto; min-width:44px; text-align:center; font-size:11.5px; padding:5px 4px;
+          border:1px solid var(--border); border-radius:4px; color:var(--ink-3);
+          font-family:ui-monospace,Menlo,monospace; }
+  .turn.inwin { border-color:var(--ok); background:color-mix(in srgb, var(--ok) 10%, transparent);
+                color:var(--ink); }
+  .turn.live { border-color:var(--warn); background:color-mix(in srgb, var(--warn) 10%, transparent);
+               color:var(--ink); font-weight:600; }
+
+  /* ---- flow ---- */
+  .flow { display:flex; align-items:stretch; gap:0; flex-wrap:wrap; margin:14px 0; }
+  .node { background:var(--surface); border:1px solid var(--rule); border-radius:8px;
+          padding:10px 14px; min-width:140px; flex:0 1 auto; }
+  .node b { display:block; font-size:14px; }
+  .node span { font-size:12.5px; color:var(--ink-2); }
+  .node.n-ok { border-color:var(--ok); background:color-mix(in srgb, var(--ok) 10%, transparent); }
+  .arrow { align-self:center; text-align:center; padding:0 10px; color:var(--ink-3);
+           font-size:12px; min-width:70px; }
+  .arrow .glyph { font-size:18px; color:var(--ink-2); display:block; line-height:1; }
+
+  ul { margin:6px 0; padding-left:22px; } li { margin:4px 0; }
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:860px){ .cols{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="topbar">
+    <h1>State shapes — what the code actually looks like</h1>
+    <button id="themeToggle" aria-label="Toggle color theme">Theme: auto</button>
+  </div>
+  <p class="sub">Agent Kernel design explainer — the state model, agreed in the 2026-07-27 design interview — v5 (§6 bundle tree added &amp; built; section numbering now frozen — the D-log cites it), Pi <code>@earendil-works/pi-*@0.82.1</code>. Companions: <code>context-fold-projection.html</code> (measured hook behavior), <code>prompt-cache-tiers.html</code> (storage &amp; transport).</p>
+
+  <div class="card" style="border-color:var(--ok);">
+    <p><strong>v4 — this version is the interview record.</strong> <span class="badge agreed">AGREED</span> Everything marked <span class="badge agreed">AGREED</span> was decided question-by-question on 2026-07-27; §11 is the full decision table. §6 (the bundle tree) was agreed later the same day and is being applied to the kernel registry and the canvas catalog. Marked <span class="badge sketch">SKETCH</span> = illustrative shapes still open to change during build. Earlier iterations: v3 (three layers, canvas example), v2 (state-primary, "fold" retired).</p>
+  </div>
+
+  <h2>1. The thesis <span class="badge agreed">AGREED</span></h2>
+  <div class="card">
+    <p style="font-size:16.5px;"><strong>Each turn, the agent is dropped into the current state and asked for the next step.</strong></p>
+    <p>Like a policy in a PPO setup: the state is the <em>observation</em>, and the model is the policy. The consequence that drives everything else: <strong>the messages are part of the state.</strong> Conversation history isn't a thing that exists <em>beside</em> the state — it is one component <em>of</em> it, alongside whatever domain components exist (a board, files, a graph). There is one state object per agent, and one moving piece in every request: the render of that state.</p>
+    <p class="sub" style="margin-bottom:0;">This is what makes the design adaptable: a plain agent's state is <em>just its messages</em>, and it behaves like a normal agent (§3). A rich agent extends the same object with its domain (§5). Same kernel, same contract, no special cases.</p>
+  </div>
+
+  <h2>2. The request — three sections <span class="badge agreed">AGREED</span></h2>
+  <p>Every request the model receives is three sections, and we build all three:</p>
+
+  <div class="card">
+    <div class="spectrum">
+      <div class="band b1">
+        <div class="ln">① System prompt</div>
+        <div class="bt">The agent's instructions</div>
+        <div class="bd">who it is, how it works — in XML tags</div>
+        <div class="br">changes pretty much never</div>
+      </div>
+      <div class="band b2">
+        <div class="ln">② Context message</div>
+        <div class="bt">Slow accumulation</div>
+        <div class="bd">what we want visible on <em>every</em> request: capabilities, skills, style guides, reference sheets</div>
+        <div class="br">rebuilt each request from a kernel-held set · entries added/removed at slow cadence (an agent can gain or lose a skill)</div>
+      </div>
+      <div class="band b3">
+        <div class="ln">③ State</div>
+        <div class="bt">The moving piece</div>
+        <div class="bd">the rendered state: the working picture + however much recent conversation the renderer chooses to show</div>
+        <div class="br">re-rendered every request by <code>render(state)</code></div>
+      </div>
+    </div>
+    <div class="axis"><span>◀ set once</span><span>slow add / remove</span><span>rebuilt every request ▶</span></div>
+  </div>
+
+  <div class="card">
+    <p><strong>Two mechanical notes that make this honest:</strong></p>
+    <ul style="margin-bottom:0;">
+      <li><strong>② is rebuilt, not accumulated in the transcript.</strong> The kernel holds the L2 set (id → content) and renders it into one context message each request. Adding a skill mid-run adds an entry; losing one removes it. Nothing stale can linger, because nothing is pinned to history.</li>
+      <li><strong>③ may contain real messages.</strong> Conceptually the recent conversation is state being rendered; mechanically the renderer emits it as genuine user/assistant/tool messages, because providers require real structure for tool-call pairing and reason better over real turns. The in-flight turn is always real messages. How much conversation renders — and in what form — is the renderer's policy.</li>
+    </ul>
+  </div>
+
+  <h2>3. Base state — a normal agent <span class="badge agreed">AGREED — the key piece</span></h2>
+  <p>This is the centerpiece of the kernel: <strong>an agent with no <code>state.ts</code> is a completely normal agent.</strong> Its state is its messages; the default renderer shows them as a rolling window. No schema, no XML state block, no ceremony — the kernel imposes nothing.</p>
+
+  <div class="card">
+    <p><strong>Worked example — a plain agent at turn 14, window policy "last 8 turns":</strong></p>
+    <div class="turnrow">
+      <div class="turn">t1</div><div class="turn">t2</div><div class="turn">t3</div>
+      <div class="turn">t4</div><div class="turn">t5</div>
+      <div class="turn inwin">t6</div><div class="turn inwin">t7</div><div class="turn inwin">t8</div>
+      <div class="turn inwin">t9</div><div class="turn inwin">t10</div><div class="turn inwin">t11</div>
+      <div class="turn inwin">t12</div><div class="turn inwin">t13</div><div class="turn live">t14 ●</div>
+    </div>
+    <p class="sub">gray = elided from the request · green = in the window, verbatim real messages · orange = the live turn</p>
+    <p>The request it receives: <strong>① system prompt · ② context message · ③ turns 6–14 as real messages</strong>, with one elision marker where history was cut (<code>[turns 1–5 elided]</code>). Cuts land only on turn boundaries — an assistant <code>toolCall</code> and its <code>toolResult</code> are never split, because providers reject orphaned halves.</p>
+    <p style="margin-bottom:0;">That's the whole base behavior. It reads like a normal agent transcript because it <em>is</em> one — just bounded. Old images past a newest-K cap become one-line stubs before old turns drop entirely. There is no compaction step anywhere, because nothing ever piles up to compact.</p>
+  </div>
+
+  <div class="card">
+    <p style="margin-bottom:0;"><strong>Window policy is per-agent configuration, not a kernel rule.</strong> <span class="badge agreed">AGREED</span> The kernel ships sizing strategies — turn count, token budget, more as needed — and each agent's config picks and tunes one. The pair-safe turn-boundary cut is the only invariant. Defaults are a build-stage decision.</p>
+  </div>
+
+  <h2>4. The contract — seed · update · render <span class="badge agreed">AGREED — shapes are SKETCH</span></h2>
+  <p>An agent that wants more than the base behavior ships a <code>state.ts</code> sidecar (next to <code>tools.ts</code>) exporting three functions. <strong>The kernel decides <em>when</em> they run; the agent decides <em>what</em> they mean.</strong></p>
+
+  <figure class="code">
+    <figcaption><span>state.ts — the contract</span><span class="tag">sketch</span></figcaption>
+<pre data-lang="ts">// S is whatever the agent needs — the kernel never looks inside.
+// One requirement: S must be JSON-serializable (it snapshots to state.json).
+export interface StateModule&lt;S&gt; {
+
+  // Build the initial state at spawn. Same SpawnContext the context loaders
+  // get today (sessionData, agent config, cwd) — plus, optionally, a prior
+  // run's final state passed in explicitly by the caller. Never auto-loaded.
+  seed(ctx: SpawnContext, prior?: S): S;
+
+  // Advance the state. Called as each event lands — tool call, tool result,
+  // user message, turn boundary — via Pi's blocking hooks, in order.
+  // "After a tool call that changes the board, update the board state."
+  update(state: S, event: SessionEvent): S;
+
+  // Produce section ③ of the request: the state block plus however much
+  // recent conversation this renderer chooses to emit as real messages.
+  render(state: S, ctx: RenderContext): AgentMessage[];
+}</pre>
+  </figure>
+
+  <div class="card">
+    <p><strong>When the kernel calls what</strong> <span class="badge fact">hook behavior MEASURED on 0.82.1</span> — <code>tool_call</code>/<code>tool_result</code>/<code>turn_end</code> block in order, and <code>context</code> fires before every provider request and is the only hook that can rewrite the outgoing array (non-destructively — its result affects one request and never feeds forward):</p>
+    <figure class="code" style="margin-top:8px;">
+      <figcaption><span>the kernel's side of the contract</span><span class="tag">sketch</span></figcaption>
+<pre data-lang="ts">pi.on("tool_result", (ev) => { state = mod.update(state, toEvent(ev)); });
+pi.on("turn_end",   async (ev) => {
+  state = mod.update(state, toEvent(ev));
+  await stateStore.snapshot(state);          // state.json, via the sink seam
+});
+pi.on("context", async (ev) => {
+  state = catchUp(state, ev.messages, mod);  // events not yet seen — usually none
+  return { messages: [contextMessage(l2set), ...mod.render(state, renderCtx(ev))] };
+});</pre>
+    </figure>
+    <p class="sub" style="margin-bottom:0;">The catch-up line is why a retry or a prompt's first request can never see stale state: <code>context</code> applies anything <code>update</code> hasn't seen yet before rendering. When everything is current, it costs one comparison. No kernel-shipped state tools exist — an agent that wants a notes channel defines its own tool and handles it in <code>update</code> like any other event. <span class="badge agreed">AGREED</span></p>
+  </div>
+
+  <h2>5. Board v1 — the canvas example <span class="badge sketch">SKETCH — the pilot's shape</span></h2>
+  <p>The layout-editor is the v1 pilot. Its decisions from the interview: <strong>full board every turn</strong> (never stale), <strong>close-ups on demand</strong> (<code>look</code>), <strong>diff always visible</strong>. Its five spawn loaders split: <code>capabilities</code>, <code>style_guide</code> + the exemplar/contact-sheet images stay in section ② — <code>board_state</code>, <code>editor_state</code>, <code>user_requests</code> retire as loaders and become state, seeded from the same <code>sessionData</code> they read today.</p>
+
+  <figure class="code">
+    <figcaption><span>canvas-agent state.ts — board v1</span><span class="tag">sketch</span></figcaption>
+<pre data-lang="ts">interface BoardWork {
+  boardId: string;
+  scope: string | null;               // e.g. "sec-auth" — the editable frame
+  ops: OpLine[];                      // cumulative applied operations, one line each
+  lints: { errors: number; warnings: number; was: number };
+  views: ViewRef[];                   // look renders; newest K attach as images
+  requests: RequestLine[];            // the user-request queue, with open/done
+  window: MessageWindow;              // the messages component — recent turns
+}
+
+const board: StateModule&lt;BoardWork&gt; = {
+  seed: (ctx) => fromSessionData(ctx.sessionData),   // boardId, scope, requests…
+
+  update(state, ev) {
+    switch (ev.kind) {
+      case "tool:apply_operation":  // the board changed — record the op
+        return pushOp(state, ev);
+      case "tool:look":             // a close-up was rendered — track the view
+        return pushView(state, ev);
+      case "tool:lint":
+        return withLints(state, ev);
+      default:
+        return advanceWindow(state, ev);   // everything else feeds the window
+    }
+  },
+
+  render(state, ctx) {
+    return [
+      stateBlock(state, currentBoardDigest(state.boardId)),  // ↓ below
+      ...attachViews(state.views, POLICY.maxViews),
+      ...state.window.recentTurns(POLICY),                   // short real-message tail
+    ];
+  },
+};</pre>
+  </figure>
+
+  <p>And what the model actually receives — all three sections, board block in the real digest grammar from <code>board/digest.ts</code>:</p>
+
+  <figure class="code">
+    <figcaption><span>the request, rendered — canvas turn 9</span><span class="tag">illustrative · digest grammar is real</span></figcaption>
+<pre>①  &lt;system&gt; …layout-editor instructions… &lt;/system&gt;
+
+②  &lt;context&gt;
+     &lt;capabilities&gt; …op reference, vocabulary rosters… &lt;/capabilities&gt;
+     &lt;style_guide&gt; …house style topics… &lt;/style_guide&gt;
+     images: house-style exemplar · object vocabulary contact sheet
+   &lt;/context&gt;
+
+③  &lt;state v="21"&gt;
+     &lt;board elements="34"&gt;
+       # indent = containment · id type "text" [color] x,y w×h
+       sec-auth section "Auth flow" 40,40 720×360
+         obj-login rect "Login" 120,80 140×60
+         obj-mfa rect "MFA check" 320,80 140×60 [blue]
+         obj-token rect "Issue token" 520,80 140×60
+       EDGES: login→mfa "success" · mfa→token · token→refresh [dashed]
+     &lt;/board&gt;
+     &lt;ops total="12" showing="4"&gt;
+       t5 move obj-login → 120,80 · t6 connect mfa→token
+       t7 align-row ×3 · t8 recolor obj-mfa blue
+     &lt;/ops&gt;
+     &lt;lints&gt;0 errors · 0 warnings (was 2)&lt;/lints&gt;
+     &lt;requests open="1"&gt;"make the retry path clearer"&lt;/requests&gt;
+     &lt;views&gt;full board (fresh) + close-up sec-auth@t6 attached&lt;/views&gt;
+   &lt;/state&gt;
+   + the last few turns as real messages (short tail — the board carries the picture)</pre>
+  </figure>
+
+  <p class="sub">Nothing here can go stale: the board block is re-derived from the authoritative canvas document every request, a re-colored element just changes its digest line, the fifth view bumps the oldest attachment. The canvas doc itself stays where it lives — state tracks the work <em>around</em> it (scope, ops, lints, views), never a copy of it.</p>
+
+  <h2>6. The bundle tree — one agent, vertical slices <span class="badge agreed">AGREED — built 2026-07-27</span></h2>
+  <p><strong>These are the four sections of an agent: the prompt, the context, the state, the tools</strong> — and the bundle mirrors the request: <strong>read the tree top-to-bottom and you read the request left-to-right.</strong> Instead of horizontal repo layers (all loaders together, all styles together, nothing attributable), everything that defines <em>one</em> agent is one vertical slice, narrowed by runtime role — the prompt is the system prompt, the context is how the agent gets and declares its standing context, the tools are auto-exposed from their folder, and the state is the actual logic for how each turn is handled.</p>
+
+  <div class="tree card">
+<pre>catalog/layout-editor/
+├── <b>agent.json</b>                  <span class="cm">← the index: model, thinking, maxTurns, window</span>
+├── <b>prompt/</b>                     <span class="cm">← section ① — the system prompt</span>
+│   ├── prompt.json               <span class="cm">←   SOURCE OF TRUTH</span>
+│   └── system.md                 <span class="cm">←   rendered markdown, generated FROM the json — for reading &amp; diffs, never hand-edited</span>
+├── <b>context/</b>                    <span class="cm">← section ② — reference; stable for the run</span>
+│   ├── index.ts                  <span class="cm">←   the complete inventory of ② (defineContext)</span>
+│   ├── capabilities.gen.ts       <span class="cm">←   recipe → &lt;capabilities&gt; (generated from validator schemas)</span>
+│   ├── style-guide/              <span class="cm">←   authored topics</span>
+│   ├── exemplar.ts               <span class="cm">←   recipe: house-style reference image (spawn-rendered)</span>
+│   └── contact-sheet.ts          <span class="cm">←   recipe: vocabulary sheet (spawn-rendered)</span>
+├── <b>tools/</b>                      <span class="cm">← the action surface — auto-registered from the folder</span>
+│   ├── apply-operation.ts
+│   ├── look.ts
+│   └── lint.ts
+└── <b>state/</b>                      <span class="cm">← section ③ — how each turn is handled</span>
+    ├── index.ts                  <span class="cm">←   defineState: wires shape + rules + render</span>
+    ├── shape.ts                  <span class="cm">←   the state type S + seed()</span>
+    ├── rules/                    <span class="cm">←   update(): one file per event concern</span>
+    │   ├── operations.ts         <span class="cm">←     apply_operation events → the ops ledger</span>
+    │   ├── views.ts              <span class="cm">←     look events → view refs</span>
+    │   └── lints.ts
+    └── render/                   <span class="cm">←   render(): one file per block of ③</span>
+        ├── board.ts              <span class="cm">←     the &lt;board&gt; digest</span>
+        ├── ops.ts                <span class="cm">←     &lt;ops&gt; / &lt;diff&gt;</span>
+        └── tail.ts               <span class="cm">←     the real-message tail via the window policy</span></pre>
+  </div>
+
+  <div class="card">
+    <p><strong>The rules of the tree:</strong></p>
+    <ul>
+      <li><strong><code>prompt.json</code> is the source of truth.</strong> <code>system.md</code> is its rendered form, generated json → md so the prompt is always readable and diffable as markdown.</li>
+      <li><strong><code>context/index.ts</code> is the single inventory of ②.</strong> Every block and image the agent always sees is declared there — including spawn-rendered artifacts, which live in the folder as <em>recipes</em> (the contact sheet is a PNG that exists only at runtime; what the bundle owns is the declaration that produces and attaches it).</li>
+      <li><strong>Tools auto-register from their folder.</strong> The folder <em>is</em> the roster; nothing lists them twice.</li>
+      <li><strong>The tools↔rules↔render symmetry:</strong> <code>tools/apply-operation.ts</code> defines an action; <code>state/rules/operations.ts</code> defines what that action makes true; <code>state/render/ops.ts</code> defines how that truth is shown. One concern, three files, same name.</li>
+      <li><strong>Scale-down rule:</strong> every folder collapses to a single file. <code>state.ts</code> alone stays legal; a base agent is just <code>agent.json</code> + <code>prompt/</code> — the absence of the other folders <em>is</em> the statement that it's a plain windowed agent.</li>
+      <li><strong>Sharing is the rule of two:</strong> an asset lives in one agent's bundle until a second agent needs it, then the <em>bytes</em> promote to <code>catalog/_shared/</code> — but each consumer still declares it in its own <code>context/index.ts</code>. Library <em>code</em> (digest, doc-diff, loader machinery) stays in <code>src/</code>; the test is "does this feed a section of <em>this</em> agent's request, or is it machinery any agent could run?"</li>
+    </ul>
+    <p class="sub"><strong>As built (2026-07-27):</strong> the tree above is now real. The kernel registry resolves both forms (<code>registry/bundle-layout.ts</code>), <code>agent-kernel-render-prompts</code> generates <code>system.md</code> byte-for-byte from <code>prompt.json</code> via prompt-kit, <code>doctor --catalog</code> audits layouts, and every bundle in both repos is folder-form — the canvas layout-editor's actual tree matches this sketch, with <code>capabilities/</code> nested under <code>context/</code>, a per-block <code>state/render/</code>, and the 13 typed mutators kept in one <code>tools/apply-operation.ts</code> (their specs are already a single shared roster; thirteen stub files would be a second one).</p>
+    <p class="sub" style="margin-bottom:0;"><strong>Resolved at approval:</strong> discovery accepts both forms, file first (<code>state.ts</code> before <code>state/index.ts</code>, <code>prompt.json</code> before <code>prompt/prompt.json</code>) so re-export shims are safe mid-migration, with a doctor warning when both exist · <code>prompt/system.md</code> is generated json → md, checked in, never parsed · loader <em>implementations</em> stay app-registered; bundles hold declarations · the canvas catalog migrates immediately (the layout-editor is the exemplar).</p>
+  </div>
+
+  <h2>7. What already exists <span class="badge fact">verified in the repos</span></h2>
+  <table>
+    <thead><tr><th>Piece of the design</th><th>What exists today</th></tr></thead>
+    <tbody>
+      <tr><td>Board block rendering</td><td><code>canvas-agent/src/board/digest.ts</code> — the model-visible BOARD digest, lossless over the op-writable surface</td></tr>
+      <tr><td>The diff</td><td><code>board/doc-diff.ts</code> — baseline vs draft → ordered patch ops; already rendered per apply</td></tr>
+      <tr><td>Per-turn derivation</td><td><code>service/session/perception.ts</code> — deltas, cumulative edits, lint movement, scoped digests, raster views</td></tr>
+      <tr><td>Section ② content</td><td>the <code>capabilities</code> / <code>style-guide</code> loaders + boot images in the layout-editor bundle</td></tr>
+      <tr><td>Extension seam</td><td><code>createPiSession()</code> already assembles <code>ExtensionFactory[]</code> — the state extension is one more entry; compaction is already disabled</td></tr>
+      <tr><td>Turn-view capture</td><td><code>streaming/request-snapshot.ts</code> — full per-turn window into content-addressed trace blobs, rendered by the viewer</td></tr>
+      <tr><td>Emission seam</td><td><code>TraceWriterSink</code> (<code>submit()</code>/<code>flush()</code>, serialized tail) — traces and snapshots already flow through it</td></tr>
+    </tbody>
+  </table>
+
+  <h2>8. Persistence &amp; the turn view <span class="badge agreed">AGREED</span></h2>
+  <ul>
+    <li><strong><code>state.json</code> snapshot only in v1</strong> — written after each update batch under <code>.agent-kernel/state/&lt;container&gt;/&lt;agent&gt;/</code>, through the sink seam. No action log, no artifact byte-store yet. This is also what enforces JSON-serializable state from day one, and what makes the state inspectable as a file.</li>
+    <li><strong>Full request snapshots stay, and gain section tags.</strong> The builder marks where ① ② ③ begin, so the per-turn viewer renders the exact context window the model ran on as three sections — the turn renderer. No hash-receipt demotion.</li>
+    <li><strong>Resume means multi-prompt continuity, not crash recovery.</strong> A long-running session takes message after message; state lives in the extension across prompts and <code>update</code> keeps folding. Crash recovery is explicitly out of scope for v1.</li>
+  </ul>
+
+  <h2>9. Transport <span class="badge agreed">AGREED — designed with v1, remote sink built in the sandbox stage</span></h2>
+  <div class="flow" aria-label="Emission path">
+    <div class="node"><b>Emit</b><span>traces, snapshots, and state updates all go through the <em>one</em> sink interface</span></div>
+    <div class="arrow"><span class="glyph">→</span></div>
+    <div class="node"><b>Local sink (v1)</b><span><code>trace.db</code> + <code>state.json</code> — today's writers behind the seam</span></div>
+    <div class="arrow"><span class="glyph">→</span>sandbox stage</div>
+    <div class="node n-ok"><b>Remote sink</b><span>spool file → drain loop → POST; acked state channel (version-deduped), droppable observability channel</span></div>
+  </div>
+  <p class="sub">Getting runs, traces, and state out of a sandbox is part of this design, not an afterthought — but it lands as its own stage, after the state model is verified. Because everything already emits through one seam, the sandbox story is a sink swap, not a rework. Details live in <code>prompt-cache-tiers.html</code>.</p>
+
+  <h2>10. Build order <span class="badge agreed">AGREED</span></h2>
+  <table>
+    <thead><tr><th style="width:14%;">Stage</th><th>Ships</th><th>Proves</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1 · Docs</strong></td><td>this doc, iterated until the state representation is right</td><td>shared understanding — sign-off gates everything</td></tr>
+      <tr><td><strong>2 · Kernel</strong></td><td>seed/update/render contract · three-section builder · window policies · snapshot section tags · state through the sink seam</td><td>base agents behave like normal agents</td></tr>
+      <tr><td><strong>3 · Viewer</strong></td><td>the three-section turn view</td><td>you can <em>see</em> every window while piloting</td></tr>
+      <tr><td><strong>4 · Canvas</strong></td><td>board v1 <code>state.ts</code>; the three picture loaders retire</td><td>the rich case works on a real agent</td></tr>
+      <tr><td><strong>5 · Sandbox</strong></td><td>spool/drain/remote sink, acked state channel</td><td>runs, traces, state transfer out of a sandbox — working, not just designed</td></tr>
+    </tbody>
+  </table>
+
+  <h2>11. The decision table <span class="badge agreed">AGREED — 2026-07-27 interview</span></h2>
+  <table>
+    <thead><tr><th style="width:34%;">Decision</th><th>Resolution</th></tr></thead>
+    <tbody>
+      <tr><td>V1 optimizes for</td><td><strong>Context control</strong> — deliberate context every turn, no compaction. Restart stays the honesty test; interface falls out.</td></tr>
+      <tr><td>Pilot agent</td><td><strong>Canvas layout-editor</strong>; core code lives in the kernel.</td></tr>
+      <tr><td>Section ② membership (canvas)</td><td>Reference → ②: capabilities, style guide, exemplar + contact-sheet images. Working picture → ③. Spawn <code>board_state</code> block retired.</td></tr>
+      <tr><td>Board in ③</td><td>Full board every turn + close-ups on demand + diff visible.</td></tr>
+      <tr><td>Universal state schema</td><td><strong>None.</strong> Base state = the messages; a schema-free kernel. Rich agents define their own shape.</td></tr>
+      <tr><td>state.ts contract</td><td><code>seed(spawnCtx, prior?)</code> / <code>update(state, event)</code> / <code>render(state)</code> — kernel owns when, agent owns what.</td></tr>
+      <tr><td>Renderer ownership</td><td><code>render(state)</code> owns the entire body after ①②; recent conversation emitted as real messages at the renderer's discretion.</td></tr>
+      <tr><td>Window policy</td><td>Per-agent configurable strategy (turns, token budget, …); pair-safe turn-boundary cuts invariant.</td></tr>
+      <tr><td>Update timing</td><td>Per event via blocking hooks + catch-up in <code>context</code>; render per request.</td></tr>
+      <tr><td>Seeding</td><td>SpawnContext (as loaders today) + optional explicit prior state; nothing auto-loaded.</td></tr>
+      <tr><td>Persistence v1</td><td><code>state.json</code> snapshot only; JSON-serializable state required.</td></tr>
+      <tr><td>Kernel state tools</td><td>None — agent-defined only.</td></tr>
+      <tr><td>Turn view</td><td>Full request snapshots kept; builder adds section tags; viewer renders ①②③ structurally.</td></tr>
+      <tr><td>Resume</td><td>= multi-prompt continuity on long-running sessions (inherent); crash recovery out of scope.</td></tr>
+      <tr><td>Transport</td><td>Designed with v1; everything emits through the one sink seam now; remote spool/drain/POST sink built and verified in the sandbox stage.</td></tr>
+      <tr><td>Docs</td><td>This doc leads; <code>context-fold-projection.html</code> keeps measured content + banner; <code>prompt-cache-tiers.html</code> carries transport/storage decisions.</td></tr>
+      <tr><td>Build order</td><td>Docs → kernel → viewer → canvas → sandbox.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="card">
+    <p><strong>Deliberately open — decided at their build stage:</strong></p>
+    <ul style="margin-bottom:0;">
+      <li>Default window sizes per strategy (kernel stage)</li>
+      <li>The exact <code>SessionEvent</code> shape <code>update</code> receives (kernel stage)</li>
+      <li>Canvas close-up policy and image caps (canvas stage)</li>
+      <li>L2 set bookkeeping details — entry ids, skill add/remove API (kernel stage)</li>
+      <li>Ack/backpressure specifics of the state channel (sandbox stage)</li>
+    </ul>
+  </div>
+
+</main>
+
+<script>
+"use strict";
+
+/* ---------- theme toggle ---------- */
+(function () {
+  const btn = document.getElementById("themeToggle");
+  const modes = ["auto", "light", "dark"];
+  let i = 0;
+  btn.addEventListener("click", function () {
+    i = (i + 1) % modes.length;
+    const m = modes[i];
+    if (m === "auto") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = m;
+    btn.textContent = "Theme: " + m;
+  });
+})();
+
+/* ---------- minimal TS/JS highlighter ----------
+   Order matters: comments and strings are matched before anything else so
+   keywords inside them are never re-tokenized. */
+const KEYWORDS = [
+  "import","export","from","const","let","var","function","return","if","else",
+  "await","async","new","class","extends","implements","readonly","as","in","of",
+  "for","switch","case","default","throw","try","catch","interface","type","enum",
+];
+const TYPES = [
+  "string","number","boolean","void","unknown","any","never","Promise","Array",
+  "Record","Partial","Readonly","Set","Map",
+];
+
+const CODE_RE = new RegExp([
+  "(?<comment>//[^\\n]*|/\\*[\\s\\S]*?\\*/)",
+  "(?<string>`(?:[^`\\\\]|\\\\.)*`|\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*')",
+  "(?<literal>\\b(?:null|undefined|true|false)\\b)",
+  "(?<keyword>\\b(?:" + KEYWORDS.join("|") + ")\\b)",
+  "(?<type>\\b(?:" + TYPES.join("|") + ")\\b|\\b[A-Z][A-Za-z0-9_]*\\b)",
+  "(?<number>\\b\\d+(?:\\.\\d+)?\\b)",
+  "(?<fn>\\b[a-z_][A-Za-z0-9_]*(?=\\s*\\())",
+].join("|"), "g");
+
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function highlight(code, re) {
+  let out = "", last = 0, m;
+  re.lastIndex = 0;
+  while ((m = re.exec(code)) !== null) {
+    if (m.index < last) continue;
+    out += esc(code.slice(last, m.index));
+    const groups = m.groups || {};
+    let kind = null;
+    for (const k in groups) {
+      if (groups[k] !== undefined) { kind = k; break; }
+    }
+    out += '<span class="t-' + kind + '">' + esc(m[0]) + "</span>";
+    last = m.index + m[0].length;
+  }
+  out += esc(code.slice(last));
+  return out;
+}
+
+document.querySelectorAll("pre[data-lang]").forEach(function (pre) {
+  const src = pre.textContent;
+  pre.innerHTML = highlight(src, CODE_RE);
+});
+</script>
+</body>
+</html>

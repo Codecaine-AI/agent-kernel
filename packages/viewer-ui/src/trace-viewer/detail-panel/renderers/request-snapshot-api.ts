@@ -3,8 +3,26 @@
  * request-snapshot read routes. Paths come from KERNEL_TRACE_READ_PATHS
  * (viewer-core/src/api.ts); the helpers here only join them onto the host's
  * apiBase from TraceViewerApiContext.
+ *
+ * apiBase is a prefix, not an origin: `""` is legal and yields a relative,
+ * same-origin URL ("/kernel/runs/…"). Callers gate with hasApiBase() before
+ * getting here — see TraceViewerApiContext.
  */
 import { KERNEL_TRACE_READ_PATHS } from "@agent-kernel/viewer-core";
+
+import type { RequestSectionTag } from "./turn-sections";
+
+/**
+ * The offline gate, as a type guard. `apiBase` is a prefix, so `""` is a
+ * perfectly good value — it means same-origin. Only `null`/absent means "no API
+ * configured". Every caller must use this instead of a truthiness check, or a
+ * same-origin host silently falls back to the offline summary.
+ */
+export function hasApiBase(
+	apiBase: string | null | undefined,
+): apiBase is string {
+	return apiBase !== null && apiBase !== undefined;
+}
 
 /** Raw blob bytes (images serve image/png etc.). */
 export function blobUrl(apiBase: string, blobHash: string): string {
@@ -72,6 +90,13 @@ export interface RunTurnContextResponse {
 	message_count: number;
 	/** Sanitized pi messages, in context order. */
 	messages: SanitizedMessage[];
+	/**
+	 * Half-open [start, end) index ranges over `messages` marking where the
+	 * request's sections ② context and ③ state (plus its tail) begin. Absent on
+	 * snapshots taken before the builder emitted tags — the viewer then renders
+	 * the flat list. Mirrors PiRequestSnapshotData.sections in the protocol.
+	 */
+	sections?: RequestSectionTag[];
 	refs?: unknown;
 	totals?: unknown;
 }

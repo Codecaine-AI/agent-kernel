@@ -113,11 +113,18 @@ async function deleteTraceSession(id: string) {
 	};
 }
 
+// All four read capabilities are forwarded: without getBlob the viewer cannot
+// resolve snapshot images, and without getRunTurnContext the per-turn request
+// snapshot renderer never gets its context window (so the three-section turn
+// view can never appear) — both routes 404 when their service fn is missing.
 const readApi = createKernelTraceReadApi<KernelTraceSessionDetail, KernelTraceSessionListResponse>({
 	getContainerTrace: (containerId, query) =>
 		readService.getContainerTrace(containerId, query) as Promise<KernelTraceSessionDetail | null>,
 	listSessionContainers: (query) =>
-		readService.listSessionContainers(query) as Promise<KernelTraceSessionListResponse>
+		readService.listSessionContainers(query) as Promise<KernelTraceSessionListResponse>,
+	getBlob: (hash) => readService.getBlob(hash),
+	getRunTurnContext: (runId, turnNumber) =>
+		readService.getRunTurnContext(runId, turnNumber)
 });
 
 // Catalog API (Phase 5): registry listing, agent detail, prompt lab saves,

@@ -1,11 +1,18 @@
 #!/usr/bin/env bun
 /**
- * Trace doctor CLI — scan one kernel SQLite database for linkage-invariant
- * violations and exit non-zero when any are found.
+ * Doctor CLI — two checks behind one command.
+ *
+ *   trace    scan one kernel SQLite database for linkage-invariant violations
+ *   catalog  scan agent catalog roots for bundle-layout problems (a section
+ *            present in both the file and the folder form)
  *
  * Usage:
  *   bun run packages/kernel/src/doctor-cli.ts <db-path>
  *   bun run packages/kernel/src/doctor-cli.ts        # defaults to .agent-kernel/trace.db
+ *   bun run packages/kernel/src/doctor-cli.ts --catalog <catalog-root ...>
+ *
+ * Exit codes: 0 clean · 1 violations found · 2 usage/IO error. Bundle layout
+ * findings are warnings: they print, and only exit 1 under --strict.
  */
 
 import { existsSync } from "node:fs";
@@ -13,15 +20,42 @@ import { resolve } from "node:path";
 
 import { KERNEL_DB_RELATIVE_PATH, openKernelDatabase } from "@agent-kernel/db";
 
-import { formatDoctorReport, runTraceDoctor } from "./doctor";
+import {
+	formatCatalogDoctorReport,
+	formatDoctorReport,
+	runCatalogDoctor,
+	runTraceDoctor,
+} from "./doctor";
 
 export async function doctorCliMain(
 	argv: string[] = process.argv.slice(2),
 ): Promise<number> {
+	if (argv.includes("--catalog")) {
+		const strict = argv.includes("--strict");
+		const roots = argv
+			.filter((arg) => !arg.startsWith("-"))
+			.map((arg) => resolve(arg));
+		if (roots.length === 0) {
+			console.error("agent-kernel doctor: --catalog requires at least one root");
+			console.error("usage: agent-kernel-doctor --catalog <catalog-root ...>");
+			return 2;
+		}
+		for (const root of roots) {
+			if (!existsSync(root)) {
+				console.error(`agent-kernel doctor: catalog root not found: ${root}`);
+				return 2;
+			}
+		}
+		const report = runCatalogDoctor(roots);
+		console.log(formatCatalogDoctorReport(report));
+		return report.ok || !strict ? 0 : 1;
+	}
+
 	const dbPath = resolve(argv[0] ?? KERNEL_DB_RELATIVE_PATH);
 	if (!existsSync(dbPath)) {
 		console.error(`agent-kernel doctor: database not found: ${dbPath}`);
 		console.error("usage: agent-kernel-doctor <db-path>");
+		console.error("       agent-kernel-doctor --catalog <catalog-root ...>");
 		return 2;
 	}
 

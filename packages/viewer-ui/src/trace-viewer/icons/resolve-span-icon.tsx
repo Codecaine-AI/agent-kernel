@@ -1,23 +1,35 @@
 /**
  * resolve-span-icon — maps a span's display type + status to (a) the icon kind,
  * (b) the semantic GROUP it belongs to, and (c) the Tailwind accent utilities
- * the card should wear (glyph text color + border color).
+ * the card should wear (glyph text color + border color + optional edge accent).
  *
- * Color carries meaning. Every card — its border, icon cap, title accent, and
- * badges — keys off exactly ONE group so the eye can read type by hue:
+ * COLOR SEMANTICS (the one system — nothing per-component):
  *
- *   orchestration  agents, spawner dispatch, runs/sessions   → violet
- *   user           user messages                             → blue
- *   assistant      assistant messages                        → green
- *   tool           tool calls                                → cyan
- *   lifecycle      system / provisioning / phases / containers → neutral gray
- *   meta           info / debug fallback rows                 → muted gray
- *   warning        RESERVED — diagnostics only                → amber
- *   error          RESERVED — diagnostics only                → red
+ *   Cards are quiet surfaces: neutral hairline frame, differentiated by icon
+ *   shape + a SMALL kind→hue system applied as glyph tint + thin left-edge
+ *   accent (never full colored boxes). Four scannable categories:
+ *
+ *     CONVERSATION  user message → blue (--trace-user)
+ *                   assistant reply → green (--trace-assistant)
+ *     TOOL          tool calls/results + spawner dispatch → cyan (--trace-tool)
+ *     CONTEXT       context build / system prompt / snapshots → violet
+ *                   (--trace-orchestration token, reused — orchestration cards
+ *                   are neutral now, so violet exclusively means context)
+ *     LIFECYCLE     agents, provisioning, runs/sessions, containers,
+ *                   info/debug rows → neutral/muted (plumbing)
+ *
+ *   Beyond the kind hues, color is reserved for:
+ *     - SELECTION — the strongest visual in the tree (info-cyan fill + left
+ *       bar, applied by SpanCard, matching the trace-list selection idiom).
+ *     - STATUS — error → red, warning → amber. A healthy span shows no status
+ *       color. These are the ONLY full colored frames.
+ *
+ *   The same accent shows in the detail-panel header (TabShell) so the color
+ *   seen in the tree is the color seen when the span is opened.
  *
  * Group tokens live in the host theme (--trace-* in styles.css) and are exposed
- * as Tailwind `*-trace-*` color utilities. Warning/amber and error/red are
- * reserved: after this change nothing non-diagnostic may render amber or red.
+ * as Tailwind `*-trace-*` color utilities. Only existing host tokens are used
+ * so downstream apps inherit the system without theme changes.
  */
 import type { SpanIconKind } from "./span-icons";
 
@@ -34,12 +46,13 @@ export type SpanDisplayType =
 	| "container"
 	| "generic";
 
-/** The semantic color group a card belongs to. One hue per group. */
+/** The semantic color group a card belongs to. */
 export type SpanColorGroup =
 	| "orchestration"
 	| "user"
 	| "assistant"
 	| "tool"
+	| "context"
 	| "lifecycle"
 	| "meta"
 	| "warning"
@@ -63,21 +76,51 @@ export interface SpanIconDescriptor {
 	group: SpanColorGroup;
 	/** Tailwind text-color utility that sets the cap glyph accent via currentColor. */
 	accentClassName: string;
-	/** Tailwind border-color utility matching the group, for the card frame. */
+	/** Tailwind border-color utility for the card frame (neutral unless status). */
 	borderClassName: string;
 }
 
-/** Every group's Tailwind text + border utilities. Single source of truth. */
+/** Neutral frame + glyph shared by every non-status, non-accented group. */
+const NEUTRAL_TEXT = "text-muted-foreground";
+const NEUTRAL_BORDER = "border-border";
+
+/**
+ * Every group's Tailwind utilities. Single source of truth for span color.
+ *   text   — cap glyph accent (currentColor)
+ *   border — card frame border (neutral for everything except status groups)
+ *   edge   — optional thin left-edge accent for the structural set
+ */
 export const GROUP_ACCENT: Record<
 	SpanColorGroup,
-	{ text: string; border: string }
+	{ text: string; border: string; edge?: string }
 > = {
-	orchestration: { text: "text-trace-orchestration", border: "border-trace-orchestration" },
-	user: { text: "text-trace-user", border: "border-trace-user" },
-	assistant: { text: "text-trace-assistant", border: "border-trace-assistant" },
-	tool: { text: "text-trace-tool", border: "border-trace-tool" },
-	lifecycle: { text: "text-trace-lifecycle", border: "border-trace-lifecycle" },
-	meta: { text: "text-trace-meta", border: "border-trace-meta" },
+	// Structural accents — thin left edge only, frame stays neutral.
+	user: {
+		text: "text-trace-user",
+		border: NEUTRAL_BORDER,
+		edge: "border-l-2 border-l-trace-user",
+	},
+	assistant: {
+		text: "text-trace-assistant",
+		border: NEUTRAL_BORDER,
+		edge: "border-l-2 border-l-trace-assistant",
+	},
+	tool: {
+		text: "text-trace-tool",
+		border: NEUTRAL_BORDER,
+		edge: "border-l-2 border-l-trace-tool",
+	},
+	context: {
+		// Violet token reused for context/snapshot — see header comment.
+		text: "text-trace-orchestration",
+		border: NEUTRAL_BORDER,
+		edge: "border-l-2 border-l-trace-orchestration",
+	},
+	// Neutral set — quiet plumbing; icon shape + text differentiate.
+	orchestration: { text: NEUTRAL_TEXT, border: NEUTRAL_BORDER },
+	lifecycle: { text: NEUTRAL_TEXT, border: NEUTRAL_BORDER },
+	meta: { text: NEUTRAL_TEXT, border: NEUTRAL_BORDER },
+	// Status — RESERVED; the only groups allowed a full colored frame.
 	warning: { text: "text-status-warning", border: "border-status-warning-border" },
 	error: { text: "text-destructive", border: "border-destructive" },
 };
@@ -85,12 +128,13 @@ export const GROUP_ACCENT: Record<
 /** The group each display type belongs to. */
 const GROUP_BY_DISPLAY: Record<SpanDisplayType, SpanColorGroup> = {
 	tool: "tool",
-	spawner: "orchestration",
+	// Spawner dispatch IS a tool call — it scans with tool activity.
+	spawner: "tool",
 	agent: "orchestration",
 	ui_ask: "user",
 	user: "user",
 	assistant: "assistant",
-	system: "lifecycle",
+	system: "context",
 	lifecycle: "lifecycle",
 	container: "lifecycle",
 	generic: "meta",

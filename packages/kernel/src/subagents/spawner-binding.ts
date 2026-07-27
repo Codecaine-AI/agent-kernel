@@ -20,7 +20,7 @@
  *   (or none at all) — and inherit the wrong identity.
  * The tool author cannot get these wrong — they are not parameters.
  */
-import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 import {
 	getSpawnerToolMeta,

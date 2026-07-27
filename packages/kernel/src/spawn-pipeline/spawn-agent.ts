@@ -3,7 +3,7 @@ import type {
 	ExtensionContext,
 	ExtensionFactory,
 	SessionManager,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import {
 	updateAgentRunInboundEvent,
 	updateAgentRunStatus,
@@ -30,6 +30,15 @@ import {
 	type LoaderCatalog,
 } from "../context";
 import { runContextStore, runWithContext, type RunStateManagerLike } from "../run-context";
+import {
+	createStateExtension,
+	resolveStateSink,
+	stateExtensionEnabled,
+	type StateExtensionHandle,
+	type StateModule,
+	type StateSink,
+	type WindowPolicy,
+} from "../state";
 import type { TraceWriterSink } from "../subagents/types";
 import { getDefaultMaxTurns, normalizeMaxTurns } from "./config/turn-limits";
 import { createPiSession, type SessionBindingInput } from "./pi-session-factory";
@@ -115,6 +124,28 @@ export interface KernelSpawnOptions {
 	 * true; only effective when the spawn has a trace writer.
 	 */
 	captureRequestSnapshots?: boolean;
+	/**
+	 * A previous run's final state, handed to `state.ts`'s `seed(ctx, prior)`.
+	 * Nothing auto-loads this — resume means multi-prompt continuity, and a
+	 * caller that wants cross-run continuity passes the state explicitly (read
+	 * one back with `readStateSnapshot`).
+	 */
+	priorState?: unknown;
+	/**
+	 * Window policy override for this spawn. Wins over the agent manifest's
+	 * `state.window` and the sidecar's own default.
+	 */
+	window?: WindowPolicy;
+	/**
+	 * Filesystem root the state.json tree hangs off
+	 * (`<root>/.agent-kernel/state/<containerId>/<agentName>/state.json`).
+	 * Defaults to the spawn's working directory — D88 makes persistence
+	 * default-ON whenever state is active, so this chooses *where*, never
+	 * *whether*. Pass-through agents (no state extension) write nothing.
+	 */
+	stateRoot?: string;
+	/** Replace the file sink with another StateSink (remote sink, tests). */
+	stateSink?: StateSink | null;
 }
 
 export interface KernelSpawnAgentResult {
@@ -142,6 +173,15 @@ export interface CreateSpawnAgentAdapters {
 	 */
 	loadAgent(name: string, opts: KernelSpawnOptions): ParsedAgent;
 	loadAgentResolver(name: string): Promise<AgentContextResolver | null>;
+	/**
+	 * The agent's optional `state.ts` sidecar plus its manifest window config.
+	 * Returning `{ module: null, window: null }` (or omitting the adapter) is
+	 * the pass-through case: no state extension is registered at all.
+	 */
+	loadAgentState?(name: string): Promise<{
+		module: StateModule | null;
+		window: WindowPolicy | null;
+	} | null>;
 	buildPrivateRegisterFactory(name: string): Promise<ExtensionFactory | null>;
 	buildToolFactories(config: ParsedAgent["config"]): ExtensionFactory[];
 	createContextCatalog(): LoaderCatalog;
@@ -206,6 +246,48 @@ export function createSpawnAgent(
 		});
 
 		const resolver = await adapters.loadAgentResolver(name);
+		// One SpawnContext for both consumers: the context loaders (section ②)
+		// and `state.ts`'s seed() — the contract says they see the same thing.
+		const spawnCtx = createSpawnContext({
+			agentName: name,
+			runtime,
+			variables: opts.variables,
+			cwd,
+			sessionData: opts.sessionData,
+		});
+
+		// The state extension exists ONLY for bundles that asked for it. No
+		// state.ts and no window config means nothing is registered and the
+		// session behaves exactly as it did before.
+		const agentState = adapters.loadAgentState
+			? await adapters.loadAgentState(name)
+			: null;
+		const stateModule = agentState?.module ?? null;
+		const stateWindow = opts.window ?? agentState?.window ?? null;
+		const stateExtension: StateExtensionHandle | null = stateExtensionEnabled({
+			module: stateModule,
+			window: stateWindow,
+		})
+			? createStateExtension({
+					agentName: name,
+					containerId,
+					runId,
+					module: stateModule,
+					window: stateWindow,
+					spawnContext: spawnCtx,
+					...(opts.priorState !== undefined && { priorState: opts.priorState }),
+					// D88: a state-active spawn always snapshots. Where is
+					// configurable; whether is not.
+					sink: resolveStateSink({
+						...(opts.stateSink ? { sink: opts.stateSink } : {}),
+						...(opts.stateRoot !== undefined && { root: opts.stateRoot }),
+						cwd,
+						logger: log,
+					}),
+					logger: log,
+				})
+			: null;
+
 		const sessionManager = await buildSessionManager(name, {
 			sessionManager: opts.sessionManager,
 			containerId,
@@ -235,6 +317,7 @@ export function createSpawnAgent(
 			thinkingLevel,
 			sessionManager,
 			toolFactories,
+			stateExtension,
 			sessionBinding,
 			piLifecycleCustomType: adapters.piLifecycleCustomType,
 			piAgentDir: opts.piAgentDir,
@@ -314,9 +397,25 @@ export function createSpawnAgent(
 						traceWriter,
 						ids,
 						promptHash: resolved.promptHash ?? null,
+						// The builder assembles every request this run sends, from the
+						// first one — and Pi's turn_start fires before the context hook
+						// it runs in, so the transcript path must stand down up front
+						// rather than after the first built request.
+						builderOwnsCapture: Boolean(stateExtension),
 						logger: log,
 					})
 				: undefined;
+
+		// Section tags: the builder assembled the request, so it — not the raw
+		// transcript — is what the per-turn snapshot records.
+		if (stateExtension && snapshotRecorder) {
+			stateExtension.onRequestBuilt((built) => {
+				snapshotRecorder.recordBuiltRequest(
+					session as unknown as { messages: any[]; systemPrompt?: string },
+					{ messages: built.messages, sections: built.sections },
+				);
+			});
+		}
 
 		const emitter = resolveLifecycleEmitter(name, {
 			traceWriter,
@@ -335,20 +434,24 @@ export function createSpawnAgent(
 		});
 
 		if (resolver && !hasAgentContext(session, name)) {
-			const spawnCtx = createSpawnContext({
-				agentName: name,
-				runtime,
-				variables: opts.variables,
-				cwd,
-				sessionData: opts.sessionData,
-			});
 			const result = await v2BuildContext({
 				resolver,
 				spawnContext: spawnCtx,
 				catalog: adapters.createContextCatalog(),
 				emitter,
 			});
-			injectAgentContext(session, name, result);
+			if (stateExtension) {
+				// Section ② is REBUILT each request from the L2 set, never pinned
+				// to history — so the built context becomes an entry rather than a
+				// transcript message.
+				stateExtension.contextSet.add({
+					id: `agent-context:${name}`,
+					content: result.renderedContext,
+					...(result.contextImages ? { images: result.contextImages } : {}),
+				});
+			} else {
+				await injectAgentContext(session, name, result);
+			}
 		}
 
 		const maxTurns = normalizeMaxTurns(
@@ -406,6 +509,7 @@ export function createSpawnAgent(
 			// from the emitter's deterministic id.
 			await kernelEmitter?.settle();
 			await snapshotRecorder?.flush();
+			await stateExtension?.flush();
 			const runUsage = kernelEmitter?.runUsage();
 			const outboundEventId = kernelEmitter?.outboundEventId();
 			if (traceWriter) {
@@ -435,6 +539,7 @@ export function createSpawnAgent(
 			});
 			await kernelEmitter?.settle().catch(() => {});
 			await snapshotRecorder?.flush().catch(() => {});
+			await stateExtension?.flush().catch(() => {});
 			if (traceWriter) {
 				emitAgentRunEnd(
 					traceWriter,

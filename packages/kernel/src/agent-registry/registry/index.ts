@@ -3,6 +3,24 @@ export type { AgentPromptState, BuildRegistryOptions } from "./registry";
 export { RegistryError } from "./types";
 export type { AgentDefinition, AgentRegistry } from "./types";
 export {
+	bundleSections,
+	collectBundleDirs,
+	collectManifestFiles,
+	renderedPromptPathFor,
+	resolveBundleLayout,
+	resolvePromptEntry,
+	resolveSidecarEntry,
+	PROMPT_RENDERED_MD_NAME,
+	PROMPT_SYSTEM_MD_NAME,
+} from "./bundle-layout";
+export type {
+	AgentBundleLayout,
+	BundleEntryForm,
+	BundleSection,
+	BundleSidecarKind,
+	ResolvedBundleEntry,
+} from "./bundle-layout";
+export {
 	__resetAgentRegistryForTests,
 	getAgentRegistry,
 	initAgentRegistry,

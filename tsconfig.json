@@ -12,7 +12,21 @@
     "sourceMap": true,
     "outDir": "dist",
     "isolatedModules": true,
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    // @codecaine-ai/prompt-kit is a linked sibling checkout whose exports point
+    // at TS source, so its files join these programs and would otherwise
+    // resolve `react` from *its* node_modules. Two @types/react copies means
+    // two structurally distinct `CSSProperties` — ours carries Radix's csstype
+    // augmentation, theirs does not — and style props stop assigning. Pinning
+    // React types to this repo's copy is the typecheck-side twin of the
+    // `resolve.dedupe: ["react", "react-dom"]` the consuming Vite configs need.
+    // Paths without `baseUrl` resolve relative to this file.
+    "paths": {
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"],
+      "react-dom": ["./node_modules/@types/react-dom"],
+      "react-dom/*": ["./node_modules/@types/react-dom/*"]
+    }
   },
   "exclude": ["node_modules", "dist"]
 }

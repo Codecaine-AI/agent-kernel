@@ -161,6 +161,13 @@ export interface KernelRunTurnContext {
 	messages: unknown[];
 	refs: PiRequestSnapshotData["message_refs"];
 	totals: { text_chars: number; image_count: number };
+	/**
+	 * Section boundaries — half-open [start, end) ranges over `messages` —
+	 * when the turn was assembled by the three-section builder. Absent on
+	 * turns captured straight from the transcript (and on every snapshot
+	 * written before section tags existed): treat that as "untagged".
+	 */
+	sections?: PiRequestSnapshotData["sections"];
 	/** Present only when blob resolution was partial. */
 	warnings?: string[];
 }
@@ -450,6 +457,7 @@ export function createContainerReadService(
 					text_chars: snapshot.total_text_chars,
 					image_count: snapshot.total_image_count,
 				},
+				...(snapshot.sections ? { sections: snapshot.sections } : {}),
 				...(warnings.length > 0 ? { warnings } : {}),
 			};
 		},

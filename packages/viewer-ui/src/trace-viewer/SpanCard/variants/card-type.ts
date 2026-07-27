@@ -15,7 +15,7 @@
  */
 
 /** Card titles / single-line card content. */
-export const CARD_TYPE_LABEL = "font-mono text-[13px] leading-[16px]";
+export const CARD_TYPE_LABEL = "font-mono text-[13px] leading-[18px]";
 
 /** Multi-line message body content. */
 export const CARD_TYPE_BODY = "font-mono text-[13px] leading-relaxed";

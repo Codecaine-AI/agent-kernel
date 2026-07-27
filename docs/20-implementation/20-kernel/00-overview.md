@@ -1,7 +1,7 @@
 ---
 covers: "Implementation overview of @agent-kernel/kernel: createKernel config, spawn runtime, containers, emitter, doctor, agent registry, context assembly, subagents, events, and read API route exports."
 type: overview
-concepts: [kernel-package, create-kernel, spawn-pipeline, containers, kernel-emitter, trace-doctor, agent-registry, context-builder, subagents, run-context, transcript-recovery]
+concepts: [kernel-package, create-kernel, spawn-pipeline, containers, kernel-emitter, trace-doctor, agent-registry, context-builder, subagents, run-context, transcript-recovery, agent-state, request-snapshot]
 code-ref: packages/kernel/src/
 depends-on: [../../10-system-design/10-runtime-model.md]
 ---
@@ -18,15 +18,16 @@ depends-on: [../../10-system-design/10-runtime-model.md]
 |---|---|
 | `.` | `createKernel`, kernel config types, and top-level re-exports |
 | `./agent-definition` | agent manifest types, JSON Schema check, `defineAgent`/`defineContext`/`defineTools` helpers |
-| `./agent-registry` | `agent.json` bundle discovery, validation, prompt-revision registration |
+| `./agent-registry` | `agent.json` bundle discovery (file-or-folder section layout), validation, prompt markdown snapshots, prompt-revision registration |
 | `./containers` | deterministic container identity (`uuidv5` derivation, `kernel.container()` upsert) |
 | `./context` and `./context/loaders` | context resolver contracts and loader catalog |
-| `./doctor` | trace doctor invariant checker (plus `doctor-cli.ts` entry) |
+| `./doctor` | trace doctor invariant checker + catalog doctor bundle-layout check (`doctor-cli.ts`; `--catalog <root>` selects the latter, `--strict` makes warnings exit non-zero) |
 | `./emitter` | in-process kernel emitter mapping live Pi events to protocol events |
 | `./events` | lifecycle emitter helpers |
 | `./read-api` | Elysia trace read API route factory |
 | `./run-context` | async-local run identity |
 | `./spawn-pipeline` | Pi spawn pipeline internals |
+| `./state` | agent state: `StateModule` contract, session events, window strategies, context set, three-section builder, `state.json` sink |
 | `./subagents` | `AgentManager` and subagent support |
 | `./transcript-recovery` | JSONL backfill: `runBackfill`, `EventMapper`, and the `agent-kernel-backfill` CLI bin |
 | `./trace-writer`, `./read-service` | default DB trace sink and container-backed read service |
@@ -49,7 +50,7 @@ App-shaped behavior enters through config function slots only: `appContext`, `lo
 How the spawn pipeline runs one agent prompt through Pi.
 
 ### [20-agent-registry.md](20-agent-registry.md)
-How `agent.json` bundles are discovered, validated, and normalized.
+How `agent.json` bundles are discovered, validated, and normalized — including file-or-folder section layout resolution (D98) and generated prompt markdown.
 
 ### [30-context-loaders.md](30-context-loaders.md)
 How agent context resolvers and loader catalogs work.
@@ -59,3 +60,9 @@ How subagent orchestration reuses the same spawn path.
 
 ### [50-transcript-recovery.md](50-transcript-recovery.md)
 How Pi JSONL transcripts are re-derived into trace rows (backfill) for disaster rebuild and importing externally-run sessions, sharing deterministic ids with the emitter.
+
+### [60-agent-state.md](60-agent-state.md)
+The `seed`/`update`/`render` state contract, session events and catch-up, window strategies, the context set behind section ②, three-section request assembly, and `state.json` persistence (D81–D92).
+
+### [70-request-snapshots.md](70-request-snapshots.md)
+Per-turn request snapshots end to end: capture and blob contract, section tags on the protocol, the run-turn context read route, and the viewer's three-section turn view (D90).
