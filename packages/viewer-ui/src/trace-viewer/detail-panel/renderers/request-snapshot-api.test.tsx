@@ -8,11 +8,26 @@
  * express itself, which is the bug this file pins shut.
  */
 import { describe, expect, test } from "bun:test";
-import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import type { TraceSpan } from "@evilmartians/agent-prism-types";
 
-import { SnapshotContextBody } from "./RequestSnapshotRenderer";
+import { DetailShell } from "../DetailShell";
+import { buildSnapshotContextView } from "./TurnBody";
 import { blobUrl, hasApiBase, runTurnContextUrl } from "./request-snapshot-api";
+
+const SPAN: TraceSpan = {
+	id: "turn-api",
+	title: "Turn 0",
+	startTime: new Date("2026-07-27T12:00:00.000Z"),
+	endTime: new Date("2026-07-27T12:00:01.000Z"),
+	duration: 1_000,
+	type: "event",
+	raw: "{}",
+	status: "success",
+	attributes: [
+		{ key: "event_type", value: { stringValue: "pi_request_snapshot" } },
+	],
+};
 
 describe("apiBase — URL building", () => {
 	test("an absolute base prefixes the kernel path", () => {
@@ -52,21 +67,33 @@ describe("apiBase — the offline gate", () => {
 
 	test("a same-origin body renders relative blob URLs, not \"null/…\"", () => {
 		const markup = renderToStaticMarkup(
-			createElement(SnapshotContextBody, {
-				systemPrompt: null,
-				sections: null,
-				apiBase: "",
-				messages: [
-					{
-						role: "user",
-						content: [
-							{ type: "image", blob_hash: "b1-abc", mimeType: "image/png" },
-						],
-					},
-				],
-			}),
+			<DetailShell
+				span={SPAN}
+				view={buildSnapshotContextView({
+					systemPrompt: null,
+					sections: null,
+					apiBase: "",
+					messages: [
+						{
+							role: "user",
+							content: [
+								{
+									type: "image",
+									blob_hash: "b1-abc",
+									mimeType: "image/png",
+								},
+							],
+						},
+					],
+				})}
+			/>,
 		);
 		expect(markup).toContain('src="/kernel/blobs/b1-abc"');
+		expect(markup).toContain("data-detail-image-modal-trigger");
+		expect(markup).toContain('type="button"');
+		expect(markup).toContain('aria-haspopup="dialog"');
+		expect(markup).toContain('aria-label="Open image/png attachment"');
+		expect(markup).not.toContain(["target", '="_blank"'].join(""));
 		expect(markup).not.toContain("null/kernel");
 	});
 });

@@ -2163,3 +2163,62 @@ Implementation:
 [docs/20-implementation/20-kernel/20-agent-registry.md](../20-implementation/20-kernel/20-agent-registry.md).
 
 Source: state-shapes.html §6, §11.
+
+---
+
+## Amendments — 2026-07-28 Viewer Overhaul
+
+The trace viewer was reworked across roughly twenty review rounds with Ford.
+Almost all of it is UX and belongs to the explainers — the layout standard,
+the rejected alternatives, and the verbatim review record live in
+[explainers/detail-view-options.html](explainers/detail-view-options.html) and
+[explainers/state-tab-options.html](explainers/state-tab-options.html), and the
+as-built surfaces are documented under
+[docs/20-implementation/60-viewer/](../20-implementation/60-viewer/00-overview.md).
+Only the one decision that crossed into the kernel and the protocol is
+recorded here.
+
+### D99. Kernel-Authored Request Lines Are Wire-Marked (new; extends D82, D90)
+
+Status: decided.
+
+Decision: The synthetic messages the three-section builder puts into a request
+— the rebuilt ② context message and whatever section ③'s renderer emits around
+the conversation tail — are authored as Pi **custom messages**: `role:
+"custom"` with a `kernel:`-prefixed `customType`, carrying `display: false`.
+Pi's `convertToLlm` converts them to ordinary user messages with the same
+content blocks on the way to the provider, so they are provider-valid on the
+wire while remaining distinguishable everywhere else.
+
+The customType constants live in `@agent-kernel/protocol`
+(`kernel-messages.ts`), not in the kernel, because the marker is **wire-
+visible**: it survives into the sanitized message blobs a request snapshot
+references, and the viewer reads it back to badge those lines KERNEL instead
+of USER. Two constants are defined — `kernel:context` for section ② and
+`kernel:state` for section ③ — plus the prefix test `isKernelAuthoredMessage`,
+which deliberately ignores custom messages an app extension authored.
+
+The same module owns the **image-elision envelope**. When the window replaces
+an old image block with a text placeholder (D85), the replacement is plain
+text with no structural marker of its own, so producer and consumer must share
+the exact envelope: `imageElisionMarkerText(description)` builds it and
+`isImageElisionMarker(value)` recognizes it. The description is deliberately
+opaque, so adding an image MIME type or a byte-size unit does not require a
+viewer release.
+
+Rationale: before this, the only way for a reader to tell a kernel-authored
+line from something the user said was position — "it fell inside the snapshot's
+state range". Position is the right rule for *authorship of a section* (D90's
+section tags), but it is the wrong rule for *authorship of a message*: a
+provider that transports an attached-render message as `role: "user"` makes a
+kernel line indistinguishable from a user turn the moment it moves. A
+wire-visible marker makes the answer intrinsic to the message and survives
+every hop the message takes. Putting it in the protocol package rather than
+the kernel is what keeps producer and consumer from drifting: the viewer never
+re-derives the rule, it imports it.
+
+Source: as-built — `packages/protocol/src/kernel-messages.ts`,
+`packages/kernel/src/state/kernel-messages.ts`, and viewer-ui's
+`snapshot-message-view.tsx` / `turn/turn-block-content.tsx`. UX context:
+detail-view-options.html §6 (the deferred "badge the state render's
+attachments correctly" row, now closed at the producer).

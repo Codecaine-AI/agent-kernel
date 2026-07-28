@@ -1,5 +1,72 @@
 export { TreeView } from "./trace-viewer/TreeView";
 export { SpanDetailPanel } from "./trace-viewer/SpanDetailPanel";
+export {
+	DetailShell,
+	type DetailShellProps,
+} from "./trace-viewer/detail-panel/DetailShell";
+export {
+	DetailImageTrigger,
+	type DetailImageSpec,
+	type DetailImageTriggerProps,
+} from "./trace-viewer/detail-panel/DetailImageTrigger";
+export {
+	DetailsView,
+	type DetailsViewProps,
+} from "./trace-viewer/detail-panel/DetailsView";
+export {
+	DocFigure,
+	DocFigureCaption,
+	type DocFigureProps,
+	type DocInlineRow,
+} from "./trace-viewer/detail-panel/doc-figure/DocFigure";
+export { Clamped } from "./trace-viewer/detail-panel/doc-figure/Clamped";
+export {
+	CLAMP,
+	type ClampPolicy,
+} from "./trace-viewer/detail-panel/doc-figure/clamp";
+export {
+	tokenize,
+	type DocLanguage,
+	type Token,
+	type TokenType,
+} from "./trace-viewer/detail-panel/doc-figure/tokenize";
+export {
+	DetailBlocksContext,
+	DetailBlocksProvider,
+	useDetailBlocks,
+	type DetailBlockProvider,
+} from "./trace-viewer/detail-panel/blocks";
+export {
+	BLOCK_SLOT_ORDER,
+	type BlockSlot,
+	type DetailBlockSpec,
+	type DetailTab,
+	type DetailView,
+	type DetailZone,
+	type DetailBodyRenderer,
+} from "./trace-viewer/detail-panel/contract";
+export {
+	resolveEscapeLayer,
+	type DetailEscapeLayer,
+	type DetailEscapeState,
+} from "./trace-viewer/detail-panel/escape";
+export {
+	TurnBody,
+	buildSnapshotContextView,
+	type BuildSnapshotContextViewOptions,
+} from "./trace-viewer/detail-panel/renderers/TurnBody";
+export {
+	SystemPromptSection,
+	type SystemPromptSectionProps,
+} from "./trace-viewer/detail-panel/renderers/turn/SystemPromptSection";
+export {
+	ContextSection,
+	type ContextSectionProps,
+} from "./trace-viewer/detail-panel/renderers/turn/ContextSection";
+export {
+	StateSection,
+	type StateSectionProps,
+} from "./trace-viewer/detail-panel/renderers/turn/StateSection";
 export type { UsageContext } from "./trace-viewer/detail-panel/types";
 export {
 	TraceViewerApiContext,
@@ -42,10 +109,12 @@ export {
 	GROUP_ACCENT,
 	SpanIconCap,
 	SPAN_CAP_SIZE,
-	SPAN_CAP_SIZE_META,
 	SPAN_ICON_KINDS,
 	DEFAULT_ICON_SIDE,
 	DEFAULT_ICON_STYLE,
+	TraceIconSettingsProvider,
+	useTraceIconSettings,
+	type TraceIconSettings,
 	type SpanIconKind,
 	type SpanDisplayType,
 	type SpanColorGroup,

@@ -156,6 +156,7 @@ interface PiMessageLike {
 	stopReason?: string;
 	toolCallId?: string;
 	toolName?: string;
+	isError?: boolean;
 }
 
 export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
@@ -274,6 +275,7 @@ export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
 			submitAsEntryEvent(
 				createToolCallEndEvent(ids, toolName, toolCallId, {
 					toolOutput: output || undefined,
+					isError: message.isError,
 					spanId: toolCallId,
 					...spawnerMarking(toolName),
 				}),

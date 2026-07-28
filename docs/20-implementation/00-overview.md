@@ -70,7 +70,7 @@ SQLite client, kernel manifest, and Drizzle schema/query helpers for containers,
 Elysia route factory and DB read helpers consumed by viewer-core.
 
 ### [60-viewer/](60-viewer/00-overview.md)
-Viewer DTOs, trace transforms, UI components, and shell.
+Viewer DTOs and trace transforms, the trace tree and card system, the detail panel and its renderer contract, the prompt editor, and the workspace/shell with its shared style system.
 
 ### [70-app-adapters/](70-app-adapters/00-overview.md)
 How host apps such as Spectre connect domain state to kernel packages, including the [application setup guide](70-app-adapters/10-application-setup.md).

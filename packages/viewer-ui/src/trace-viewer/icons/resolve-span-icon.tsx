@@ -5,24 +5,24 @@
  *
  * COLOR SEMANTICS (the one system — nothing per-component):
  *
- *   Cards are quiet surfaces: neutral hairline frame, differentiated by icon
- *   shape + a SMALL kind→hue system applied as glyph tint + thin left-edge
- *   accent (never full colored boxes). Four scannable categories:
+ *   Kind-colored cards are BANDS, doc-style (state-shapes.html .band): the
+ *   ENTIRE card border carries the kind hue at reduced alpha plus a subtle
+ *   background wash (~10%) of the same hue, so kinds separate at a glance in
+ *   both themes. Four scannable categories:
  *
  *     CONVERSATION  user message → blue (--trace-user)
  *                   assistant reply → green (--trace-assistant)
- *     TOOL          tool calls/results + spawner dispatch → cyan (--trace-tool)
- *     CONTEXT       context build / system prompt / snapshots → violet
+ *     TOOL          tool calls/results + spawner dispatch → orange (--trace-tool)
+ *     CONTEXT       turn snapshots + context build / system prompt → violet
  *                   (--trace-orchestration token, reused — orchestration cards
  *                   are neutral now, so violet exclusively means context)
  *     LIFECYCLE     agents, provisioning, runs/sessions, containers,
- *                   info/debug rows → neutral/muted (plumbing)
+ *                   info/debug rows → neutral hairline, NO wash (plumbing)
  *
- *   Beyond the kind hues, color is reserved for:
- *     - SELECTION — the strongest visual in the tree (info-cyan fill + left
- *       bar, applied by SpanCard, matching the trace-list selection idiom).
- *     - STATUS — error → red, warning → amber. A healthy span shows no status
- *       color. These are the ONLY full colored frames.
+ *   Ordering of loudness (must stay monotonic):
+ *     neutral plumbing < kind band < SELECTION (status-info ring + fill + bar,
+ *     applied by SpanCard) < STATUS (error red / warning amber: full-strength
+ *     border + wash — the loudest thing in the tree).
  *
  *   The same accent shows in the detail-panel header (TabShell) so the color
  *   seen in the tree is the color seen when the span is opened.
@@ -42,6 +42,7 @@ export type SpanDisplayType =
 	| "ui_ask"
 	| "agent"
 	| "lifecycle"
+	| "turn"
 	| "system"
 	| "container"
 	| "generic";
@@ -76,7 +77,7 @@ export interface SpanIconDescriptor {
 	group: SpanColorGroup;
 	/** Tailwind text-color utility that sets the cap glyph accent via currentColor. */
 	accentClassName: string;
-	/** Tailwind border-color utility for the card frame (neutral unless status). */
+	/** Tailwind border-color utility for the card frame (band hue or neutral). */
 	borderClassName: string;
 }
 
@@ -85,44 +86,57 @@ const NEUTRAL_TEXT = "text-muted-foreground";
 const NEUTRAL_BORDER = "border-border";
 
 /**
- * Every group's Tailwind utilities. Single source of truth for span color.
- *   text   — cap glyph accent (currentColor)
- *   border — card frame border (neutral for everything except status groups)
- *   edge   — optional thin left-edge accent for the structural set
+ * Every group's Tailwind utilities. SINGLE source of truth for span color —
+ * tune bands here, nowhere else.
+ *   text   — glyph / accent text (currentColor)
+ *   border — card frame border: kind hue at reduced alpha for bands, full
+ *            strength for status, neutral hairline for plumbing
+ *   wash   — band background tint (~10% of the hue); absent = no wash
  */
 export const GROUP_ACCENT: Record<
 	SpanColorGroup,
-	{ text: string; border: string; edge?: string }
+	{ text: string; border: string; wash?: string }
 > = {
-	// Structural accents — thin left edge only, frame stays neutral.
+	// Kind bands — full border in the hue + subtle wash. Alphas are theme
+	// tokens (--band-border-opacity / --band-wash-opacity, style-panel
+	// adjustable) with baked fallbacks so hosts without the vars keep
+	// today's look (border 45%, wash 10%).
 	user: {
 		text: "text-trace-user",
-		border: NEUTRAL_BORDER,
-		edge: "border-l-2 border-l-trace-user",
+		border: "border-[rgb(var(--trace-user)/var(--band-border-opacity,0.45))]",
+		wash: "bg-[rgb(var(--trace-user)/var(--band-wash-opacity,0.1))]",
 	},
 	assistant: {
 		text: "text-trace-assistant",
-		border: NEUTRAL_BORDER,
-		edge: "border-l-2 border-l-trace-assistant",
+		border: "border-[rgb(var(--trace-assistant)/var(--band-border-opacity,0.45))]",
+		wash: "bg-[rgb(var(--trace-assistant)/var(--band-wash-opacity,0.1))]",
 	},
 	tool: {
 		text: "text-trace-tool",
-		border: NEUTRAL_BORDER,
-		edge: "border-l-2 border-l-trace-tool",
+		border: "border-[rgb(var(--trace-tool)/var(--band-border-opacity,0.45))]",
+		wash: "bg-[rgb(var(--trace-tool)/var(--band-wash-opacity,0.1))]",
 	},
 	context: {
-		// Violet token reused for context/snapshot — see header comment.
+		// Violet token reused for context/turn snapshots — see header comment.
 		text: "text-trace-orchestration",
-		border: NEUTRAL_BORDER,
-		edge: "border-l-2 border-l-trace-orchestration",
+		border: "border-[rgb(var(--trace-orchestration)/var(--band-border-opacity,0.45))]",
+		wash: "bg-[rgb(var(--trace-orchestration)/var(--band-wash-opacity,0.1))]",
 	},
-	// Neutral set — quiet plumbing; icon shape + text differentiate.
+	// Neutral set — quiet plumbing; icon shape + text differentiate. No wash.
 	orchestration: { text: NEUTRAL_TEXT, border: NEUTRAL_BORDER },
 	lifecycle: { text: NEUTRAL_TEXT, border: NEUTRAL_BORDER },
 	meta: { text: NEUTRAL_TEXT, border: NEUTRAL_BORDER },
-	// Status — RESERVED; the only groups allowed a full colored frame.
-	warning: { text: "text-status-warning", border: "border-status-warning-border" },
-	error: { text: "text-destructive", border: "border-destructive" },
+	// Status — RESERVED and loudest: full-strength border + wash.
+	warning: {
+		text: "text-status-warning",
+		border: "border-status-warning-border",
+		wash: "bg-status-warning-fill/80",
+	},
+	error: {
+		text: "text-destructive",
+		border: "border-destructive",
+		wash: "bg-destructive/10",
+	},
 };
 
 /** The group each display type belongs to. */
@@ -134,6 +148,7 @@ const GROUP_BY_DISPLAY: Record<SpanDisplayType, SpanColorGroup> = {
 	ui_ask: "user",
 	user: "user",
 	assistant: "assistant",
+	turn: "context",
 	system: "context",
 	lifecycle: "lifecycle",
 	container: "lifecycle",
@@ -148,6 +163,7 @@ const KIND_BY_DISPLAY: Record<SpanDisplayType, SpanIconKind> = {
 	ui_ask: "generic",
 	user: "user",
 	assistant: "assistant",
+	turn: "turn",
 	system: "system",
 	lifecycle: "lifecycle",
 	container: "container",

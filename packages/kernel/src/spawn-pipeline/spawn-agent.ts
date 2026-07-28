@@ -51,6 +51,7 @@ import { triggerRun } from "./session/turn-trigger";
 import {
 	createRequestSnapshotRecorder,
 	type RequestSnapshotRecorder,
+	type RequestSnapshotSessionLike,
 } from "./streaming/request-snapshot";
 import { subscribeToSession } from "./streaming/session-event-subscriber";
 import { emitAgentRunEnd, emitAgentRunStart } from "./trace/agent-run-trace";
@@ -409,11 +410,18 @@ export function createSpawnAgent(
 		// Section tags: the builder assembled the request, so it — not the raw
 		// transcript — is what the per-turn snapshot records.
 		if (stateExtension && snapshotRecorder) {
+			// The live AgentSession structurally satisfies the recorder's session
+			// slice — messages, systemPrompt, getActiveToolNames, getAllTools —
+			// so it is handed over as itself. Deliberately not a cast: an
+			// `unknown` hop would hide the tool-roster methods capture depends
+			// on, and would let the session drift out of the recorder's shape
+			// without the compiler saying so.
+			const snapshotSession: RequestSnapshotSessionLike = session;
 			stateExtension.onRequestBuilt((built) => {
-				snapshotRecorder.recordBuiltRequest(
-					session as unknown as { messages: any[]; systemPrompt?: string },
-					{ messages: built.messages, sections: built.sections },
-				);
+				snapshotRecorder.recordBuiltRequest(snapshotSession, {
+					messages: built.messages,
+					sections: built.sections,
+				});
 			});
 		}
 

@@ -2,9 +2,11 @@ import { describe, expect, test } from "bun:test";
 
 import {
   createAgentRunEndEvent,
+  createAppEvent,
   createAgentRunStartEvent,
   createAgentSessionStartEvent,
   createPiTurnEndEvent,
+  createToolCallEndEvent,
   createToolCallStartEvent,
   createUserMessageEvent,
   type TraceEventIds,
@@ -109,9 +111,60 @@ describe("pi turn usage", () => {
   });
 });
 
+describe("tool call result errors", () => {
+  test("emits is_error only for errored tool results", () => {
+    const errored = createToolCallEndEvent(ids, "layout", "toolu_error", {
+      isError: true,
+    });
+    const ordinary = createToolCallEndEvent(ids, "layout", "toolu_ok");
+
+    expect(errored.eventData).toHaveProperty("is_error", true);
+    expect(ordinary.eventData).not.toHaveProperty("is_error");
+  });
+});
+
 describe("event catalog", () => {
   test("ask events are gone from the core catalog", () => {
     expect(Object.values(EventType)).not.toContain("ui_ask_requested");
     expect(Object.values(EventType)).not.toContain("ui_ask_answered");
+  });
+});
+
+describe("createAppEvent", () => {
+  test("builds an app-sourced event with the host payload and identity", () => {
+    const event = createAppEvent(
+      "app:board-render",
+      ids,
+      { blob_hash: "b1-abc", n: 3, summary: "moved two stickies" },
+      { timestamp: "2026-07-28T00:00:00.000Z" },
+    );
+    expect(event.type).toBe("app:board-render");
+    expect(event.source).toBe("app");
+    expect(event.containerId).toBe("container-1");
+    expect(event.runId).toBe("run-1");
+    expect(event.piSessionUuid).toBe("pi-uuid-1");
+    expect(event.timestamp).toBe("2026-07-28T00:00:00.000Z");
+    expect(event.traceLevel).toBe(TraceLevel.PROCESSING);
+    const data = event.eventData as Record<string, unknown>;
+    expect(data.blob_hash).toBe("b1-abc");
+    expect(data.n).toBe(3);
+  });
+
+  test("honors an explicit trace level and span linkage", () => {
+    const event = createAppEvent("app:custom", ids, {}, {
+      traceLevel: TraceLevel.DEBUG,
+      spanId: "span-1",
+      parentEventId: "evt-0",
+    });
+    expect(event.traceLevel).toBe(TraceLevel.DEBUG);
+    expect(event.spanId).toBe("span-1");
+    expect(event.parentEventId).toBe("evt-0");
+  });
+
+  test("rejects types outside the app: namespace", () => {
+    expect(() => createAppEvent("board-render", ids, {})).toThrow(
+      'App event type must start with "app:"',
+    );
+    expect(() => createAppEvent("tool_call_start", ids, {})).toThrow();
   });
 });

@@ -7,7 +7,7 @@
  *
  * Deliberately optional: the default is `{ apiBase: null }` and nothing in the
  * detail panel requires a provider. Renderers read it with useTraceViewerApi()
- * and degrade to their offline summary when apiBase is null.
+ * and degrade to their offline body when apiBase is null.
  *
  * ONLY `null` means offline. The empty string is a real, supported value: it
  * means same-origin, so requests go to relative paths ("/kernel/runs/…") — the
@@ -22,7 +22,7 @@ export interface TraceViewerApiContextValue {
 	 *
 	 *   "https://kernel.example"  → absolute
 	 *   ""                        → same-origin; URLs come out relative
-	 *   null                      → offline; renderers show their summary only
+	 *   null                      → offline; renderers show their local body only
 	 */
 	apiBase: string | null;
 }

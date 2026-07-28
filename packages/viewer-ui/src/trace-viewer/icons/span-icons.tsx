@@ -21,10 +21,12 @@ import {
 	DatabaseIcon,
 	FlagIcon,
 	GearIcon,
+	LayersIcon,
 	MediaPlayIcon,
 	PaperPlaneIcon,
 	RobotIcon,
 	TriangleWarningIcon,
+	WindowIcon,
 	WrenchIcon,
 } from "./nucleo-icons";
 
@@ -45,6 +47,7 @@ export type SpanIconKind =
 	| "container"
 	| "user"
 	| "assistant"
+	| "turn"
 	| "system"
 	| "lifecycle"
 	| "provisioning"
@@ -52,6 +55,14 @@ export type SpanIconKind =
 	| "error"
 	| "generic";
 
+/**
+ * One glyph per meaning, distinguishable at 13px by shape alone:
+ *   window = a turn's context window; layers = context assembly (build /
+ *   system prompt); wrench = tool; person = user; chat = assistant;
+ *   robot = agent; paper-plane = dispatch; play = run; flag = phase;
+ *   cube = container; database = provisioning. GEARS MEAN LIFECYCLE /
+ *   PLUMBING ONLY — nothing content-bearing wears a gear.
+ */
 const ICON_BY_KIND: Record<SpanIconKind, FC<NucleoIconProps>> = {
 	tool: WrenchIcon,
 	spawner: PaperPlaneIcon,
@@ -61,7 +72,8 @@ const ICON_BY_KIND: Record<SpanIconKind, FC<NucleoIconProps>> = {
 	container: CubeIcon,
 	user: CircleUserIcon,
 	assistant: ChatBubbleIcon,
-	system: GearIcon,
+	turn: WindowIcon,
+	system: LayersIcon,
 	lifecycle: GearIcon,
 	provisioning: DatabaseIcon,
 	warning: TriangleWarningIcon,

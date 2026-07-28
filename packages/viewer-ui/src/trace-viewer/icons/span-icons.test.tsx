@@ -80,6 +80,7 @@ describe("resolveSpanIcon", () => {
 		"ui_ask",
 		"agent",
 		"lifecycle",
+		"turn",
 		"system",
 		"container",
 		"generic",
@@ -106,23 +107,55 @@ describe("resolveSpanIcon", () => {
 		expect(resolveSpanIcon({ displayType: "spawner" }).group).toBe("tool");
 		expect(resolveSpanIcon({ displayType: "user" }).group).toBe("user");
 		expect(resolveSpanIcon({ displayType: "assistant" }).group).toBe("assistant");
-		// system spans (context build / system prompt / snapshots) carry the
-		// dedicated context group so they can wear the violet edge accent.
+		// Context group: turn snapshots + context build / system prompt — all
+		// violet, but turn rows carry their own window glyph, distinct from the
+		// layers glyph context-assembly rows wear.
 		expect(resolveSpanIcon({ displayType: "system" }).group).toBe("context");
+		expect(resolveSpanIcon({ displayType: "turn" }).group).toBe("context");
+		expect(resolveSpanIcon({ displayType: "turn" }).kind).toBe("turn");
+		expect(resolveSpanIcon({ displayType: "system" }).kind).toBe("system");
 		expect(resolveSpanIcon({ displayType: "container" }).group).toBe("lifecycle");
 		expect(resolveSpanIcon({ displayType: "generic" }).group).toBe("meta");
 	});
 
-	test("kind hues: conversation/tool/context carry edge accents, plumbing stays neutral", () => {
-		const accented: SpanColorGroup[] = ["user", "assistant", "tool", "context"];
+	test("gears mean lifecycle only — content kinds all carry distinct glyphs", () => {
+		// Each major kind resolves to its own icon kind; none reuse another's.
+		const kinds = [
+			resolveSpanIcon({ displayType: "turn" }).kind,
+			resolveSpanIcon({ displayType: "tool" }).kind,
+			resolveSpanIcon({ displayType: "user" }).kind,
+			resolveSpanIcon({ displayType: "assistant" }).kind,
+			resolveSpanIcon({ displayType: "system" }).kind,
+			resolveSpanIcon({ displayType: "agent" }).kind,
+			resolveSpanIcon({ displayType: "spawner" }).kind,
+			resolveSpanIcon({ displayType: "lifecycle", lifecycleLabel: "Agent Run Start" }).kind,
+			resolveSpanIcon({ displayType: "lifecycle", lifecycleLabel: "Provisioning" }).kind,
+		];
+		expect(new Set(kinds).size).toBe(kinds.length);
+		// The gear (lifecycle kind) is reserved for plumbing rows.
+		expect(kinds).not.toContain("lifecycle");
+		expect(
+			resolveSpanIcon({ displayType: "lifecycle", lifecycleLabel: "Agent Session Start" }).kind,
+		).toBe("lifecycle");
+	});
+
+	test("kind bands: conversation/tool/context wear full border + wash, plumbing stays neutral", () => {
+		const banded: SpanColorGroup[] = ["user", "assistant", "tool", "context"];
 		for (const [group, accent] of Object.entries(GROUP_ACCENT)) {
-			if (accented.includes(group as SpanColorGroup)) {
-				// Accent = glyph tint + thin left edge, never a full colored frame.
-				expect(accent.edge).toContain("border-l-");
-				expect(accent.border).toBe("border-border");
-			} else if (group !== "warning" && group !== "error") {
-				// Plumbing groups: quiet frame, muted glyph, no edge accent.
-				expect(accent.edge).toBeUndefined();
+			if (banded.includes(group as SpanColorGroup)) {
+				// Band = full border in the kind hue + subtle wash, with alphas
+				// driven by the style-panel opacity tokens (baked fallbacks).
+				expect(accent.border).toContain("--trace-");
+				expect(accent.border).toContain("--band-border-opacity");
+				expect(accent.wash).toContain("--band-wash-opacity");
+				expect(accent.wash).toContain("bg-");
+			} else if (group === "warning" || group === "error") {
+				// Status is the loudest: full-strength border + wash.
+				expect(accent.border.includes("/")).toBe(false);
+				expect(accent.wash).toContain("bg-");
+			} else {
+				// Plumbing groups: neutral hairline, muted glyph, no wash.
+				expect(accent.wash).toBeUndefined();
 				expect(accent.border).toBe("border-border");
 				expect(accent.text).toBe("text-muted-foreground");
 			}

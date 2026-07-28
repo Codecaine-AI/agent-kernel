@@ -57,7 +57,8 @@ The harness exercises the core package path:
   buildTraceSpans()
 
 @agent-kernel/viewer-shell
-  KernelTraceViewer
+  KernelTraceWorkspace + KernelTraceViewer
+  StyleSettingsRail / StyleOverlay over the shared style system
 ```
 
 ## Runtime Shape
@@ -74,7 +75,9 @@ The harness exercises the core package path:
 
 `src/App.tsx` fetches the session-container list and selected detail, transforms selected events into trace spans, and renders separate research-run, traces, and agent-catalog workspaces around the shared viewer packages.
 
-`src/styles.css`, `tailwind.config.cjs`, and `postcss.config.cjs` provide the example's Tailwind pipeline and Spectre-compatible viewer tokens. The example wrapper uses Tailwind utility classes; it does not define a separate named CSS component system.
+`src/_components/workspaces/TraceWorkspace.tsx` is a thin binding over the shared `KernelTraceWorkspace`: it maps app objects onto workspace rows and handlers and owns nothing about layout. `src/lib/style-settings.ts` is the app's `StyleSystemConfig` for the shared style system (storage keys, default theme, token format); the rail chrome itself comes from viewer-shell.
+
+`src/styles.css`, `tailwind.config.cjs`, and `postcss.config.cjs` provide the example's Tailwind pipeline and viewer tokens. The example wrapper uses Tailwind utility classes; it does not define a separate named CSS component system.
 
 ## Boundary Intent
 

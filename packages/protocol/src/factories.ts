@@ -474,6 +474,7 @@ export function createToolCallEndEvent(
   opts?: {
     toolOutput?: string;
     durationMs?: number;
+    isError?: boolean;
     spanId?: string;
     parentEventId?: string;
     /** Mark the call as an agent-dispatching spawner tool (D77). */
@@ -487,6 +488,7 @@ export function createToolCallEndEvent(
     tool_name: toolName,
     tool_output: opts?.toolOutput,
     duration_ms: opts?.durationMs,
+    ...(opts?.isError === true ? { is_error: true } : {}),
     ...(opts?.toolKind !== undefined ? { toolKind: opts.toolKind } : {}),
     ...(opts?.spawns !== undefined ? { spawns: opts.spawns } : {}),
   };
@@ -702,6 +704,45 @@ export function createContextBuildCompletedEvent(
     traceLevel: TraceLevel.PROCESSING,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
+  });
+}
+
+// ─── App Events ─────────────────────────────────────────────────────────────
+
+/** Namespace prefix every host-defined event type must carry. */
+export const APP_EVENT_TYPE_PREFIX = "app:";
+
+/**
+ * Generic factory for host-defined events (source "app"). The type must live
+ * in the "app:" namespace so host events can never collide with — or spoof —
+ * kernel event types; the viewer nests any "app:" event under the turn whose
+ * run emitted it. `eventData` is the host's own payload (UnknownEventData).
+ */
+export function createAppEvent(
+  type: string,
+  ids: TraceEventIds,
+  eventData: EventData,
+  opts?: {
+    traceLevel?: number;
+    spanId?: string;
+    parentEventId?: string;
+    timestamp?: string;
+  },
+): TraceEvent {
+  if (!type.startsWith(APP_EVENT_TYPE_PREFIX)) {
+    throw new Error(
+      `App event type must start with "${APP_EVENT_TYPE_PREFIX}"; got ${JSON.stringify(type)}.`,
+    );
+  }
+  return createEvent({
+    type,
+    ids,
+    eventData,
+    source: TraceSource.APP,
+    traceLevel: opts?.traceLevel ?? TraceLevel.PROCESSING,
+    spanId: opts?.spanId,
+    parentEventId: opts?.parentEventId,
+    timestamp: opts?.timestamp,
   });
 }
 

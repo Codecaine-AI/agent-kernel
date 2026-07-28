@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import type { RendererProps } from "../types";
+import type { DetailView } from "../contract";
 import { readStringAttr } from "../../span-style";
 
 function parseVerificationMessage(message: string) {
@@ -44,16 +45,20 @@ function parseChecks(message: string): { name: string; passed: boolean }[] {
   });
 }
 
-export function WarningRenderer({ span }: RendererProps) {
+export function WarningRenderer({ span }: RendererProps): DetailView {
   const warningType = readStringAttr(span, "warning_type");
   const message = readStringAttr(span, "message") ?? "";
   const { headline, details } = parseVerificationMessage(message);
   const checks = parseChecks(message);
 
   const typeLabel = warningType?.replace(/_/g, " ") ?? "warning";
-
-  return (
-    <div className="space-y-4">
+  const warningLabel = `${typeLabel.charAt(0).toUpperCase()}${typeLabel.slice(1)}`;
+  return {
+    blocks: [{
+      id: "warning",
+      slot: "content",
+      caption: warningLabel,
+      node: <div className="space-y-4">
       <div className="flex items-start gap-2.5 rounded-md border border-status-warning-border bg-status-warning-fill/30 p-3">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-status-warning" />
         <div className="space-y-1 min-w-0">
@@ -94,6 +99,7 @@ export function WarningRenderer({ span }: RendererProps) {
           </div>
         </div>
       )}
-    </div>
-  );
+      </div>,
+    }],
+  };
 }

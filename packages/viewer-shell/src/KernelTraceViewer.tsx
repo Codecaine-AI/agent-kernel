@@ -12,11 +12,14 @@ import {
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 import {
 	SpanDetailPanel,
+	DetailBlocksProvider,
+	TraceIconSettingsProvider,
 	TraceViewerApiContext,
 	TreeView,
 	collectSpanIds,
 	filterSpansByTraceLevel,
 	findSpanInTree,
+	type DetailBlockProvider,
 	type SpanCardViewOptions,
 	type TraceViewerApiContextValue,
 	type UsageContext,
@@ -61,6 +64,12 @@ export interface KernelViewerPlugins {
 	 * clears the override and returns to span detail.
 	 */
 	detailOverride?: ReactNode;
+	/**
+	 * Rich-detail extension point: called for the selected span; a non-null
+	 * result takes over the detail column (canvas uses it for the transcript
+	 * tool-call inspector). Null falls back to the standard SpanDetailPanel.
+	 */
+	renderSpanDetail?: (span: TraceSpan) => ReactNode | null;
 }
 
 export interface KernelTraceViewerProps {
@@ -88,6 +97,8 @@ export interface KernelTraceViewerProps {
 	 * offline summaries.
 	 */
 	apiBase?: string;
+	/** Additive, data-only blocks merged into the standard detail body. */
+	detailBlockProvider?: DetailBlockProvider;
 }
 
 export function KernelTraceViewer({
@@ -101,6 +112,7 @@ export function KernelTraceViewer({
 	iconSide,
 	iconStyle,
 	apiBase,
+	detailBlockProvider,
 }: KernelTraceViewerProps) {
 	const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
 	const [expandedSpansIds, setExpandedSpansIds] = useState<string[]>([]);
@@ -198,60 +210,72 @@ export function KernelTraceViewer({
 	}
 
 	return (
-		<div className={className}>
-			{plugins?.containerHeader}
-			<div ref={splitRef} className="flex min-h-0 flex-1 font-mono">
-				<div
-					className="flex min-h-0 flex-col overflow-hidden rounded-[3px] border border-border bg-card"
-					style={{ width: `${treePct}%` }}
-				>
-					<div className="flex h-12 shrink-0 items-center gap-4 border-b border-border bg-muted/30 px-3">
-						<TraceLevelSlider
-							levels={TRACE_LEVELS}
-							value={level}
-							onChange={setLevel}
-						/>
-						{plugins?.treeToolbarTrailing}
-						<button
-							type="button"
-							onClick={toggleExpandAll}
-							className="ml-auto rounded-[2px] border border-border px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:border-status-success-border hover:text-status-success"
-						>
-							{allExpanded ? "Collapse All" : "Expand All"}
-						</button>
+		// The detail panel's message cards wear the same cap treatment as the tree
+		// (see viewer-ui icon-settings), so the style rail's choice is provided
+		// once here for BOTH panes instead of only reaching SpanCard.
+		<TraceIconSettingsProvider side={iconSide} style={iconStyle}>
+			<div className={className}>
+				{plugins?.containerHeader}
+				<div ref={splitRef} className="flex min-h-0 flex-1 font-mono">
+					<div
+						className="flex min-h-0 flex-col overflow-hidden rounded-[3px] border border-border bg-card"
+						style={{ width: `${treePct}%` }}
+					>
+						<div // Shared panel-header surface: bg-background over border-b border-border (the detail header's original dark base surface) —
+						// the SAME token pair the workspace drill-in header uses (and the
+						// detail panel header should adopt) so panel tops color-match.
+						className="flex h-12 shrink-0 items-center gap-4 border-b border-border bg-background px-3">
+							<TraceLevelSlider
+								levels={TRACE_LEVELS}
+								value={level}
+								onChange={setLevel}
+							/>
+							{plugins?.treeToolbarTrailing}
+							<button
+								type="button"
+								onClick={toggleExpandAll}
+								className="ml-auto rounded-[2px] border border-border px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:border-status-success-border hover:text-status-success"
+							>
+								{allExpanded ? "Collapse All" : "Expand All"}
+							</button>
+						</div>
+						<div className="min-h-0 flex-1 overflow-auto">
+							<TreeView
+								spans={filteredSpans}
+								selectedSpan={selectedSpan ?? undefined}
+								onSpanSelect={(span) => setSelectedId(span.id)}
+								expandedSpansIds={expandedSpansIds}
+								onExpandSpansIdsChange={setExpandedSpansIds}
+								spanCardViewOptions={spanCardViewOptions}
+							/>
+						</div>
 					</div>
-					<div className="min-h-0 flex-1 overflow-auto">
-						<TreeView
-							spans={filteredSpans}
-							selectedSpan={selectedSpan ?? undefined}
-							onSpanSelect={(span) => setSelectedId(span.id)}
-							expandedSpansIds={expandedSpansIds}
-							onExpandSpansIdsChange={setExpandedSpansIds}
-							spanCardViewOptions={spanCardViewOptions}
-						/>
+					<div
+						role="separator"
+						aria-orientation="vertical"
+						aria-label="Resize tree and detail panels"
+						title="Drag to resize"
+						onMouseDown={handleDividerMouseDown}
+						className="group flex w-2 shrink-0 cursor-col-resize items-stretch justify-center"
+					>
+						<div className="w-px bg-border transition-colors group-hover:bg-status-info-border group-active:bg-status-info-border" />
 					</div>
-				</div>
-				<div
-					role="separator"
-					aria-orientation="vertical"
-					aria-label="Resize tree and detail panels"
-					title="Drag to resize"
-					onMouseDown={handleDividerMouseDown}
-					className="group flex w-2 shrink-0 cursor-col-resize items-stretch justify-center"
-				>
-					<div className="w-px bg-border transition-colors group-hover:bg-status-info-border group-active:bg-status-info-border" />
-				</div>
-				<div className="min-w-0 flex-1 overflow-hidden rounded-[3px] border border-border bg-card">
-					<TraceViewerApiContext.Provider value={apiContextValue}>
-						{selectedSpan ? (
-							<SpanDetailPanel span={selectedSpan} usageContext={usageContext} />
-						) : (
-							plugins?.detailOverride ??
-							plugins?.detailPlaceholder ?? <SpanDetailPanel span={null} />
-						)}
-					</TraceViewerApiContext.Provider>
+					<div className="min-w-0 flex-1 overflow-hidden rounded-[3px] border border-border bg-card">
+						<TraceViewerApiContext.Provider value={apiContextValue}>
+							<DetailBlocksProvider provider={detailBlockProvider ?? null}>
+								{selectedSpan ? (
+									(plugins?.renderSpanDetail?.(selectedSpan) ?? (
+										<SpanDetailPanel span={selectedSpan} usageContext={usageContext} />
+									))
+								) : (
+									plugins?.detailOverride ??
+									plugins?.detailPlaceholder ?? <SpanDetailPanel span={null} />
+								)}
+							</DetailBlocksProvider>
+						</TraceViewerApiContext.Provider>
+					</div>
 				</div>
 			</div>
-		</div>
+		</TraceIconSettingsProvider>
 	);
 }

@@ -2,7 +2,7 @@
  * SpanIconCap — the integrated leading icon cell of a trace card.
  *
  * The cap is CONNECTED to the card, never floating: its divider IS a card
- * border. There are two anatomies, same visual language at every size:
+ * border. There are two anatomies, same visual language at the ONE card size:
  *
  *   layout "inline" — single-line cards. The cap is a full-height cell flush to
  *     the leading (or trailing) end of the card. Its inner edge carries the
@@ -15,12 +15,14 @@
  *     separating it from the content.
  *
  * Treatments (threaded from the style rail as `iconStyle`):
- *   - "outline": transparent cap, accent divider/border, accent glyph.
+ *   - "outline": transparent cap, accent glyph.
  *   - "solid":   cap filled with the accent, glyph knocked out to the card bg.
  *
- * The accent arrives as a Tailwind text-color class on `accentClassName`, so
- * the cap's divider / fill / glyph all key off the single `currentColor` it
- * establishes.
+ * The accent arrives as a Tailwind text-color class on `accentClassName` (the
+ * glyph keys off the `currentColor` it establishes); the divider carries the
+ * SAME border class as the card frame via `dividerClassName`, so a banded
+ * card's cap divider matches its band border and a neutral card's stays a
+ * neutral hairline.
  */
 import type { FC } from "react";
 
@@ -31,12 +33,9 @@ import type { SpanIconKind } from "./span-icons";
 
 import { spanIconFor } from "./span-icons";
 
-/** Edge length of the cap cell in single-line ("inline") cards. */
+/** Edge length of the cap cell — the ONE cap size every row shares. */
 export const SPAN_CAP_SIZE = 22;
-/** Edge length of the reduced cap used by meta (info/debug) mini-cards. */
-export const SPAN_CAP_SIZE_META = 18;
 const GLYPH_SIZE = 13;
-const GLYPH_SIZE_META = 11;
 
 export type SpanCapLayout = "inline" | "box";
 
@@ -44,12 +43,12 @@ export interface SpanIconCapProps {
 	kind: SpanIconKind;
 	/** Tailwind text-color utility establishing the accent as currentColor. */
 	accentClassName: string;
+	/** Tailwind border-color utility for the divider (matches the card frame). */
+	dividerClassName?: string;
 	side: IconSide;
 	style: IconStyle;
 	/** "inline" full-height end cap, or "box" top-left corner cap. */
 	layout: SpanCapLayout;
-	/** Reduced sizing for meta (info/debug) mini-cards. */
-	meta?: boolean;
 	/** Accessible label, e.g. the span title / type. */
 	label?: string;
 }
@@ -57,16 +56,14 @@ export interface SpanIconCapProps {
 export const SpanIconCap: FC<SpanIconCapProps> = ({
 	kind,
 	accentClassName,
+	dividerClassName = "border-border",
 	side,
 	style,
 	layout,
-	meta = false,
 	label,
 }) => {
 	const isSolid = style === "solid";
 	const Glyph = spanIconFor(kind, isSolid ? "fill" : "outline");
-	const cell = meta ? SPAN_CAP_SIZE_META : SPAN_CAP_SIZE;
-	const glyph = meta ? GLYPH_SIZE_META : GLYPH_SIZE;
 
 	// The divider hairline lives on the cap's inner edge(s). For "inline" that is
 	// the trailing edge (opposite `side`); for "box" it is bottom + right — the
@@ -91,21 +88,21 @@ export const SpanIconCap: FC<SpanIconCapProps> = ({
 				"pointer-events-none grid shrink-0 place-items-center self-stretch",
 				accentClassName,
 				divider,
-				// The divider is part of the card frame: frames are neutral by
-				// default now, so the hairline matches the neutral border token
-				// (an accent divider inside a neutral frame reads as noise).
-				"border-border",
+				// The divider is part of the card frame: it carries the same border
+				// class as the frame so banded and neutral cards both read as one
+				// continuous outline.
+				dividerClassName,
 				isSolid ? "bg-current" : "bg-transparent",
 				layout === "box" && "absolute left-0 top-0 rounded-tl-[2px]",
 				layout === "inline" &&
 					(side === "left" ? "rounded-l-[2px]" : "rounded-r-[2px]"),
 			)}
-			style={{ width: cell, minHeight: cell }}
+			style={{ width: SPAN_CAP_SIZE, minHeight: SPAN_CAP_SIZE }}
 		>
 			{/* Solid: knock the glyph out to the card background so it reads as a
 			    cutout in the accent fill. Outline: glyph inherits the accent. */}
 			<Glyph
-				size={glyph}
+				size={GLYPH_SIZE}
 				className={isSolid ? "text-agentprism-background" : undefined}
 			/>
 		</span>

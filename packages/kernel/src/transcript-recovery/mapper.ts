@@ -255,6 +255,7 @@ export class EventMapper {
           createToolCallEndEvent(ids, toolName, toolCallId, {
             toolOutput: output || undefined,
             spanId: toolCallId,
+            isError: event.message.isError,
           }),
           timestamp,
         ),

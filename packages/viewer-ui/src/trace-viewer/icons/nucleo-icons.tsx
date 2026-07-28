@@ -345,3 +345,52 @@ export const CircleInfoIcon = makeIcon("circle-info", ({ variant }) =>
 		/>
 	),
 );
+
+// ── locally authored (NOT from the Nucleo set — simple original primitives
+//    drawn to match the 18px / 1.5-stroke style; no license concerns) ────────
+
+/** Window/frame glyph — a browser-window rect with a header band. Used for
+ *  turn snapshots ("Turn N"): the context WINDOW one turn ran on. */
+export const WindowIcon = makeIcon("window", ({ variant }) =>
+	variant === "outline" ? (
+		<>
+			<rect {...OUTLINE} x="2.25" y="3.25" width="13.5" height="11.5" rx="2" ry="2" />
+			<line {...OUTLINE} x1="2.25" y1="6.75" x2="15.75" y2="6.75" />
+			<circle fill="currentColor" strokeWidth={0} cx="4.75" cy="5" r=".75" />
+		</>
+	) : (
+		<>
+			<path
+				{...FILL}
+				d="M4.25,2.5h9.5c1.517,0,2.75,1.233,2.75,2.75v.75H1.5v-.75c0-1.517,1.233-2.75,2.75-2.75Z"
+			/>
+			<path
+				{...FILL}
+				d="M1.5,7.5h15v5.25c0,1.517-1.233,2.75-2.75,2.75H4.25c-1.517,0-2.75-1.233-2.75-2.75v-5.25Z"
+			/>
+		</>
+	),
+);
+
+/** Layers/stack glyph — context assembly (context build, system prompt
+ *  resolved): the layered set the kernel stacks into a request. */
+export const LayersIcon = makeIcon("layers", ({ variant }) =>
+	variant === "outline" ? (
+		<>
+			<polygon {...OUTLINE} points="9 2.75 15.75 6.25 9 9.75 2.25 6.25 9 2.75" />
+			<polyline {...OUTLINE} points="2.25 9.75 9 13.25 15.75 9.75" />
+			<polyline {...OUTLINE} points="2.25 12.75 9 16.25 15.75 12.75" />
+		</>
+	) : (
+		<>
+			<path
+				{...FILL}
+				d="M9,2c.119,0,.238.028.346.085l6.75,3.5c.249.129.404.386.404.665s-.155.536-.404.665l-6.75,3.5c-.217.112-.475.112-.692,0l-6.75-3.5c-.249-.129-.404-.386-.404-.665s.155-.536.404-.665l6.75-3.5c.108-.056.227-.085.346-.085Z"
+			/>
+			<path
+				{...FILL}
+				d="M3.28,9.1l-1.376.713c-.249.129-.404.386-.404.665s.155.536.404.665l6.75,3.5c.217.112.475.112.692,0l6.75-3.5c.249-.129.404-.386.404-.665s-.155-.536-.404-.665l-1.376-.713-5.374,2.786c-.217.112-.475.112-.692,0l-5.374-2.786Z"
+			/>
+		</>
+	),
+);

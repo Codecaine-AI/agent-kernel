@@ -30,7 +30,7 @@ export const SpanCardToggle = ({
       <ChevronRight
         aria-hidden="true"
         className={cn(
-          "text-agentprism-muted-foreground size-3.5 transition-transform duration-150 ease-out",
+          "text-[rgb(var(--tree-caret,var(--agentprism-muted-foreground))/var(--tree-caret-opacity,1))] size-3.5 transition-transform duration-150 ease-out",
           isExpanded && "rotate-90",
         )}
       />

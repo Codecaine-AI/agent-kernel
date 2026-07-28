@@ -19,7 +19,7 @@ import { useCallback, useMemo } from "react";
 
 import type { SpanCardConnectorType } from "./SpanCardConnector";
 
-import { SpanCardConnector } from "./SpanCardConnector";
+import { SpanCardConnector, TREE_LINE_CLASS } from "./SpanCardConnector";
 import { SpanCardToggle } from "./SpanCardToggle";
 import { TraceCard } from "./TraceCard";
 import { UserMessageCard, AssistantMessageCard, ToolCard, SpawnerCard, UIAskCard, AgentCard, LifecycleCard, SystemCard, ContainerCard, MetaCard } from "./variants";
@@ -61,6 +61,7 @@ type SpanDisplay =
   | { type: "ui_ask"; kind: string }
   | { type: "agent"; name: string }
   | { type: "lifecycle"; label: string }
+  | { type: "turn"; label: string }
   | { type: "system"; label: string }
   | { type: "container"; label: string }
   | null;
@@ -122,6 +123,18 @@ function getSpanDisplay(data: TraceSpan): SpanDisplay {
 
   if (eventType === "context_build_started" || eventType === "context_build_completed") {
     return { type: "system", label: "Context Built" };
+  }
+
+  // Request snapshots are first-class rows with their own window glyph:
+  // standard row size, context group. Title is the display name ("Turn N").
+  if (eventType === "pi_request_snapshot") {
+    return { type: "turn", label: data.title };
+  }
+
+  // Run/phase containers are lifecycle plumbing but still standard-size rows;
+  // the title doubles as the lifecycle label so run/phase glyphs resolve.
+  if (eventType === "run_container" || eventType === "phase_container") {
+    return { type: "lifecycle", label: data.title };
   }
 
   if (eventType === "system_prompt_resolved") {
@@ -201,12 +214,10 @@ const getGridTemplateColumns = ({
 
 const getConnectorsLayout = ({
   level,
-  hasExpandButton,
   isLastChild,
   prevConnectors,
   expandButton,
 }: {
-  hasExpandButton: boolean;
   isLastChild: boolean;
   level: number;
   prevConnectors: SpanCardConnectorType[];
@@ -236,12 +247,17 @@ const getConnectorsLayout = ({
     connectors.push("corner-top-right");
   }
 
-  let connectorsColumnWidth =
-    connectors.length * LAYOUT_CONSTANTS.CONNECTOR_WIDTH;
-
-  if (hasExpandButton) {
-    connectorsColumnWidth += LAYOUT_CONSTANTS.CONNECTOR_WIDTH;
-  }
+  // Uniform depth step: every row reserves the toggle slot in "inside" mode
+  // — expandable or leaf — so content at depth d always starts at exactly
+  // (d + 1) * CONNECTOR_WIDTH. Children thereby render one full step inside
+  // their parent's label at every level (a leaf must never sit at the same
+  // x-offset as its parent), and the branch connector of a child lines up
+  // under its parent's toggle column. In "outside" mode the toggle lives in
+  // its own trailing grid column, so the connectors column is just the
+  // ancestor guides.
+  const connectorsColumnWidth =
+    (connectors.length + (expandButton === "inside" ? 1 : 0)) *
+    LAYOUT_CONSTANTS.CONNECTOR_WIDTH;
 
   for (let i = 0; i < prevConnectors.length; i++) {
     if (
@@ -409,7 +425,6 @@ export const SpanCard: FC<SpanCardProps> = ({
 
   const { connectors, connectorsColumnWidth } = getConnectorsLayout({
     level,
-    hasExpandButton: hasExpandButtonAsFirstChild,
     isLastChild,
     prevConnectors: prevLevelConnectors,
     expandButton,
@@ -432,14 +447,18 @@ export const SpanCard: FC<SpanCardProps> = ({
         onOpenChange={handleToggleClick}
       >
         <div
+          data-selected={state.isSelected ? "" : undefined}
+          data-depth={level}
           className={cn(
-            "relative mb-3 grid w-full items-center",
-            // SELECTION is the single strongest color in the tree: info-cyan
-            // fill + a solid left bar, matching the trace-list selection idiom.
+            // Named group: the CARD (TraceCard) wears the actual selection
+            // ring/fill via group-data-[selected]/spanrow variants. The row
+            // contributes NOTHING row-wide — just the left gutter bar. Bar
+            // color/opacity/width ride the --selection-* tokens (style-rail
+            // adjustable) with baked fallbacks so hosts without the vars keep
+            // today's look.
+            "group/spanrow relative mb-3 grid w-full items-center",
             state.isSelected &&
-              "before:bg-status-info-fill/60 before:absolute before:-top-2 before:h-2 before:w-full",
-            state.isSelected &&
-              "from-status-info-fill/60 to-status-info-fill/60 bg-gradient-to-b shadow-[inset_2px_0_0_0_rgb(var(--status-info))]",
+              "shadow-[inset_var(--selection-bar-width,3px)_0_0_0_rgb(var(--selection-color,var(--status-info))/var(--selection-opacity,1))]",
           )}
           style={{
             gridTemplateColumns,
@@ -461,8 +480,18 @@ export const SpanCard: FC<SpanCardProps> = ({
               <SpanCardConnector key={`${connector}-${idx}`} type={connector} />
             ))}
 
+            {/* The reserved toggle slot (column index = depth) renders on
+                EVERY row in "inside" mode so lines and content share one
+                geometry: a toggle for expandable rows (with the drop-line
+                continuing down through the children while expanded), or the
+                elbow's horizontal continuation across the slot to the card
+                edge for leaf rows. Collapsed parents paint no drop-line, so
+                nothing dangles. */}
             {hasExpandButtonAsFirstChild && (
-              <div className="relative flex w-6 shrink-0 items-center justify-center self-stretch">
+              <div
+                data-slot="toggle"
+                className="relative flex w-6 shrink-0 items-center justify-center self-stretch"
+              >
                 <SpanCardToggle
                   isExpanded={state.isExpanded}
                   title={data.title}
@@ -472,7 +501,27 @@ export const SpanCard: FC<SpanCardProps> = ({
                 {state.isExpanded && (
                   <span
                     aria-hidden="true"
-                    className="bg-agentprism-border-subtle/80 pointer-events-none absolute left-1/2 top-[calc(50%_+_10px)] -bottom-3 w-px -translate-x-1/2"
+                    className={cn(
+                      TREE_LINE_CLASS,
+                      "pointer-events-none absolute left-1/2 top-[calc(50%_+_10px)] -bottom-3 w-px -translate-x-1/2",
+                    )}
+                  />
+                )}
+              </div>
+            )}
+
+            {expandButton === "inside" && !state.hasChildren && (
+              <div
+                data-slot={level > 0 ? "leaf-line" : "leaf-empty"}
+                className="relative w-6 shrink-0 self-stretch"
+              >
+                {level > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      TREE_LINE_CLASS,
+                      "absolute inset-x-0 top-1/2 h-px -translate-y-1/2",
+                    )}
                   />
                 )}
               </div>
@@ -518,7 +567,7 @@ export const SpanCard: FC<SpanCardProps> = ({
               <LifecycleCard label={spanDisplay.label} chrome={chrome} />
             )}
 
-            {spanDisplay?.type === "system" && (
+            {(spanDisplay?.type === "system" || spanDisplay?.type === "turn") && (
               <SystemCard label={spanDisplay.label} chrome={chrome} />
             )}
 

@@ -33,6 +33,8 @@ export function spanDisplayTypeOf(span: TraceSpan): SpanDisplayType {
 		case "container_container":
 			return "container";
 		case "provisioning_container":
+		case "run_container":
+		case "phase_container":
 		case "agent_run_start":
 		case "agent_run_end":
 		case "agent_session_start":
@@ -41,8 +43,9 @@ export function spanDisplayTypeOf(span: TraceSpan): SpanDisplayType {
 		case "context_build_started":
 		case "context_build_completed":
 		case "system_prompt_resolved":
-		case "pi_request_snapshot":
 			return "system";
+		case "pi_request_snapshot":
+			return "turn";
 		default:
 			return "generic";
 	}

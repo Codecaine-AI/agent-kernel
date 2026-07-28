@@ -34,4 +34,10 @@ How apps such as Spectre mount and extend the kernel without moving workflow sem
 How prompt authoring should produce kernel-ready agent definitions, context resolvers, and prompt skills. Also carries the decision log, including the agent state model agreed on 2026-07-27 (D81–D97).
 
 ### [explainers/](explainers/state-shapes.html)
-Design explainers (HTML, open in a browser). [state-shapes.html](explainers/state-shapes.html) is the current state model — the three-section request, the `seed`/`update`/`render` contract, and the decision table behind D81–D97. [context-fold-projection.html](explainers/context-fold-projection.html) holds the measured Pi 0.82.1 hook behavior; its fold/projection model is superseded (D94). [prompt-cache-tiers.html](explainers/prompt-cache-tiers.html) covers storage and transport, including the pinned emission-seam decisions (D92).
+Design explainers (HTML, open in a browser) — the design record, including the alternatives that were rejected and the verbatim review decisions behind them.
+
+- [state-shapes.html](explainers/state-shapes.html) — the current state model: the three-section request, the `seed`/`update`/`render` contract, the bundle tree, and the decision table behind D81–D98.
+- [detail-view-options.html](explainers/detail-view-options.html) — the detail panel's layout standard, the audit that produced it, and the three directions considered (D-free; implementation in [30-detail-panel.md](../20-implementation/60-viewer/30-detail-panel.md)).
+- [state-tab-options.html](explainers/state-tab-options.html) — the Turn State tab: the postures that shipped, and the index rail and focus posture that were cut on review.
+- [context-fold-projection.html](explainers/context-fold-projection.html) — the measured Pi 0.82.1 hook behavior; its fold/projection model is superseded (D94).
+- [prompt-cache-tiers.html](explainers/prompt-cache-tiers.html) — storage and transport, including the pinned emission-seam decisions (D92).

@@ -20,6 +20,7 @@ import type { TraceSpan } from "@evilmartians/agent-prism-types";
 import { EventType, type AgentRun, type KernelContainerSummary, type TraceEvent } from "./types";
 import type { PiAgentSession } from "./types";
 
+import { sortByEmissionOrder } from "./trace-builder/eventOrder";
 import { pairEvents, type PairedEvent } from "./trace-builder/pairEvents";
 import { toAgentSpan, toEventSpan, toRunSpan } from "./trace-builder/spanFactories";
 import { bucketSpansByRun, sortRunsByStart } from "./trace-builder/runBucketing";
@@ -27,6 +28,7 @@ import {
   findToolCallSpanByToolUseId,
   groupContextInputsByBuild,
   groupProvisioningSpans,
+  groupSpansByTurn,
   groupSpansByUserMessage,
 } from "./trace-builder/nesting";
 import { extractPhaseSpans, groupAgentsByPhase, type PhaseRange } from "./trace-builder/phaseGrouping";
@@ -116,7 +118,7 @@ function toEventSpans(paired: PairedEvent[]): EventSpanBuckets {
   return { spansByPi, orphanSpans, index };
 }
 
-/** Stage: nest each PI bucket — context inputs under their build, provisioning wrapper, one block per user turn. */
+/** Stage: nest each PI bucket — context inputs under their build, provisioning wrapper, tools under their turn, one block per user turn. */
 function nestPiSpans(spansByPi: Map<string, TraceSpan[]>, index: EventSpanIndex): void {
   for (const [piId, list] of spansByPi.entries()) {
     const contextGrouped = groupContextInputsByBuild(list, index.typeById, index.protocolSpanIdById);
@@ -125,7 +127,15 @@ function nestPiSpans(spansByPi: Map<string, TraceSpan[]>, index: EventSpanIndex)
       index.typeById,
       index.protocolSpanIdById,
     );
-    spansByPi.set(piId, groupSpansByUserMessage(provisioningGrouped, index.typeById));
+    // Turn ownership first (tools/replies fold under their Turn N span),
+    // then the user-message fold wraps whole turns under the prompt that
+    // started them. Traces without snapshot spans skip the turn stage.
+    const turnGrouped = groupSpansByTurn(
+      provisioningGrouped,
+      index.typeById,
+      index.runIdBySpanId,
+    );
+    spansByPi.set(piId, groupSpansByUserMessage(turnGrouped, index.typeById));
   }
 }
 
@@ -271,11 +281,17 @@ function groupRoots(
 }
 
 export function buildTraceSpans(
-  events: TraceEvent[],
+  rawEvents: TraceEvent[],
   piSessions: PiAgentSession[],
   agentRuns: AgentRun[] = [],
   containers: KernelContainerSummary[] = [],
 ): TraceSpan[] {
+  // Canonical emission order first: the API's (timestamp, eventId) ordering
+  // breaks same-millisecond ties by arbitrary id, which can put a reply
+  // before the request snapshot that produced it. Every later sort is a
+  // stable startTime sort, so this order survives the pipeline for ties.
+  const events = sortByEmissionOrder(rawEvents);
+
   debugLog("inputs", {
     events: events.length,
     piSessions: piSessions.length,

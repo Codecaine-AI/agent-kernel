@@ -41,8 +41,8 @@
   - `@agent-kernel/kernel` — `createKernel` runtime, container identity, registry, context assembly, spawn pipeline, in-process emitter, subagents, trace doctor, read API, and transcript recovery
   - `@codecaine-ai/prompt-kit` — prompt document model, canonicalization/hashing, renderers, and editor primitives (submodule)
   - `@agent-kernel/viewer-core` — viewer DTOs, read/catalog API paths, trace transforms, and prompt diffing
-  - `@agent-kernel/viewer-ui` — reusable trace viewer and prompt lab components
-  - `@agent-kernel/viewer-shell` — mountable base trace viewer shell
+  - `@agent-kernel/viewer-ui` — trace tree and card system, the detail panel and its data-only renderer contract, prompt lab components
+  - `@agent-kernel/viewer-shell` — mountable trace workspace, the tree/detail viewer, and the shared style system
 
 ## Building a harness on it
 

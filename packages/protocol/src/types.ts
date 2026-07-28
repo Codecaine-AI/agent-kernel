@@ -192,6 +192,18 @@ export interface PiRequestSnapshotSection {
 }
 
 /**
+ * One tool the agent had access to on a specific request, as the session
+ * reported it at capture time. `parameters` is the JSON parameter schema
+ * configured on the tool, passed through verbatim.
+ */
+export interface PiRequestSnapshotTool {
+  name: string;
+  description?: string;
+  /** JSON schema for the tool's parameters, as configured. */
+  parameters?: unknown;
+}
+
+/**
  * Snapshot of the exact request context sent to the model for one turn.
  * Message payloads live in the trace_blobs store (packages/db) and are
  * referenced by content hash.
@@ -222,6 +234,24 @@ export interface PiRequestSnapshotData {
    * existed) — readers must treat a missing `sections` as "untagged".
    */
   sections?: PiRequestSnapshotSection[];
+  /**
+   * trace_blobs hash of the tool roster this request went out with: a blob of
+   * kind "tools", mime "application/json", holding a JSON array of
+   * `PiRequestSnapshotTool` in the order the session reports it
+   * (provider-visible order — readers must not re-sort). Tools can change
+   * call to call, so the roster is captured per request; identical rosters
+   * dedupe to one blob by content hash.
+   *
+   * Absent when the tool roster was not captured for this snapshot (a session
+   * that does not expose its roster, or any trace written before tool capture
+   * existed) — readers must NOT read absence as "zero tools".
+   */
+  tools_blob_hash?: string | null;
+  /**
+   * Number of tools in the captured roster. Absent under exactly the same
+   * rule as `tools_blob_hash`: not captured, not "zero tools".
+   */
+  tool_count?: number;
 }
 
 // ─── Spawn Lifecycle ────────────────────────────────────────────────────────
@@ -299,6 +329,8 @@ export interface ToolCallEndData {
   tool_name: string;
   tool_output?: string;
   duration_ms?: number;
+  /** True when the tool result was marked as an error by the tool. */
+  is_error?: boolean;
   /** "spawner" when the tool is a declared agent-dispatch tool (D77). */
   toolKind?: "spawner";
   /** Agent names the spawner tool may dispatch; ["*"] means any (D77). */

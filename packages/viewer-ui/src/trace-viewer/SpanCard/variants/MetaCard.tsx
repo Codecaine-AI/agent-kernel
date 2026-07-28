@@ -3,17 +3,13 @@ import type { FC } from "react";
 import type { SpanCardChrome } from "../SpanCard";
 
 import { TraceCard } from "../TraceCard";
-import { CARD_TYPE_META } from "./card-type";
+import { CARD_TYPE_LABEL } from "./card-type";
 
 /**
- * MetaCard — the info/debug fallback row (pi_turn_start, "input: …" context
- * rows, etc.). Previously bare, barely-readable text; now a proper mini-card
- * with the SAME anatomy as every other card (tiny icon cap + label), just at
- * the reduced meta size and muted `meta` group color.
- *
- * Warning-status rows arrive here with their group already flipped to "warning"
- * by resolveSpanIcon (status wins), so the "! input:" rows follow the warning
- * group automatically — no special-casing needed.
+ * MetaCard — the fallback row for unrecognized event types (pi_turn_start,
+ * "input: …" debug rows, etc.). Renders at the SAME standard row size as every
+ * other card — one row size, no exceptions — with muted text and the neutral
+ * plumbing chrome so it stays visually quiet without shrinking.
  */
 interface MetaCardProps {
   title: string;
@@ -26,11 +22,10 @@ export const MetaCard: FC<MetaCardProps> = ({ title, chrome }) => (
     group={chrome.descriptor.group}
     side={chrome.side}
     style={chrome.style}
-    size="meta"
     label={chrome.label}
   >
     <span
-      className={`${CARD_TYPE_META} truncate text-agentprism-muted-foreground`}
+      className={`${CARD_TYPE_LABEL} truncate text-agentprism-muted-foreground`}
       title={title}
     >
       {title}

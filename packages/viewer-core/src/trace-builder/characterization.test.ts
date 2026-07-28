@@ -7,8 +7,8 @@
  * piSessionId/runId (app-level orphans), spawned sub-agents linked by
  * parentSessionId + parentToolUseId, provisioning (system prompt + context
  * build + resolved inputs), tool call pairing by spanId, single-run pi
- * sessions (run wrapper skipped), and unknown event types (pi_turn_*,
- * pi_agent_*) hitting the generic fallback.
+ * sessions (run wrapper skipped), pi turn lifecycle points, and unknown
+ * pi_agent_* event types hitting the generic fallback.
  *
  * Any snapshot diff means the builder's public output changed — refactors
  * must keep these snapshots byte-identical.
@@ -26,6 +26,7 @@ import type {
 } from "../types";
 
 import fixture from "./__fixtures__/research-run.json";
+import stateDemoFixture from "./__fixtures__/state-demo-run.json";
 
 const events = fixture.events as TraceEvent[];
 const piSessions = fixture.pi_sessions as PiAgentSession[];
@@ -58,6 +59,26 @@ describe("buildTraceSpans characterization (research-run fixture)", () => {
 
   it("matches the pinned output tree when container summaries are provided", () => {
     const spans = buildTraceSpans(events, piSessions, agentRuns, containers);
+    expect(normalize(spans)).toMatchSnapshot();
+  });
+});
+
+/**
+ * Second characterization — the 8-run state-demo session (exported
+ * 2026-07-27 from examples/simple-research-kernel/.agent-kernel/trace.db).
+ * Unlike research-run.json this trace carries pi_request_snapshot events,
+ * so it pins the turn-ownership nesting: every tool call and assistant
+ * reply sits under the Turn span that issued it, inside Run #n wrappers
+ * (multi-run session). research-run.json above stays byte-identical,
+ * proving the no-snapshot flat fallback.
+ */
+describe("buildTraceSpans characterization (state-demo fixture, turn nesting)", () => {
+  it("matches the pinned turn-nested output tree", () => {
+    const spans = buildTraceSpans(
+      stateDemoFixture.events as TraceEvent[],
+      stateDemoFixture.pi_sessions as PiAgentSession[],
+      stateDemoFixture.agent_runs as AgentRun[],
+    );
     expect(normalize(spans)).toMatchSnapshot();
   });
 });

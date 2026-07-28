@@ -2,36 +2,52 @@
 
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 
-import { TabShell } from "./detail-panel/TabShell";
-import { PrimaryTab } from "./detail-panel/PrimaryTab";
-import { MetadataTab } from "./detail-panel/MetadataTab";
-import { RawTab } from "./detail-panel/RawTab";
+import { readStringAttr } from "./span-style";
+import { DetailShell } from "./detail-panel/DetailShell";
+import type { DetailBodyRenderer } from "./detail-panel/contract";
+import { resolveRenderer } from "./detail-panel/rendererRegistry";
 import type { UsageContext } from "./detail-panel/types";
 
 interface Props {
-  span: TraceSpan | null;
-  /**
-   * Workspace usage data, so container/phase/session/run spans can show a
-   * usage aggregate on the PRIMARY tab instead of dead-ending.
-   */
-  usageContext?: UsageContext;
+	span: TraceSpan | null;
+	usageContext?: UsageContext;
+}
+
+function ResolvedDetailBody({
+	span,
+	usageContext,
+	renderer,
+}: {
+	span: TraceSpan;
+	usageContext?: UsageContext;
+	renderer: DetailBodyRenderer;
+}) {
+	// A renderer returns data, but may itself use hooks (TurnBody fetches). This
+	// call therefore deliberately occurs inside a component, never in a registry
+	// resolver or event handler.
+	const view = renderer({ span, usageContext });
+	return <DetailShell span={span} view={view} />;
 }
 
 export function SpanDetailPanel({ span, usageContext }: Props) {
-  if (!span) {
-    return (
-      <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-        Select an event to inspect
-      </div>
-    );
-  }
+	if (!span) {
+		return (
+			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+				Select an event to inspect
+			</div>
+		);
+	}
 
-  return (
-    <TabShell
-      span={span}
-      primary={<PrimaryTab span={span} usageContext={usageContext} />}
-      metadata={<MetadataTab span={span} />}
-      raw={<RawTab span={span} />}
-    />
-  );
+	const eventType = readStringAttr(span, "event_type") ?? span.type;
+	const renderer = resolveRenderer(eventType);
+	return (
+		<ResolvedDetailBody
+			// Different event types select functions with different hook shapes. A
+			// span-keyed remount makes that variable hook order safe by construction.
+			key={span.id}
+			span={span}
+			usageContext={usageContext}
+			renderer={renderer}
+		/>
+	);
 }

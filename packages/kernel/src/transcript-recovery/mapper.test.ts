@@ -264,5 +264,33 @@ describe("EventMapper (container-first envelope)", () => {
     expect(end.type).toBe("tool_call_end");
     expect(end.spanId).toBe("tc-1");
     expect(end.eventData).toMatchObject({ tool_output: "file contents" });
+    expect(end.eventData).not.toHaveProperty("is_error");
+  });
+
+  test("propagates errored tool results to tool_call_end events", () => {
+    const mapper = new EventMapper(BINDING_OPTIONS);
+    mapper.map(sessionEvent());
+    mapper.map(bindingEvent({ containerId: CONTAINER_ID }));
+
+    const end = mapper.map({
+      type: "message",
+      id: "entry-tr-error",
+      parentId: null,
+      timestamp: T0,
+      message: {
+        role: "toolResult",
+        content: [{ type: "text", text: "ERROR · layout failed" }],
+        timestamp: 0,
+        toolCallId: "tc-error",
+        toolName: "layout",
+        isError: true,
+      },
+    }).traceEvents[0]!;
+
+    expect(end.type).toBe("tool_call_end");
+    expect(end.eventData).toMatchObject({
+      tool_output: "ERROR · layout failed",
+      is_error: true,
+    });
   });
 });

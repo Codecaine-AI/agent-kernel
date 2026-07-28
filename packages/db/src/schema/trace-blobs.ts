@@ -9,7 +9,7 @@ import { blob, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 export const traceBlobs = sqliteTable("trace_blobs", {
   /** "b1-<sha256hex>" of the raw bytes. */
   hash: text("hash").primaryKey(),
-  /** "image" | "message" | "text" (open string). */
+  /** "image" | "message" | "text" | "tools" (open string). */
   kind: text("kind").notNull(),
   mimeType: text("mime_type").notNull(),
   byteLength: integer("byte_length").notNull(),

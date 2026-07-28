@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Detail view — audit &amp; design options</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page:        #f9f9f7;
+    --surface:     #fcfcfb;
+    --code-bg:     #fbfbf9;
+    --ink:         #1a1a19;
+    --ink-2:       #52514e;
+    --ink-3:       #898781;
+    --grid:        #e1e0d9;
+    --rule:        #c3c2b7;
+    --border:      rgba(11,11,11,0.10);
+    --accent:      #2a78d6;
+    --warn:        #eb6834;
+    --ok:          #1baf7a;
+    /* code tokens — all ≥4.5:1 on --code-bg (validated) */
+    --t-keyword:   #7c3aed;
+    --t-string:    #0a7d32;
+    --t-comment:   #6b6a66;
+    --t-type:      #1c5cab;
+    --t-number:    #b4460f;
+    --t-fn:        #0f766e;
+    --t-literal:   #a1256f;
+    --t-punct:     #52514e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page:      #0d0d0d;
+      --surface:   #1a1a19;
+      --code-bg:   #17171a;
+      --ink:       #e8e8e3;
+      --ink-2:     #c3c2b7;
+      --ink-3:     #898781;
+      --grid:      #2c2c2a;
+      --rule:      #383835;
+      --border:    rgba(255,255,255,0.10);
+      --accent:    #3987e5;
+      --warn:      #d95926;
+      --ok:        #199e70;
+      --t-keyword: #c4b5fd;
+      --t-string:  #5ddb8a;
+      --t-comment: #8f8e88;
+      --t-type:    #93c5fd;
+      --t-number:  #fbaa72;
+      --t-fn:      #5eead4;
+      --t-literal: #f3a4d0;
+      --t-punct:   #c3c2b7;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:      #0d0d0d;  --surface: #1a1a19;  --code-bg: #17171a;
+    --ink:       #e8e8e3;  --ink-2:   #c3c2b7;  --ink-3:   #898781;
+    --grid:      #2c2c2a;  --rule:    #383835;  --border:  rgba(255,255,255,0.10);
+    --accent:    #3987e5;  --warn:    #d95926;  --ok:      #199e70;
+    --t-keyword: #c4b5fd;  --t-string:#5ddb8a;  --t-comment:#8f8e88;
+    --t-type:    #93c5fd;  --t-number:#fbaa72;  --t-fn:    #5eead4;
+    --t-literal: #f3a4d0;  --t-punct: #c3c2b7;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--page); color:var(--ink);
+         font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:1000px; margin:0 auto; padding:32px 24px 96px; }
+  h1 { font-size:26px; margin:0 0 4px; }
+  h2 { font-size:19px; margin:44px 0 8px; }
+  h3 { font-size:15.5px; margin:26px 0 6px; }
+  h4 { font-size:14px; margin:18px 0 4px; }
+  p  { margin:8px 0; }
+  .sub { color:var(--ink-2); }
+  .muted { color:var(--ink-3); }
+  .topbar { display:flex; justify-content:space-between; align-items:baseline; gap:16px; }
+  #themeToggle { font:13px system-ui,sans-serif; color:var(--ink-2); background:var(--surface);
+                 border:1px solid var(--border); border-radius:6px; padding:4px 10px; cursor:pointer; }
+  .card { background:var(--surface); border:1px solid var(--border);
+          border-radius:10px; padding:16px 18px; margin:14px 0; }
+  .badge { display:inline-block; font-size:11px; font-weight:600; letter-spacing:.04em;
+           border-radius:4px; padding:1px 7px; border:1px solid var(--rule);
+           color:var(--ink-2); vertical-align:2px; margin-left:6px; white-space:nowrap; }
+  .badge.fact { background:var(--ink); color:var(--page); border-color:var(--ink); }
+  .badge.sketch { border-style:dashed; }
+  .badge.agreed { background:var(--ok); color:var(--page); border-color:var(--ok); }
+  .badge.warn { background:var(--warn); color:var(--page); border-color:var(--warn); }
+  code:not(pre code) { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.86em;
+    background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:0 4px; }
+
+  /* ---- code blocks ---- */
+  figure.code { margin:12px 0; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--code-bg); }
+  figure.code figcaption {
+    font:12px ui-monospace,Menlo,monospace; color:var(--ink-2);
+    background:var(--surface); border-bottom:1px solid var(--border);
+    padding:6px 12px; display:flex; justify-content:space-between; gap:12px;
+  }
+  figure.code figcaption .tag { color:var(--ink-3); font-family:system-ui,sans-serif; font-size:11px;
+    text-transform:uppercase; letter-spacing:.04em; }
+  pre { margin:0; padding:12px 14px; overflow-x:auto;
+        font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; line-height:1.6;
+        color:var(--ink); tab-size:2; }
+  .t-keyword { color:var(--t-keyword); }
+  .t-string  { color:var(--t-string); }
+  .t-comment { color:var(--t-comment); font-style:italic; }
+  .t-type    { color:var(--t-type); }
+  .t-number  { color:var(--t-number); }
+  .t-fn      { color:var(--t-fn); }
+  .t-literal { color:var(--t-literal); }
+  .t-key     { color:var(--t-type); }
+
+  .tree { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin:12px 0; }
+  .tree pre b { color:var(--ink); font-weight:600; }
+  .tree pre .cm { color:var(--ink-3); }
+
+  table { border-collapse:collapse; font-size:13.5px; width:100%; margin:10px 0; }
+  th,td { border:1px solid var(--grid); padding:5px 10px; text-align:left; vertical-align:top; }
+  th { color:var(--ink-2); font-weight:600; }
+  td.ok  { color:var(--ok); }
+  td.bad { color:var(--warn); }
+  .scroller { overflow-x:auto; }
+  /* Narrow viewports: tables scroll inside themselves rather than pushing the page. */
+  @media (max-width:820px) {
+    table:not(.kv):not(.args) { display:block; overflow-x:auto; width:100%; }
+  }
+
+  ul { margin:6px 0; padding-left:22px; } li { margin:4px 0; }
+  ol { margin:6px 0; padding-left:22px; }
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:860px){ .cols{grid-template-columns:1fr;} }
+
+  /* ---- the verdict strips ---- */
+  .verdict { display:flex; gap:8px; align-items:flex-start; border:1px solid var(--rule); border-left-width:4px;
+             border-radius:6px; padding:9px 12px; margin:8px 0; font-size:13.5px; background:var(--surface); }
+  .verdict.confirmed { border-left-color:var(--warn); }
+  .verdict.corrected { border-left-color:var(--accent); }
+  .verdict .lbl { flex:0 0 auto; font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+                  color:var(--ink-3); padding-top:2px; min-width:78px; }
+
+  /* ================= MOCKUP CHROME =================
+     A fake detail panel. Deliberately low-fi: geometry and hierarchy only,
+     no attempt to reproduce the app's exact type scale. */
+  .mock { border:1px solid var(--rule); border-radius:10px; background:var(--surface);
+          margin:14px 0; overflow:hidden; font-size:12.5px; }
+  .mock .mock-cap { font:11px system-ui,sans-serif; text-transform:uppercase; letter-spacing:.05em;
+          color:var(--ink-3); background:var(--page); border-bottom:1px solid var(--border); padding:5px 12px; }
+  .mock .body { padding:0; }
+  .mk-hdr { display:flex; align-items:center; gap:8px; padding:9px 12px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .mk-hdr .glyph { width:18px; height:18px; border-radius:4px; display:inline-grid; place-items:center;
+          border:1px solid var(--rule); font-size:11px; color:var(--ink-2); flex:0 0 auto; }
+  .mk-hdr .ttl { font-weight:650; font-size:13.5px; }
+  .mk-hdr .right { margin-left:auto; color:var(--ink-3); font-family:ui-monospace,Menlo,monospace; font-size:11px; }
+  .chip { display:inline-block; font:10.5px ui-monospace,Menlo,monospace; text-transform:uppercase;
+          letter-spacing:.06em; color:var(--ink-3); border:1px solid var(--rule); border-radius:3px; padding:0 5px; }
+  .chip.acc { color:var(--accent); border-color:var(--accent); }
+  .chip.ok  { color:var(--ok); border-color:var(--ok); }
+  .chip.warn{ color:var(--warn); border-color:var(--warn); }
+
+  /* fact bar */
+  .facts { display:flex; flex-wrap:wrap; gap:4px 14px; padding:7px 12px; border-bottom:1px solid var(--border);
+           background:color-mix(in srgb, var(--accent) 4%, transparent); }
+  .facts .f { font:11px ui-monospace,Menlo,monospace; color:var(--ink-2); white-space:nowrap; }
+  .facts .f b { color:var(--ink); font-weight:650; }
+  .facts .f i { color:var(--ink-3); font-style:normal; }
+
+  /* tabs / facet bar */
+  .tabs { display:flex; gap:2px; padding:7px 12px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .tabs span { font:10.5px system-ui,sans-serif; text-transform:uppercase; letter-spacing:.07em;
+          border:1px solid var(--rule); border-radius:3px; padding:2px 8px; color:var(--ink-3); }
+  .tabs span.on { background:var(--ink); color:var(--page); border-color:var(--ink); }
+  .tabs .spacerR { margin-left:auto; }
+
+  /* scroll body + outline rail */
+  .mk-split { display:flex; align-items:stretch; }
+  .mk-scroll { flex:1 1 auto; min-width:0; padding:10px 12px; }
+  .mk-rail { flex:0 0 132px; border-left:1px solid var(--border); padding:10px 8px;
+             background:color-mix(in srgb, var(--ink) 2.5%, transparent); }
+  .mk-rail .rt { font:10px system-ui,sans-serif; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3); margin-bottom:5px; }
+  .mk-rail a { display:block; font:11px system-ui,sans-serif; color:var(--ink-2); text-decoration:none;
+               padding:2px 4px; border-radius:3px; border-left:2px solid transparent; }
+  .mk-rail a.on { color:var(--ink); font-weight:650; border-left-color:var(--accent);
+                  background:color-mix(in srgb, var(--accent) 8%, transparent); }
+  .mk-rail a small { color:var(--ink-3); font-weight:400; }
+  @media (max-width:700px){ .mk-rail { display:none; } }
+
+  /* blocks inside the mock */
+  .blk { margin:0 0 12px; }
+  .blk:last-child { margin-bottom:0; }
+  .blk-h { display:flex; align-items:baseline; gap:8px; margin:0 0 4px; }
+  .blk-h .n { font:10.5px system-ui,sans-serif; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-2); }
+  .blk-h .meta { font:10.5px ui-monospace,Menlo,monospace; color:var(--ink-3); }
+  .blk-h .act { margin-left:auto; font:10px system-ui,sans-serif; color:var(--ink-3);
+                border:1px solid var(--rule); border-radius:3px; padding:0 5px; }
+  .rule-h { display:flex; align-items:center; gap:8px; margin:14px 0 6px; }
+  .rule-h .n { font:10.5px system-ui,sans-serif; font-weight:700; letter-spacing:.11em; text-transform:uppercase; color:var(--ink); }
+  .rule-h .ln { flex:1 1 auto; height:1px; background:var(--rule); }
+
+  .mono { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; line-height:1.55;
+          background:var(--code-bg); border:1px solid var(--border); border-radius:6px; padding:8px 10px;
+          overflow-x:auto; white-space:pre; margin:0; }
+  .mono.wrap { white-space:pre-wrap; word-break:break-word; }
+  .mono.flush { border-radius:0; border-left:0; border-right:0; }
+  .prose { font-size:12.5px; line-height:1.6; margin:0; }
+  .fade { position:relative; max-height:118px; overflow:hidden; }
+  .fade::after { content:""; position:absolute; inset:auto 0 0 0; height:34px;
+                 background:linear-gradient(to bottom, transparent, var(--surface)); }
+  .more { font:10.5px system-ui,sans-serif; color:var(--ink-3); border:1px solid var(--rule);
+          border-radius:3px; padding:1px 6px; display:inline-block; margin-top:5px; }
+
+  /* full-bleed break-out for the state block */
+  .bleed { margin-left:-12px; margin-right:-12px; }
+
+  /* message cards */
+  .msg { border:1px solid var(--border); border-radius:6px; padding:7px 9px; margin:0 0 6px; }
+  .msg .role { font:10px ui-monospace,Menlo,monospace; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3); }
+  .msg .role.u { color:var(--accent); } .msg .role.a { color:var(--ok); } .msg .role.k { color:var(--ink-3); }
+
+  /* thumbs */
+  .thumbs { display:flex; gap:6px; flex-wrap:wrap; }
+  .thumb { width:76px; height:52px; border:1px solid var(--rule); border-radius:4px;
+           background:repeating-linear-gradient(45deg, color-mix(in srgb,var(--ink) 6%,transparent) 0 5px, transparent 5px 10px);
+           display:grid; place-items:center; font:9px system-ui,sans-serif; color:var(--ink-3); text-align:center; }
+
+  /* lineage strip */
+  .lin { display:flex; align-items:stretch; gap:0; flex-wrap:wrap; margin:4px 0 8px; }
+  .lin .st { flex:1 1 130px; border:1px solid var(--rule); border-radius:6px; padding:7px 9px; background:var(--code-bg); }
+  .lin .st .k { font:10px system-ui,sans-serif; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-3); }
+  .lin .st .v { font:11.5px ui-monospace,Menlo,monospace; color:var(--ink); }
+  .lin .st .d { font:10.5px system-ui,sans-serif; color:var(--ink-2); }
+  .lin .ar { align-self:center; padding:0 7px; color:var(--ink-3); font-size:14px; }
+  .lin .st.done { border-color:var(--ok); background:color-mix(in srgb,var(--ok) 8%,transparent); }
+
+  /* call → result pair */
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:0; border:1px solid var(--rule); border-radius:8px; overflow:hidden; }
+  .pair > div { padding:8px 10px; min-width:0; }
+  .pair > div + div { border-left:1px solid var(--border); }
+  .pair .ph { font:10px system-ui,sans-serif; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+              color:var(--ink-3); margin-bottom:5px; }
+  @media (max-width:700px){ .pair { grid-template-columns:1fr; } .pair > div + div { border-left:0; border-top:1px solid var(--border);} }
+
+  /* args table */
+  .args { width:100%; font:11px ui-monospace,Menlo,monospace; border-collapse:collapse; margin:0; }
+  .args td { border:0; border-bottom:1px solid var(--border); padding:2.5px 6px 2.5px 0; vertical-align:top; }
+  .args tr:last-child td { border-bottom:0; }
+  .args td.k { color:var(--ink-3); white-space:nowrap; width:1%; padding-right:12px; }
+  .args td.v { color:var(--ink); word-break:break-word; }
+
+  .kv { width:100%; font-size:12px; border-collapse:collapse; }
+  .kv td { border:0; padding:2.5px 8px 2.5px 0; }
+  .kv td.k { color:var(--ink-3); white-space:nowrap; width:1%; }
+  .kv td.v { font-family:ui-monospace,Menlo,monospace; font-size:11px; }
+
+  .callout { border:1px solid var(--rule); border-left-width:4px; border-left-color:var(--accent);
+             border-radius:6px; padding:10px 12px; margin:10px 0; background:var(--surface); font-size:13.5px; }
+  .callout.warn { border-left-color:var(--warn); }
+  .callout.ok { border-left-color:var(--ok); }
+  .callout p:first-child { margin-top:0; } .callout p:last-child { margin-bottom:0; }
+
+  .toc { columns:2; column-gap:24px; font-size:13.5px; }
+  @media (max-width:700px){ .toc { columns:1; } }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="topbar">
+    <h1>Detail view — audit &amp; design options</h1>
+    <button id="themeToggle" aria-label="Toggle color theme">Theme: auto</button>
+  </div>
+  <p class="sub">Agent Kernel design explainer — v2: audit unchanged; Direction B agreed 2026-07-27. The right-hand panel opens when you click an event in the trace viewer. Companion to <code>state-shapes.html</code> (§2 is the three-section request this panel is trying to show) and <code>state-tab-options.html</code> (three State-tab rendering directions). Scope: <code>packages/viewer-ui/src/trace-viewer/detail-panel/</code> + canvas's <code>useCanvasTraceExtensions</code>.</p>
+
+  <div class="card" style="border-color:var(--ok);">
+    <p><strong>Direction B is AGREED (2026-07-27)</strong> <span class="badge agreed">AGREED</span></p>
+    <ul>
+      <li><strong>Modal expansion (revision 2026-07-27).</strong> The body keeps a short inline clamp for long blocks; its affordance opens a near-full-viewport modal overlay with a dimmed backdrop, full-width scrollable content, Esc close and click-out close. This replaces both in-panel isolation and expand-in-place growth.</li>
+      <li><strong>Header simplification (revision 2026-07-27).</strong> The uniform header is a kind-tinted glyph, title, and quiet <em>Details</em> control. Event type and duration live in the header-toggled Details view rather than competing with the title. Its fixed-height surface matches the tree toolbar: <code>bg-muted/40</code> over <code>border-b border-border</code>. While Details is open, the same glyph, title, height and surface remain in place and an X replaces the <em>Details</em> control.</li>
+      <li><strong>No summary tier (revision 2026-07-27).</strong> The standard is header → body (blocks, or tabs of blocks), with Details as a header-toggled full-panel takeover of that body. Every normal body is non-empty; fact-only events carry their plain-language event information in a standard facts block.</li>
+      <li><strong>Turn tabs (revision 2026-07-27).</strong> This revises the earlier collapsible-sections decision for Turns: the body is <em>State | Context | System prompt</em>, with State first and active by default. The shell renders the row as one segmented control with an unmistakable active segment; non-Turn bodies remain untabbed.</li>
+      <li><strong>Turn images in place (revision 2026-07-27).</strong> Context images stay with the context message, and attached renders stay at their message position in the State sequence. This replaces the two synthetic trailing media strips.</li>
+      <li><strong>Byte-identical figures (revision 2026-07-27).</strong> This supersedes the earlier “wrap by default with a byte-exact toggle” decision. Wrap is off and byte-identical rendering is the only mode, not a selectable option. Long lines scroll horizontally inside the figure without widening the panel; the modal uses the same unwrapped treatment at its larger width.</li>
+      <li><strong>Caption-row content (revision 2026-07-27).</strong> A figure caption carries the caption and, when expansion is available, a comfortable keyboard-reachable <strong>⤢</strong> control at the far right. Counts and other metadata do not appear in the caption row; this supersedes the earlier caption-meta note. This also replaces the bottom “Open in modal” link.</li>
+      <li><strong>Full-panel Details takeover (revision 2026-07-27).</strong> This supersedes the earlier “Details drawer — always last, always collapsed” decision. There is no bottom disclosure, border or spacer. The header's <em>Details</em> button replaces the normal body with identity and attributes, timing, usage when present, and raw span JSON through the standard code-block component. X or Esc returns to the normal body with Turn tab selection preserved; if an expansion or image modal is open, Esc closes that modal first and leaves Details open.</li>
+      <li><strong>One app-wide code-block component (revision 2026-07-27).</strong> Every data block uses the same CONFIG-pane substrate: a non-selectable line-number gutter, subtle zebra striping, syntax colors appropriate to the content type, byte-exact content with no wrapping, and a <strong>⤢</strong> expand control in the caption row when expansion is available. Natural-language message prose is the single deliberate exception: conversation text stays wrapped prose rather than becoming a data block.</li>
+      <li><strong>Tools tab (revision 2026-07-28).</strong> This revises the three-tab Turn decision above: the Turn body gains a fourth tab, last in the fixed order <em>State | Context | System prompt | Tools</em>, showing the per-request tool roster captured with the request snapshot. Each tool is one standard JSON data block — name, description and parameter schema, in the order the provider received them. Presence is read, not length: a snapshot taken before tool capture renders an honest “not captured” block rather than an empty shelf, a captured roster with no active tool says so, and offline the viewer distinguishes a roster it cannot read from one that was never captured. Tab labels carry no counts.</li>
+      <li><strong>Pretty-printed JSON data blocks (revision 2026-07-27).</strong> JSON data blocks — tool Call arguments and JSON tool Results, declared/loaded context lineage, message references — render canonically pretty-printed at a 2-space indent instead of the provider's minified single line, with every value and the parsed key order preserved exactly; this whitespace-only canonicalization is the sole carve-out from byte-identical figures, and prompts, rendered state, raw span JSON and all other text stay byte-exact. Text that does not parse as JSON is rendered unchanged.</li>
+    </ul>
+    <p><strong>Declarative Turn grouping.</strong> System prompt, context and state remain standard data-only blocks. The Turn renderer groups them into four tabs <em>(originally three; revised 2026-07-28 to add the tool roster last)</em>, while the shell owns the tab bar, active state, block ordering and modal expansion.</p>
+    <p><strong>Simplicity in the main read.</strong> The main read carries NO tokens, hashes or technical extras; all of that lives in the full-panel Details view.</p>
+    <p class="sub" style="margin-bottom:0;">§1–§4 (the audit) are unchanged and remain the factual basis for this decision.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2>0. The layout standard <span class="badge agreed">AGREED 2026-07-27</span></h2>
+
+  <h3>The standard — every event type, no exceptions</h3>
+  <div class="card" style="border-color:var(--ok);">
+    <ol>
+      <li><strong>Header</strong> — kind-tinted glyph + title + a quiet <em>Details</em> control. Identical geometry for every type; tint and glyph match the tree row. Its fixed <code>h-12</code> surface is shared with the tree toolbar: <code>bg-muted/40</code> over <code>border-b border-border</code>. Event type and duration are in the Details view. Opening Details preserves the same header geometry and replaces only the control with an accessible X.</li>
+      <li><strong>Body (blocks, or tabs of blocks)</strong> — always non-empty and composed ONLY from the standard block vocabulary, in a fixed slot order. Non-Turn bodies are untabbed. Turns use four shell-owned tabs in the fixed order <em>State | Context | System prompt | Tools</em> (originally three; Tools added 2026-07-28), defaulting to State; the tab row is one segmented control, and slot order is enforced separately inside each tab. Every block keeps the same doc-figure, clamp and modal capabilities.</li>
+    </ol>
+  </div>
+
+  <div class="callout ok">
+    <p><strong>Full-panel Details takeover (revision 2026-07-27).</strong> This explicitly supersedes the earlier “Details drawer — always last, always collapsed” decision. The normal structure ends after the body: no disclosure row, bottom border or drawer spacer remains. The header's real <em>Details</em> button, with an accessible name and <code>aria-expanded</code>, replaces the body with a shell-owned Details view for the selected event.</p>
+    <p><strong>The header does not move.</strong> The kind-tinted glyph and event title remain on the same shared surface at the same height; an accessible X occupies the <em>Details</em> control's position. Focus moves into Details on open and returns to the <em>Details</em> button on close. X or Esc restores the normal body exactly as it was, including the active Turn tab.</p>
+    <p><strong>Modal Esc precedence is explicit.</strong> When a code expansion or image modal is above Details, Esc closes the modal and leaves Details open. Esc closes Details only when no modal is open.</p>
+    <p><strong>The relocated content is complete.</strong> Details carries identity (span id, event type and every attribute with per-row copy), timing (start, end, duration, span type and status), usage when present (input, output, cache-read and cache-write tokens, model, cost and stop reason), and raw span JSON without children. Multi-line raw strings remain real lines, and raw uses the standard code-block component with its gutter, zebra treatment, byte-exact rendering and <strong>⤢</strong> expansion.</p>
+  </div>
+
+  <div class="callout ok">
+    <p><strong>One code-block component (revision 2026-07-27).</strong> Every data block app-wide uses the same CONFIG-pane substrate: a non-selectable line-number gutter, subtle theme-aware zebra striping, and syntax colors appropriate to its content type. The component and its modal render byte-identically with wrap off; this is the only mode, not a selectable option. Long lines scroll horizontally inside the figure and never widen the panel.</p>
+    <p><strong>Caption rows contain the caption and expand control only (revision 2026-07-27).</strong> Counts and other metadata do not appear there; this supersedes the earlier caption-meta note. Expandable figures place a comfortable keyboard-reachable <strong>⤢</strong> control at the far right, replacing the bottom “Open in modal” link. Short blocks retain no expansion control. The shell owns this chrome from the block's declarative expansion capability.</p>
+    <p><strong>Natural-language message prose is the single deliberate exception.</strong> Conversation text stays wrapped prose for readability. Tool-call arguments, tool results, prompts, context, state, lineage payloads, raw JSON and every other structured or data-bearing block use the one code-block component.</p>
+  </div>
+
+  <div class="callout ok">
+    <p><strong>Non-empty-body guarantee (revision 2026-07-27).</strong> There is no summary tier. Every event renders at least one standard block; for a tabbed body, the default tab contains at least one. Fact-only events use a compact facts block, so the plain-language event information remains in the main read and dead ends are structurally impossible.</p>
+  </div>
+
+  <h3>The block vocabulary</h3>
+  <table>
+    <thead><tr><th>Slot</th><th>Holds</th><th>Real examples</th></tr></thead>
+    <tbody>
+      <tr><td><code>input</code></td><td>params, declared inputs, the instruction</td><td>the <code>update_sticky</code> argument table; <code>Declared inputs</code>; <code>Loaded</code></td></tr>
+      <tr><td><code>content</code></td><td>turn sections, rendered context, message content</td><td><code>System prompt</code>, <code>Context</code> with its inline images, <code>State</code> with attached renders at message position, <code>Rendered context</code></td></tr>
+      <tr><td><code>output</code></td><td>result, delta, lints</td><td>the <code>APPLIED · update_sticky</code> result with its <code>DELTA</code> and <code>LINTS</code> lines</td></tr>
+      <tr><td><code>media</code></td><td>standalone renders and images</td><td>canvas-contributed render blocks on tool spans; the slot remains available even though Turn images render in place</td></tr>
+    </tbody>
+  </table>
+  <p><strong>The shell sorts blocks by this slot order.</strong> A renderer's own array order is not respected across slots — that is deliberate.</p>
+
+  <h3>The enforcement rules</h3>
+  <div class="callout warn">
+    <ul>
+      <li>Per-type renderers may ONLY select blocks and fill them. Never new chrome, never new layout primitives, never a second panel.</li>
+      <li>Every renderer returns a non-empty body. A type with only facts fills a standard facts block; <strong>that is the fact card</strong>, not a special case.</li>
+      <li>Extensions (canvas) register named blocks into the body. For a tabbed view they merge into the first, default tab and follow the same slot ordering. Nothing else. No second panel, ever.</li>
+    </ul>
+  </div>
+
+  <h3>How it is enforced, not merely documented</h3>
+  <div class="card">
+    <ol>
+      <li>
+        <p><strong>The API makes deviation impossible.</strong> A per-type renderer returns DATA, not JSX: a <code>DetailView</code> with exactly one of an untabbed block list or declarative tab groups. The shell owns the header, Details button and takeover state, tab chrome and interaction, block ordering, disclosures, modal expansion and Esc precedence. A renderer therefore physically cannot emit chrome, render or toggle Details, bypass the takeover, reorder slots, or open a second panel.</p>
+        <figure class="code">
+          <figcaption><span>The renderer contract</span><span class="tag">TypeScript</span></figcaption>
+<pre data-lang="ts">type BlockSlot = "input" | "content" | "output" | "media";
+
+interface DetailTab {
+  /** Stable id used for shell state and tests. */
+  id: string;
+  /** Display name. */
+  name: string;
+  blocks: DetailBlockSpec[];
+}
+
+interface DetailView {
+  /** Untabbed body. Mutually exclusive with tabs. */
+  blocks?: DetailBlockSpec[];
+  /** Tabbed body. The FIRST tab is the default. Mutually exclusive with blocks. */
+  tabs?: DetailTab[];
+  /** Extra sections appended inside the shell-owned Details view. */
+  detailsExtras?: ReactNode;
+}
+
+interface DetailBlockSpec {
+  id: string;
+  slot: BlockSlot;
+  caption: string;
+  body?: string;
+  language?: DocLanguage;
+  clamp?: ClampPolicy;
+  node?: ReactNode;
+  /** Render with the prompt-source line-number gutter and zebra substrate. */
+  gutter?: boolean;
+  /** Non-source attachments follow a source figure; the shell owns placement. */
+  attachments?: ReactNode;
+  expandable?: boolean;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+  order?: number;
+  turnSection?: "system" | "context" | "state" | "tools";
+}</pre>
+        </figure>
+      </li>
+      <li>
+        <p><strong>A conformance test iterates every registered renderer and the fallback</strong> over representative real spans and asserts: header present; a real <em>Details</em> button with the correct ARIA; at least one standard block in an untabbed body or in the default tab; exactly one body form; body children carry the standard roots and non-decreasing slot order within each tab; the first tab is active when tabs exist; no bottom drawer chrome; and no renderer-owned chrome outside the vocabulary. The exported Details view is also rendered directly for each span to prove the required identity, event type, timing, duration, attributes and standard raw code block, plus usage when the span carries it. This non-empty-body assertion is what makes dead ends structurally impossible. The test reads the registry programmatically, so a renderer added later is covered automatically.</p>
+      </li>
+    </ol>
+  </div>
+
+  <h3>One worked example — the fact card</h3>
+  <div class="cols">
+    <div class="mock">
+      <div class="mock-cap">Normal body · fact-only event · no bottom drawer chrome</div>
+      <div class="body">
+        <div class="mk-hdr">
+          <span class="glyph" style="color:var(--accent);border-color:var(--accent);">⇥</span>
+          <span class="ttl">input: capabilities</span>
+          <span class="right">Details</span>
+        </div>
+        <div class="mk-scroll">
+          <div class="blk">
+            <div class="blk-h">
+              <span class="n">Facts</span>
+            </div>
+            <p class="mono">Loaded capabilities · 11.4 KB · fresh</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mock">
+      <div class="mock-cap">Details takeover · same header geometry · X returns to body</div>
+      <div class="body">
+        <div class="mk-hdr">
+          <span class="glyph" style="color:var(--accent);border-color:var(--accent);">⇥</span>
+          <span class="ttl">input: capabilities</span>
+          <span class="right">×</span>
+        </div>
+        <div class="mk-scroll">
+          <div class="blk">
+            <div class="blk-h"><span class="n">Identity &amp; attributes</span><span class="meta">input_event · status ok</span></div>
+            <p class="mono">span id       019fa4f0…
+event_type    input_event
+content_hash bd849f6d…</p>
+          </div>
+          <div class="blk">
+            <div class="blk-h"><span class="n">Timing</span></div>
+            <p class="mono">start · end · duration · span type · status</p>
+          </div>
+          <div class="blk">
+            <div class="blk-h"><span class="n">Raw</span><span class="act">⤢</span></div>
+            <p class="mono">{ "loader_kind": "capabilities", … }</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="sub">Audit values represented here: <code>loader_kind capabilities</code> · <code>input_ref capabilities</code> · <code>status ok</code> · <code>bytes 11635</code> · <code>from_cache false</code> · <code>content_hash bd849f6d…</code>. The normal body contributes the facts block; plumbing keys and the hash remain out of the main read and move into the full-panel Details view.</p>
+
+  <div class="card" style="border-color:var(--accent);">
+    <p><strong>§5 began as three sketches.</strong> Directions A and C remain <span class="badge sketch">SKETCH</span> as the alternatives considered; Direction B and the decision recorded in §7 are agreed. §1–§4 are the audit and are grounded in code that was read and in two real trace databases that were queried and rendered — those parts are marked <span class="badge fact">measured</span> and should be treated as facts.</p>
+    <p class="sub" style="margin-bottom:0;"><strong>Evidence base.</strong> <code>canvas/.agent-kernel/trace.db</code> (478 MB, 34,000+ events) and <code>examples/simple-research-kernel/.agent-kernel/trace.db</code>, both read-only. Every span shown in a mockup below was rendered through the real <code>PrimaryTab</code>/<code>MetadataTab</code> with <code>renderToStaticMarkup</code> and the output inspected; every number and every string of board content is copied out of the databases, not invented. The canvas run cited throughout is the layout-editor session <code>019fa4f0-b02d-7f54-b007-5a4887e22543</code> (container <code>f172afdc</code>), 5 turns, "Tidy the Memory Bank section…".</p>
+  </div>
+
+  <div class="card">
+    <div class="toc">
+      <div>§0 &nbsp;The layout standard</div>
+      <div>§1 &nbsp;What is there today</div>
+      <div>§2 &nbsp;Per-event-type findings</div>
+      <div>§3 &nbsp;The four clunk reports, checked</div>
+      <div>§4 &nbsp;Cross-cutting problems</div>
+      <div>§5 &nbsp;Three directions (mockups)</div>
+      <div>§6 &nbsp;Portable regardless of direction</div>
+      <div>§7 &nbsp;Recommendation</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2>1. What is there today <span class="badge fact">measured</span></h2>
+
+  <p>The detail panel is the right 60% of the drill-in view (<code>KernelTraceViewer</code>, draggable divider, tree on the left). Selecting a span mounts <code>SpanDetailPanel</code> → <code>TabShell</code>, which is a fixed header plus exactly three tabs:</p>
+
+  <div class="tree card">
+<pre><b>TabShell</b>                       <span class="cm">← header: glyph · span.title · event_type chip · duration</span>
+├── <b>PRIMARY</b>                    <span class="cm">← rendererRegistry[event_type] ?? BaseRenderer</span>
+│   ├── SystemPromptRenderer      <span class="cm">←   system_prompt_resolved → prompt-kit PromptView</span>
+│   ├── ContextBuildRenderer      <span class="cm">←   context_build_* → JsonViewer(declared) + PromptView(rendered)</span>
+│   ├── ToolCallRenderer          <span class="cm">←   tool_call_* → Input JSON + Output text</span>
+│   ├── UserMessageRenderer       <span class="cm">←   one muted box</span>
+│   ├── AssistantMessageRenderer  <span class="cm">←   one muted box</span>
+│   ├── RequestSnapshotRenderer   <span class="cm">←   pi_request_snapshot → fetch turn context → TurnRequestView</span>
+│   ├── WarningRenderer           <span class="cm">←   warning / error</span>
+│   ├── UsageAggregateRenderer    <span class="cm">←   container / phase / session / run wrappers</span>
+│   └── <b>BaseRenderer</b>              <span class="cm">←   EVERYTHING ELSE: span.input + span.output, or a dead end</span>
+├── <b>METADATA</b>                   <span class="cm">← id/start/end/duration/type/status + every span attribute, 2-col grid</span>
+└── <b>RAW</b>                        <span class="cm">← JsonViewer(span minus children)</span></pre>
+  </div>
+
+  <p>Canvas adds a fourth thing that is not a tab. <code>useCanvasTraceExtensions.renderSpanDetail</code> intercepts <em>tool-call spans only</em> and returns a vertical stack: the standard <code>SpanDetailPanel</code> at <code>flex:0.9</code> on top, and <code>TranscriptToolCallDetail</code> at <code>flex:1.1</code> below it, separated by a border. Two panels, one column, each with its own header.</p>
+
+  <h3>The event types that actually reach the panel</h3>
+  <p>Both databases together produce 16 distinct event types plus 4 synthetic wrapper spans. Fifteen of them were rendered through the real renderers for this audit; here is what the tree hands the panel.</p>
+
+  <div class="scroller">
+  <table>
+    <thead><tr><th>Event type</th><th>Renderer</th><th>Carries <code>input</code></th><th>Carries <code>output</code></th><th>Default visible?</th></tr></thead>
+    <tbody>
+      <tr><td><code>pi_request_snapshot</code> ("Turn&nbsp;N")</td><td>RequestSnapshotRenderer</td><td>message refs JSON</td><td>—</td><td>yes (L2)</td></tr>
+      <tr><td><code>tool_call_start/end</code></td><td>ToolCallRenderer</td><td>tool_input</td><td>tool_output</td><td>yes (L1)</td></tr>
+      <tr><td><code>system_prompt_resolved</code></td><td>SystemPromptRenderer</td><td>—</td><td>full prompt</td><td>yes (L1)</td></tr>
+      <tr><td><code>context_build_started/completed</code></td><td>ContextBuildRenderer</td><td>declared inputs</td><td>rendered context</td><td>yes (L1)</td></tr>
+      <tr><td><code>user_message</code></td><td>UserMessageRenderer</td><td>content</td><td>—</td><td>yes (L0)</td></tr>
+      <tr><td><code>assistant_message</code></td><td>AssistantMessageRenderer</td><td>—</td><td>content</td><td>yes (L0)</td></tr>
+      <tr><td><code>context_input_resolved</code></td><td class="bad">BaseRenderer → dead end</td><td>—</td><td>—</td><td>no (L3)</td></tr>
+      <tr><td><code>agent_session_start</code></td><td class="bad">BaseRenderer → dead end</td><td>—</td><td>—</td><td>yes (L2)</td></tr>
+      <tr><td><code>agent_run_start/end</code></td><td class="bad">BaseRenderer → dead end</td><td>—</td><td>—</td><td>yes (L2)</td></tr>
+      <tr><td><code>pi_agent_start/end</code></td><td class="bad">BaseRenderer → dead end</td><td>—</td><td>—</td><td>no (L3)</td></tr>
+      <tr><td><code>pi_turn_start/end</code></td><td class="bad">BaseRenderer → dead end</td><td>—</td><td>—</td><td>no (L3)</td></tr>
+      <tr><td><code>pi_agent_container</code> / <code>run_container</code> / <code>phase_container</code></td><td>UsageAggregateRenderer<br><span class="muted">(dead end without usageContext)</span></td><td>—</td><td>—</td><td>yes</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout warn">
+    <p><strong>Seven of the fifteen event types render the literal string "No input or output for this event."</strong> <span class="badge fact">measured</span> Their entire content — <code>agent_type</code>, <code>model</code>, <code>loader_kind</code>, <code>bytes</code>, <code>content_hash</code>, <code>from_cache</code>, <code>run_id</code>, <code>status</code> — exists, but only as span attributes, which live in the METADATA tab. The PRIMARY tab, the one that opens by default, tells you nothing.</p>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2>2. Per-event-type findings <span class="badge fact">measured</span></h2>
+
+  <p>What each event shows, what is duplicated, and what is missing. "Missing" means the data exists in the trace and is not reachable from this panel.</p>
+
+  <div class="scroller">
+  <table>
+    <thead><tr><th style="width:15%">Event</th><th style="width:30%">PRIMARY shows</th><th style="width:27%">Duplicated / redundant</th><th style="width:28%">Missing (data exists, not shown)</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Turn</strong><br><code>pi_request_snapshot</code></td>
+        <td>Online: three collapsible sections — <em>System prompt</em> (closed), <em>Context</em> (closed), <em>State</em> (open). Offline: a message-ref table only.</td>
+        <td>The Context section repeats, verbatim, the <code>rendered_context</code> already shown on the context-build span. The System prompt section repeats <code>system_prompt_resolved</code> — but in a worse rendering (raw <code>&lt;pre&gt;</code>, 5-line clamp) than the dedicated event gets.</td>
+        <td class="bad">Turn number, prompt hash, message count, char/image totals — deliberately moved out of PRIMARY into METADATA. Token usage and cache reads (they live on <code>pi_turn_end</code>, which the builder discards entirely). No link to the system-prompt or context-build event.</td>
+      </tr>
+      <tr>
+        <td><strong>Tool call</strong><br><code>tool_call_*</code></td>
+        <td>Tool name + duration, then <em>Input</em> as line-numbered JSON and <em>Output</em> as a <code>&lt;pre&gt;</code>.</td>
+        <td class="bad">In canvas, everything below is rendered a second time by <code>TranscriptToolCallDetail</code> as PARAMS + RESULT. For <code>finalize</code> the operator's message appears <em>three</em> times in one column (input JSON, output text, transcript params).</td>
+        <td>The assistant's thinking that produced the call (canvas has it; the standard panel does not). Which turn it belongs to. Images the call returned (canvas-only, in the second panel).</td>
+      </tr>
+      <tr>
+        <td><strong>System prompt</strong><br><code>system_prompt_resolved</code></td>
+        <td>"Agent: layout-editor", then prompt-kit <code>PromptView</code>: XML-highlighted, line-numbered, gutter, <strong>all 303 lines, no clamp, no outline</strong>.</td>
+        <td>Same bytes as the Turn view's System prompt section, rendered completely differently.</td>
+        <td class="bad">The prompt hash. Whether this prompt is the one the turns actually ran on. Any way to navigate 303 lines other than scrolling. Diff against the previous revision (<code>prompt_revisions</code> table exists).</td>
+      </tr>
+      <tr>
+        <td><strong>Context build</strong><br><code>context_build_*</code></td>
+        <td>One muted line "layout-editor · 16253 bytes · 2 inputs", then <em>Declared Inputs</em> as line-numbered raw JSON, then the rendered context in <code>PromptView</code>.</td>
+        <td>The rendered context is the same bytes as the Turn's Context section.</td>
+        <td class="bad">The <em>resolved</em> inputs. <code>end.inputs</code> carries <code>loader_kind / input_ref / status / bytes</code> per input and the builder throws all of it away except the count. Per-input <code>content_hash</code> and <code>from_cache</code> exist only on child spans that dead-end and are hidden at the default trace level.</td>
+      </tr>
+      <tr>
+        <td><strong>Context input</strong><br><code>context_input_resolved</code></td>
+        <td class="bad">"No input or output for this event."</td>
+        <td>—</td>
+        <td class="bad">Everything: loader kind, ref, status, bytes, cache hit, content hash. All in METADATA. And the <em>content</em> that was loaded is nowhere — you can see 11,635 bytes were loaded from <code>capabilities</code>, but not what they were.</td>
+      </tr>
+      <tr>
+        <td><strong>User / assistant message</strong></td>
+        <td>A label and one muted box of wrapped text.</td>
+        <td>Also appears inside the Turn's State/tail section.</td>
+        <td>Nothing important. These two are fine.</td>
+      </tr>
+      <tr>
+        <td><strong>Lifecycle</strong><br><code>agent_session_start</code>, <code>agent_run_*</code>, <code>pi_agent_*</code>, <code>pi_turn_*</code></td>
+        <td class="bad">"No input or output for this event." ×7</td>
+        <td>—</td>
+        <td class="bad"><code>pi_turn_end</code> carries <code>{inputTokens, outputTokens, cacheReadTokens, cacheWriteTokens, model, costEstimate}</code> and <code>stop_reason</code>. <strong>None of it reaches the span at all</strong> — there is no registry entry, so the generic extractor looks for <code>operation/status/detail/phase</code>, finds none, and emits nothing. Real values from the audited run: turn 0 <code>22,453 in / 598 out / 0 cached</code>; turn 1 <code>19,576 in / 86 out / 6,656 cached</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>Wrappers</strong><br>container / phase / session / run</td>
+        <td>Usage aggregate (totals, per-agent, run rows) when the host passes <code>usageContext</code>; dead end otherwise.</td>
+        <td>Overlaps the workspace's own usage strip / summary panel.</td>
+        <td>The agent's identity — model, prompt hash, bundle — for a session span.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2>3. The four clunk reports, checked <span class="badge fact">measured</span></h2>
+
+  <h3>3.1 &nbsp;Canvas tool view renders the same content twice</h3>
+  <div class="verdict confirmed"><span class="lbl">Confirmed</span><span>And it is worse than reported: for <code>finalize</code> the operator-facing message appears <strong>three</strong> times in one scroll column.</span></div>
+
+  <p>The real call, copied from the database (<code>tool_use_id call_yxETvPu…</code>):</p>
+
+  <figure class="code">
+    <figcaption><span>trace_events · tool_call_start.tool_input</span><span class="tag">real</span></figcaption>
+<pre>{"raw":{"outcome":"committed","message":"Inserted neutral-gray Security Scan between
+Unit Tests and Staging Deploy, rewired “all green” and “no criticals,” and slid
+Staging Deploy and Smoke Tests horizontally along the same line to make room; …"}}</pre>
+  </figure>
+  <figure class="code">
+    <figcaption><span>trace_events · tool_call_end.tool_output</span><span class="tag">real</span></figcaption>
+<pre>Committed: Inserted neutral-gray Security Scan between Unit Tests and Staging Deploy,
+rewired “all green” and “no criticals,” and slid Staging Deploy and Smoke Tests
+horizontally along the same line to make room; … (5 patch operations).
+The proposal is now awaiting operator review.</pre>
+  </figure>
+
+  <p>So the <em>tool contract itself</em> echoes its input into its output. On top of that, <code>renderSpanDetail</code> stacks <code>TranscriptToolCallDetail</code> below the panel, which prints the same <code>call.params</code> under PARAMS and the same <code>call.resultText</code> under RESULT. Reading top to bottom you get: INPUT (the message) → OUTPUT (the message again, prefixed "Committed:") → THINKING → PARAMS (the message a third time) → RESULT (the output a second time).</p>
+  <p>The one thing the transcript panel adds that the standard panel does not have is <strong>thinking</strong> and <strong>images</strong>. Real thinking from that run: <code>**Assessing corridor layout constraints** / **Evaluating node spacing and label readability** / **Confirming slide limits to staging and smoke only**</code>. That is 5% of the second panel's pixels justifying 100% of its existence.</p>
+
+  <h3>3.2 &nbsp;The Turn view's State block</h3>
+  <div class="verdict confirmed"><span class="lbl">Confirmed</span><span>123 lines, exactly as reported. Long lines force horizontal scroll because <code>StateBlockView</code> sets <code>whitespace-pre</code> (no wrap) by design, and the clamp is <code>CLAMP_LINES = 40</code>.</span></div>
+  <div class="verdict corrected"><span class="lbl">Corrected</span><span>The section headers are <em>not</em> numbered ①②③ in the UI — <code>TurnRequestView</code> renders bare "System prompt" / "Context" / "State" ("headers are deliberately bare"). The numerals are the doc's vocabulary, not the panel's, which is part of why the panel does not read as the three-section request.</span></div>
+  <div class="verdict corrected"><span class="lbl">Corrected</span><span><strong>Only 5 of 7,102</strong> <code>pi_request_snapshot</code> events in the canvas database carry section tags. The other 7,097 fall back to the flat context list. The three-section turn view is currently the <em>exception</em> in canvas and the rule in the research kernel (16 of 16). The state-layer run Ford screenshotted is one of the five.</span></div>
+
+  <p>Measured on the real block (message index 1 of turn 4, <code>b1-50962fcf…</code>, 11,744 chars):</p>
+  <table>
+    <thead><tr><th>Property</th><th>Value</th><th>Consequence in the panel</th></tr></thead>
+    <tbody>
+      <tr><td>Lines</td><td>123</td><td>Clamped at 40 → "Show all 123 lines"</td></tr>
+      <tr><td>Median line width</td><td>85 chars</td><td>fits</td></tr>
+      <tr><td>Longest line</td><td>471 chars</td><td>4× overflow</td></tr>
+      <tr><td>Lines &gt; 120 chars</td><td>35 (28%)</td><td>horizontal scroll on a quarter of the block</td></tr>
+      <tr><td>Wrap policy</td><td><code>whitespace-pre</code></td><td>deliberate — indent is load-bearing (indent = containment in the board digest)</td></tr>
+      <tr><td>Max height</td><td><code>max-h-[560px]</code></td><td>an inner scroll region nested inside the panel's own scroll</td></tr>
+    </tbody>
+  </table>
+
+  <p>The images: message index 2 of the same turn is <code>role: "user"</code>, 144 chars of text and 3 image blocks. Because it is not a single text block, <code>StateEntry</code> falls through to <code>MessageCard</code>, which badges it <strong>USER</strong>. Its actual text is <em>"attached renders, newest first: (1) a close-up of section section-memory-bank, (2) the full board, (3) a close-up of section section-memory-bank"</em> — kernel prose, not something the user said. The state render's own attachments are mislabelled as user speech.</p>
+
+  <h3>3.3 &nbsp;Context Built: declared inputs as raw JSON</h3>
+  <div class="verdict confirmed"><span class="lbl">Confirmed</span><span>And the bigger problem is not the formatting — it is that the middle of the lineage is thrown away.</span></div>
+  <p>Here is what the trace actually holds for that build, and where each piece ends up:</p>
+  <table>
+    <thead><tr><th>In the trace</th><th>Value (real)</th><th>Where it surfaces</th></tr></thead>
+    <tbody>
+      <tr><td><code>start.declared_inputs</code></td><td><code>[{kind:"capabilities",ref:"capabilities"},{kind:"style-guide",ref:"style-guide"}]</code></td><td>PRIMARY, as line-numbered JSON</td></tr>
+      <tr><td><code>end.inputs[]</code></td><td><code>capabilities ok 11,635 B</code> · <code>style-guide ok 3,193 B</code></td><td class="bad">discarded — only <code>.length</code> survives, as "2 inputs"</td></tr>
+      <tr><td><code>context_input_resolved</code> ×2</td><td>+ <code>from_cache:false</code>, <code>content_hash bd849f6d…</code> / <code>ad8a3b10…</code></td><td class="bad">child spans, hidden at default trace level L2 (they are L3), and they dead-end on PRIMARY</td></tr>
+      <tr><td><code>end.total_bytes</code></td><td>16,253</td><td>the muted header line</td></tr>
+      <tr><td><code>end.rendered_context</code></td><td>16,115 chars</td><td>PRIMARY, <code>PromptView</code></td></tr>
+      <tr><td>the same context, in the turn</td><td>16,136 chars, +2 images, <code>role:custom customType:kernel:context</code></td><td>a <em>collapsed</em> section inside the Turn view, as a generic message card clamped at 2,000 chars</td></tr>
+    </tbody>
+  </table>
+  <p>Note the last row: <strong>the context message the model actually received carries two images</strong> (a house-style exemplar and a contact sheet) that never appear on the context-build event at all. The build event shows the text; the turn shows the truth. Neither shows both well.</p>
+
+  <h3>3.4 &nbsp;Is PRIMARY / METADATA / RAW the right chrome?</h3>
+  <div class="verdict confirmed"><span class="lbl">Confirmed</span><span>No. Two of the three tabs are actively broken, and the split is by <em>data provenance</em> rather than by <em>question being asked</em>.</span></div>
+
+  <p><strong>RAW is unusable for any span that carries text.</strong> <span class="badge fact">measured</span> <code>RawTab</code> runs <code>JSON.stringify(span, null, 2)</code> and <code>JsonViewer</code> puts one line per table row with <code>whitespace-pre</code>. A <code>system_prompt_resolved</code> span serializes to <strong>7 lines, one of which is 18,890 characters wide</strong>, because the 303-line prompt is a single JSON string with escaped newlines. The tab renders a nearly-empty box with 18,890 characters of horizontal scroll.</p>
+
+  <p><strong>METADATA is load-bearing for seven event types</strong> and yet it is the tab you have to remember to click. It is also lossy where it matters: attribute values render in a <code>truncate</code> span with no <code>title</code>, so <code>prompt_hash</code> and <code>content_hash</code> — the two attributes whose whole purpose is to be compared — are cut off with no way to read or copy them.</p>
+
+  <p><strong>The split is wrong in principle.</strong> Tabs should separate questions, not sources. "What did this do?" (PRIMARY), "when did it happen and how big was it?" (METADATA) and "what does the record look like?" (RAW) are not three questions a person asks in sequence — the first two are one question, and the third is a debugging escape hatch that should be attached to whatever block you are looking at, not to the whole span.</p>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2>4. Cross-cutting problems <span class="badge fact">measured</span></h2>
+
+  <div class="card">
+    <ol>
+      <li><strong>The resolved prompt has three different renderings and none of them is authoritative.</strong> <code>system_prompt_resolved</code> gets prompt-kit's <code>PromptView</code> (highlighted, numbered, 303 lines, no outline). The Turn's System prompt section gets a plain <code>&lt;pre&gt;</code> clamped to 5 lines, collapsed by default. Canvas's <code>ContextWindowOverlay</code> reconstructs a third version client-side from the transcript. Ford's question — "the prompt it was resolved as" — is answered three times, differently, and the version attached to the turn (the one that proves what the model saw) is the ugliest and the most hidden.</li>
+
+      <li><strong>The context lineage is scattered across three spans, two trace levels, and two tabs</strong> (§3.3). There is no single view where <em>declared → loaded → rendered → what the model got</em> reads as one chain, even though every link exists in the data.</li>
+
+      <li><strong>Per-turn economics are invisible.</strong> <code>pi_turn_end</code>'s usage payload never reaches a span. You cannot see, on a Turn, how many tokens it cost or whether the context was served from cache — which is precisely the number that tells you whether the "rebuilt each request" context design is working.</li>
+
+      <li><strong>Two competing implementations of "the full prompt for this turn."</strong> The kernel captures the real thing (<code>pi_request_snapshot</code> + blob store + <code>GET /runs/:runId/turns/:n/context</code>) and <code>RequestSnapshotRenderer</code> renders it. Canvas <em>reconstructs</em> an approximation client-side from the transcript in <code>ContextWindowOverlay</code>, reached by a button on the second tool panel. Same question, two answers, different fidelity, and the reconstructed one is the more discoverable.</li>
+
+      <li><strong>Extensions bolt on instead of plugging in.</strong> The <code>renderSpanDetail</code> seam takes over the whole column, so the only thing canvas can do is stack a second panel under the first. There is no way to say "add a Thinking block to the standard tool view" or "add an Images block."</li>
+
+      <li><strong>The section-label vocabulary has already forked.</strong> <code>viewer-ui</code> exports <code>SECTION_LABEL_CLASS</code> (<code>text-[10px] … tracking-[0.14em]</code>) with a comment saying it is "the ONE section-label style." Canvas's <code>TranscriptInspector</code> defines <code>PANEL_SECTION_LABEL</code> (<code>text-xs font-medium</code>) and <code>CHROME_LABEL</code> (<code>font-mono text-[10px] font-bold</code>); <code>ContextWindowOverlay</code> defines a fourth. Four "section label" styles render in one scroll column. That is the visible cause of "does not feel very cohesive."</li>
+
+      <li><strong>Nothing links to anything.</strong> A Turn cannot jump to the system-prompt event it resolved from, or to its context build, or to its <code>pi_turn_end</code>. A tool call cannot jump to its Turn. Every relationship is reconstructed by the reader from tree position.</li>
+    </ol>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2>5. Three directions <span class="badge agreed">B AGREED — A/C retained as sketches</span></h2>
+
+  <p>Each direction is shown twice, with the same two events, so they can be compared like for like: <strong>Turn 4</strong> of the canvas layout-editor run, and the <strong><code>update_sticky</code></strong> tool call inside it. All content is real. Mockups are low-fi on purpose — geometry and hierarchy, not final type. Direction B was chosen; A's single-scroll reading spine and C's <code>⤢ wide</code> control were absorbed into it.</p>
+
+  <!-- ─────────────── DIRECTION A ─────────────── -->
+  <h3>Direction A — “The read”: one scroll, no tabs <span class="badge sketch">SKETCH</span></h3>
+
+  <p><strong>The rule:</strong> a detail panel is a <em>document about one event</em>, read top to bottom. There are no tabs. Everything the event has appears in reading order, in one scroll. A sticky outline rail on the right lists the blocks that exist and scroll-spies; it is the only navigation. Metadata collapses into a one-line fact bar under the title, with the long tail behind a "Facts" disclosure at the very bottom. Raw stops being a tab and becomes a <code>{ }</code> affordance on each block — you never want the raw of the span, you want the raw of the block you are staring at.</p>
+  <p class="sub">Not chosen: a uniform document is the right shape for a Turn and the wrong shape for a tool call, which is a comparison and wants adjacency.</p>
+
+  <div class="mock">
+    <div class="mock-cap">Direction A · Turn event</div>
+    <div class="body">
+      <div class="mk-hdr">
+        <span class="glyph">◈</span>
+        <span class="ttl">Turn 4</span>
+        <span class="chip acc">request snapshot</span>
+        <span class="right">3.5s</span>
+      </div>
+      <div class="facts">
+        <span class="f"><i>prompt</i> <b>pk1-600d76d5</b> <i>· unchanged since t0</i></span>
+        <span class="f"><i>msgs</i> <b>13</b></span>
+        <span class="f"><i>text</i> <b>32,706</b></span>
+        <span class="f"><i>images</i> <b>5</b></span>
+        <span class="f"><i>tokens</i> <b>21,487 in</b> <i>/</i> <b>116 out</b></span>
+        <span class="f"><i>cached</i> <b>6,656</b></span>
+      </div>
+      <div class="mk-split">
+        <div class="mk-scroll">
+
+          <div class="rule-h"><span class="n">① System prompt</span><span class="ln"></span><span class="chip">303 lines · 18,531 chars</span></div>
+          <p class="prose muted" style="margin:0 0 4px;">layout-editor · <code>b1-fe6f8cc5</code> · identical to turns 0–3</p>
+          <pre class="mono">&lt;purpose&gt;
+    You are the layout editor. You are handed a board and a scope, and you
+    make the smallest correct change that satisfies the instruction.
+&lt;/purpose&gt;
+&lt;board_model&gt;</pre>
+          <span class="more">Show all 303 lines</span> <span class="more">Outline: purpose · board_model · state_grammar · workflow</span> <span class="more">{ }</span>
+
+          <div class="rule-h"><span class="n">② Context</span><span class="ln"></span><span class="chip">16,136 chars · 2 images</span></div>
+          <p class="prose muted" style="margin:0 0 4px;">rebuilt this request from 2 declared inputs — <code>capabilities</code> 11,635&nbsp;B · <code>style-guide</code> 3,193&nbsp;B · <a style="color:var(--accent)">see the build ↗</a></p>
+          <pre class="mono">&lt;context&gt;
+&lt;capabilities&gt;
+    The board holds four kinds of entities — sections, stickies, objects,
+    and connections — and thirteen operations act on them: add, update,
+    and remove per kind, plus fit_section, which sections alone have.</pre>
+          <span class="more">Show all</span> <span class="more">{ }</span>
+          <div class="thumbs" style="margin-top:6px;"><div class="thumb">exemplar<br>house style</div><div class="thumb">contact<br>sheet</div></div>
+
+          <div class="rule-h"><span class="n">③ State</span><span class="ln"></span><span class="chip">123 lines · v15 · board v2-flow</span></div>
+        </div>
+        <div class="mk-rail">
+          <div class="rt">In this turn</div>
+          <a>① System prompt <small>303 ln</small></a>
+          <a>② Context <small>16.1k</small></a>
+          <a class="on">③ State <small>123 ln</small></a>
+          <a>&nbsp;&nbsp;· board <small>40 obj</small></a>
+          <a>&nbsp;&nbsp;· renders <small>3 img</small></a>
+          <a>&nbsp;&nbsp;· diff / lints</a>
+          <a>&nbsp;&nbsp;· recent msgs <small>10</small></a>
+          <a>Response</a>
+          <a>Facts</a>
+        </div>
+      </div>
+
+      <!-- the state block breaks the rail and goes full width -->
+      <div style="border-top:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;">
+          <span class="chip">state block · full width</span>
+          <span class="chip ok">wrap on</span>
+          <span class="chip">byte-exact</span>
+          <span style="margin-left:auto" class="chip">⤢ focus</span>
+        </div>
+<pre class="mono flush">&lt;state v="15" turn="5" board="v2-flow"&gt;
+&lt;scope&gt;
+scope frame: x=3552 y=816 w=1008 h=592
+selection (7 objects in scope):
+- section "Memory Bank" (section-memory-bank)
+- sticky "Memory Bank\n• Memory of the current interview across all questions…" (sticky-memory-bank)
+&lt;/scope&gt;
+&lt;board fresh="yes" objects="40" edges="25"&gt;
+BOARD  # indent = containment · id type "text" [color] x,y w×h [k=v…]
+  page-frame section "Interview Agent" white 784,448 4352×1872 locked=background
+    section section "Section" blue 1893,495 3200×1776 locked=background
+      section-memory-bank section "Memory Bank" green 3552,816 1008×592
+        sticky-memory-bank sticky "Memory Bank • Memory of the current interview…" 3968,864 544×336
+        card-memory-actions section "Memory Actions" 3576,863 320×512
+          predefined-new-memory predefined-process "New Memory" blue 3608,918 268×66
+          predefined-update-memory predefined-process "Update Memory" blue 3608,1043 268×66
+        pill-memory-retrieval pill "Retrieval: per-question recall" white 4096,1280 288×64 dir=right</pre>
+        <div style="padding:6px 12px;"><span class="more">Show all 123 lines</span> <span class="more">{ }</span></div>
+      </div>
+
+      <div class="mk-split">
+        <div class="mk-scroll">
+          <div class="blk">
+            <div class="blk-h"><span class="n">Renders attached to the state</span><span class="meta">3 images · newest first</span></div>
+            <div class="thumbs"><div class="thumb">close-up<br>Memory Bank</div><div class="thumb">full board</div><div class="thumb">close-up<br>Memory Bank</div></div>
+          </div>
+          <div class="blk">
+            <div class="blk-h"><span class="n">Recent messages</span><span class="meta">10 · part of the state render</span></div>
+            <div class="msg"><span class="role u">User</span> · Tidy the Memory Bank section: align the sticky neatly inside the section…</div>
+            <div class="msg"><span class="role a">Assistant</span> · 2 tool calls — <code>update_sticky</code>, <code>fit_scope</code></div>
+            <span class="more">7 more</span>
+          </div>
+          <div class="rule-h"><span class="n">Response</span><span class="ln"></span><span class="chip ok">stop: toolUse</span></div>
+          <div class="msg"><span class="role a">Assistant</span> · 1 tool call — <code>apply_ops</code> <span class="chip">→ open</span></div>
+        </div>
+        <div class="mk-rail" style="visibility:hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mock">
+    <div class="mock-cap">Direction A · Tool event</div>
+    <div class="body">
+      <div class="mk-hdr">
+        <span class="glyph">⚒</span>
+        <span class="ttl">update_sticky</span>
+        <span class="chip ok">applied</span>
+        <span class="right">412ms</span>
+      </div>
+      <div class="facts">
+        <span class="f"><i>in</i> <b>Turn 4</b> <i>↗</i></span>
+        <span class="f"><i>target</i> <b>sticky-memory-bank</b></span>
+        <span class="f"><i>lints</i> <b>+0 −0</b> <i>(4 open)</i></span>
+      </div>
+      <div class="mk-split">
+        <div class="mk-scroll">
+          <div class="blk">
+            <div class="blk-h"><span class="n">Thinking</span><span class="meta">before the call</span></div>
+            <p class="prose muted" style="font-style:italic;">Assessing corridor layout constraints · Evaluating node spacing and label readability · Confirming slide limits to staging and smoke only</p>
+          </div>
+          <div class="blk">
+            <div class="blk-h"><span class="n">Call</span><span class="meta">update_sticky</span><span class="act">{ }</span></div>
+            <table class="args">
+              <tr><td class="k">stickyId</td><td class="v">sticky-memory-bank</td></tr>
+              <tr><td class="k">patch.geometry</td><td class="v">x 3968 · y 864 · w 544 · h 336</td></tr>
+              <tr><td class="k">view</td><td class="v">section-memory-bank</td></tr>
+            </table>
+          </div>
+          <div class="blk">
+            <div class="blk-h"><span class="n">Result</span><span class="meta">applied</span><span class="act">{ }</span></div>
+<pre class="mono wrap">APPLIED · update_sticky sticky-memory-bank
+DELTA
+  sticky-memory-bank  3964.12,863.5 564.53×440.63 → 3968,864 544×336
+LINTS · +0 −0 (4 open)</pre>
+          </div>
+          <div class="blk">
+            <div class="blk-h"><span class="n">Renders</span><span class="meta">1 image</span></div>
+            <div class="thumbs"><div class="thumb">after<br>Memory Bank</div></div>
+          </div>
+          <div class="blk">
+            <div class="blk-h"><span class="n">Facts</span><span class="meta">▸ collapsed</span></div>
+            <p class="prose muted" style="margin:0;">span id · start / end · tool_use_id · trace level · container</p>
+          </div>
+        </div>
+        <div class="mk-rail">
+          <div class="rt">Blocks</div>
+          <a>Thinking</a><a class="on">Call</a><a>Result</a><a>Renders</a><a>Facts</a>
+          <div class="rt" style="margin-top:10px;">Context</div>
+          <a>↑ Turn 4</a><a>↑ Layout Editor</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <h4>What you see, per event kind</h4>
+      <p class="sub" style="margin:0;">Every event renders the same skeleton — <em>header → fact bar → ordered blocks → Facts disclosure</em> — and the only thing that varies is <em>which blocks exist</em>. A lifecycle event has one block ("Outcome"), a Turn has eight. Nothing ever dead-ends, because the fact bar always has content.</p>
+    </div>
+    <div class="card">
+      <h4>Prompt &amp; context lineage</h4>
+      <p class="sub" style="margin:0;">Both are just blocks in the document, in request order, so the Turn <em>reads</em> as ①②③. The prompt block leads with hash + "unchanged since turn 0" and offers its own tag outline; the context block leads with the resolved-input line and links out to the build. The lineage is served by <em>adjacency</em> rather than by a dedicated view.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>The state-block width answer</h4>
+    <p style="margin:0 0 6px;"><strong>Break out of the reading column.</strong> The state block is the one element allowed to span the full panel width including under the outline rail (negative margins to the panel edge), with three controls in a strip above it: <strong>wrap</strong> (on by default — soft-wrap with a hanging indent so containment depth survives the wrap), <strong>byte-exact</strong> (turns wrap off, restoring today's <code>whitespace-pre</code> for verification), and <strong>focus</strong> (promotes the block to a full-window overlay for reading a 40-object digest properly). Clamp becomes height-based, not line-based, so a 123-line block with short lines is not truncated as aggressively as a 123-line block of 400-char rows.</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Direction A tradeoffs</th></tr></thead>
+    <tbody>
+      <tr><td class="ok"><strong>+</strong> Cohesion comes for free — one skeleton, one label vocabulary, no chrome to get out of sync. Kills all three tab problems at once. The Turn finally reads as the three-section request. Extensions contribute <em>blocks</em>, so canvas's thinking/images fold in and the double-render disappears structurally.</td></tr>
+      <tr><td class="bad"><strong>−</strong> A Turn becomes a very long scroll; the outline rail carries almost all the navigation load and costs ~130px of a panel that is already only 60% of the width. No side-by-side comparison of any kind. "Collapsed by default" decisions become high-stakes because there is nowhere to hide anything.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ─────────────── DIRECTION B ─────────────── -->
+  <h3>Direction B — Purpose-built layouts per event kind, under a shared shell <span class="badge agreed">AGREED — building 2026-07-27</span></h3>
+
+  <p><strong>The rule:</strong> the shell is fixed and thin — identity header, breadcrumb, fact bar — and the body is <em>designed for the question that event kind answers</em>. A Turn is a reading problem, so it gets a reading layout. A tool call is a <em>call → result</em> problem, so it gets a paired layout. A context build is a <em>provenance</em> problem, so it gets a lineage layout. There are ~5 bodies, not 15; everything else falls to a generic fact card that is still never a dead end. Extensions register <em>named blocks</em> into an existing body, never a second panel.</p>
+
+  <div class="mock">
+    <div class="mock-cap">Direction B · Turn event — the reading layout</div>
+    <div class="body">
+      <div class="mk-hdr">
+        <span class="glyph">◈</span>
+        <span class="ttl">Turn 4</span>
+        <span class="chip acc">request snapshot</span>
+        <span class="muted" style="font-size:11px;">Layout Editor › run b875137a › turn 4 of 5</span>
+        <span class="right">3.5s</span>
+      </div>
+      <div class="facts">
+        <span class="f"><i>tokens</i> <b>21,487</b> <i>in ·</i> <b>116</b> <i>out ·</i> <b>6,656</b> <i>cached</i></span>
+        <span class="f"><i>13 msgs · 32,706 chars · 5 images</i></span>
+        <span class="f"><i>stop</i> <b>toolUse</b></span>
+      </div>
+
+      <div style="padding:10px 12px;">
+        <!-- ① collapsed to an identity line -->
+        <div style="display:flex;align-items:center;gap:8px;border:1px solid var(--rule);border-radius:6px;padding:7px 10px;margin-bottom:8px;">
+          <span class="chip acc">①</span>
+          <strong style="font-size:12.5px;">System prompt</strong>
+          <span class="muted" style="font-size:11px;font-family:ui-monospace,Menlo,monospace;">pk1-600d76d5 · 303 lines · layout-editor</span>
+          <span class="chip ok" style="margin-left:auto;">unchanged since turn 0</span>
+          <span class="chip">open ↗</span>
+        </div>
+
+        <!-- ② lineage strip -->
+        <div style="border:1px solid var(--rule);border-radius:6px;padding:8px 10px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span class="chip acc">②</span><strong style="font-size:12.5px;">Context</strong>
+            <span class="muted" style="font-size:11px;">rebuilt this request · 16,136 chars · 2 images</span>
+            <span class="chip" style="margin-left:auto;">open the build ↗</span>
+          </div>
+          <div class="lin">
+            <div class="st"><div class="k">declared</div><div class="v">capabilities</div><div class="v">style-guide</div></div>
+            <div class="ar">→</div>
+            <div class="st done"><div class="k">loaded</div><div class="d">11,635 B · fresh · <span style="font-family:ui-monospace,Menlo,monospace">bd849f6d</span></div><div class="d">3,193 B · fresh · <span style="font-family:ui-monospace,Menlo,monospace">ad8a3b10</span></div></div>
+            <div class="ar">→</div>
+            <div class="st"><div class="k">rendered</div><div class="v">16,115 chars</div><div class="d">+ 2 images attached</div></div>
+          </div>
+          <span class="more">Read the rendered context</span>
+        </div>
+
+        <!-- ③ the star -->
+        <div style="display:flex;align-items:center;gap:8px;margin:0 0 4px;">
+          <span class="chip acc">③</span><strong style="font-size:12.5px;">State</strong>
+          <span class="muted" style="font-size:11px;">render(state) · v15 · board v2-flow · 123 lines</span>
+          <span class="chip ok" style="margin-left:auto;">wrap</span><span class="chip">byte-exact</span><span class="chip">⤢ focus</span>
+        </div>
+      </div>
+
+<pre class="mono flush">&lt;state v="15" turn="5" board="v2-flow"&gt;
+&lt;scope&gt;
+canvas: v2-flow (baseline 849c9e0ca133) · scope frame: x=3552 y=816 w=1008 h=592
+&lt;/scope&gt;
+&lt;board fresh="yes" objects="40" edges="25"&gt;
+BOARD  # indent = containment · id type "text" [color] x,y w×h [k=v…]
+  page-frame section "Interview Agent" white 784,448 4352×1872 locked=background
+    section section "Section" blue 1893,495 3200×1776 locked=background
+      section-memory-bank section "Memory Bank" green 3552,816 1008×592
+        sticky-memory-bank sticky "Memory Bank • Memory of the current interview across
+          all questions • Provides consistency without needing to pass the whole
+          conversation each message" 3968,864 544×336
+        card-memory-actions section "Memory Actions" 3576,863 320×512
+          predefined-new-memory predefined-process "New Memory" blue 3608,918 268×66
+        pill-memory-retrieval pill "Retrieval: per-question recall" white 4096,1280 288×64
+EDGES
+  conn-memory-sticky-to-retrieval sticky-memory-bank→pill-memory-retrieval — dashed
+&lt;/board&gt;
+&lt;lints errors="0" warnings="4"&gt;
+  W1 crowding: pill-q1-base-question-text and pill-q1-research-objective sit 46px apart
+     stacked where wires and labels need ≥48px of corridor to route between them</pre>
+
+      <div style="padding:8px 12px;">
+        <span class="more">Show all 123 lines</span>
+        <span class="more">Jump: scope · board · ops · diff · lints · requests · views</span>
+      </div>
+
+      <div style="padding:0 12px 12px;">
+        <div class="blk">
+          <div class="blk-h"><span class="n">Attached renders</span><span class="meta">part of ③ · not user speech</span></div>
+          <div class="thumbs"><div class="thumb">close-up<br>Memory Bank</div><div class="thumb">full board</div><div class="thumb">close-up<br>Memory Bank</div></div>
+        </div>
+        <div class="blk">
+          <div class="blk-h"><span class="n">Recent messages</span><span class="meta">10 · the state render's tail</span><span class="act">▾</span></div>
+          <div class="msg"><span class="role u">User</span> · Tidy the Memory Bank section: align the sticky neatly inside the section…</div>
+          <div class="msg"><span class="role a">Assistant</span> · <code>update_sticky</code> · <code>fit_scope</code></div>
+          <span class="more">7 more</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mock">
+    <div class="mock-cap">Direction B · Tool event — the call→result layout (canvas's thinking &amp; images are blocks, not a second panel)</div>
+    <div class="body">
+      <div class="mk-hdr">
+        <span class="glyph">⚒</span>
+        <span class="ttl">update_sticky</span>
+        <span class="chip ok">applied</span>
+        <span class="muted" style="font-size:11px;">Layout Editor › turn 4 › call 1 of 2</span>
+        <span class="right">412ms</span>
+      </div>
+      <div class="facts">
+        <span class="f"><i>target</i> <b>sticky-memory-bank</b></span>
+        <span class="f"><i>geometry</i> <b>544×336</b> <i>@ 3968,864</i></span>
+        <span class="f"><i>lints</i> <b>+0 −0</b> <i>· 4 open</i></span>
+      </div>
+      <div style="padding:10px 12px;">
+        <p class="prose muted" style="font-style:italic;margin:0 0 8px;">“Assessing corridor layout constraints · Evaluating node spacing and label readability”<span class="chip" style="margin-left:8px;">thinking</span></p>
+        <div class="pair">
+          <div>
+            <div class="ph">Call</div>
+            <table class="args">
+              <tr><td class="k">stickyId</td><td class="v">sticky-memory-bank</td></tr>
+              <tr><td class="k">geometry.x</td><td class="v">3968</td></tr>
+              <tr><td class="k">geometry.y</td><td class="v">864</td></tr>
+              <tr><td class="k">geometry.width</td><td class="v">544</td></tr>
+              <tr><td class="k">geometry.height</td><td class="v">336</td></tr>
+              <tr><td class="k">view</td><td class="v">section-memory-bank</td></tr>
+            </table>
+            <span class="more">{ } raw params</span>
+          </div>
+          <div>
+            <div class="ph">Result <span class="chip ok">applied</span></div>
+<pre class="mono wrap" style="border:0;background:transparent;padding:0;">DELTA
+  sticky-memory-bank
+  3964.12,863.5 564.53×440.63
+       → 3968,864 544×336
+LINTS · +0 −0 (4 open)</pre>
+            <div class="thumbs" style="margin-top:7px;"><div class="thumb">after<br>Memory Bank</div></div>
+          </div>
+        </div>
+        <p class="prose muted" style="margin:8px 0 0;font-size:11.5px;">↑ <span style="color:var(--accent)">Turn 4</span> — the request this call answered &nbsp;·&nbsp; ↓ <span style="color:var(--accent)">state v15</span> — what it made true</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <h4>What you see, per event kind</h4>
+      <table class="kv">
+        <tr><td class="k">Turn</td><td class="v">reading layout: ① identity line · ② lineage strip · ③ full-bleed state · renders · tail · response</td></tr>
+        <tr><td class="k">Tool</td><td class="v">call→result pair, typed args table, thinking lead-in, images, up/down links</td></tr>
+        <tr><td class="k">Context build</td><td class="v">lineage view: declared → loaded (per-input rows) → rendered bytes</td></tr>
+        <tr><td class="k">Prompt</td><td class="v">prompt reader: tag outline + PromptView + revision diff</td></tr>
+        <tr><td class="k">Message</td><td class="v">the plain box it already is</td></tr>
+        <tr><td class="k">Everything else</td><td class="v">fact card — attributes rendered as a readable table, never “no input or output”</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h4>Prompt &amp; context lineage</h4>
+      <p class="sub" style="margin:0;">Directly served, and the strongest of the three on this axis. The prompt is asserted as an <em>identity</em> on the Turn ("<code>pk1-600d76d5</code> · unchanged since turn 0") rather than re-dumped, so the panel answers "what was it resolved as" in one line and offers the full text one click away. The context lineage gets a purpose-built strip that shows all four links — declared, loaded (with bytes, cache, hash), rendered, attached — which no current view does.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>The state-block width answer</h4>
+    <p style="margin:0;"><strong>Width priority: the state block wins the panel.</strong> In the Turn layout it renders full-bleed edge to edge, and ①/② are compressed to a line and a strip precisely so it can. Soft-wrap with hanging indent is the default (indent depth preserved on continuation lines), byte-exact toggles it off, focus opens a full-window reader, and a "Jump:" strip lists the block's own top-level tags (<code>scope · board · ops · diff · lints · requests · views</code>) so a 40-object digest is navigable rather than scrolled. Because the layout is turn-specific, none of this leaks into other event kinds.</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Direction B tradeoffs</th></tr></thead>
+    <tbody>
+      <tr><td class="ok"><strong>+</strong> Each event finally gets a layout that fits its question; the Turn's information hierarchy becomes correct (③ is the moving piece, so ③ gets the space). Kills the double-render by construction. The lineage view is the only thing in any direction that fully answers Ford's context question. Fact cards eliminate all seven dead ends.</td></tr>
+      <tr><td class="bad"><strong>−</strong> Most work: ~5 bodies to build and keep visually coherent, and drift between them is exactly the failure that produced today's four section-label vocabularies. Needs a genuinely enforced shared component set (one heading, one collapsible, one mono block, one thumb strip) or it degrades within two features. A new event kind needs a decision, not just a registry line.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ─────────────── DIRECTION C ─────────────── -->
+  <h3>Direction C — Inspector: persistent header + content-derived facets <span class="badge sketch">SKETCH</span></h3>
+
+  <p><strong>The rule:</strong> keep a switcher, but make it honest. A structured header that never scrolls away carries identity, status and the 4–6 facts that matter for that kind. Below it, a facet bar whose facets are <em>derived from what the event actually has</em>, not a fixed trio: a Turn offers <em>Prompt · Context · State · Response · Record</em>; a tool offers <em>Call · Result · Thinking · Renders · Record</em>; a lifecycle event offers only <em>Record</em>, so the bar collapses to nothing and the fact card fills the body. Facets are deep-linkable, so "open turn 4's state" is a URL. Extensions register facets — canvas's transcript inspector becomes a facet named Renders, not a second panel; <code>ContextWindowOverlay</code> is deleted in favour of the Turn's own facets.</p>
+  <p class="sub">Not chosen: it fixes which tabs exist without fixing that tabs hide things, so ①②③ would never be seen as one request.</p>
+
+  <div class="mock">
+    <div class="mock-cap">Direction C · Turn event — State facet selected</div>
+    <div class="body">
+      <div class="mk-hdr">
+        <span class="glyph">◈</span>
+        <span class="ttl">Turn 4</span>
+        <span class="chip acc">request snapshot</span>
+        <span class="chip ok">toolUse</span>
+        <span class="right">3.5s</span>
+      </div>
+      <div class="facts">
+        <span class="f"><i>agent</i> <b>layout-editor</b></span>
+        <span class="f"><i>prompt</i> <b>pk1-600d76d5</b></span>
+        <span class="f"><i>13 msgs · 32,706 chars · 5 img</i></span>
+        <span class="f"><i>21,487 in · 116 out · 6,656 cached</i></span>
+      </div>
+      <div class="tabs">
+        <span>Prompt <small>303 ln</small></span>
+        <span>Context <small>16.1k · 2 img</small></span>
+        <span class="on">State <small>123 ln · 3 img</small></span>
+        <span>Response <small>1 call</small></span>
+        <span>Record</span>
+        <span class="spacerR"></span>
+        <span>⤢ wide</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border);">
+        <span class="muted" style="font-size:11px;font-family:ui-monospace,Menlo,monospace;">render(state) · v15 · turn=5 · board=v2-flow · 40 objects · 25 edges</span>
+        <span class="chip ok" style="margin-left:auto;">wrap</span><span class="chip">byte-exact</span>
+      </div>
+<pre class="mono flush" style="border-top:0;">&lt;state v="15" turn="5" board="v2-flow"&gt;
+&lt;instruction&gt;
+Tidy the Memory Bank section: align the sticky neatly inside the section with
+comfortable, even padding, then add a small pill under it labeled 'Retrieval:
+per-question recall' and connect the sticky to the new pill with a dashed arrow.
+&lt;/instruction&gt;
+&lt;board fresh="yes" objects="40" edges="25"&gt;
+BOARD  # indent = containment · id type "text" [color] x,y w×h [k=v…]
+      section-memory-bank section "Memory Bank" green 3552,816 1008×592
+        sticky-memory-bank sticky "Memory Bank • Memory of the current interview…" 3968,864 544×336
+        card-memory-actions section "Memory Actions" 3576,863 320×512
+        pill-memory-retrieval pill "Retrieval: per-question recall" white 4096,1280 288×64
+&lt;/board&gt;
+&lt;diff&gt;
+  addObject pill-memory-retrieval
+  updateSticky sticky-memory-bank  moved · resized
+  addConnection conn-memory-sticky-to-retrieval
+&lt;/diff&gt;
+&lt;lints errors="0" warnings="4"&gt;
+0 errors · 4 warnings (was 0 · 4 at spawn)</pre>
+      <div style="padding:7px 12px;border-top:1px solid var(--border);">
+        <span class="more">Show all 123 lines</span>
+        <span class="more">3 attached renders ▾</span>
+        <span class="more">10 recent messages ▾</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mock">
+    <div class="mock-cap">Direction C · Tool event — Call facet selected; canvas contributes “Renders”</div>
+    <div class="body">
+      <div class="mk-hdr">
+        <span class="glyph">⚒</span>
+        <span class="ttl">update_sticky</span>
+        <span class="chip ok">applied</span>
+        <span class="right">412ms</span>
+      </div>
+      <div class="facts">
+        <span class="f"><i>turn</i> <b>4</b> <i>↗</i></span>
+        <span class="f"><i>target</i> <b>sticky-memory-bank</b></span>
+        <span class="f"><i>tool_use_id</i> <b>call_otvmaYck…</b></span>
+        <span class="f"><i>lints</i> <b>+0 −0 · 4 open</b></span>
+      </div>
+      <div class="tabs">
+        <span class="on">Call</span>
+        <span>Result</span>
+        <span>Thinking <small>3 ln</small></span>
+        <span>Renders <small>1 img</small> <em style="font-style:normal;color:var(--accent)">·canvas</em></span>
+        <span>Record</span>
+      </div>
+      <div style="padding:10px 12px;">
+        <table class="args">
+          <tr><td class="k">stickyId</td><td class="v">sticky-memory-bank</td></tr>
+          <tr><td class="k">patch.geometry.x</td><td class="v">3968</td></tr>
+          <tr><td class="k">patch.geometry.y</td><td class="v">864</td></tr>
+          <tr><td class="k">patch.geometry.width</td><td class="v">544</td></tr>
+          <tr><td class="k">patch.geometry.height</td><td class="v">336</td></tr>
+          <tr><td class="k">view</td><td class="v">section-memory-bank</td></tr>
+        </table>
+        <p class="prose muted" style="margin:10px 0 0;font-size:11.5px;">Result preview — <code>APPLIED · update_sticky sticky-memory-bank</code> <span class="chip">open Result</span></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="card">
+      <h4>What you see, per event kind</h4>
+      <p class="sub" style="margin:0;">The facet set <em>is</em> the IA rule: a facet exists if and only if the event has content for it. That makes the bar a summary of the event before you click anything ("this turn has a state and a response but no images"), and it makes dead ends structurally impossible — an event with only a record shows a fact card with no bar at all. Facet names come from a fixed vocabulary so <code>Result</code> means the same thing on every kind.</p>
+    </div>
+    <div class="card">
+      <h4>Prompt &amp; context lineage</h4>
+      <p class="sub" style="margin:0;">The prompt hash rides in the persistent header, so "what was it resolved as" is answered without navigating, and the <em>Prompt</em> facet holds the full resolved text at turn fidelity. Lineage is weaker than B: <em>Context</em> is one facet, so declared/loaded/rendered have to be stacked inside it rather than shown as a chain — you would want the lineage strip from B as the facet's header.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h4>The state-block width answer</h4>
+    <p style="margin:0;"><strong>Dedicated expansion.</strong> Selecting the State facet gives the block the entire panel body — no competing sections, no rail — and a <strong>⤢ wide</strong> control in the facet bar collapses the span tree to an icon rail so the panel takes ~85% of the window for as long as you are reading. Wrap-on-by-default with a byte-exact toggle, same as the other two. This is the cleanest answer of the three <em>for reading</em>, and the worst for <em>context</em>: you cannot see the state and the response at the same time.</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Direction C tradeoffs</th></tr></thead>
+    <tbody>
+      <tr><td class="ok"><strong>+</strong> Cheapest evolution from today (TabShell already exists; the change is "derive the tabs, promote the facts, add a header"). The facet bar doubles as a content summary. Deep links are a real workflow win for "look at this turn's state" in review. The extension seam becomes a facet registration — canvas plugs in instead of bolting on.</td></tr>
+      <tr><td class="bad"><strong>−</strong> Still chrome. It fixes <em>which</em> tabs exist without fixing that tabs hide things: the Turn's ①②③ are three facets, so the three-section request is never seen as one thing — which is the single most important thing the panel has to show. Header + facet bar cost ~90px of vertical space on every event. Variable tab sets can feel unstable as you move down the tree.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2>6. Portable regardless of direction <span class="badge agreed">BUILD ROUND AGREED 2026-07-27</span></h2>
+
+  <p>These are independent of the chrome decision. Each is worth doing even if none of the three directions is adopted, and each is cheap relative to its payoff.</p>
+  <p><strong>First build round:</strong> <span class="badge agreed">IN</span> carry <code>pi_turn_end</code> usage into the collapsed drawer (not the main read), keep <code>end.inputs[]</code>, kill the canvas double-render, replace dead ends with a fact card, establish one clamp contract, fix RAW, retire <code>ContextWindowOverlay</code>, and add cross-links. <span class="badge sketch">DEFERRED</span> section tags on every snapshot, kernel-side attachment badging (handled viewer-side this round), the prompt-revision diff, section-label unification in canvas beyond the shared components, and remaining metadata refinements.</p>
+
+  <div class="scroller">
+  <table>
+    <thead><tr><th style="width:11%">Round</th><th style="width:22%">Change</th><th>Why</th><th style="width:16%">Where</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="badge agreed">IN</span></td>
+        <td><strong>Kill the canvas double-render</strong></td>
+        <td>Stop returning a second panel from <code>renderSpanDetail</code>. The only unique content is thinking + images; both should be blocks in the standard tool view. Change the seam from "replace the column" to "contribute named blocks."</td>
+        <td><code>TraceDetailView.tsx</code>, <code>KernelTraceViewer.tsx</code></td>
+      </tr>
+      <tr>
+        <td><span class="badge agreed">IN</span></td>
+        <td><strong>No dead ends</strong></td>
+        <td>Replace <code>BaseRenderer</code>'s "No input or output for this event." with a fact card that renders the span's attributes as a readable table. Fixes seven event types with one component.</td>
+        <td><code>BaseRenderer.tsx</code></td>
+      </tr>
+      <tr>
+        <td><span class="badge agreed">IN</span></td>
+        <td><strong>Carry <code>pi_turn_end</code> usage onto the Turn</strong></td>
+        <td>One <code>EVENT_SPECS</code> entry (and folding turn-end into the Turn span) carries tokens, cache reads, cost and stop reason onto the event people actually open; the agreed layout surfaces them in the collapsed Details drawer, not the main read. Today they are discarded by the builder.</td>
+        <td><code>spanAttributes.ts</code>, <code>nesting.ts</code></td>
+      </tr>
+      <tr>
+        <td><span class="badge agreed">IN</span></td>
+        <td><strong>Keep <code>end.inputs[]</code></strong></td>
+        <td>The context-build pair drops per-input <code>loader_kind/status/bytes</code> and keeps only the count. Preserving the array is what makes any lineage view possible without depending on L3 child spans.</td>
+        <td><code>spanAttributes.ts</code></td>
+      </tr>
+      <tr>
+        <td><span class="badge agreed">IN</span></td>
+        <td><strong>Fix RAW</strong></td>
+        <td>Never serialize a text field into a single 18,890-char line. Raw should be per-block, and string fields should print with real newlines. In every direction above, raw is a <code>{ }</code> affordance on a block, not a tab.</td>
+        <td><code>RawTab.tsx</code>, <code>JsonViewer.tsx</code></td>
+      </tr>
+      <tr>
+        <td><span class="badge agreed">IN</span></td>
+        <td><strong>One long-block contract</strong></td>
+        <td><code>CollapsibleMono</code> clamps by chars (1,200/2,000/600/800 depending on the caller), <code>SystemPromptBody</code> clamps by 5 lines, <code>StateBlockView</code> by 40 lines, canvas's <code>CollapsibleBlock</code> by 360 chars <em>or</em> 6 lines. Four rules. Make it one: clamp by rendered height, wrap by default, byte-exact toggle, consistent "show all" affordance.</td>
+        <td><code>snapshot-message-view.tsx</code>, <code>StateBlockView.tsx</code>, canvas</td>
+      </tr>
+      <tr>
+        <td><span class="badge sketch">DEFERRED</span></td>
+        <td><strong>Badge the state render's attachments correctly</strong></td>
+        <td>The "attached renders, newest first…" message is emitted by the renderer but arrives as <code>role:"user"</code>, so it wears a USER badge. The viewer handles messages inside the <code>state</code> range as kernel-authored by position this round; builder-level badging is deferred.</td>
+        <td>kernel snapshot builder / <code>TurnRequestView.tsx</code></td>
+      </tr>
+      <tr>
+        <td><span class="badge sketch">DEFERRED</span></td>
+        <td><strong>Section tags on every snapshot</strong></td>
+        <td>5 of 7,102 canvas snapshots carry tags, so canvas almost always falls back to the flat list. Any three-section design is only as good as tag coverage.</td>
+        <td>kernel snapshot builder</td>
+      </tr>
+      <tr>
+        <td><span class="badge agreed">IN</span></td>
+        <td><strong>Cross-links</strong></td>
+        <td>Turn → its system prompt, Turn → its context build, tool → its Turn, run → its turns. All of these joins already exist in the builder's index; none is exposed.</td>
+        <td>detail panel + tree selection API</td>
+      </tr>
+      <tr>
+        <td><span class="badge agreed">IN</span></td>
+        <td><strong>Retire <code>ContextWindowOverlay</code></strong></td>
+        <td>It reconstructs client-side what the kernel already captures byte-exactly. Two answers to one question, and the less accurate one is more discoverable. Point its button at the Turn event instead.</td>
+        <td>canvas <code>ContextWindowOverlay.tsx</code></td>
+      </tr>
+      <tr>
+        <td><span class="badge sketch">DEFERRED</span></td>
+        <td><strong>One section-label style, exported and enforced</strong></td>
+        <td>Four vocabularies render in one column today. The shared components cover the first-round layout; unifying canvas labels beyond those components is deferred.</td>
+        <td><code>viewer-ui</code> exports, canvas imports</td>
+      </tr>
+      <tr>
+        <td><span class="badge sketch">DEFERRED</span></td>
+        <td><strong>Make hashes readable</strong></td>
+        <td>METADATA truncates every attribute with no <code>title</code> and no copy. Hashes are the one attribute class whose purpose is comparison.</td>
+        <td><code>MetadataTab.tsx</code></td>
+      </tr>
+      <tr>
+        <td><span class="badge sketch">DEFERRED</span></td>
+        <td><strong>Prompt-revision diff</strong></td>
+        <td>The prompt reader can gain a diff against the previous entry in <code>prompt_revisions</code> after the first-round doc-style source renderer is established.</td>
+        <td>prompt reader + <code>prompt_revisions</code></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <h2>7. Recommendation <span class="badge agreed">AGREED 2026-07-27</span></h2>
+
+  <div class="callout ok">
+    <p style="margin-top:0;"><strong>Direction B, built on Direction A's spine.</strong></p>
+    <p>This is what is being built: purpose-built bodies per event kind (B), with each body's section renderers stacked in a <em>single scroll with no inner tabs</em> (A), because the one thing the panel most needs to do — show that a request is ①&nbsp;prompt + ②&nbsp;context + ③&nbsp;state — is destroyed the moment those three become tabs or facets. A section header isolates its renderer full-panel with a breadcrumb back. C's best idea, <em>the extension registers a named block/facet instead of taking over the column</em>, becomes the seam rule for both. C's <em>⤢ wide</em> control is absorbed into isolation.</p>
+  </div>
+
+  <p><strong>Why not A alone:</strong> a uniform document is the right shape for a Turn and the wrong shape for a tool call. A tool call is a comparison — these arguments produced that result — and comparisons want adjacency, not sequence. B's pair layout says that in one glance; A's block sequence makes you scroll between the two halves of one thought.</p>
+
+  <p><strong>Why not C alone:</strong> C is the cheapest and it fixes the tab <em>membership</em> problem, but it does not fix the tab <em>premise</em>. Splitting ①②③ across three facets means the panel never once shows the request as a request, which is the thing Ford is actually asking for.</p>
+
+  <p><strong>What makes B survivable</strong> (its real risk is drift, and drift is what produced today's mess): a small, exported, enforced component set that all bodies compose — <code>SectionRule</code>, <code>FactBar</code>, <code>LongBlock</code> (the one clamp contract), <code>ArgsTable</code>, <code>ThumbStrip</code>, <code>LineageStrip</code>, <code>FactCard</code>. Seven components. If a body needs an eighth, that is the review conversation. Canvas imports them and registers blocks; it never defines a heading style again.</p>
+
+  <div class="card">
+    <p><strong>Build order</strong> <span class="badge agreed">AGREED</span> — the first-round §6 items are sequenced first because they are cheap and they de-risk the layout work:</p>
+    <ol style="margin-bottom:0;">
+      <li>Builder truth: carry <code>pi_turn_end</code> usage onto the Turn and keep <code>end.inputs[]</code>; handle the attachment badge viewer-side.</li>
+      <li>The seven shared components + one clamp contract; <code>BaseRenderer</code> → fact card (seven dead ends fixed).</li>
+      <li>First-class system-prompt, context and state renderers: doc-style figures stacked in reading order, each isolatable full-panel.</li>
+      <li>Tool body: pair layout with thinking + images as blocks; delete canvas's second panel and <code>ContextWindowOverlay</code>; add cross-links.</li>
+      <li>Collapse span raw JSON, usage/tokens, hashes, timing and per-block raw into the Details drawer; retire PRIMARY/METADATA/RAW.</li>
+    </ol>
+  </div>
+
+  <p class="sub" style="margin-top:24px;">Audited 2026-07-27 against <code>agent-kernel</code> (branch <code>state-layer</code>, uncommitted work included) and <code>canvas</code>. No production code was changed for this document; two scratch test files used to render real spans were deleted after measurement.</p>
+
+</main>
+
+<script>
+"use strict";
+
+/* ---------- theme toggle ---------- */
+(function () {
+  const btn = document.getElementById("themeToggle");
+  const modes = ["auto", "light", "dark"];
+  let i = 0;
+  btn.addEventListener("click", function () {
+    i = (i + 1) % modes.length;
+    const m = modes[i];
+    if (m === "auto") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = m;
+    btn.textContent = "Theme: " + m;
+  });
+})();
+
+/* ---------- minimal TS/JS highlighter ----------
+   Order matters: comments and strings are matched before anything else so
+   keywords inside them are never re-tokenized. */
+const KEYWORDS = [
+  "import","export","from","const","let","var","function","return","if","else",
+  "await","async","new","class","extends","implements","readonly","as","in","of",
+  "for","switch","case","default","throw","try","catch","interface","type","enum",
+];
+const TYPES = [
+  "string","number","boolean","void","unknown","any","never","Promise","Array",
+  "Record","Partial","Readonly","Set","Map",
+];
+
+const CODE_RE = new RegExp([
+  "(?<comment>//[^\\n]*|/\\*[\\s\\S]*?\\*/)",
+  "(?<string>`(?:[^`\\\\]|\\\\.)*`|\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*')",
+  "(?<literal>\\b(?:null|undefined|true|false)\\b)",
+  "(?<keyword>\\b(?:" + KEYWORDS.join("|") + ")\\b)",
+  "(?<type>\\b(?:" + TYPES.join("|") + ")\\b|\\b[A-Z][A-Za-z0-9_]*\\b)",
+  "(?<number>\\b\\d+(?:\\.\\d+)?\\b)",
+  "(?<fn>\\b[a-z_][A-Za-z0-9_]*(?=\\s*\\())",
+].join("|"), "g");
+
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function highlight(code, re) {
+  let out = "", last = 0, m;
+  re.lastIndex = 0;
+  while ((m = re.exec(code)) !== null) {
+    if (m.index < last) continue;
+    out += esc(code.slice(last, m.index));
+    const groups = m.groups || {};
+    let kind = null;
+    for (const k in groups) {
+      if (groups[k] !== undefined) { kind = k; break; }
+    }
+    out += '<span class="t-' + kind + '">' + esc(m[0]) + "</span>";
+    last = m.index + m[0].length;
+  }
+  out += esc(code.slice(last));
+  return out;
+}
+
+document.querySelectorAll("pre[data-lang]").forEach(function (pre) {
+  const src = pre.textContent;
+  pre.innerHTML = highlight(src, CODE_RE);
+});
+</script>
+</body>
+</html>

@@ -18,7 +18,11 @@ import {
 	type KernelDatabase,
 	type KernelTraceReadRows,
 } from "@agent-kernel/db";
-import { EventType, type PiRequestSnapshotData } from "@agent-kernel/protocol";
+import {
+	EventType,
+	type PiRequestSnapshotData,
+	type PiRequestSnapshotTool,
+} from "@agent-kernel/protocol";
 
 import type {
 	KernelTraceBlobPayload,
@@ -168,6 +172,15 @@ export interface KernelRunTurnContext {
 	 * written before section tags existed): treat that as "untagged".
 	 */
 	sections?: PiRequestSnapshotData["sections"];
+	/**
+	 * The tool roster this request went out with, resolved from the snapshot's
+	 * tools blob — name, description, and parameter schema per tool, in
+	 * provider-visible order. Absent when the snapshot did not capture a roster
+	 * (and on every snapshot written before tool capture existed), and also when
+	 * the blob it named could not be resolved — in which case a line lands in
+	 * `warnings`. Absence never means "the agent had no tools".
+	 */
+	tools?: PiRequestSnapshotTool[];
 	/** Present only when blob resolution was partial. */
 	warnings?: string[];
 }
@@ -426,6 +439,33 @@ export function createContainerReadService(
 				}
 			}
 
+			// Tool roster: only ever attempted when the snapshot named a blob.
+			// A snapshot without the field predates tool capture (or came from a
+			// session that does not expose its roster) — `tools` stays absent and
+			// no warning is raised, because nothing is missing.
+			let tools: PiRequestSnapshotTool[] | undefined;
+			if (typeof snapshot.tools_blob_hash === "string") {
+				const blob = await getTraceBlob(db, snapshot.tools_blob_hash);
+				if (!blob) {
+					warnings.push(`missing tools blob ${snapshot.tools_blob_hash}`);
+				} else {
+					try {
+						const parsed = JSON.parse(decode(blob.data)) as unknown;
+						if (Array.isArray(parsed)) {
+							tools = parsed as PiRequestSnapshotTool[];
+						} else {
+							warnings.push(
+								`tools blob ${snapshot.tools_blob_hash} is not a JSON array`,
+							);
+						}
+					} catch {
+						warnings.push(
+							`tools blob ${snapshot.tools_blob_hash} is not valid JSON`,
+						);
+					}
+				}
+			}
+
 			const refs = [...snapshot.message_refs].sort((a, b) => a.index - b.index);
 			const messages: unknown[] = [];
 			for (const ref of refs) {
@@ -458,6 +498,9 @@ export function createContainerReadService(
 					image_count: snapshot.total_image_count,
 				},
 				...(snapshot.sections ? { sections: snapshot.sections } : {}),
+				// Omitted, never nulled or emptied: a reader must be able to tell
+				// "no roster captured" from "captured a roster of zero tools".
+				...(tools ? { tools } : {}),
 				...(warnings.length > 0 ? { warnings } : {}),
 			};
 		},

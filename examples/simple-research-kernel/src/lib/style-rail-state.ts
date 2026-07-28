@@ -1,45 +1,19 @@
-export const STYLE_RAIL_MIN_WIDTH = 340;
-export const STYLE_RAIL_MAX_WIDTH = 560;
-const STYLE_RAIL_DEFAULT_WIDTH = 380;
+/** App binding for the shared style-rail chrome state (see style-settings). */
+import {
+	clampStyleRailWidth,
+	loadStyleRailCollapsed as loadShared,
+	loadStyleRailWidth as loadWidthShared,
+	saveStyleRailCollapsed as saveShared,
+	saveStyleRailWidth as saveWidthShared,
+	STYLE_RAIL_MAX_WIDTH,
+	STYLE_RAIL_MIN_WIDTH
+} from "@agent-kernel/viewer-shell";
 
-export function loadStyleRailCollapsed(): boolean {
-	try {
-		const params = new URLSearchParams(window.location.search);
-		if (params.get("style") === "open") return false;
-		const stored = localStorage.getItem("simpleResearchStyleRailCollapsed");
-		return stored === null ? true : stored === "1";
-	} catch {
-		return true;
-	}
-}
+import { RESEARCH_STYLE_CONFIG } from "./style-settings";
 
-export function saveStyleRailCollapsed(collapsed: boolean) {
-	try {
-		localStorage.setItem("simpleResearchStyleRailCollapsed", collapsed ? "1" : "0");
-	} catch {
-		// The rail still works if storage is unavailable.
-	}
-}
+export { clampStyleRailWidth, STYLE_RAIL_MAX_WIDTH, STYLE_RAIL_MIN_WIDTH };
 
-export function clampStyleRailWidth(width: number): number {
-	if (!Number.isFinite(width)) return STYLE_RAIL_DEFAULT_WIDTH;
-	return Math.min(STYLE_RAIL_MAX_WIDTH, Math.max(STYLE_RAIL_MIN_WIDTH, Math.round(width)));
-}
-
-export function loadStyleRailWidth(): number {
-	try {
-		const stored = localStorage.getItem("simpleResearchStyleRailWidth");
-		if (stored === null) return STYLE_RAIL_DEFAULT_WIDTH;
-		return clampStyleRailWidth(Number(stored));
-	} catch {
-		return STYLE_RAIL_DEFAULT_WIDTH;
-	}
-}
-
-export function saveStyleRailWidth(width: number) {
-	try {
-		localStorage.setItem("simpleResearchStyleRailWidth", String(width));
-	} catch {
-		// The rail still works if storage is unavailable.
-	}
-}
+export const loadStyleRailCollapsed = () => loadShared(RESEARCH_STYLE_CONFIG);
+export const saveStyleRailCollapsed = (collapsed: boolean) => saveShared(RESEARCH_STYLE_CONFIG, collapsed);
+export const loadStyleRailWidth = () => loadWidthShared(RESEARCH_STYLE_CONFIG);
+export const saveStyleRailWidth = (width: number) => saveWidthShared(RESEARCH_STYLE_CONFIG, width);

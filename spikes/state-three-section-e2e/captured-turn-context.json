@@ -1,8 +1,8 @@
 {
-  "run_id": "afc09387-a461-4065-be1b-24ee20109f4c",
+  "run_id": "64efbed6-0e78-484e-9eea-67293184a88d",
   "turn_number": 0,
   "prompt_hash": "pk1-bb16ee876b220b6c8b793f161fecb5c630effbc9eb902048de357fedded77f8e",
-  "system_prompt": "<role>\n    You are the state-demo agent. You exist to exercise the kernel's three-section request builder end to end against a deterministic in-memory provider.\n</role>\n\n<method>\n    Call the probe tool once per prompt, then answer in one short line. Never invent tool names.\n</method>\nCurrent working directory: /Users/Ford/Github Repos/Codecaine/Core/agent-kernel/spikes/state-three-section-e2e/.artifacts",
+  "system_prompt": "<role>\n    You are the state-demo agent. You exist to exercise the kernel's three-section request builder end to end against a deterministic in-memory provider.\n</role>\n\n<method>\n    Call the probe tool once per prompt, then answer in one short line. Never invent tool names.\n</method>\nCurrent working directory: /Users/Ford/Github Repos/Codecaine/Core/agent-kernel/examples/simple-research-kernel",
   "message_count": 7,
   "messages": [
     {
@@ -15,7 +15,7 @@
         }
       ],
       "display": false,
-      "timestamp": 1785172169114
+      "timestamp": 1785256704709
     },
     {
       "role": "custom",
@@ -23,11 +23,11 @@
       "content": [
         {
           "type": "text",
-          "text": "[turns 1–2 elided]"
+          "text": "[turns 1–10 elided]"
         }
       ],
       "display": false,
-      "timestamp": 1785172169114
+      "timestamp": 1785256704709
     },
     {
       "role": "user",
@@ -37,7 +37,7 @@
           "text": "Turn three: probe the gamma note."
         }
       ],
-      "timestamp": 1785172169102
+      "timestamp": 1785256704697
     },
     {
       "role": "assistant",
@@ -69,7 +69,7 @@
         }
       },
       "stopReason": "toolUse",
-      "timestamp": 1785172169104
+      "timestamp": 1785256704699
     },
     {
       "role": "toolResult",
@@ -85,7 +85,7 @@
         "note": "run-3"
       },
       "isError": false,
-      "timestamp": 1785172169105
+      "timestamp": 1785256704700
     },
     {
       "role": "assistant",
@@ -113,7 +113,7 @@
         }
       },
       "stopReason": "stop",
-      "timestamp": 1785172169106
+      "timestamp": 1785256704701
     },
     {
       "role": "user",
@@ -123,12 +123,12 @@
           "text": "Turn four: probe the delta note."
         }
       ],
-      "timestamp": 1785172169113
+      "timestamp": 1785256704708
     }
   ],
   "refs": [
     {
-      "blob_hash": "b1-eaf1b9d4c49bde98a1bfb06e43fe843d1a1524572f49f7c0ed12c7f2fa76fce0",
+      "blob_hash": "b1-05ca5cc3d130c6414d0719a7108bcc9c055540ea8b9e6ac465259067f9a0fab0",
       "role": "custom",
       "index": 0,
       "text_chars": 346,
@@ -136,15 +136,15 @@
       "tool_call_count": 0
     },
     {
-      "blob_hash": "b1-9284a7b8fc56979f22e8373ab3754c37e96ce4e064f2c72043f8eafe53ad1170",
+      "blob_hash": "b1-ccd19795c940f50e2fe2296aae80a794dbaff47e79a996d276a050d6f5aa8d6e",
       "role": "custom",
       "index": 1,
-      "text_chars": 18,
+      "text_chars": 19,
       "image_count": 0,
       "tool_call_count": 0
     },
     {
-      "blob_hash": "b1-4fbd84fbc0989605e1e1dcd00658c10f9a90b1d1564a6225db770c34cc705072",
+      "blob_hash": "b1-729795eac5d9aaea2efa3633ef7f663fbf9e7a52ea6159c0f8a1201c6d2c391d",
       "role": "user",
       "index": 2,
       "text_chars": 33,
@@ -152,7 +152,7 @@
       "tool_call_count": 0
     },
     {
-      "blob_hash": "b1-c4abc15486034f07e3ba479ffc67f3b930906c645cefe962b5f796a15d67606d",
+      "blob_hash": "b1-4fb20fb842398e6d462b4ec10e6797bad035f2f188fa4c0df1c7f00a3035f5d7",
       "role": "assistant",
       "index": 3,
       "text_chars": 0,
@@ -160,7 +160,7 @@
       "tool_call_count": 1
     },
     {
-      "blob_hash": "b1-e46ef6c1b1a5c439846acddcc8be07a0310226f644ea47b83785dfbe6b0691a4",
+      "blob_hash": "b1-5ec80e05e334c9fec4a77eb71faa29e1daa11b0c651caf38b66728bf27c5539e",
       "role": "toolResult",
       "index": 4,
       "text_chars": 13,
@@ -168,7 +168,7 @@
       "tool_call_count": 0
     },
     {
-      "blob_hash": "b1-c8354e2b76f37c291c86b626d39748a6022f8013cbd271a95711877e1d941c12",
+      "blob_hash": "b1-b520a113c3688b94409b1e896b0896e8361f2a0e93e38e0fbb501e088a17164e",
       "role": "assistant",
       "index": 5,
       "text_chars": 14,
@@ -176,7 +176,7 @@
       "tool_call_count": 0
     },
     {
-      "blob_hash": "b1-632c58e61e551693ff96f0f3e572c59098bd1665938ed1a68ed8b793392d30d2",
+      "blob_hash": "b1-ff55fafd7e742d4a7ef71a448b91d3faf3e384f025f800043c8e288a695ef627",
       "role": "user",
       "index": 6,
       "text_chars": 32,
@@ -185,7 +185,7 @@
     }
   ],
   "totals": {
-    "text_chars": 456,
+    "text_chars": 457,
     "image_count": 0
   },
   "sections": [
@@ -203,6 +203,23 @@
       "kind": "tail",
       "start": 2,
       "end": 7
+    }
+  ],
+  "tools": [
+    {
+      "name": "probe",
+      "description": "Echo a note back verbatim. Deterministic, no side effects.",
+      "parameters": {
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "properties": {
+          "note": {
+            "type": "string"
+          }
+        }
+      }
     }
   ]
 }

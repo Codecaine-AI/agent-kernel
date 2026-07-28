@@ -65,4 +65,4 @@ How Pi JSONL transcripts are re-derived into trace rows (backfill) for disaster 
 The `seed`/`update`/`render` state contract, session events and catch-up, window strategies, the context set behind section ②, three-section request assembly, and `state.json` persistence (D81–D92).
 
 ### [70-request-snapshots.md](70-request-snapshots.md)
-Per-turn request snapshots end to end: capture and blob contract, section tags on the protocol, the run-turn context read route, and the viewer's three-section turn view (D90).
+Per-turn request snapshots end to end: capture and blob contract, section tags on the protocol, the run-turn context read route, and how the viewer's Turn body renders them (D90).

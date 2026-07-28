@@ -29,6 +29,34 @@ export const KERNEL_CONTEXT_MESSAGE_CUSTOM_TYPE = "kernel:context";
 /** Section ③ — a line the state renderer produced (state block, elision marker). */
 export const KERNEL_STATE_MESSAGE_CUSTOM_TYPE = "kernel:state";
 
+/**
+ * Wire-visible envelope used when the kernel replaces an old image block with
+ * a text placeholder. The text block carries no other structural marker, so
+ * producers and consumers must share this exact envelope.
+ */
+export const IMAGE_ELISION_MARKER_PREFIX = "[image elided — ";
+
+/** Build the plain-text marker stored in an image block's place. */
+export function imageElisionMarkerText(description: string): string {
+	return `${IMAGE_ELISION_MARKER_PREFIX}${description}]`;
+}
+
+/**
+ * True only when the entire value is one bracketed image-elision marker.
+ * The description is deliberately opaque so adding another image MIME type or
+ * byte-size unit does not require a viewer release.
+ */
+export function isImageElisionMarker(value: unknown): value is string {
+	return (
+		typeof value === "string" &&
+		value.startsWith(IMAGE_ELISION_MARKER_PREFIX) &&
+		value.endsWith("]") &&
+		value.length > IMAGE_ELISION_MARKER_PREFIX.length + 1 &&
+		!value.slice(IMAGE_ELISION_MARKER_PREFIX.length, -1).includes("\n") &&
+		!value.slice(IMAGE_ELISION_MARKER_PREFIX.length, -1).includes("\r")
+	);
+}
+
 /** The message shape this check needs — deliberately structural. */
 export interface KernelAuthoredMessageLike {
 	role?: string;

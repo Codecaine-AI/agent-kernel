@@ -39,6 +39,7 @@ import {
   type PhaseEndData,
   type PhaseStartData,
   type PiRequestSnapshotData,
+  type PiTurnEndData,
   type PostToolHookData,
   type PreToolHookData,
   type SystemPromptResolvedData,
@@ -128,6 +129,13 @@ function asJson(value: unknown): string | undefined {
   return value !== undefined && value !== null ? JSON.stringify(value) : undefined;
 }
 
+/** JSON-encode a non-empty array; malformed and empty values are omitted. */
+function asNonEmptyArrayJson(value: unknown): string | undefined {
+  return Array.isArray(value) && value.length > 0
+    ? JSON.stringify(value)
+    : undefined;
+}
+
 /** Pass through non-empty strings. */
 function asText(value: string | null | undefined): string | undefined {
   return value ? value : undefined;
@@ -202,9 +210,44 @@ function genericStatus(data: unknown): TraceSpanStatus {
   return "success";
 }
 
+// ─── App event payloads ─────────────────────────────────────────────────────
+
+/**
+ * "app:board-render" — a host-published full-board raster taken at the end of
+ * one agent turn. The payload references the PNG by content hash; the
+ * detail-panel renderer fetches it from the blob route on selection.
+ */
+interface AppBoardRenderData {
+  blob_hash?: string;
+  mimeType?: string;
+  byte_length?: number;
+  /** Applied-change ordinal of the rendered board. */
+  n?: number;
+  /** Gesture summary that produced this board. */
+  summary?: string;
+  /** 1-based end-of-turn hook count. */
+  turn?: number;
+  /** 0-based pi turn numbering, aligned with pi_request_snapshot. */
+  turn_number?: number;
+}
+
 // ─── The registry ────────────────────────────────────────────────────────────
 
 const EVENT_SPECS: Record<string, EventSpec> = {
+  "app:board-render": spec<AppBoardRenderData>({
+    title: (d) => (typeof d.n === "number" ? `board render #${d.n}` : "board render"),
+    point: (d) => ({
+      attrs: [
+        ["blob_hash", d?.blob_hash],
+        ["mime_type", d?.mimeType],
+        ["byte_length", d?.byte_length],
+        ["n", d?.n],
+        ["summary", d?.summary],
+        ["turn", d?.turn],
+        ["turn_number", d?.turn_number],
+      ],
+    }),
+  }),
   [EventType.AGENT_SESSION_START]: spec<AgentSessionStartData>({
     category: "agent_invocation",
     title: () => "session start",
@@ -296,6 +339,7 @@ const EVENT_SPECS: Record<string, EventSpec> = {
         ["agent_name", start?.agent_name],
         ["total_bytes", end?.total_bytes],
         ["inputs_count", end?.inputs?.length],
+        ["resolved_inputs", asNonEmptyArrayJson(end?.inputs)],
       ],
     }),
   }),
@@ -307,6 +351,7 @@ const EVENT_SPECS: Record<string, EventSpec> = {
       attrs: [
         ["total_bytes", d?.total_bytes],
         ["inputs_count", d?.inputs?.length],
+        ["resolved_inputs", asNonEmptyArrayJson(d?.inputs)],
       ],
     }),
   }),
@@ -346,9 +391,38 @@ const EVENT_SPECS: Record<string, EventSpec> = {
       attrs: [["block_type", d?.block_type]],
     }),
   }),
+  [EventType.PI_TURN_START]: spec<{ turn_number?: number }>({
+    title: (d) =>
+      typeof d.turn_number === "number" ? `turn ${d.turn_number} start` : undefined,
+    point: (d) => ({
+      attrs: [
+        [
+          "turn_number",
+          typeof d?.turn_number === "number" ? d.turn_number : undefined,
+        ],
+      ],
+    }),
+  }),
+  [EventType.PI_TURN_END]: spec<PiTurnEndData>({
+    point: (d) => ({
+      attrs: [
+        ["turn_number", d?.turn_number],
+        ["stop_reason", d?.stop_reason],
+        ["input_tokens", d?.usage?.inputTokens],
+        ["output_tokens", d?.usage?.outputTokens],
+        ["cache_read_tokens", d?.usage?.cacheReadTokens],
+        ["cache_write_tokens", d?.usage?.cacheWriteTokens],
+        ["model", d?.usage?.model],
+        ["cost_estimate", d?.usage?.costEstimate],
+      ],
+    }),
+  }),
   [EventType.PI_REQUEST_SNAPSHOT]: spec<PiRequestSnapshotData>({
     category: "llm_call",
-    title: (d) => `Context window · turn ${d.turn_number}`,
+    // Display name is just the turn — the pi_request_snapshot event type in
+    // the detail header carries the technical identity. Built at render time
+    // from event data (titles are not stored), so old traces pick this up too.
+    title: (d) => `Turn ${d.turn_number}`,
     point: (d) => ({
       // The sanitized per-message refs ride along as input JSON so the
       // detail-panel renderer can show the per-message table without
@@ -365,6 +439,12 @@ const EVENT_SPECS: Record<string, EventSpec> = {
         // builder; undefined (no attribute) on untagged snapshots. Offline
         // fallback for the read-API's `context.sections`.
         ["sections", d?.sections ? asJson(d.sections) : undefined],
+        // Tool roster for this request. Both fields are absent (no attribute)
+        // whenever the roster was not captured — including every snapshot
+        // written before tool capture existed — and absence must never be read
+        // as "zero tools". A captured empty roster does emit tool_count 0.
+        ["tools_blob_hash", d?.tools_blob_hash],
+        ["tool_count", d?.tool_count],
       ],
     }),
   }),
@@ -387,22 +467,27 @@ const EVENT_SPECS: Record<string, EventSpec> = {
         ["tool_name", start?.tool_name ?? end?.tool_name],
         ["tool_use_id", start?.tool_use_id ?? end?.tool_use_id],
         ["duration_ms", end?.duration_ms],
+        ["is_error", end?.is_error === true ? true : undefined],
         ...spawnerAttrs(start ?? end),
       ],
     }),
   }),
-  [EventType.TOOL_CALL_END]: spec<ToolCallEndData>({
+  [EventType.TOOL_CALL_END]: spec<ToolCallEndData, ToolCallEndData>({
     category: "tool_execution",
     title: (d) => (isSpawner(d) ? spawnerTitle(d) : d.tool_name),
+    status: (d) => (d?.is_error === true ? "error" : "success"),
     point: (d) => ({
       output: asText(d?.tool_output),
       attrs: [
         ["tool_name", d?.tool_name],
         ["tool_use_id", d?.tool_use_id],
         ["duration_ms", d?.duration_ms],
+        ["is_error", d?.is_error === true ? true : undefined],
         ...spawnerAttrs(d),
       ],
     }),
+    pairStatus: (_start, end) =>
+      end?.is_error === true ? "error" : "success",
   }),
   [EventType.PRE_TOOL_HOOK]: spec<PreToolHookData>({
     category: "tool_execution",

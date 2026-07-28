@@ -1,0 +1,175 @@
+/*
+ * Shared style-system chrome — the rail, sliders, effect layers, and shell
+ * hooks used by the StyleSettingsRail / StyleOverlay components.
+ *
+ * Import once at your app entry:
+ *   import "@agent-kernel/viewer-shell/styles";
+ *
+ * Class names keep their original `research-*` prefixes for backward
+ * compatibility with existing app markup; they are app-agnostic in behavior.
+ * Colors reference the host's theme tokens (--border, --foreground, …).
+ */
+
+.research-style-shell {
+	isolation: isolate;
+	position: relative;
+	text-shadow:
+		0 0 var(--style-soften-font-glow) rgb(var(--foreground) / 0.22),
+		0 calc(var(--style-bevel-depth) * -0.35) 0 rgb(255 255 255 / var(--style-bevel-text-highlight-alpha)),
+		0 calc(var(--style-bevel-depth) * 0.35) 0 rgb(0 0 0 / var(--style-bevel-text-shadow-alpha));
+}
+
+.research-style-shell :is(button, [role="button"]) svg {
+	filter: blur(var(--style-soften-icon-blur)) drop-shadow(0 0 var(--style-soften-icon-glow) currentColor);
+	opacity: var(--style-soften-icon-opacity);
+	transition:
+		filter 140ms ease,
+		opacity 140ms ease;
+}
+
+.style-bevel-enabled :is(button, input:not(.style-range), select, textarea, pre, article, section, aside, header, [class~="border"], [class*="border-"]) {
+	box-shadow:
+		inset 1px 1px 0 rgb(255 255 255 / var(--style-bevel-highlight-alpha)),
+		inset -1px -1px var(--style-bevel-depth) rgb(0 0 0 / var(--style-bevel-shadow-alpha));
+}
+
+.research-normal-layer,
+.research-grain-layer {
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	transition: opacity 140ms ease;
+}
+
+.research-normal-layer {
+	z-index: 60;
+	opacity: var(--normal-opacity, 0);
+	mix-blend-mode: soft-light;
+}
+
+.research-grain-layer {
+	z-index: 61;
+	opacity: var(--grain-opacity, 0.1);
+	mix-blend-mode: var(--grain-blend-mode, screen);
+}
+
+.research-normal-layer svg,
+.research-grain-layer svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
+.research-normal-layer rect {
+	fill: #808080;
+}
+
+.research-grain-layer rect {
+	fill: #fff;
+}
+
+.style-settings-rail {
+	overflow-x: clip;
+}
+
+.style-settings-rail-open {
+	min-width: min(100%, var(--research-style-rail-track));
+}
+
+.style-settings-rail-resize-handle {
+	position: absolute;
+	inset-block: 0;
+	inset-inline-start: -3px;
+	z-index: 20;
+	width: 7px;
+	cursor: col-resize;
+}
+
+.style-settings-rail-resize-handle:hover,
+.research-style-shell-resizing .style-settings-rail-resize-handle {
+	background: rgb(var(--border));
+}
+
+.research-style-shell-resizing {
+	cursor: col-resize;
+	user-select: none;
+}
+
+.style-panel-heading {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	white-space: nowrap;
+}
+
+.style-panel-heading::after {
+	content: "";
+	flex: 1;
+	height: 1px;
+	background: linear-gradient(90deg, rgb(var(--border)), transparent);
+}
+
+.style-range {
+	min-height: 24px;
+	padding: 0;
+	appearance: none;
+	border: 0;
+	background: transparent;
+	accent-color: rgb(var(--accent));
+	cursor: pointer;
+}
+
+.style-range:focus-visible {
+	outline: none;
+	box-shadow: none;
+}
+
+.style-range::-webkit-slider-runnable-track {
+	height: 4px;
+	border: 1px solid rgb(var(--border));
+	background: linear-gradient(90deg, rgb(var(--status-info) / 0.24), rgb(var(--foreground) / 0.18));
+}
+
+.style-range::-webkit-slider-thumb {
+	width: 10px;
+	height: 18px;
+	margin-top: -8px;
+	-webkit-appearance: none;
+	appearance: none;
+	border: 1px solid rgb(var(--foreground));
+	background: rgb(var(--foreground));
+	box-shadow: 0 0 0 2px rgb(var(--background));
+}
+
+.style-range:focus-visible::-webkit-slider-thumb {
+	box-shadow: 0 0 0 2px rgb(var(--background)), 0 0 0 4px rgb(var(--status-info) / 0.35);
+}
+
+.style-range::-moz-range-track {
+	height: 4px;
+	border: 1px solid rgb(var(--border));
+	background: linear-gradient(90deg, rgb(var(--status-info) / 0.24), rgb(var(--foreground) / 0.18));
+}
+
+.style-range::-moz-range-thumb {
+	width: 10px;
+	height: 18px;
+	border: 1px solid rgb(var(--foreground));
+	border-radius: 0;
+	background: rgb(var(--foreground));
+	box-shadow: 0 0 0 2px rgb(var(--background));
+}
+
+@media (max-width: 1023px) {
+	.style-settings-rail-resize-handle {
+		display: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.research-normal-layer,
+	.research-grain-layer,
+	.research-style-shell :is(button, [role="button"]) svg {
+		transition: none;
+	}
+}

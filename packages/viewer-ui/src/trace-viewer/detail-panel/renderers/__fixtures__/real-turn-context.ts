@@ -17,10 +17,10 @@
 import type { RunTurnContextResponse } from "../request-snapshot-api";
 
 export const realTurnContext: RunTurnContextResponse = {
-	"run_id": "2018abe0-c8a5-46bb-b93a-1a88798fbe14",
+	"run_id": "64efbed6-0e78-484e-9eea-67293184a88d",
 	"turn_number": 0,
 	"prompt_hash": "pk1-bb16ee876b220b6c8b793f161fecb5c630effbc9eb902048de357fedded77f8e",
-	"system_prompt": "<role>\n    You are the state-demo agent. You exist to exercise the kernel's three-section request builder end to end against a deterministic in-memory provider.\n</role>\n\n<method>\n    Call the probe tool once per prompt, then answer in one short line. Never invent tool names.\n</method>\nCurrent working directory: <repo>/spikes/state-three-section-e2e/.artifacts",
+	"system_prompt": "<role>\n    You are the state-demo agent. You exist to exercise the kernel's three-section request builder end to end against a deterministic in-memory provider.\n</role>\n\n<method>\n    Call the probe tool once per prompt, then answer in one short line. Never invent tool names.\n</method>\nCurrent working directory: <repo>/examples/simple-research-kernel",
 	"message_count": 7,
 	"messages": [
 		{
@@ -33,7 +33,7 @@ export const realTurnContext: RunTurnContextResponse = {
 				}
 			],
 			"display": false,
-			"timestamp": 1785169752964
+			"timestamp": 1785256704709
 		},
 		{
 			"role": "custom",
@@ -41,11 +41,11 @@ export const realTurnContext: RunTurnContextResponse = {
 			"content": [
 				{
 					"type": "text",
-					"text": "[turns 1–2 elided]"
+					"text": "[turns 1–10 elided]"
 				}
 			],
 			"display": false,
-			"timestamp": 1785169752964
+			"timestamp": 1785256704709
 		},
 		{
 			"role": "user",
@@ -55,7 +55,7 @@ export const realTurnContext: RunTurnContextResponse = {
 					"text": "Turn three: probe the gamma note."
 				}
 			],
-			"timestamp": 1785169752951
+			"timestamp": 1785256704697
 		},
 		{
 			"role": "assistant",
@@ -87,7 +87,7 @@ export const realTurnContext: RunTurnContextResponse = {
 				}
 			},
 			"stopReason": "toolUse",
-			"timestamp": 1785169752953
+			"timestamp": 1785256704699
 		},
 		{
 			"role": "toolResult",
@@ -103,7 +103,7 @@ export const realTurnContext: RunTurnContextResponse = {
 				"note": "run-3"
 			},
 			"isError": false,
-			"timestamp": 1785169752954
+			"timestamp": 1785256704700
 		},
 		{
 			"role": "assistant",
@@ -131,7 +131,7 @@ export const realTurnContext: RunTurnContextResponse = {
 				}
 			},
 			"stopReason": "stop",
-			"timestamp": 1785169752955
+			"timestamp": 1785256704701
 		},
 		{
 			"role": "user",
@@ -141,12 +141,12 @@ export const realTurnContext: RunTurnContextResponse = {
 					"text": "Turn four: probe the delta note."
 				}
 			],
-			"timestamp": 1785169752963
+			"timestamp": 1785256704708
 		}
 	],
 	"refs": [
 		{
-			"blob_hash": "b1-7e68bea17ed4ea46a1cdb2fb9226a5b8e2d42a1937d4cd111dda3b4c25c3dc74",
+			"blob_hash": "b1-05ca5cc3d130c6414d0719a7108bcc9c055540ea8b9e6ac465259067f9a0fab0",
 			"role": "custom",
 			"index": 0,
 			"text_chars": 346,
@@ -154,15 +154,15 @@ export const realTurnContext: RunTurnContextResponse = {
 			"tool_call_count": 0
 		},
 		{
-			"blob_hash": "b1-e27eebf2222cda3f6085149a8610a313c85fb6e841323006abb4d92b25efac49",
+			"blob_hash": "b1-ccd19795c940f50e2fe2296aae80a794dbaff47e79a996d276a050d6f5aa8d6e",
 			"role": "custom",
 			"index": 1,
-			"text_chars": 18,
+			"text_chars": 19,
 			"image_count": 0,
 			"tool_call_count": 0
 		},
 		{
-			"blob_hash": "b1-a0f388e22930fbdb3a34a64bf11cb8f071efe38b52e930afaf0f2d16a3373794",
+			"blob_hash": "b1-729795eac5d9aaea2efa3633ef7f663fbf9e7a52ea6159c0f8a1201c6d2c391d",
 			"role": "user",
 			"index": 2,
 			"text_chars": 33,
@@ -170,7 +170,7 @@ export const realTurnContext: RunTurnContextResponse = {
 			"tool_call_count": 0
 		},
 		{
-			"blob_hash": "b1-f16730e0e6876a90cdc58fab7abd6f6cedd91977bc344e7b0b32bf38666cc66b",
+			"blob_hash": "b1-4fb20fb842398e6d462b4ec10e6797bad035f2f188fa4c0df1c7f00a3035f5d7",
 			"role": "assistant",
 			"index": 3,
 			"text_chars": 0,
@@ -178,7 +178,7 @@ export const realTurnContext: RunTurnContextResponse = {
 			"tool_call_count": 1
 		},
 		{
-			"blob_hash": "b1-8ed998374369145ae32a3287e3744f9104c48de6ececf9ef5bc270b330b9423e",
+			"blob_hash": "b1-5ec80e05e334c9fec4a77eb71faa29e1daa11b0c651caf38b66728bf27c5539e",
 			"role": "toolResult",
 			"index": 4,
 			"text_chars": 13,
@@ -186,7 +186,7 @@ export const realTurnContext: RunTurnContextResponse = {
 			"tool_call_count": 0
 		},
 		{
-			"blob_hash": "b1-1ff7e8a968061ca947a31c951c39d18a23f0d41d005848955160d95afa078b52",
+			"blob_hash": "b1-b520a113c3688b94409b1e896b0896e8361f2a0e93e38e0fbb501e088a17164e",
 			"role": "assistant",
 			"index": 5,
 			"text_chars": 14,
@@ -194,7 +194,7 @@ export const realTurnContext: RunTurnContextResponse = {
 			"tool_call_count": 0
 		},
 		{
-			"blob_hash": "b1-121d0fffd5725bf91444863076b11b08b9c3638a3de3fa306cfabf1dd72070d8",
+			"blob_hash": "b1-ff55fafd7e742d4a7ef71a448b91d3faf3e384f025f800043c8e288a695ef627",
 			"role": "user",
 			"index": 6,
 			"text_chars": 32,
@@ -203,7 +203,7 @@ export const realTurnContext: RunTurnContextResponse = {
 		}
 	],
 	"totals": {
-		"text_chars": 456,
+		"text_chars": 457,
 		"image_count": 0
 	},
 	"sections": [
@@ -221,6 +221,23 @@ export const realTurnContext: RunTurnContextResponse = {
 			"kind": "tail",
 			"start": 2,
 			"end": 7
+		}
+	],
+	"tools": [
+		{
+			"name": "probe",
+			"description": "Echo a note back verbatim. Deterministic, no side effects.",
+			"parameters": {
+				"type": "object",
+				"required": [
+					"note"
+				],
+				"properties": {
+					"note": {
+						"type": "string"
+					}
+				}
+			}
 		}
 	]
 } as RunTurnContextResponse;

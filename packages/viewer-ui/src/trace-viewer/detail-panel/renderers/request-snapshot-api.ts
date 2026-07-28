@@ -16,7 +16,7 @@ import type { RequestSectionTag } from "./turn-sections";
  * The offline gate, as a type guard. `apiBase` is a prefix, so `""` is a
  * perfectly good value — it means same-origin. Only `null`/absent means "no API
  * configured". Every caller must use this instead of a truthiness check, or a
- * same-origin host silently falls back to the offline summary.
+ * same-origin host silently falls back to the offline body.
  */
 export function hasApiBase(
 	apiBase: string | null | undefined,
@@ -97,6 +97,22 @@ export interface RunTurnContextResponse {
 	 * the flat list. Mirrors PiRequestSnapshotData.sections in the protocol.
 	 */
 	sections?: RequestSectionTag[];
+	/**
+	 * The tool roster the agent had access to on THIS request, in provider order.
+	 * Read the field's presence, not its length: ABSENT means the snapshot
+	 * predates tool capture and the viewer must say so rather than imply an
+	 * empty toolbox; an EMPTY array means the capture ran and no tool was
+	 * active. Mirrors PiRequestSnapshotData.tools in the protocol.
+	 */
+	tools?: SanitizedToolDefinition[];
 	refs?: unknown;
 	totals?: unknown;
+}
+
+/** One tool definition exactly as it was offered to the provider. */
+export interface SanitizedToolDefinition {
+	name: string;
+	description?: string;
+	/** The JSON Schema for the tool's arguments, as captured. */
+	parameters?: unknown;
 }

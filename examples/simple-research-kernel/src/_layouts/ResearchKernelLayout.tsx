@@ -1,8 +1,8 @@
-import { useCallback, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+
+import { StyleOverlay, StyleSettingsRail } from "@agent-kernel/viewer-shell";
 
 import { AppSidebar } from "../_components/sidebar/AppSidebar";
-import { ResearchStyleOverlay } from "../_components/style/ResearchStyleOverlay";
-import { StyleSettingsRail } from "../_components/style/StyleSettingsRail";
 import {
 	clampStyleRailWidth,
 	loadStyleRailCollapsed,
@@ -36,6 +36,14 @@ export function ResearchKernelLayout({
 	const [styleRailCollapsed, setStyleRailCollapsedState] = useState(loadStyleRailCollapsed);
 	const [styleRailWidth, setStyleRailWidthState] = useState(loadStyleRailWidth);
 	const [styleRailResizing, setStyleRailResizing] = useState(false);
+
+	// Theme rides the style settings (persisted with them). The data-theme
+	// attribute on <html> flips every styles.css token block (light is :root's
+	// default); researchStyleVars below re-emits the inlined neutrals from the
+	// matching palette so the shell and the CSS always agree.
+	useEffect(() => {
+		document.documentElement.dataset.theme = styleSettings.theme;
+	}, [styleSettings.theme]);
 
 	const setStyleRailCollapsed = useCallback((collapsed: boolean) => {
 		setStyleRailCollapsedState(collapsed);
@@ -84,7 +92,7 @@ export function ResearchKernelLayout({
 					onSettingsChange={onStyleSettingsChange}
 				/>
 			</div>
-			<ResearchStyleOverlay settings={styleSettings.grain} />
+			<StyleOverlay settings={styleSettings.grain} />
 		</main>
 	);
 }

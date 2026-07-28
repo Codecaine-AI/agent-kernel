@@ -445,4 +445,273 @@ describe("createRequestSnapshotRecorder", () => {
 		const data = await captureOneTurn([{ role: "user", content: "hello" }]);
 		expect(data.sections).toBeUndefined();
 	});
+
+	test("a session with no tool-roster methods captures no roster", async () => {
+		// makeSession() is exactly this shape, so every assertion above also
+		// covers the pre-tool-capture world: absent fields, not empty ones.
+		const data = await captureOneTurn([{ role: "user", content: "hello" }]);
+		expect("tools_blob_hash" in data).toBe(false);
+		expect("tool_count" in data).toBe(false);
+	});
+});
+
+// ─── Tool roster ───────────────────────────────────────────────────────────
+
+const READ_TOOL = {
+	name: "read",
+	description: "Read a file from disk",
+	parameters: {
+		type: "object",
+		properties: { path: { type: "string" } },
+		required: ["path"],
+	},
+};
+const WRITE_TOOL = {
+	name: "write",
+	description: "Write a file to disk",
+	parameters: { type: "object", properties: { path: { type: "string" } } },
+};
+const INACTIVE_TOOL = {
+	name: "bash",
+	description: "Run a shell command",
+	parameters: { type: "object", properties: { command: { type: "string" } } },
+};
+
+/**
+ * Session fake with the roster methods the real AgentSession exposes.
+ * `active` is provider-visible order; `all` is the registry it resolves
+ * against, deliberately not in the same order and deliberately incomplete.
+ */
+function makeToolSession(
+	messages: any[],
+	active: string[],
+	all: Array<{ name: string; description?: string; parameters?: unknown }>,
+): RequestSnapshotSessionLike {
+	return {
+		messages,
+		systemPrompt: SYSTEM_PROMPT,
+		getActiveToolNames: () => active,
+		getAllTools: () => all,
+	};
+}
+
+describe("createRequestSnapshotRecorder tool roster", () => {
+	let dir: string;
+	let handle: KernelDatabaseHandle;
+
+	beforeAll(async () => {
+		dir = mkdtempSync(join(tmpdir(), "kernel-request-snapshot-tools-"));
+		handle = openKernelDatabase({ path: join(dir, "trace.db") });
+		await ensureKernelObservabilitySchema(handle.db);
+	});
+
+	afterAll(() => {
+		handle.close();
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	async function toolBlobs(): Promise<string[]> {
+		const rows = await handle.db
+			.select({ hash: traceBlobs.hash, kind: traceBlobs.kind })
+			.from(traceBlobs);
+		return rows.filter((row) => row.kind === "tools").map((row) => row.hash);
+	}
+
+	test("transcript path records the active roster in order, with a name-only entry for an unregistered tool", async () => {
+		const localEvents: TraceEvent[] = [];
+		const recorder = createRequestSnapshotRecorder({
+			db: handle.db,
+			traceWriter: { submit: (event) => void localEvents.push(event) },
+			ids: IDS,
+		});
+		// "ghost" is active but absent from the registry, and the registry lists
+		// tools in a different order than the session activates them.
+		const session = makeToolSession(
+			[{ role: "user", content: "hello" }],
+			["write", "ghost", "read"],
+			[INACTIVE_TOOL, READ_TOOL, WRITE_TOOL],
+		);
+		recorder.handleEvent({ type: "agent_start" }, session);
+		recorder.handleEvent({ type: "turn_start" }, session);
+		await recorder.flush();
+
+		expect(localEvents.length).toBe(1);
+		const data = snapshotData(localEvents[0]!);
+		expect(data.tool_count).toBe(3);
+		expect(typeof data.tools_blob_hash).toBe("string");
+
+		const blob = await getTraceBlob(handle.db, data.tools_blob_hash!);
+		expect(blob).not.toBeNull();
+		expect(blob!.kind).toBe("tools");
+		expect(blob!.mimeType).toBe("application/json");
+		// Active-name order is provider-visible order: preserved exactly, the
+		// inactive tool is not included, and the unregistered name records that
+		// the tool was offered without inventing a description or schema.
+		const expectedJson = JSON.stringify([
+			{
+				name: "write",
+				description: WRITE_TOOL.description,
+				parameters: WRITE_TOOL.parameters,
+			},
+			{ name: "ghost" },
+			{
+				name: "read",
+				description: READ_TOOL.description,
+				parameters: READ_TOOL.parameters,
+			},
+		]);
+		expect(Buffer.from(blob!.data).toString("utf8")).toBe(expectedJson);
+		// Content addressing: the hash is the hash of those exact bytes.
+		expect(data.tools_blob_hash).toBe(
+			hashTraceBlobBytes(Buffer.from(expectedJson, "utf8")),
+		);
+	});
+
+	test("recordBuiltRequest reads the roster off the session, not the built messages", async () => {
+		const localEvents: TraceEvent[] = [];
+		const recorder = createRequestSnapshotRecorder({
+			db: handle.db,
+			traceWriter: { submit: (event) => void localEvents.push(event) },
+			ids: IDS,
+			builderOwnsCapture: true,
+		});
+		const session = makeToolSession(
+			[{ role: "user", content: "hello" }],
+			["read"],
+			[READ_TOOL, WRITE_TOOL],
+		);
+		recorder.handleEvent({ type: "agent_start" }, session);
+		recorder.recordBuiltRequest(session, {
+			messages: [{ role: "user", content: "built" }],
+			sections: [{ kind: "tail", start: 0, end: 1 }],
+		});
+		await recorder.flush();
+
+		expect(localEvents.length).toBe(1);
+		const data = snapshotData(localEvents[0]!);
+		expect(data.tool_count).toBe(1);
+		const blob = await getTraceBlob(handle.db, data.tools_blob_hash!);
+		expect(blob).not.toBeNull();
+		expect(blob!.kind).toBe("tools");
+		expect(JSON.parse(Buffer.from(blob!.data).toString("utf8"))).toEqual([
+			{ name: "read", description: READ_TOOL.description, parameters: READ_TOOL.parameters },
+		]);
+	});
+
+	test("an unchanged roster across turns writes one blob and one hash", async () => {
+		const localEvents: TraceEvent[] = [];
+		const recorder = createRequestSnapshotRecorder({
+			db: handle.db,
+			traceWriter: { submit: (event) => void localEvents.push(event) },
+			ids: IDS,
+		});
+		// A roster unique to this test, so the blob count below is unambiguous.
+		const roster = [{ ...READ_TOOL, description: "Read a file (dedupe fixture)" }];
+		const before = await toolBlobs();
+
+		const turnOne = makeToolSession(
+			[{ role: "user", content: "one" }],
+			["read"],
+			roster,
+		);
+		recorder.handleEvent({ type: "agent_start" }, turnOne);
+		recorder.handleEvent({ type: "turn_start" }, turnOne);
+		await recorder.flush();
+
+		const turnTwo = makeToolSession(
+			[
+				{ role: "user", content: "one" },
+				{ role: "user", content: "two" },
+			],
+			["read"],
+			roster,
+		);
+		recorder.handleEvent({ type: "turn_start" }, turnTwo);
+		await recorder.flush();
+
+		expect(localEvents.length).toBe(2);
+		const first = snapshotData(localEvents[0]!);
+		const second = snapshotData(localEvents[1]!);
+		expect(first.tools_blob_hash).toBe(second.tools_blob_hash!);
+		expect(first.tool_count).toBe(1);
+		expect(second.tool_count).toBe(1);
+
+		// Two turns, one new tools blob.
+		const after = await toolBlobs();
+		expect(after.length).toBe(before.length + 1);
+		expect(after).toContain(first.tools_blob_hash!);
+	});
+
+	test("a session without the roster methods omits both fields entirely", async () => {
+		const localEvents: TraceEvent[] = [];
+		const recorder = createRequestSnapshotRecorder({
+			db: handle.db,
+			traceWriter: { submit: (event) => void localEvents.push(event) },
+			ids: IDS,
+		});
+		const session = makeSession([{ role: "user", content: "hello" }]);
+		recorder.handleEvent({ type: "agent_start" }, session);
+		recorder.handleEvent({ type: "turn_start" }, session);
+		recorder.recordBuiltRequest(session, {
+			messages: [{ role: "user", content: "built" }],
+		});
+		await recorder.flush();
+
+		expect(localEvents.length).toBe(2);
+		for (const event of localEvents) {
+			const data = snapshotData(event);
+			// Absent, not null and not zero — "not captured" must stay legible.
+			expect("tools_blob_hash" in data).toBe(false);
+			expect("tool_count" in data).toBe(false);
+		}
+	});
+
+	test("a session whose roster methods throw still records the snapshot", async () => {
+		const localEvents: TraceEvent[] = [];
+		const logged: string[] = [];
+		const recorder = createRequestSnapshotRecorder({
+			db: handle.db,
+			traceWriter: { submit: (event) => void localEvents.push(event) },
+			ids: IDS,
+			logger: { error: (message) => void logged.push(message) },
+		});
+		const session: RequestSnapshotSessionLike = {
+			messages: [{ role: "user", content: "hello" }],
+			systemPrompt: SYSTEM_PROMPT,
+			getActiveToolNames: () => ["read"],
+			getAllTools: () => {
+				throw new Error("tool registry unavailable");
+			},
+		};
+
+		expect(() =>
+			recorder.handleEvent({ type: "turn_start" }, session),
+		).not.toThrow();
+		await recorder.flush();
+
+		// The turn is still captured — only the roster degrades to absent.
+		expect(localEvents.length).toBe(1);
+		const data = snapshotData(localEvents[0]!);
+		expect(data.message_count).toBe(1);
+		expect("tools_blob_hash" in data).toBe(false);
+		expect("tool_count" in data).toBe(false);
+		expect(logged).toEqual([]);
+	});
+
+	test("a captured roster of zero tools is recorded, not treated as absent", async () => {
+		const localEvents: TraceEvent[] = [];
+		const recorder = createRequestSnapshotRecorder({
+			db: handle.db,
+			traceWriter: { submit: (event) => void localEvents.push(event) },
+			ids: IDS,
+		});
+		const session = makeToolSession([{ role: "user", content: "hello" }], [], []);
+		recorder.handleEvent({ type: "turn_start" }, session);
+		await recorder.flush();
+
+		const data = snapshotData(localEvents[0]!);
+		expect(data.tool_count).toBe(0);
+		const blob = await getTraceBlob(handle.db, data.tools_blob_hash!);
+		expect(Buffer.from(blob!.data).toString("utf8")).toBe("[]");
+	});
 });

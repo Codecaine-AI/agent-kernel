@@ -14,9 +14,13 @@ export {
 } from "./resolve-span-icon";
 export { DEFAULT_ICON_SIDE, DEFAULT_ICON_STYLE } from "./icon-options";
 export {
+	TraceIconSettingsProvider,
+	useTraceIconSettings,
+	type TraceIconSettings,
+} from "./icon-settings";
+export {
 	SpanIconCap,
 	SPAN_CAP_SIZE,
-	SPAN_CAP_SIZE_META,
 	type SpanIconCapProps,
 	type SpanCapLayout,
 } from "./SpanIconCap";

@@ -72,6 +72,12 @@ export const canvasTurnContext: RunTurnContextResponse = {
 					mimeType: "image/png",
 					byte_length: 40_112,
 				},
+				{
+					type: "image",
+					blob_hash: "b1-board-contact-sheet",
+					mimeType: "image/png",
+					byte_length: 73_004,
+				},
 			],
 		},
 		{

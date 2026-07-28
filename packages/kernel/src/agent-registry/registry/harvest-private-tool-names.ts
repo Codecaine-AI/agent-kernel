@@ -3,6 +3,7 @@ import { getSpawnerToolMeta } from "../../agent-definition/spawner-tool";
 
 interface StubPi {
 	registerTool(tool: { name: string }): void;
+	on(...args: unknown[]): void;
 }
 
 /** Boot-time harvest of an agent's tools.ts registrations. */
@@ -32,6 +33,9 @@ export async function harvestPrivateToolsFromRegister(
 			const meta = getSpawnerToolMeta(tool);
 			if (meta) spawnerTools[tool.name] = [...meta.spawns];
 		},
+		// Harvest runs registration code without a live session. Hooks therefore
+		// register successfully but never execute; only tool declarations matter.
+		on() {},
 	};
 	await register(stubPi as unknown as Parameters<AgentPrivateTools>[0]);
 	return { names, spawnerTools };

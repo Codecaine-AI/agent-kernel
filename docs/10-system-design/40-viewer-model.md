@@ -16,8 +16,8 @@ The viewer is part of the kernel, not an optional demo. A new app should be able
 | Package | Responsibility |
 |---|---|
 | `@agent-kernel/viewer-core` | App trace API paths, catalog API paths, central observer API paths, DTOs, trace span transforms, linkage resolution, prompt diffing |
-| `@agent-kernel/viewer-ui` | Reusable trace tree, span cards, detail panels, prompt lab components, visual utilities |
-| `@agent-kernel/viewer-shell` | Mountable base trace viewer shell with plugin slots |
+| `@agent-kernel/viewer-ui` | Reusable trace tree, span cards, the detail panel and its renderer contract, prompt lab components, visual utilities |
+| `@agent-kernel/viewer-shell` | Mountable workspace + trace viewer, plugin slots, and the shared style system |
 
 App-embedded viewers and a future central observer should both read through APIs that return viewer-core DTOs. Browser code should not connect directly to the kernel database.
 
@@ -71,16 +71,15 @@ The full design rationale lives in
 
 ## Base Shell
 
-`KernelTraceViewer` renders:
+`viewer-shell` ships the whole trace-viewing instrument, not a demo:
 
-- optional app-provided container header
-- trace level controls
-- expand/collapse controls
-- trace tree
-- selected span detail panel
-- empty and detail placeholder plugin slots
+- `KernelTraceWorkspace` — the standard list / drill-in workspace, with a pure data-and-slots app seam
+- `KernelTraceViewer` — the drill-in body: a 40/60 draggable tree + detail split sharing one panel-header surface, trace level and expand controls, and plugin slots
+- the shared style system — light/dark palettes, color tokens, tree chrome, selection and code-block controls, emitted as CSS variables per host config
 
-The v1 shell is intentionally narrow. It is enough to validate the package boundary and reuse the active Spectre trace page, while leaving room for deeper workflow panels later.
+Implementation: [40-workspace-shell.md](../20-implementation/60-viewer/40-workspace-shell.md).
+
+The detail side has one layout standard for every event type — a fixed header over a body composed only from a standard block vocabulary — and per-type renderers return **data, not JSX**, so they cannot introduce competing chrome. That contract, and the conformance test that enforces it, is in [30-detail-panel.md](../20-implementation/60-viewer/30-detail-panel.md); the design record and the rejected alternatives are in `explainers/detail-view-options.html` and `explainers/state-tab-options.html`.
 
 ## App Plugins
 

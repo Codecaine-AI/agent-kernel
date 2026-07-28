@@ -311,6 +311,47 @@ describe("createKernelEmitter", () => {
 		});
 	});
 
+	test("propagates tool-result errors while omitting the flag for ordinary results", async () => {
+		const { submitted, deliver } = makeHarness();
+		await deliver([
+			{
+				type: "message_end",
+				message: {
+					role: "toolResult",
+					toolCallId: "toolu_error",
+					toolName: "layout",
+					content: [{ type: "text", text: "ERROR · invalid layout" }],
+					isError: true,
+					timestamp: 0,
+				},
+			},
+			{
+				type: "message_end",
+				message: {
+					role: "toolResult",
+					toolCallId: "toolu_ok",
+					toolName: "layout",
+					content: [{ type: "text", text: "layout complete" }],
+					timestamp: 0,
+				},
+			},
+		]);
+
+		const errored = submitted.find(
+			(e) =>
+				e.type === "tool_call_end" &&
+				(e.eventData as { tool_use_id?: string }).tool_use_id === "toolu_error",
+		)!;
+		const ordinary = submitted.find(
+			(e) =>
+				e.type === "tool_call_end" &&
+				(e.eventData as { tool_use_id?: string }).tool_use_id === "toolu_ok",
+		)!;
+
+		expect(errored.eventData).toHaveProperty("is_error", true);
+		expect(ordinary.eventData).not.toHaveProperty("is_error");
+	});
+
 	test("live emission ids are identical to backfill mapper ids (zero duplicates)", async () => {
 		const { sm, submitted, emitter, deliver } = makeHarness();
 		emitter.emitSessionStart();

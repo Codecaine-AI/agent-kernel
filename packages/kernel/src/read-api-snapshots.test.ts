@@ -67,6 +67,18 @@ const assistantMessage = {
 const assistantMessageBytes = encoder.encode(JSON.stringify(assistantMessage));
 const assistantMessageHash = hashTraceBlobBytes(assistantMessageBytes);
 
+// Tool roster blob: the JSON array a snapshot's tools_blob_hash points at.
+const TOOL_ROSTER = [
+	{
+		name: "read",
+		description: "Read a file from disk",
+		parameters: { type: "object", properties: { path: { type: "string" } } },
+	},
+	{ name: "ghost" },
+];
+const toolsBytes = encoder.encode(JSON.stringify(TOOL_ROSTER));
+const toolsHash = hashTraceBlobBytes(toolsBytes);
+
 const NOW = new Date().toISOString();
 
 function blobRow(
@@ -132,6 +144,7 @@ beforeEach(async () => {
 		blobRow(userMessageBytes, "message", "application/json"),
 		blobRow(assistantMessageBytes, "message", "application/json"),
 		blobRow(IMAGE_BYTES, "image", "image/png"),
+		blobRow(toolsBytes, "tools", "application/json"),
 	]);
 
 	await insertTraceEventsBatch(handle.db, [
@@ -317,6 +330,69 @@ describe("GET /kernel/runs/:runId/turns/:turnNumber/context", () => {
 
 		expect(response.status).toBe(200);
 		expect(body.system_prompt).toBeNull();
+		expect(body.warnings).toBeUndefined();
+	});
+
+	test("resolves the tool roster from the snapshot's tools blob", async () => {
+		await insertTraceEventsBatch(handle.db, [
+			createPiRequestSnapshotEvent(
+				{ containerId: CONTAINER_ID, runId: "run-with-tools" },
+				makeSnapshotData({
+					turn_number: 0,
+					tools_blob_hash: toolsHash,
+					tool_count: TOOL_ROSTER.length,
+				}),
+			),
+		]);
+
+		const response = await app.handle(
+			new Request(url(`/kernel/runs/run-with-tools/turns/0/context`)),
+		);
+		const body = await response.json();
+
+		expect(response.status).toBe(200);
+		// Provider-visible order, passed through verbatim — including the
+		// name-only entry for a tool with no registry description.
+		expect(body.tools).toEqual(TOOL_ROSTER);
+		expect(body.warnings).toBeUndefined();
+	});
+
+	test("omits tools and warns when the named tools blob is missing", async () => {
+		const missingToolsHash = `b1-${"e".repeat(64)}`;
+		await insertTraceEventsBatch(handle.db, [
+			createPiRequestSnapshotEvent(
+				{ containerId: CONTAINER_ID, runId: "run-tools-hole" },
+				makeSnapshotData({
+					turn_number: 0,
+					tools_blob_hash: missingToolsHash,
+					tool_count: 2,
+				}),
+			),
+		]);
+
+		const response = await app.handle(
+			new Request(url(`/kernel/runs/run-tools-hole/turns/0/context`)),
+		);
+		const body = await response.json();
+
+		expect(response.status).toBe(200);
+		// No invented roster: the field is gone and the loss is reported.
+		expect("tools" in body).toBe(false);
+		expect(body.warnings).toHaveLength(1);
+		expect(body.warnings[0]).toContain(missingToolsHash);
+		// The rest of the turn still resolves.
+		expect(body.messages).toEqual([userMessage, assistantMessage]);
+	});
+
+	test("a snapshot written before tool capture has no tools key at all", async () => {
+		const response = await app.handle(
+			new Request(url(`/kernel/runs/${RUN_ID}/turns/${TURN_NUMBER}/context`)),
+		);
+		const body = await response.json();
+
+		expect(response.status).toBe(200);
+		// Absent, never null or []: readers must not see "zero tools".
+		expect("tools" in body).toBe(false);
 		expect(body.warnings).toBeUndefined();
 	});
 

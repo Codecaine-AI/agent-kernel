@@ -24,7 +24,7 @@ The kernel owns the reusable runtime and observability foundation. A host applic
 | Observability DB | Per-kernel SQLite database, local kernel manifest, containers, Pi agent sessions, agent runs, trace events, prompt revisions, usage rollups, read helpers |
 | Transcript recovery | JSONL backfill/import: whole-file reading, event mapping, idempotent insert with emitter id parity |
 | Read API | Versioned trace read routes and catalog routes that viewer-core can target |
-| Viewer | Trace DTOs, catalog DTOs, trace span transforms, prompt diffing, reusable tree/detail UI, prompt lab, base viewer shell |
+| Viewer | Trace DTOs, catalog DTOs, trace span transforms (causal ordering, turn nesting), prompt diffing, reusable tree/detail UI with its data-only renderer contract, prompt lab, workspace + trace viewer shell, shared style system |
 
 ## Apps Own
 

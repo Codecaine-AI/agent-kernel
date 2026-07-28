@@ -14,6 +14,8 @@
  * transcripts and random cuts.
  */
 
+import { imageElisionMarkerText } from "@agent-kernel/protocol";
+
 import type {
 	AgentMessage,
 	ResolvedWindowPolicy,
@@ -242,7 +244,7 @@ export function imageStubText(block: BlockLike): string {
 	const b64 = typeof block.data === "string" ? block.data : "";
 	// base64 → bytes, close enough for a one-line stub.
 	const bytes = Math.floor((b64.length * 3) / 4);
-	return `[image elided — ${mimeType}, ${formatBytes(bytes)}]`;
+	return imageElisionMarkerText(`${mimeType}, ${formatBytes(bytes)}`);
 }
 
 /**
