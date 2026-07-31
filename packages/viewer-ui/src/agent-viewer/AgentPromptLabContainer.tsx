@@ -8,7 +8,6 @@ import {
 	type CatalogAgentDetail,
 	type CatalogContextPreview,
 	type CatalogManifestSaveResult,
-	type CatalogPromptSaveResult,
 	type PromptRevisionListResponse,
 	type PromptRevisionSummary,
 } from "@agent-kernel/viewer-core";
@@ -20,6 +19,10 @@ import {
 	type PromptSaveOutcome,
 } from "@codecaine-ai/prompt-kit/ui/lab";
 import type { PromptStyleSettings } from "@codecaine-ai/prompt-kit/ui/style";
+import {
+	loadPromptRevisionDocument,
+	savePromptDocument,
+} from "./catalog-client";
 import { RevisionHistoryPanel } from "./RevisionHistoryPanel";
 import { RevisionStatsStrip } from "./RevisionStatsStrip";
 
@@ -119,29 +122,29 @@ export function AgentPromptLabContainer({
 	const handleSave = useCallback(
 		async (doc: PromptDocument): Promise<PromptSaveOutcome> => {
 			try {
-				const response = await fetch(`${origin}${KERNEL_CATALOG_PATHS.agentPrompt(agentName)}`, {
-					method: "PUT",
-					headers: { "content-type": "application/json" },
-					body: JSON.stringify(doc),
-				});
-				const body = (await response.json()) as CatalogPromptSaveResult;
-				if (response.ok && "hash" in body) {
-					setSavedHash(body.hash);
-					setDocumentsByHash((current) => ({ ...current, [body.hash]: doc }));
+				const outcome = await savePromptDocument(origin, agentName, doc, savedHash);
+				if ("hash" in outcome) {
+					setSavedHash(outcome.hash);
+					setDocumentsByHash((current) => ({ ...current, [outcome.hash]: doc }));
 					void refreshRevisions();
-					return { hash: body.hash };
+					return outcome;
 				}
-				if ("errors" in body && Array.isArray(body.errors)) {
-					return { errors: body.errors };
-				}
-				return { errors: [`Save failed (${response.status})`] };
+				return outcome;
 			} catch (cause) {
 				return {
 					errors: [cause instanceof Error ? cause.message : "Save failed"],
 				};
 			}
 		},
-		[origin, agentName, refreshRevisions],
+		[origin, agentName, savedHash, refreshRevisions],
+	);
+
+	const handleLoadRevisionDocument = useCallback(
+		async (hash: string): Promise<PromptDocument> => {
+			const revision = await loadPromptRevisionDocument(origin, agentName, hash);
+			return revision.document;
+		},
+		[origin, agentName],
 	);
 
 	const handleManifestSave = useCallback(
@@ -218,6 +221,7 @@ export function AgentPromptLabContainer({
 							currentHash={savedHash}
 							currentDocument={savedHash ? documentsByHash[savedHash] : undefined}
 							documentsByHash={documentsByHash}
+							loadDocument={handleLoadRevisionDocument}
 							loading={revisionsLoading}
 							error={revisionsError}
 							statsSlot={

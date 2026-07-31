@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import {
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -148,19 +154,81 @@ describe("idempotent event insert", () => {
 });
 
 describe("manifest read/write", () => {
-  test("round-trips through .agent-kernel/kernel.json", async () => {
+  test("round-trips a v2 manifest through .agent-kernel/kernel.json", async () => {
+    const kernelRoot = join(dir, ".agent-kernel");
+    const catalogRoot = join(dir, "src", "agent-catalog");
     const written = await writeKernelManifest(dir, {
+      manifestVersion: 2,
       kernelId: "kern-1",
       displayName: "Test Kernel",
       piSessionsDir: join(dir, "pi-sessions"),
+      kernelRoot,
+      dbPath: kernelDatabasePath(dir),
+      catalogRoots: [catalogRoot],
+      readApiBaseUrl: "http://127.0.0.1:8788",
       viewerBaseUrl: "http://localhost:4000",
     });
     expect(written).toBe(kernelManifestPath(dir));
 
     const manifest = await readKernelManifest(dir);
-    expect(manifest?.kernelId).toBe("kern-1");
-    expect(manifest?.displayName).toBe("Test Kernel");
-    expect(manifest?.viewerBaseUrl).toBe("http://localhost:4000");
+    expect(manifest).toEqual({
+      manifestVersion: 2,
+      kernelId: "kern-1",
+      displayName: "Test Kernel",
+      piSessionsDir: join(dir, "pi-sessions"),
+      kernelRoot,
+      dbPath: kernelDatabasePath(dir),
+      catalogRoots: [catalogRoot],
+      readApiBaseUrl: "http://127.0.0.1:8788",
+      viewerBaseUrl: "http://localhost:4000",
+    });
+  });
+
+  test("reads a v1 manifest with v2 fields left undefined", async () => {
+    writeFileSync(
+      kernelManifestPath(dir),
+      `${JSON.stringify({
+        kernelId: "legacy-kernel",
+        displayName: "Legacy Kernel",
+        piSessionsDir: join(dir, "legacy-pi-sessions"),
+        viewerBaseUrl: "http://localhost:3999",
+      })}\n`,
+      "utf-8",
+    );
+
+    const manifest = await readKernelManifest(dir);
+    expect(manifest?.kernelId).toBe("legacy-kernel");
+    expect(manifest?.manifestVersion).toBeUndefined();
+    expect(manifest?.kernelRoot).toBeUndefined();
+    expect(manifest?.dbPath).toBeUndefined();
+    expect(manifest?.catalogRoots).toBeUndefined();
+    expect(manifest?.readApiBaseUrl).toBeUndefined();
+  });
+
+  test("atomically replaces an existing manifest without temp artifacts", async () => {
+    const baseManifest = {
+      manifestVersion: 2 as const,
+      kernelId: "kern-1",
+      displayName: "Before",
+      piSessionsDir: join(dir, "pi-sessions"),
+      kernelRoot: join(dir, ".agent-kernel"),
+      dbPath: kernelDatabasePath(dir),
+      catalogRoots: [join(dir, "src", "agent-catalog")],
+    };
+    const written = await writeKernelManifest(dir, baseManifest);
+    const inodeBefore = statSync(written).ino;
+
+    await writeKernelManifest(dir, {
+      ...baseManifest,
+      displayName: "After",
+    });
+
+    expect(statSync(written).ino).not.toBe(inodeBefore);
+    expect((await readKernelManifest(dir))?.displayName).toBe("After");
+    const manifestFiles = readdirSync(join(dir, ".agent-kernel")).filter(
+      (name) => name.includes("kernel.json"),
+    );
+    expect(manifestFiles).toEqual(["kernel.json"]);
   });
 
   test("returns undefined when no manifest exists", async () => {

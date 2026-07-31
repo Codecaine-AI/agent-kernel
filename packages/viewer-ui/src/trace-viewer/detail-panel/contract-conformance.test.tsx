@@ -20,6 +20,7 @@ import {
 	rendererRegistry,
 	resolveRenderer,
 } from "./rendererRegistry";
+import { FactCard } from "./renderers/FactCard";
 import { buildSnapshotContextView } from "./renderers/TurnBody";
 import { realTurnContext } from "./renderers/__fixtures__/real-turn-context";
 import { canvasTurnContext } from "./renderers/__fixtures__/turn-snapshots";
@@ -702,6 +703,40 @@ describe("detail renderer contract conformance", () => {
 		const markup = renderToStaticMarkup(<SpanDetailPanel span={span} />);
 		assertDataBlock(markup, "input");
 		assertDataBlock(markup, "output");
+	});
+
+	test("app:board-render degrades to the generic facts card and Raw Details", () => {
+		const eventType = "app:board-render";
+		const blobHash = "b1-0123456789abcdef";
+		expect(Object.hasOwn(rendererRegistry, eventType)).toBe(false);
+		expect(resolveRenderer(eventType)).toBe(FactCard);
+
+		const span = baseSpan(eventType, {
+			title: "board render #3",
+			raw: JSON.stringify({
+				event_type: eventType,
+				blob_hash: blobHash,
+			}),
+			attributes: [
+				stringAttr("event_type", eventType),
+				stringAttr("blob_hash", blobHash),
+				stringAttr("mime_type", "image/png"),
+				intAttr("n", 3),
+				stringAttr("summary", "aligned the auth column"),
+				intAttr("turn_number", 4),
+			],
+		});
+
+		assertConforms(span);
+		const markup = renderToStaticMarkup(<SpanDetailPanel span={span} />);
+		expect(markup).toContain('data-detail-block="facts"');
+		expect(markup).toContain('aria-label="Details"');
+		expect(markup).not.toContain("<img");
+		expect(markup).not.toContain("data-detail-image-modal-trigger");
+
+		const detailsMarkup = renderToStaticMarkup(<DetailsView span={span} />);
+		expect(detailsMarkup).toContain('data-details-section="raw"');
+		expect(detailsMarkup).toContain(blobHash);
 	});
 });
 

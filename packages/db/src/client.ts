@@ -44,3 +44,21 @@ export function openKernelDatabase(opts: { path: string }): KernelDatabaseHandle
     close: () => sqlite.close(),
   };
 }
+
+/**
+ * Open an existing kernel SQLite database without allowing mutations.
+ *
+ * Unlike openKernelDatabase, this does not create the parent directory or
+ * database, set write-related PRAGMAs, or initialize the observability schema.
+ */
+export function openKernelDatabaseReadOnly(
+  dbPath: string,
+): KernelDatabaseHandle {
+  const sqlite = new Database(dbPath, { readonly: true });
+  const db = drizzle(sqlite);
+  return {
+    db,
+    path: dbPath,
+    close: () => sqlite.close(),
+  };
+}

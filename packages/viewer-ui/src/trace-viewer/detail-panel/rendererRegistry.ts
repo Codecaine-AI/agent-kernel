@@ -1,5 +1,4 @@
 import type { DetailBodyRenderer } from "./contract";
-import { BoardRenderBody } from "./renderers/BoardRenderBody";
 import { ContextBuildBody } from "./renderers/ContextBuildBody";
 import { FactCard } from "./renderers/FactCard";
 import { MessageBody } from "./renderers/MessageBody";
@@ -20,7 +19,6 @@ export const rendererRegistry: Record<string, DetailBodyRenderer> = {
 	warning: WarningRenderer,
 	error: WarningRenderer,
 	pi_request_snapshot: TurnBody,
-	"app:board-render": BoardRenderBody,
 	container_container: UsageAggregateRenderer,
 	phase_container: UsageAggregateRenderer,
 	pi_agent_container: UsageAggregateRenderer,

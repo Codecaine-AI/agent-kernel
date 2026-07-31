@@ -43,6 +43,9 @@ export const KERNEL_CATALOG_PATHS = {
 	agentRevisions(name: string): string {
 		return `/kernel/catalog/agents/${encodeURIComponent(name)}/revisions`;
 	},
+	revisionDocument(name: string, hash: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/revisions/${encodeURIComponent(hash)}/document`;
+	},
 	revisionStats(name: string, hash: string): string {
 		return `/kernel/catalog/agents/${encodeURIComponent(name)}/revisions/${encodeURIComponent(hash)}/stats`;
 	},

@@ -41,6 +41,7 @@ const port = Number(Bun.env.PORT ?? 8788);
 const frontendPort = Number(Bun.env.FRONTEND_PORT ?? 5174);
 const appBaseUrl =
 	Bun.env.AGENT_KERNEL_APP_BASE_URL ?? `http://127.0.0.1:${frontendPort}`;
+const kernelRoot = resolve(EXAMPLE_ROOT, ".agent-kernel");
 const piSessionsDir = resolve(EXAMPLE_ROOT, ".agent-kernel", "pi-sessions");
 const dbPath = kernelDatabasePath(EXAMPLE_ROOT);
 
@@ -50,9 +51,14 @@ const dbHandle = openKernelDatabase({ path: dbPath });
 const db = dbHandle.db;
 await ensureKernelObservabilitySchema(db);
 await writeKernelManifest(EXAMPLE_ROOT, {
+	manifestVersion: 2,
 	kernelId: KERNEL_ID,
 	displayName: "Simple Research Kernel",
 	piSessionsDir,
+	kernelRoot,
+	dbPath,
+	catalogRoots: [resolve(EXAMPLE_ROOT, "src", "agent-catalog")],
+	readApiBaseUrl: "http://127.0.0.1:8788",
 	viewerBaseUrl: appBaseUrl
 });
 

@@ -25,6 +25,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 import {
+	getPromptRevision,
 	getPromptRevisionStats,
 	listPromptRevisionsForAgent,
 	upsertPromptRevision,
@@ -49,6 +50,10 @@ import {
 	renderedPromptSnapshot,
 } from "./agent-registry/prompt-snapshot";
 import { validateAgentManifestShape } from "./agent-definition";
+import {
+	createCatalogAnnotationOps,
+	type KernelCatalogAnnotationOps,
+} from "./catalog-annotations";
 import {
 	buildContext,
 	createSpawnContext,
@@ -113,15 +118,23 @@ export interface KernelCatalogRevisionSummary {
 	createdAt: string;
 }
 
+/** Response body of `GET .../revisions/:hash/document`. */
+export interface KernelCatalogRevisionDocument {
+	hash: string;
+	createdAt: string;
+	document: PromptDocument;
+}
+
 export type KernelCatalogPromptSaveResult =
 	| { ok: true; hash: string }
+	| { ok: false; currentHash: string }
 	| { ok: false; errors: string[] };
 
 export type KernelCatalogManifestSaveResult =
 	| { ok: true; manifest: Record<string, unknown> }
 	| { ok: false; errors: string[] };
 
-export interface KernelCatalogService {
+export interface KernelCatalogService extends KernelCatalogAnnotationOps {
 	/** Dev-mode write gate: the PUT route answers 403 when false. */
 	readonly allowWrites: boolean;
 	listAgents(): Promise<KernelCatalogAgentSummary[]>;
@@ -131,6 +144,7 @@ export interface KernelCatalogService {
 	savePrompt(
 		name: string,
 		document: unknown,
+		expectedHash?: string,
 	): Promise<KernelCatalogPromptSaveResult | null>;
 	/** null when the agent is not in the registry. */
 	saveManifest(
@@ -139,6 +153,11 @@ export interface KernelCatalogService {
 	): Promise<KernelCatalogManifestSaveResult | null>;
 	/** null when the agent is not in the registry. */
 	listRevisions(name: string): Promise<KernelCatalogRevisionSummary[] | null>;
+	/** null when the agent or requested revision is not found. */
+	getRevisionDocument(
+		name: string,
+		hash: string,
+	): Promise<KernelCatalogRevisionDocument | null>;
 	/** null when the agent is not in the registry. */
 	getRevisionStats(
 		name: string,
@@ -174,6 +193,10 @@ export interface CreateKernelCatalogServiceOptions {
  * the regeneration CLI and the catalog snapshot test all emit identical bytes.
  */
 export { RENDERED_SNAPSHOT_HEADER, renderedPromptSnapshot };
+
+// Annotation sidecar ops surface (additive; wire results + the ops interface
+// mixed into KernelCatalogService above).
+export * from "./catalog-annotations";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -270,6 +293,10 @@ export function createKernelCatalogService(
 	return {
 		allowWrites,
 
+		// Annotation sidecar CRUD (catalog-annotations.ts) — same registry/db
+		// accessors, so every op syncs the prompt from disk like the reads above.
+		...createCatalogAnnotationOps({ registry: opts.registry, db: opts.db }),
+
 		async listAgents() {
 			const registry = await opts.registry();
 			// Disk-freshness: a prompt.json rewritten out-of-band must list with
@@ -304,10 +331,20 @@ export function createKernelCatalogService(
 			};
 		},
 
-		async savePrompt(name, input) {
+		async savePrompt(name, input, expectedHash) {
 			const registry = await opts.registry();
-			const def = registry.tryGet(name);
-			if (!def) return null;
+			if (!registry.tryGet(name)) return null;
+			// Compare against the disk-fresh canonical prompt, not just the
+			// registry snapshot captured at boot. This also records an
+			// out-of-band edit as a disk-sync revision before reporting the
+			// conflict.
+			await syncAgentPromptFromDisk(tryDb(), registry, name);
+			// Re-read after the await: another save may have completed while
+			// this request was syncing its disk snapshot.
+			const def = registry.get(name);
+			if (expectedHash !== undefined && expectedHash !== def.promptHash) {
+				return { ok: false, currentHash: def.promptHash };
+			}
 
 			const shape = validatePromptDocumentShape(input);
 			if (!shape.valid) return { ok: false, errors: shape.errors };
@@ -332,6 +369,11 @@ export function createKernelCatalogService(
 			// prompt/system.md inside a folder-form bundle.
 			writeFileSync(def.renderedPromptFile, renderedPromptSnapshot(rendered), "utf8");
 
+			// Hot-swap immediately after the synchronous file writes so another
+			// save resuming while the revision upsert is in flight observes this
+			// request's hash during its optimistic-concurrency check.
+			registry.reloadAgentPrompt(name);
+
 			await upsertPromptRevision(opts.db(), {
 				hash,
 				agentName: def.name,
@@ -341,11 +383,6 @@ export function createKernelCatalogService(
 				source: "lab-save",
 				createdAt: new Date().toISOString(),
 			});
-
-			// Hot-swap the in-memory definition from the file just written —
-			// subsequent spawns freeze the new prompt (and stamp its hash on
-			// their sessions) without a server restart.
-			registry.reloadAgentPrompt(name);
 
 			return { ok: true, hash };
 		},
@@ -430,6 +467,27 @@ export function createKernelCatalogService(
 					createdAt: row.createdAt,
 				}))
 				.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+		},
+
+		async getRevisionDocument(name, hash) {
+			const registry = await opts.registry();
+			if (!registry.tryGet(name)) return null;
+			await syncAgentPromptFromDisk(tryDb(), registry, name);
+			const row = await getPromptRevision(opts.db(), hash);
+			if (!row || row.agentName !== name) return null;
+
+			const document: unknown = JSON.parse(row.document);
+			const shape = validatePromptDocumentShape(document);
+			if (!shape.valid) {
+				throw new Error(
+					`Stored prompt revision ${hash} is not a valid PromptDocument: ${shape.errors.join("; ")}`,
+				);
+			}
+			return {
+				hash: row.hash,
+				createdAt: row.createdAt,
+				document: document as PromptDocument,
+			};
 		},
 
 		async getRevisionStats(name, hash) {

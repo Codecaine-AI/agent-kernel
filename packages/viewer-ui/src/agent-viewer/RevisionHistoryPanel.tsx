@@ -1,7 +1,7 @@
 "use client";
 
 import cn from "classnames";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { PromptDocument } from "@codecaine-ai/prompt-kit";
 import {
 	diffPromptDocuments,
@@ -23,6 +23,8 @@ export interface RevisionHistoryPanelProps {
 	 * "document not loaded" notice instead of a diff.
 	 */
 	documentsByHash?: Record<string, PromptDocument>;
+	/** Loads one historical document when a selected diff needs it. */
+	loadDocument?: (hash: string) => Promise<PromptDocument>;
 	loading?: boolean;
 	error?: string;
 	className?: string;
@@ -42,12 +44,16 @@ export function RevisionHistoryPanel({
 	currentHash,
 	currentDocument,
 	documentsByHash,
+	loadDocument,
 	loading,
 	error,
 	className,
 	statsSlot,
 }: RevisionHistoryPanelProps) {
 	const [selected, setSelected] = useState<string[]>([]);
+	const [loadedDocuments, setLoadedDocuments] = useState<Record<string, PromptDocument>>({});
+	const [loadingDocuments, setLoadingDocuments] = useState<string[]>([]);
+	const [documentError, setDocumentError] = useState<string | undefined>(undefined);
 
 	const ordered = useMemo(
 		() =>
@@ -65,10 +71,11 @@ export function RevisionHistoryPanel({
 		});
 	}
 
-	function documentFor(hash: string): PromptDocument | undefined {
-		if (hash === currentHash && currentDocument) return currentDocument;
-		return documentsByHash?.[hash];
-	}
+	const resolvedDocuments = useMemo(() => {
+		const documents = { ...documentsByHash, ...loadedDocuments };
+		if (currentHash && currentDocument) documents[currentHash] = currentDocument;
+		return documents;
+	}, [currentHash, currentDocument, documentsByHash, loadedDocuments]);
 
 	const pair = useMemo(() => {
 		if (selected.length !== 2) return undefined;
@@ -81,14 +88,56 @@ export function RevisionHistoryPanel({
 		return { older: byAge[0] as string, newer: byAge[1] as string };
 	}, [selected, ordered]);
 
+	const missingDocumentHashes = useMemo(() => {
+		if (!pair) return [];
+		return [pair.older, pair.newer].filter((hash) => !resolvedDocuments[hash]);
+	}, [pair, resolvedDocuments]);
+	const missingDocumentKey = missingDocumentHashes.join("\u0000");
+
+	useEffect(() => {
+		if (!loadDocument || !missingDocumentKey) {
+			setLoadingDocuments([]);
+			setDocumentError(undefined);
+			return;
+		}
+
+		let cancelled = false;
+		const hashes = missingDocumentKey.split("\u0000");
+		setLoadingDocuments(hashes);
+		setDocumentError(undefined);
+
+		void Promise.all(
+			hashes.map(async (hash) => [hash, await loadDocument(hash)] as const),
+		)
+			.then((entries) => {
+				if (cancelled) return;
+				setLoadedDocuments((current) => ({
+					...current,
+					...Object.fromEntries(entries),
+				}));
+			})
+			.catch((cause) => {
+				if (cancelled) return;
+				setDocumentError(
+					cause instanceof Error ? cause.message : "revision document unavailable",
+				);
+			})
+			.finally(() => {
+				if (!cancelled) setLoadingDocuments([]);
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [loadDocument, missingDocumentKey]);
+
 	const diff = useMemo(() => {
 		if (!pair) return undefined;
-		const olderDoc = documentFor(pair.older);
-		const newerDoc = documentFor(pair.newer);
+		const olderDoc = resolvedDocuments[pair.older];
+		const newerDoc = resolvedDocuments[pair.newer];
 		if (!olderDoc || !newerDoc) return undefined;
 		return diffPromptDocuments(olderDoc, newerDoc);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [pair, currentHash, currentDocument, documentsByHash]);
+	}, [pair, resolvedDocuments]);
 
 	return (
 		<section className={cn("flex shrink-0 flex-col bg-card font-mono", className)}>
@@ -157,9 +206,14 @@ export function RevisionHistoryPanel({
 
 				{pair && (
 					<div className="mt-2">
-						{!diff ? (
+						{loadingDocuments.length > 0 ? (
+							<Notice>Loading revision documents…</Notice>
+						) : documentError ? (
+							<Notice tone="error">{documentError}</Notice>
+						) : !diff ? (
 							<Notice>
-								Document not loaded for {missingDocs(pair, documentFor).join(", ") || "selection"}.
+								Document not loaded for{" "}
+								{missingDocumentHashes.map(shortHash).join(", ") || "selection"}.
 							</Notice>
 						) : diff.length === 0 ? (
 							<Notice>No block-level changes between the selected revisions.</Notice>
@@ -230,15 +284,6 @@ function Notice({
 			{children}
 		</p>
 	);
-}
-
-function missingDocs(
-	pair: { older: string; newer: string },
-	documentFor: (hash: string) => PromptDocument | undefined,
-): string[] {
-	return [pair.older, pair.newer]
-		.filter((hash) => !documentFor(hash))
-		.map((hash) => shortHash(hash));
 }
 
 function shortHash(hash: string): string {

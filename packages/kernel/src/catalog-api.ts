@@ -6,9 +6,11 @@
  *
  *   GET  <prefix>/catalog/agents                       registry listing
  *   GET  <prefix>/catalog/agents/:name                 manifest + prompt + validation
- *   PUT  <prefix>/catalog/agents/:name/prompt          body: PromptDocument
+ *   PUT  <prefix>/catalog/agents/:name/prompt          body: PromptDocument (legacy)
+ *                                                      or { document, expectedHash? }
  *   PUT  <prefix>/catalog/agents/:name/manifest        body: { description?, model? }
  *   GET  <prefix>/catalog/agents/:name/revisions       history (hash, source, date)
+ *   GET  <prefix>/catalog/agents/:name/revisions/:hash/document
  *   GET  <prefix>/catalog/agents/:name/revisions/:hash/stats
  *
  * The PUT mutates catalog files on disk, so it answers 403 unless writes are
@@ -17,6 +19,7 @@
  */
 import { Elysia } from "elysia";
 
+import { createKernelCatalogAnnotationsApi } from "./catalog-annotations-api";
 import type { KernelCatalogService } from "./catalog-service";
 
 export interface CreateKernelCatalogApiOptions {
@@ -30,6 +33,32 @@ function normalizePrefix(prefix: string): string {
 	return prefix.startsWith("/") ? prefix : `/${prefix}`;
 }
 
+function promptSaveInput(body: unknown):
+	| { document: unknown; expectedHash?: string }
+	| { errors: string[] } {
+	if (
+		typeof body !== "object" ||
+		body === null ||
+		Array.isArray(body) ||
+		!("document" in body)
+	) {
+		// Backwards compatibility: the original route accepted a raw
+		// PromptDocument as its body.
+		return { document: body };
+	}
+
+	const request = body as Record<string, unknown>;
+	if (request.expectedHash !== undefined && typeof request.expectedHash !== "string") {
+		return { errors: ["expectedHash: expected a string"] };
+	}
+	return {
+		document: request.document,
+		...(request.expectedHash === undefined
+			? {}
+			: { expectedHash: request.expectedHash as string }),
+	};
+}
+
 export function createKernelCatalogApi(
 	service: KernelCatalogService,
 	options: CreateKernelCatalogApiOptions = {},
@@ -38,6 +67,7 @@ export function createKernelCatalogApi(
 	const allowWrites = options.allowWrites ?? service.allowWrites;
 
 	return new Elysia()
+		.use(createKernelCatalogAnnotationsApi(service, { prefix: options.prefix, allowWrites }))
 		.get(`${prefix}/catalog/agents`, async ({ set }) => {
 			try {
 				return { agents: await service.listAgents() };
@@ -70,12 +100,25 @@ export function createKernelCatalogApi(
 				};
 			}
 			try {
-				const result = await service.savePrompt(params.name, body);
+				const input = promptSaveInput(body);
+				if ("errors" in input) {
+					set.status = 400;
+					return { errors: input.errors };
+				}
+				const result = await service.savePrompt(
+					params.name,
+					input.document,
+					input.expectedHash,
+				);
 				if (result === null) {
 					set.status = 404;
 					return { error: `Agent ${params.name} not found in catalog` };
 				}
 				if (!result.ok) {
+					if ("currentHash" in result) {
+						set.status = 409;
+						return { currentHash: result.currentHash };
+					}
 					set.status = 400;
 					return { errors: result.errors };
 				}
@@ -125,6 +168,28 @@ export function createKernelCatalogApi(
 				return { error: "Failed to list kernel prompt revisions" };
 			}
 		})
+		.get(
+			`${prefix}/catalog/agents/:name/revisions/:hash/document`,
+			async ({ params, set }) => {
+				try {
+					const revision = await service.getRevisionDocument(
+						params.name,
+						params.hash,
+					);
+					if (revision === null) {
+						set.status = 404;
+						return {
+							error: `Prompt revision ${params.hash} not found for agent ${params.name}`,
+						};
+					}
+					return revision;
+				} catch (error) {
+					console.error("Error fetching kernel prompt revision document:", error);
+					set.status = 500;
+					return { error: "Failed to fetch kernel prompt revision document" };
+				}
+			},
+		)
 		.get(
 			`${prefix}/catalog/agents/:name/revisions/:hash/stats`,
 			async ({ params, set }) => {

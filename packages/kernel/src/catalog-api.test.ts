@@ -4,7 +4,14 @@
  * through Elysia's .handle(new Request(...)) like the read-api tests.
  */
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	utimesSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -199,7 +206,10 @@ describe("PUT /kernel/catalog/agents/:name/prompt", () => {
 			"Always cite the source file for every claim.",
 		]);
 
-		const response = await putPrompt(app, AGENT_NAME, edited);
+		const response = await putPrompt(app, AGENT_NAME, {
+			document: edited,
+			expectedHash: hashPrompt(originalDocument),
+		});
 		const body = await response.json();
 
 		expect(response.status).toBe(200);
@@ -233,6 +243,50 @@ describe("PUT /kernel/catalog/agents/:name/prompt", () => {
 			await app.handle(new Request(url(`/kernel/catalog/agents/${AGENT_NAME}`)))
 		).json();
 		expect(detail.promptHash).toBe(body.hash);
+	});
+
+	test("legacy raw PromptDocument body still saves without expectedHash", async () => {
+		const edited = makePromptDocument(["Legacy clients still save prompts."]);
+		const response = await putPrompt(app, AGENT_NAME, edited);
+		const body = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(body).toEqual({ hash: hashPrompt(edited) });
+		expect(readFileSync(join(agentDir, "prompt.json"), "utf8")).toBe(
+			canonicalizePrompt(edited),
+		);
+		expect(registry.get(AGENT_NAME).promptHash).toBe(hashPrompt(edited));
+	});
+
+	test("stale expectedHash returns 409 with the disk-fresh current hash", async () => {
+		const diskEdited = makePromptDocument(["Changed outside the prompt lab."]);
+		writeFileSync(
+			join(agentDir, "prompt.json"),
+			canonicalizePrompt(diskEdited),
+			"utf8",
+		);
+		const stamp = new Date(Date.now() + 5_000);
+		utimesSync(join(agentDir, "prompt.json"), stamp, stamp);
+
+		const attempted = makePromptDocument(["This stale save must not win."]);
+		const response = await putPrompt(app, AGENT_NAME, {
+			document: attempted,
+			expectedHash: hashPrompt(originalDocument),
+		});
+		const body = await response.json();
+
+		expect(response.status).toBe(409);
+		expect(body).toEqual({ currentHash: hashPrompt(diskEdited) });
+		expect(readFileSync(join(agentDir, "prompt.json"), "utf8")).toBe(
+			canonicalizePrompt(diskEdited),
+		);
+		expect(registry.get(AGENT_NAME).promptHash).toBe(hashPrompt(diskEdited));
+		expect(
+			(await listPromptRevisionsForAgent(handle.db, AGENT_NAME)).map((row) => [
+				row.hash,
+				row.source,
+			]),
+		).toContainEqual([hashPrompt(diskEdited), "disk-sync"]);
 	});
 
 	test("undeclared variable: 400 with errors, files untouched", async () => {
@@ -420,6 +474,48 @@ describe("GET /kernel/catalog/agents/:name/revisions", () => {
 		const response = await app.handle(
 			new Request(url("/kernel/catalog/agents/no-such-agent/revisions")),
 		);
+		expect(response.status).toBe(404);
+	});
+});
+
+describe("GET /kernel/catalog/agents/:name/revisions/:hash/document", () => {
+	test("returns the stored canonical PromptDocument with revision metadata", async () => {
+		const edited = makePromptDocument(["Historical revision document."]);
+		const saveResponse = await putPrompt(app, AGENT_NAME, edited);
+		expect(saveResponse.status).toBe(200);
+
+		const hash = hashPrompt(edited);
+		const revision = (
+			await listPromptRevisionsForAgent(handle.db, AGENT_NAME)
+		).find((row) => row.hash === hash);
+		expect(revision).toBeDefined();
+
+		const response = await app.handle(
+			new Request(
+				url(
+					`/kernel/catalog/agents/${AGENT_NAME}/revisions/${encodeURIComponent(hash)}/document`,
+				),
+			),
+		);
+		const body = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(body).toEqual({
+			hash,
+			createdAt: revision!.createdAt,
+			document: edited,
+		});
+	});
+
+	test("404 for an unknown revision hash", async () => {
+		const response = await app.handle(
+			new Request(
+				url(
+					`/kernel/catalog/agents/${AGENT_NAME}/revisions/pk1-does-not-exist/document`,
+				),
+			),
+		);
+
 		expect(response.status).toBe(404);
 	});
 });
