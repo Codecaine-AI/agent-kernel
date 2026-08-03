@@ -1,14 +1,5 @@
 PORT ?= 8788
 FRONTEND_PORT ?= 5174
-PROMPT_KIT_PORT ?= 4850
-
-.PHONY: prompt-kit-kernel
-prompt-kit-kernel:
-	@echo "Starting Prompt Kit Kernel"
-	@echo "  API: http://127.0.0.1:$(PROMPT_KIT_PORT)"
-	@echo "  DB:  examples/prompt-kit-kernel/.agent-kernel/trace.db (local SQLite)"
-	PROMPT_KIT_KERNEL_PORT=$(PROMPT_KIT_PORT) bun run dev:prompt-kit
-
 .PHONY: research-ui
 research-ui:
 	@echo "Starting Simple Research Kernel UI"

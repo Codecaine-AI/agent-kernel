@@ -7,6 +7,8 @@ and Agent Kernel agents.
 
 ### `prompt-kit-authoring`
 
+This skill moved to `../prompt-kit/packages/prompt-kit-agent/skills/prompt-kit-authoring`.
+
 Use this skill when creating, improving, reviewing, or explaining a PromptKit
 prompt artifact. Its default deliverable is a complete `prompt.ts` or a
 PromptKit builder snippet that produces a `PromptDocument`.
@@ -33,7 +35,8 @@ agent-catalog/<agent-name>/
   tools.ts
 ```
 
-It delegates prompt design to `prompt-kit-authoring` and adds the kernel-specific
+It delegates prompt design to
+`../prompt-kit/packages/prompt-kit-agent/skills/prompt-kit-authoring` and adds the kernel-specific
 boundary: variables, model/settings, context loaders, private tools, subagent
 permission, validation, traces, and viewer inspection.
 

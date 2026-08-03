@@ -20,7 +20,7 @@ packages/
   kernel/        Kernel instance, containers, spawn runtime, emitter, registry,
                  context, agent state, subagents, doctor, read API,
                  transcript recovery
-  prompt-kit/    Prompt document model, canonicalization/hash, renderers (submodule)
+  prompt-kit/    Prompt document model, canonicalization/hash, renderers (sibling repo / Core workspace member)
   viewer-core/   Read/catalog API DTOs, trace span transforms, prompt diff
   viewer-ui/     Trace tree, detail, and prompt lab UI components
   viewer-shell/  Mountable KernelTraceViewer shell

@@ -23,7 +23,7 @@ Use `10-agent-bundle/00-overview.md`.
 ## Prompt Change
 
 If only behavior text changes, edit `prompt.ts` through
-`skills/prompt-kit-authoring/`.
+`../prompt-kit/packages/prompt-kit-agent/skills/prompt-kit-authoring/`.
 
 Do not edit rendered Markdown or create `agent.md`.
 

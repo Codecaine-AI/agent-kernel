@@ -19,14 +19,15 @@ agent-catalog/<agent-name>/
   tools.ts
 ```
 
-`prompt.ts` is authored with PromptKit. Use `skills/prompt-kit-authoring/` whenever
-designing or editing the prompt itself.
+`prompt.ts` is authored with PromptKit. Use
+`../prompt-kit/packages/prompt-kit-agent/skills/prompt-kit-authoring/` whenever designing
+or editing the prompt itself.
 
 ## Start Here
 
 1. Read `00-routing.md`.
 2. Read `10-agent-bundle/00-overview.md`.
-3. For `prompt.ts`, use `skills/prompt-kit-authoring/SKILL.md`.
+3. For `prompt.ts`, use `../prompt-kit/packages/prompt-kit-agent/skills/prompt-kit-authoring/SKILL.md`.
 4. Load sidecar references only when needed:
    - `20-prompt-ts/00-overview.md`
    - `30-context-ts/00-overview.md`

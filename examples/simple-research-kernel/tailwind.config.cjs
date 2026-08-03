@@ -6,10 +6,10 @@ module.exports = {
 		"../../packages/viewer-shell/src/**/*.{ts,tsx}",
 		"../../packages/viewer-ui/src/**/*.{ts,tsx}",
 		// The prompt-authoring UI lives in the sibling prompt-kit checkout and
-		// reaches this app through a link: dep; Tailwind never scans
+		// reaches this app through a workspace:* dep; Tailwind never scans
 		// node_modules, so its source is named explicitly or the prompt lab
 		// renders naked.
-		"../../../prompt-kit/src/**/*.{ts,tsx}"
+		"../../../prompt-kit/packages/prompt-kit/src/**/*.{ts,tsx}"
 	],
 	theme: {
 		extend: {

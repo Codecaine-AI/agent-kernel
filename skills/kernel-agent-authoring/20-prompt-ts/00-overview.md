@@ -7,8 +7,8 @@ concepts: [prompt.ts, PromptKit, PromptDocument]
 
 `prompt.ts` is the stable PromptKit prompt source of truth.
 
-Use `skills/prompt-kit-authoring/` for prompt design. This file only describes how
-`prompt.ts` fits into a kernel agent bundle.
+Use `../prompt-kit/packages/prompt-kit-agent/skills/prompt-kit-authoring/` for prompt
+design. This file only describes how `prompt.ts` fits into a kernel agent bundle.
 
 ## Responsibilities
 

@@ -65,7 +65,7 @@ export default defineAgent({
 ## `prompt.ts`
 
 `prompt.ts` exports a PromptKit `PromptDocument`. Use
-`skills/prompt-kit-authoring/` for design and implementation guidance.
+`../prompt-kit/packages/prompt-kit-agent/skills/prompt-kit-authoring/` for design and implementation guidance.
 
 ## `context.ts`
 

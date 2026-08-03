@@ -9,8 +9,9 @@ const apiTarget = process.env.API_TARGET ?? "http://127.0.0.1:8788";
 /**
  * @codecaine-ai/prompt-kit and @codecaine-ai/annotations are sibling checkouts
  * linked in as source, so Vite compiles their files straight from
- * `../../../prompt-kit` / `../../../annotations`. That needs fs.allow for the
- * directories (they sit outside this repo, so the default workspace root does
+ * `../../../prompt-kit/packages/prompt-kit/src` / `../../../annotations`. The
+ * prompt-kit repo-root grant stays broad enough for that nested source. These
+ * directories need fs.allow (they sit outside this repo, so the workspace root does
  * not cover them), a react/react-dom dedupe — both carry their own copy for
  * standalone typechecking and two Reacts crash hooks — and optimizeDeps
  * exclusion: a prebundled linked dep is served from a stale cache and never

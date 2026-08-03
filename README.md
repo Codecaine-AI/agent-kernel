@@ -39,7 +39,7 @@
   - `@agent-kernel/protocol` — trace/event envelopes, event factories, deterministic event ids, and turn usage
   - `@agent-kernel/db` — per-kernel SQLite observability store, schema (with a Postgres mirror), kernel manifest, and query helpers
   - `@agent-kernel/kernel` — `createKernel` runtime, container identity, registry, context assembly, spawn pipeline, in-process emitter, subagents, trace doctor, read API, and transcript recovery
-  - `@codecaine-ai/prompt-kit` — prompt document model, canonicalization/hashing, renderers, and editor primitives (submodule)
+  - `@codecaine-ai/prompt-kit` — prompt document model, canonicalization/hashing, renderers, and editor primitives (sibling repo and Core workspace member)
   - `@agent-kernel/viewer-core` — viewer DTOs, read/catalog API paths, trace transforms, and prompt diffing
   - `@agent-kernel/viewer-ui` — trace tree and card system, the detail panel and its data-only renderer contract, prompt lab components
   - `@agent-kernel/viewer-shell` — mountable trace workspace, the tree/detail viewer, and the shared style system
@@ -66,8 +66,7 @@
 
 ## Examples
 
-- `examples/prompt-kit-kernel` is the standalone Prompt Kit kernel host for the first-party `prompt-editor` agent. It also exposes the Simple Research catalog as real edit targets and mounts its catalog, annotation, prompt-edit session, trace, and health APIs under the Observatory-compatible routes.
-- Start it with `bun run dev:prompt-kit`; its API listens on `http://127.0.0.1:4850` and its isolated SQLite state lives under `examples/prompt-kit-kernel/.agent-kernel/`.
+- The Prompt Kit kernel host has moved to the sibling Prompt Kit repo at `../prompt-kit/packages/prompt-kit-agent`; from `../prompt-kit`, start it with `bun run dev:agent`.
 - `examples/simple-research-kernel` is a runnable standalone Simple Research Kernel.
 - The example defines agents in a catalog (folder-form bundles: `agent.json` + `prompt/` + `context/` + `tools/`), loads context sidecars, spawns scout subagents, waits for their reports, reviews gaps, queues a report writer, writes working memory, persists kernel observability rows, and renders traces through the viewer shell.
 - Start it with `bun run dev:simple-research` — no Postgres, no Docker, no service processes.
