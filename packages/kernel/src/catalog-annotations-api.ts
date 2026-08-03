@@ -76,7 +76,6 @@ export function createKernelCatalogAnnotationsApi(
 ) {
 	const prefix = normalizePrefix(options.prefix ?? "/kernel");
 	const allowWrites = options.allowWrites ?? service.allowWrites;
-	const base = `${prefix}/catalog/agents/:name/annotations`;
 
 	const readOnly = (set: { status?: number | string }) => {
 		set.status = 403;
@@ -86,7 +85,7 @@ export function createKernelCatalogAnnotationsApi(
 	};
 
 	return new Elysia()
-		.get(base, async ({ params, set }) => {
+		.get(`${prefix}/catalog/agents/:name/annotations`, async ({ params, set }) => {
 			try {
 				const result = await service.listAnnotations(params.name);
 				if (result === null) {
@@ -108,7 +107,7 @@ export function createKernelCatalogAnnotationsApi(
 				return { error: "Failed to list catalog annotations" };
 			}
 		})
-		.post(base, async ({ params, body, set }) => {
+		.post(`${prefix}/catalog/agents/:name/annotations`, async ({ params, body, set }) => {
 			if (!allowWrites) return readOnly(set);
 			try {
 				return answerMutation(
@@ -122,7 +121,7 @@ export function createKernelCatalogAnnotationsApi(
 				return { error: "Failed to add catalog annotation" };
 			}
 		})
-		.post(`${base}/prune`, async ({ params, body, set }) => {
+		.post(`${prefix}/catalog/agents/:name/annotations/prune`, async ({ params, body, set }) => {
 			if (!allowWrites) return readOnly(set);
 			try {
 				return answerMutation(
@@ -136,7 +135,7 @@ export function createKernelCatalogAnnotationsApi(
 				return { error: "Failed to prune catalog annotations" };
 			}
 		})
-		.post(`${base}/:id/replies`, async ({ params, body, set }) => {
+		.post(`${prefix}/catalog/agents/:name/annotations/:id/replies`, async ({ params, body, set }) => {
 			if (!allowWrites) return readOnly(set);
 			try {
 				return answerMutation(
@@ -150,7 +149,7 @@ export function createKernelCatalogAnnotationsApi(
 				return { error: "Failed to add catalog annotation reply" };
 			}
 		})
-		.post(`${base}/:id/resolve`, async ({ params, body, set }) => {
+		.post(`${prefix}/catalog/agents/:name/annotations/:id/resolve`, async ({ params, body, set }) => {
 			if (!allowWrites) return readOnly(set);
 			try {
 				return answerMutation(
@@ -164,7 +163,7 @@ export function createKernelCatalogAnnotationsApi(
 				return { error: "Failed to resolve catalog annotation" };
 			}
 		})
-		.post(`${base}/:id/agent-run`, async ({ params, body, set }) => {
+		.post(`${prefix}/catalog/agents/:name/annotations/:id/agent-run`, async ({ params, body, set }) => {
 			if (!allowWrites) return readOnly(set);
 			try {
 				return answerMutation(
@@ -178,7 +177,7 @@ export function createKernelCatalogAnnotationsApi(
 				return { error: "Failed to attach catalog annotation agent run" };
 			}
 		})
-		.delete(`${base}/:id`, async ({ params, query, set }) => {
+		.delete(`${prefix}/catalog/agents/:name/annotations/:id`, async ({ params, query, set }) => {
 			if (!allowWrites) return readOnly(set);
 			try {
 				const expectedHash =

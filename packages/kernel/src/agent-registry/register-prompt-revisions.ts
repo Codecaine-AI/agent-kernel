@@ -19,7 +19,9 @@ export async function registerPromptRevisions(
 ): Promise<PromptRevision[]> {
 	const createdAt = new Date().toISOString();
 	const revisions: PromptRevision[] = [];
-	for (const def of registry.list()) {
+	// Unlisted agents remain spawnable, so their runtime prompt revisions must
+	// be registered even though browse-oriented catalog lists omit them.
+	for (const def of registry.listAll()) {
 		if (!def.promptDocument || !def.promptHash) continue;
 		revisions.push(
 			await upsertPromptRevision(db, {

@@ -1,0 +1,22 @@
+{
+	"name": "@agent-kernel/example-prompt-kit-kernel",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "bun run src/server.ts",
+		"start": "bun run src/server.ts",
+		"test": "bun test ./test",
+		"typecheck": "bunx --bun tsc -p tsconfig.json --noEmit"
+	},
+	"dependencies": {
+		"@agent-kernel/db": "workspace:*",
+		"@agent-kernel/kernel": "workspace:*",
+		"drizzle-orm": "^0.45.0",
+		"elysia": "^1.2.0"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"typescript": "^5"
+	}
+}

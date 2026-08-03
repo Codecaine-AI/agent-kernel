@@ -15,6 +15,7 @@ import {
 	registerPromptRevisions,
 	syncAgentPromptFromDisk,
 	type AgentRegistry,
+	type CatalogRootSpec,
 } from "./agent-registry";
 import {
 	createKernelCatalogService,
@@ -95,8 +96,12 @@ export interface CreateKernelConfig<TToolRuntime = unknown> {
 	 * traceWriter, readApiService, doctor(), and spawnAgent.
 	 */
 	db?: KernelDatabase;
-	/** Agent catalog roots scanned for agent.json bundles at first use. */
-	catalog?: { roots: string[] };
+	/**
+	 * Agent catalog roots scanned for agent.json bundles at first use. A root
+	 * may be `{ path, listed: false }` to keep its agents spawnable and directly
+	 * addressable while hiding them from catalog browsing. Strings stay listed.
+	 */
+	catalog?: { roots: CatalogRootSpec[] };
 	models?: KernelModelsConfig;
 	/** Named tool bundles referenced by manifest `toolProfiles`. */
 	toolProfiles?: Record<string, string[]>;
@@ -422,3 +427,4 @@ export * from "./spawn-config";
 export * from "./trace-writer";
 export * from "./read-service";
 export * from "./catalog-service";
+export * from "./prompt-edit-session";

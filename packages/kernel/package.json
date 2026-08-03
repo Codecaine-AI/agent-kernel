@@ -21,6 +21,7 @@
     "./context": "./src/context/index.ts",
     "./context/loaders": "./src/context/loaders/index.ts",
     "./events": "./src/events/index.ts",
+    "./prompt-edit-session": "./src/prompt-edit-session/index.ts",
     "./read-api": "./src/read-api.ts",
     "./run-context": "./src/run-context.ts",
     "./state": "./src/state/index.ts",

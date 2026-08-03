@@ -14,5 +14,7 @@ coverage/
 references/
 examples/simple-research-kernel/.agent-kernel/
 examples/simple-research-kernel/.pi-agent/
+examples/prompt-kit-kernel/.agent-kernel/
+examples/prompt-kit-kernel/.pi-agent/
 
 ai_docs/

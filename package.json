@@ -6,11 +6,12 @@
   "type": "module",
   "workspaces": ["packages/*", "examples/*"],
   "scripts": {
+    "dev:prompt-kit": "bun run --cwd examples/prompt-kit-kernel dev",
     "dev:simple-research": "bun run --cwd examples/simple-research-kernel dev",
     "dev:services": "bun run scripts/dev-services.ts",
     "test": "bun run test:boundaries && bun run test:packages",
     "test:boundaries": "bun run scripts/check-package-boundaries.ts",
-    "test:packages": "bun test ./packages/kernel/src ./packages/viewer-core/src ./packages/viewer-ui/src ./examples/simple-research-kernel/src/agent-catalog/prompt-snapshots.test.ts ./packages/viewer-shell/src",
+    "test:packages": "bun test ./packages/kernel/src ./packages/viewer-core/src ./packages/viewer-ui/src ./examples/simple-research-kernel/src/agent-catalog/prompt-snapshots.test.ts ./examples/prompt-kit-kernel/test/harness.test.ts ./packages/viewer-shell/src",
     "typecheck": "bun run typecheck:protocol && bun run typecheck:db && bun run typecheck:kernel && bun run typecheck:viewer-core && bun run typecheck:viewer-ui && bun run typecheck:viewer-shell && bun run typecheck:examples",
     "typecheck:protocol": "bunx --bun tsc -p packages/protocol/tsconfig.json --noEmit",
     "typecheck:db": "bunx --bun tsc -p packages/db/tsconfig.json --noEmit",
@@ -18,7 +19,7 @@
     "typecheck:viewer-core": "bunx --bun tsc -p packages/viewer-core/tsconfig.json --noEmit",
     "typecheck:viewer-ui": "bunx --bun tsc -p packages/viewer-ui/tsconfig.json --noEmit",
     "typecheck:viewer-shell": "bunx --bun tsc -p packages/viewer-shell/tsconfig.json --noEmit",
-    "typecheck:examples": "bun run --cwd examples/simple-research-kernel typecheck"
+    "typecheck:examples": "bun run --cwd examples/simple-research-kernel typecheck && bun run --cwd examples/prompt-kit-kernel typecheck"
   },
   "devDependencies": {
     "@codecaine-ai/prompt-kit": "link:@codecaine-ai/prompt-kit",

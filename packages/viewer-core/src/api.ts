@@ -49,6 +49,64 @@ export const KERNEL_CATALOG_PATHS = {
 	revisionStats(name: string, hash: string): string {
 		return `/kernel/catalog/agents/${encodeURIComponent(name)}/revisions/${encodeURIComponent(hash)}/stats`;
 	},
+	// -- Annotation sidecar routes (kernel catalog-annotations-api.ts). GET
+	// lists, POST adds; the :id mutations follow the 409 + { currentHash }
+	// optimistic-concurrency idiom via expectedHash in the body.
+	agentAnnotations(name: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/annotations`;
+	},
+	agentAnnotation(name: string, annotationId: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/annotations/${encodeURIComponent(annotationId)}`;
+	},
+	agentAnnotationReplies(name: string, annotationId: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/annotations/${encodeURIComponent(annotationId)}/replies`;
+	},
+	agentAnnotationResolve(name: string, annotationId: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/annotations/${encodeURIComponent(annotationId)}/resolve`;
+	},
+	agentAnnotationAgentRun(name: string, annotationId: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/annotations/${encodeURIComponent(annotationId)}/agent-run`;
+	},
+	agentAnnotationsPrune(name: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/annotations/prune`;
+	},
+	/** Creates a prompt-edit session for the agent (201 { state }). */
+	agentEditSessions(name: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/edit-sessions`;
+	},
+} as const;
+
+/**
+ * Routes owned by the kernel prompt-edit session API (Phase 2 review loop —
+ * see packages/kernel/src/prompt-edit-session-api.ts). Session creation lives
+ * under the catalog agent (KERNEL_CATALOG_PATHS.agentEditSessions); everything
+ * after creation is keyed by session id here.
+ */
+export const KERNEL_PROMPT_EDIT_SESSION_PATHS = {
+	list: "/kernel/prompt-edit-sessions",
+	session(sessionId: string): string {
+		return `/kernel/prompt-edit-sessions/${encodeURIComponent(sessionId)}`;
+	},
+	/** SSE stream: `session-state` hello, then every service stream event. */
+	events(sessionId: string): string {
+		return `/kernel/prompt-edit-sessions/${encodeURIComponent(sessionId)}/events`;
+	},
+	/** POST: add a human request mid-session. */
+	requests(sessionId: string): string {
+		return `/kernel/prompt-edit-sessions/${encodeURIComponent(sessionId)}/requests`;
+	},
+	accept(sessionId: string, alias: string): string {
+		return `/kernel/prompt-edit-sessions/${encodeURIComponent(sessionId)}/requests/${encodeURIComponent(alias)}/accept`;
+	},
+	reject(sessionId: string, alias: string): string {
+		return `/kernel/prompt-edit-sessions/${encodeURIComponent(sessionId)}/requests/${encodeURIComponent(alias)}/reject`;
+	},
+	undo(sessionId: string, alias: string): string {
+		return `/kernel/prompt-edit-sessions/${encodeURIComponent(sessionId)}/requests/${encodeURIComponent(alias)}/undo`;
+	},
+	replies(sessionId: string, alias: string): string {
+		return `/kernel/prompt-edit-sessions/${encodeURIComponent(sessionId)}/requests/${encodeURIComponent(alias)}/replies`;
+	},
 } as const;
 
 /**

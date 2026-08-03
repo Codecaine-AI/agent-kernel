@@ -28,8 +28,10 @@ import {
 	getPromptRevision,
 	getPromptRevisionStats,
 	listPromptRevisionsForAgent,
+	PROMPT_REVISION_SOURCE,
 	upsertPromptRevision,
 	type KernelDatabase,
+	type PromptRevisionSource,
 	type PromptRevisionStats,
 } from "@agent-kernel/db";
 import {
@@ -138,13 +140,19 @@ export interface KernelCatalogService extends KernelCatalogAnnotationOps {
 	/** Dev-mode write gate: the PUT route answers 403 when false. */
 	readonly allowWrites: boolean;
 	listAgents(): Promise<KernelCatalogAgentSummary[]>;
-	/** null when the agent is not in the registry. */
+	/**
+	 * null when the agent is not in the registry. Agents from unlisted roots
+	 * remain directly detail-fetchable; unlisted controls browsing, not access.
+	 */
 	getAgentDetail(name: string): Promise<KernelCatalogAgentDetail | null>;
-	/** null when the agent is not in the registry. */
+	/** null when the agent is not in the registry.
+	 * `source` labels the prompt_revisions row; defaults to "lab-save" (the
+	 * Phase 2 apply path passes "agent-run"). */
 	savePrompt(
 		name: string,
 		document: unknown,
 		expectedHash?: string,
+		source?: PromptRevisionSource,
 	): Promise<KernelCatalogPromptSaveResult | null>;
 	/** null when the agent is not in the registry. */
 	saveManifest(
@@ -331,7 +339,7 @@ export function createKernelCatalogService(
 			};
 		},
 
-		async savePrompt(name, input, expectedHash) {
+		async savePrompt(name, input, expectedHash, source) {
 			const registry = await opts.registry();
 			if (!registry.tryGet(name)) return null;
 			// Compare against the disk-fresh canonical prompt, not just the
@@ -380,7 +388,7 @@ export function createKernelCatalogService(
 				schemaVersion: document.schemaVersion,
 				document: canonical,
 				renderedText: rendered,
-				source: "lab-save",
+				source: source ?? PROMPT_REVISION_SOURCE.LAB_SAVE,
 				createdAt: new Date().toISOString(),
 			});
 

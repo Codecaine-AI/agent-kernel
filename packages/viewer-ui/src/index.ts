@@ -188,6 +188,35 @@ export {
 	type AgentPromptLabContainerProps,
 } from "./agent-viewer/AgentPromptLabContainer";
 export {
+	createPromptEditClient,
+	feedSseChunk,
+	isPromptEditClientFailure,
+	type CreatePromptEditClientOptions,
+	type PromptEditClient,
+	type PromptEditClientFailure,
+	type PromptEditClientResult,
+} from "./agent-viewer/prompt-edit-client";
+export {
+	annotationsToLabRequests,
+	applySessionEvent,
+	isAgentActive,
+	toAnnotationTarget,
+	toLabAuthor,
+	toLabRequest,
+	toLabRequestStatus,
+	toLabSessionData,
+	toLabTarget,
+	toSessionTarget,
+	windowProposals,
+	type LabSessionData,
+} from "./agent-viewer/prompt-edit-session-view";
+export {
+	createPromptLabSessionController,
+	type PromptLabSessionController,
+	type PromptLabSessionControllerOptions,
+	type PromptLabSessionSnapshot,
+} from "./agent-viewer/prompt-lab-session-controller";
+export {
 	RevisionHistoryPanel,
 	type RevisionHistoryPanelProps,
 } from "./agent-viewer/RevisionHistoryPanel";

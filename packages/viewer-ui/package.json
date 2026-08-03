@@ -26,6 +26,8 @@
     "tokenx": "^1.3.0"
   },
   "devDependencies": {
+    "@agent-kernel/db": "workspace:*",
+    "@agent-kernel/kernel": "workspace:*",
     "@types/bun": "latest",
     "@types/react": "^19",
     "@types/react-dom": "^19"

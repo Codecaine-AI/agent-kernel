@@ -6,6 +6,8 @@ export const PROMPT_REVISION_SOURCE = {
   LAB_SAVE: "lab-save",
   DISK_SYNC: "disk-sync",
   MIGRATION: "migration",
+  /** Accepted prompt-editor agent proposal applied by the Phase 2 apply path. */
+  AGENT_RUN: "agent-run",
 } as const;
 
 export type PromptRevisionSource =

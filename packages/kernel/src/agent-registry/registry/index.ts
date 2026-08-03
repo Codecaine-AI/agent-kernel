@@ -1,7 +1,12 @@
 export { buildAgentPromptState, buildRegistry, catalogDirExists } from "./registry";
 export type { AgentPromptState, BuildRegistryOptions } from "./registry";
 export { RegistryError } from "./types";
-export type { AgentDefinition, AgentRegistry } from "./types";
+export type {
+	AgentDefinition,
+	AgentRegistry,
+	CatalogRoot,
+	CatalogRootSpec,
+} from "./types";
 export {
 	bundleSections,
 	collectBundleDirs,

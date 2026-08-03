@@ -66,6 +66,8 @@
 
 ## Examples
 
+- `examples/prompt-kit-kernel` is the standalone Prompt Kit kernel host for the first-party `prompt-editor` agent. It also exposes the Simple Research catalog as real edit targets and mounts its catalog, annotation, prompt-edit session, trace, and health APIs under the Observatory-compatible routes.
+- Start it with `bun run dev:prompt-kit`; its API listens on `http://127.0.0.1:4850` and its isolated SQLite state lives under `examples/prompt-kit-kernel/.agent-kernel/`.
 - `examples/simple-research-kernel` is a runnable standalone Simple Research Kernel.
 - The example defines agents in a catalog (folder-form bundles: `agent.json` + `prompt/` + `context/` + `tools/`), loads context sidecars, spawns scout subagents, waits for their reports, reviews gaps, queues a report writer, writes working memory, persists kernel observability rows, and renders traces through the viewer shell.
 - Start it with `bun run dev:simple-research` — no Postgres, no Docker, no service processes.

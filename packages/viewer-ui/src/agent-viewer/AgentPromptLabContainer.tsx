@@ -1,7 +1,14 @@
 "use client";
 
 import cn from "classnames";
-import { useCallback, useEffect, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from "react";
 import type { PromptDocument } from "@codecaine-ai/prompt-kit";
 import {
 	KERNEL_CATALOG_PATHS,
@@ -23,6 +30,14 @@ import {
 	loadPromptRevisionDocument,
 	savePromptDocument,
 } from "./catalog-client";
+import {
+	createPromptEditClient,
+	type PromptEditClient,
+} from "./prompt-edit-client";
+import {
+	createPromptLabSessionController,
+	type PromptLabSessionController,
+} from "./prompt-lab-session-controller";
 import { RevisionHistoryPanel } from "./RevisionHistoryPanel";
 import { RevisionStatsStrip } from "./RevisionStatsStrip";
 
@@ -39,6 +54,11 @@ export interface AgentPromptLabContainerProps {
 	context?: LabContextPreview;
 	/** Viewer-only style settings controlled by the host application. */
 	styleSettings?: PromptStyleSettings;
+	/**
+	 * Test seam: substitute the annotation/session client (defaults to the
+	 * real fetch-backed client scoped to baseUrl + agentName).
+	 */
+	promptEditClient?: PromptEditClient;
 }
 
 interface ManifestFields {
@@ -51,8 +71,19 @@ interface ManifestFields {
  * Host-side container for the prompt lab shell: loads the agent's catalog
  * detail (manifest + prompt + model aliases), wires prompt saves through PUT
  * .../prompt and manifest edits through PUT .../manifest, and mounts the
- * revision history + saved-revision stats beneath the shell. The shell itself
- * stays host-agnostic — all fetching lives here.
+ * revision history + saved-revision stats beneath the shell.
+ *
+ * Phase 2 wiring (plan item 9): annotate-mode composer submissions persist to
+ * the kernel's annotation sidecar (the lab's in-memory store fallback is
+ * unused here), the header strip's "Apply N notes" creates a prompt-edit
+ * session (spawning the prompt-editor agent server-side), an SSE subscription
+ * mirrors the session state, and staged proposals surface through the lab's
+ * `promptEditSession` prop for inline accept/reject/undo. Accepted proposals
+ * write new revisions server-side — the container refetches the agent detail
+ * per revision move so accepted text renders as normal rows.
+ *
+ * The shell itself stays host-agnostic — all fetching lives here (and in the
+ * framework-free controller, prompt-lab-session-controller.ts).
  */
 export function AgentPromptLabContainer({
 	baseUrl,
@@ -60,6 +91,7 @@ export function AgentPromptLabContainer({
 	className,
 	context,
 	styleSettings,
+	promptEditClient,
 }: AgentPromptLabContainerProps) {
 	const origin = trimTrailingSlash(baseUrl);
 	const [detail, setDetail] = useState<CatalogAgentDetail | undefined>(undefined);
@@ -71,6 +103,9 @@ export function AgentPromptLabContainer({
 	const [revisions, setRevisions] = useState<PromptRevisionSummary[]>([]);
 	const [revisionsLoading, setRevisionsLoading] = useState(false);
 	const [revisionsError, setRevisionsError] = useState<string | undefined>(undefined);
+
+	const detailRef = useRef<CatalogAgentDetail | undefined>(undefined);
+	detailRef.current = detail;
 
 	const refreshRevisions = useCallback(async () => {
 		setRevisionsLoading(true);
@@ -87,6 +122,52 @@ export function AgentPromptLabContainer({
 		}
 	}, [origin, agentName]);
 
+	const loadDetail = useCallback(async (): Promise<void> => {
+		const response = await fetch(`${origin}${KERNEL_CATALOG_PATHS.agentDetail(agentName)}`);
+		if (!response.ok) throw new Error(`agent request failed (${response.status})`);
+		const body = (await response.json()) as CatalogAgentDetail;
+		setDetail(body);
+		setSavedHash(body.promptHash);
+		setManifestFields(readManifestFields(body, agentName));
+		setDocumentsByHash((current) => ({ ...current, [body.promptHash]: body.prompt }));
+	}, [origin, agentName]);
+
+	// Latest-detail refresh, reachable from the (agent-stable) controller.
+	const refreshPromptRef = useRef<() => Promise<void>>(async () => {});
+	refreshPromptRef.current = async () => {
+		await loadDetail();
+		void refreshRevisions();
+	};
+
+	const client = useMemo<PromptEditClient>(
+		() =>
+			promptEditClient ??
+			createPromptEditClient({ origin, agentName }),
+		[promptEditClient, origin, agentName],
+	);
+
+	const controller = useMemo<PromptLabSessionController>(
+		() =>
+			createPromptLabSessionController({
+				client,
+				docId: () => detailRef.current?.prompt.id ?? "",
+				onPromptRefresh: () => refreshPromptRef.current(),
+			}),
+		[client],
+	);
+
+	useEffect(() => {
+		void controller.load();
+		return () => controller.dispose();
+	}, [controller]);
+
+	const sessionSnapshot = useSyncExternalStore(
+		controller.subscribe,
+		controller.getSnapshot,
+		controller.getSnapshot,
+	);
+	const promptEditSession = controller.labSession() ?? undefined;
+
 	useEffect(() => {
 		let cancelled = false;
 		setDetail(undefined);
@@ -96,28 +177,17 @@ export function AgentPromptLabContainer({
 		setDocumentsByHash({});
 		setRevisions([]);
 
-		(async () => {
-			try {
-				const response = await fetch(`${origin}${KERNEL_CATALOG_PATHS.agentDetail(agentName)}`);
-				if (!response.ok) throw new Error(`agent request failed (${response.status})`);
-				const body = (await response.json()) as CatalogAgentDetail;
-				if (cancelled) return;
-				setDetail(body);
-				setSavedHash(body.promptHash);
-				setManifestFields(readManifestFields(body, agentName));
-				setDocumentsByHash({ [body.promptHash]: body.prompt });
-			} catch (cause) {
-				if (!cancelled) {
-					setLoadError(cause instanceof Error ? cause.message : "agent unavailable");
-				}
+		loadDetail().catch((cause) => {
+			if (!cancelled) {
+				setLoadError(cause instanceof Error ? cause.message : "agent unavailable");
 			}
-		})();
+		});
 		void refreshRevisions();
 
 		return () => {
 			cancelled = true;
 		};
-	}, [origin, agentName, refreshRevisions]);
+	}, [loadDetail, refreshRevisions]);
 
 	const handleSave = useCallback(
 		async (doc: PromptDocument): Promise<PromptSaveOutcome> => {
@@ -196,8 +266,93 @@ export function AgentPromptLabContainer({
 		);
 	}
 
+	const session = sessionSnapshot.session;
+	const stagedCount = promptEditSession?.proposals.length ?? 0;
+	const showSessionStrip =
+		session !== null ||
+		sessionSnapshot.sessionStarting ||
+		sessionSnapshot.openRequestCount > 0 ||
+		sessionSnapshot.sessionError !== undefined ||
+		sessionSnapshot.annotationsError !== undefined ||
+		sessionSnapshot.streamError !== undefined;
+	const stripError =
+		sessionSnapshot.sessionError ??
+		sessionSnapshot.annotationsError ??
+		(sessionSnapshot.streamError !== undefined
+			? `Event stream dropped (${sessionSnapshot.streamError}) — reviews still work.`
+			: undefined);
+
 	return (
 		<div className={cn("flex h-full min-h-0 flex-col bg-card font-mono", className)}>
+			{showSessionStrip && (
+				<div
+					data-prompt-session-strip=""
+					className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-background px-3 py-1.5 text-[11px]"
+				>
+					{session === null && !sessionSnapshot.sessionStarting && (
+						<>
+							{sessionSnapshot.openRequestCount > 0 && (
+								<span className="text-muted-foreground">
+									{sessionSnapshot.openRequestCount} open note
+									{sessionSnapshot.openRequestCount === 1 ? "" : "s"}
+								</span>
+							)}
+							{sessionSnapshot.openRequestCount > 0 && (
+								<button
+									type="button"
+									data-prompt-session-run=""
+									className="rounded-md border border-border px-2 py-0.5 text-[11px] hover:border-ring"
+									onClick={() => void controller.startSession()}
+								>
+									Apply {sessionSnapshot.openRequestCount} note
+									{sessionSnapshot.openRequestCount === 1 ? "" : "s"}
+								</button>
+							)}
+						</>
+					)}
+					{sessionSnapshot.sessionStarting && (
+						<span className="text-muted-foreground">Starting session…</span>
+					)}
+					{session !== null && (
+						<>
+							<span className="text-muted-foreground">
+								{session.agent.error !== undefined
+									? `Agent failed to start: ${session.agent.error}`
+									: session.status === "running"
+										? session.agent.spawned
+											? "Agent working…"
+											: "Session open (no agent run)"
+										: "Agent finished"}
+							</span>
+							{stagedCount > 0 && (
+								<span className="text-teal-500">
+									{stagedCount} proposal{stagedCount === 1 ? "" : "s"} staged
+								</span>
+							)}
+							{stagedCount > 1 && (
+								<button
+									type="button"
+									className="rounded-md border border-border px-2 py-0.5 text-[11px] hover:border-ring"
+									onClick={() => void controller.acceptAll()}
+								>
+									Accept all
+								</button>
+							)}
+							<button
+								type="button"
+								data-prompt-session-end=""
+								className="rounded-md border border-border px-2 py-0.5 text-[11px] text-muted-foreground hover:border-ring"
+								onClick={() => void controller.endSession()}
+							>
+								End session
+							</button>
+						</>
+					)}
+					{stripError !== undefined && (
+						<span className="text-destructive">{stripError}</span>
+					)}
+				</div>
+			)}
 			<div className="min-h-0 flex-1 overflow-hidden">
 				<PromptInlineLab
 					key={`${agentName}:${detail.promptHash}`}
@@ -215,6 +370,7 @@ export function AgentPromptLabContainer({
 					onManifestSave={handleManifestSave}
 					context={context ?? toLabContextPreview(detail.context)}
 					styleSettings={styleSettings}
+					promptEditSession={promptEditSession}
 					revisionsZone={
 						<RevisionHistoryPanel
 							revisions={revisions}

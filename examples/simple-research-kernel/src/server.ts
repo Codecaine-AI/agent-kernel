@@ -37,7 +37,9 @@ import {
 	WORKING_MEMORY_DIR
 } from "./simple-research-kernel-store";
 
-const port = Number(Bun.env.PORT ?? 8788);
+const port = Number(
+	Bun.env.SIMPLE_RESEARCH_KERNEL_PORT ?? Bun.env.PORT ?? 8788
+);
 const frontendPort = Number(Bun.env.FRONTEND_PORT ?? 5174);
 const appBaseUrl =
 	Bun.env.AGENT_KERNEL_APP_BASE_URL ?? `http://127.0.0.1:${frontendPort}`;
@@ -58,7 +60,7 @@ await writeKernelManifest(EXAMPLE_ROOT, {
 	kernelRoot,
 	dbPath,
 	catalogRoots: [resolve(EXAMPLE_ROOT, "src", "agent-catalog")],
-	readApiBaseUrl: "http://127.0.0.1:8788",
+	readApiBaseUrl: `http://127.0.0.1:${port}`,
 	viewerBaseUrl: appBaseUrl
 });
 

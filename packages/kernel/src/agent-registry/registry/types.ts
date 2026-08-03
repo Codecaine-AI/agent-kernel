@@ -10,8 +10,23 @@ import type { AgentContextResolver } from "../../context";
 import type { StateModule } from "../../state/types";
 import type { AgentBundleLayout } from "./bundle-layout";
 
+/**
+ * Object form for a catalog root. `listed: false` keeps the root's agents
+ * resolvable by name while excluding them from browse-oriented registry and
+ * catalog listings. Omitting `listed` preserves the default listed behavior.
+ */
+export interface CatalogRoot {
+	path: string;
+	listed?: boolean;
+}
+
+/** Plain string roots are backward-compatible shorthand for listed roots. */
+export type CatalogRootSpec = string | CatalogRoot;
+
 export interface AgentDefinition {
 	name: string;
+	/** Whether this agent appears in browse-oriented catalog listings. */
+	catalogListed: boolean;
 	/** Runtime config + rendered prompt template (variables unsubstituted). */
 	parsed: ParsedAgent;
 	/** The validated, normalized agent.json contents (D76). */
@@ -65,7 +80,10 @@ export interface AgentDefinition {
 export interface AgentRegistry {
 	get(name: string): AgentDefinition;
 	tryGet(name: string): AgentDefinition | null;
+	/** Agents from listed catalog roots, for browse-oriented catalog surfaces. */
 	list(): AgentDefinition[];
+	/** Every registered agent, including agents from unlisted roots. */
+	listAll(): AgentDefinition[];
 	roots(): string[];
 	/**
 	 * Re-read an agent's prompt.json from disk, re-validate it against the

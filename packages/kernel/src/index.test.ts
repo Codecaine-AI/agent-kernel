@@ -10,24 +10,32 @@ import {
 
 import { createKernel, DEFAULT_MAX_BACKGROUND_AGENTS } from ".";
 
-const PROMPT_JSON = JSON.stringify({
-	kind: "prompt",
-	schemaVersion: "prompt-kit/v1",
-	id: "kernelTestPrompt",
-	nodes: [
-		{
-			type: "section",
-			tag: "task",
-			children: [{ type: "paragraph", content: ["Do the thing."] }],
-		},
-	],
-});
+function makePromptJson(id: string): string {
+	return JSON.stringify({
+		kind: "prompt",
+		schemaVersion: "prompt-kit/v1",
+		id,
+		nodes: [
+			{
+				type: "section",
+				tag: "task",
+				children: [{ type: "paragraph", content: ["Do the thing."] }],
+			},
+		],
+	});
+}
 
-function writeCatalog(root: string, manifest: Record<string, unknown>): void {
+const PROMPT_JSON = makePromptJson("kernelTestPrompt");
+
+function writeCatalog(
+	root: string,
+	manifest: Record<string, unknown>,
+	promptJson = PROMPT_JSON,
+): void {
 	const agentDir = join(root, String(manifest.name));
 	mkdirSync(agentDir, { recursive: true });
 	writeFileSync(join(agentDir, "agent.json"), JSON.stringify(manifest));
-	writeFileSync(join(agentDir, "prompt.json"), PROMPT_JSON);
+	writeFileSync(join(agentDir, "prompt.json"), promptJson);
 }
 
 describe("createKernel", () => {
@@ -109,6 +117,73 @@ describe("createKernel", () => {
 
 			// Cached: same instance on the second call.
 			expect(await kernel.registry()).toBe(registry);
+		} finally {
+			kernel.dispose();
+			handle.close();
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	test("unlisted roots stay detail-fetchable and spawn-resolvable but are not listed", async () => {
+		const root = mkdtempSync(join(import.meta.dir, ".kernel-test-"));
+		const handle = openKernelDatabase({ path: join(root, "trace.db") });
+		const listedRoot = join(root, "listed-catalog");
+		const unlistedRoot = join(root, "unlisted-catalog");
+		const kernel = createKernel({
+			id: "kernel-test",
+			db: handle.db,
+			catalog: {
+				roots: [listedRoot, { path: unlistedRoot, listed: false }],
+			},
+		});
+		try {
+			await ensureKernelObservabilitySchema(handle.db);
+			writeCatalog(listedRoot, {
+				name: "listed-worker",
+				description: "listed test worker",
+				model: "test/model",
+			});
+			writeCatalog(
+				unlistedRoot,
+				{
+					name: "unlisted-worker",
+					description: "unlisted test worker",
+					model: "test/model",
+				},
+				makePromptJson("unlistedKernelTestPrompt"),
+			);
+
+			const registry = await kernel.registry();
+			expect(registry.list().map((def) => def.name)).toEqual(["listed-worker"]);
+			expect(registry.listAll().map((def) => def.name)).toEqual([
+				"listed-worker",
+				"unlisted-worker",
+			]);
+			const unlistedRevision = await getPromptRevision(
+				handle.db,
+				registry.get("unlisted-worker").promptHash,
+			);
+			expect(unlistedRevision?.agentName).toBe("unlisted-worker");
+
+			const catalog = kernel.catalogApiService();
+			expect((await catalog.listAgents()).map((agent) => agent.name)).toEqual([
+				"listed-worker",
+			]);
+			expect((await catalog.getAgentDetail("unlisted-worker"))?.manifest.name).toBe(
+				"unlisted-worker",
+			);
+
+			// An agent-specific variant error proves the unlisted name reached the
+			// spawn config resolver; it fails before any model session is created.
+			await expect(
+				kernel.spawnAgent("unlisted-worker", "hi", null, {
+					variant: "intentionally-missing",
+					workingDir: root,
+					containerId: "c-unlisted",
+				}),
+			).rejects.toThrow(
+				'Unknown variant "intentionally-missing" for agent "unlisted-worker"',
+			);
 		} finally {
 			kernel.dispose();
 			handle.close();

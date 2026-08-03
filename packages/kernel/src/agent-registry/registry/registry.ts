@@ -45,7 +45,11 @@ import {
 	type AgentBundleLayout,
 } from "./bundle-layout";
 import { harvestPrivateToolsFromRegister } from "./harvest-private-tool-names";
-import type { AgentDefinition, AgentRegistry } from "./types";
+import type {
+	AgentDefinition,
+	AgentRegistry,
+	CatalogRootSpec,
+} from "./types";
 import { RegistryError } from "./types";
 import { validateVariables } from "./validate-variables";
 
@@ -272,6 +276,7 @@ export function buildAgentPromptState(
 async function loadOne(
 	manifestFile: string,
 	toolProfiles: Record<string, string[]>,
+	catalogListed: boolean,
 ): Promise<LoadOne> {
 	const agentDir = dirname(manifestFile);
 	const bundleLayout = resolveBundleLayout(agentDir);
@@ -325,6 +330,7 @@ async function loadOne(
 		return {
 			def: {
 				name: manifest.name,
+				catalogListed,
 				parsed,
 				manifest,
 				promptDocument,
@@ -358,8 +364,12 @@ async function loadOne(
 }
 
 export interface BuildRegistryOptions {
-	/** Catalog roots scanned recursively for agent.json manifests. */
-	roots: string[];
+	/**
+	 * Catalog roots scanned recursively for agent.json manifests. Plain strings
+	 * and object roots with omitted `listed` are listed by default; use
+	 * `{ path, listed: false }` for name-resolvable, non-browsable agents.
+	 */
+	roots: CatalogRootSpec[];
 	/** Named tool bundles referenced by manifest `toolProfiles` (D76/4b). */
 	toolProfiles?: Record<string, string[]>;
 }
@@ -367,23 +377,36 @@ export interface BuildRegistryOptions {
 export async function buildRegistry(
 	opts: BuildRegistryOptions,
 ): Promise<AgentRegistry> {
-	const roots = opts.roots;
+	const roots = opts.roots.map((root) =>
+		typeof root === "string"
+			? { path: root, listed: true }
+			: { path: root.path, listed: root.listed ?? true },
+	);
 	if (roots.length === 0) {
 		throw new Error("buildRegistry requires at least one catalog root");
 	}
 	for (const root of roots) {
-		if (!existsSync(root)) {
-			throw new Error(`agent catalog root not found at ${root}`);
+		if (!existsSync(root.path)) {
+			throw new Error(`agent catalog root not found at ${root.path}`);
 		}
 	}
 
-	const manifestFiles = roots.flatMap((root) => collectManifestFiles(root));
+	const manifestFiles = roots.flatMap((root) =>
+		collectManifestFiles(root.path).map((manifestFile) => ({
+			manifestFile,
+			catalogListed: root.listed,
+		})),
+	);
 	const toolProfiles = opts.toolProfiles ?? {};
 	const errors: RegistryError[] = [];
 	const loaded: AgentDefinition[] = [];
 
-	for (const manifestFile of manifestFiles) {
-		const { def, error } = await loadOne(manifestFile, toolProfiles);
+	for (const { manifestFile, catalogListed } of manifestFiles) {
+		const { def, error } = await loadOne(
+			manifestFile,
+			toolProfiles,
+			catalogListed,
+		);
 		if (def) loaded.push(def);
 		if (error) errors.push(error);
 	}
@@ -475,9 +498,12 @@ export async function buildRegistry(
 			return defs.get(name) ?? null;
 		},
 		list(): AgentDefinition[] {
+			return [...defs.values()].filter((def) => def.catalogListed);
+		},
+		listAll(): AgentDefinition[] {
 			return [...defs.values()];
 		},
-		roots: () => [...roots],
+		roots: () => roots.map((root) => root.path),
 		reloadAgentPrompt(name: string): AgentDefinition {
 			const current = defs.get(name);
 			if (!current) throw new Error(`Agent not found in registry: ${name}`);

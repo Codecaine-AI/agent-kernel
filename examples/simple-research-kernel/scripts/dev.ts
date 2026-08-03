@@ -1,10 +1,13 @@
-const apiPort = String(Bun.env.PORT ?? "8788");
+const apiPort = String(
+	Bun.env.SIMPLE_RESEARCH_KERNEL_PORT ?? Bun.env.PORT ?? "8788"
+);
 const frontendPort = String(Bun.env.FRONTEND_PORT ?? "5174");
 
 const api = Bun.spawn(["bun", "run", "api"], {
 	cwd: import.meta.dir + "/..",
 	env: {
 		...Bun.env,
+		SIMPLE_RESEARCH_KERNEL_PORT: apiPort,
 		PORT: apiPort,
 		FRONTEND_PORT: frontendPort
 	},

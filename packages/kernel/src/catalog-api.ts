@@ -21,11 +21,18 @@ import { Elysia } from "elysia";
 
 import { createKernelCatalogAnnotationsApi } from "./catalog-annotations-api";
 import type { KernelCatalogService } from "./catalog-service";
+import { createKernelPromptEditSessionApi } from "./prompt-edit-session-api";
+import type { PromptEditSessionService } from "./prompt-edit-session/service";
 
 export interface CreateKernelCatalogApiOptions {
 	prefix?: string;
 	/** Overrides the service's write gate when provided. */
 	allowWrites?: boolean;
+	/**
+	 * Mounts the prompt-edit session routes (prompt-edit-session-api.ts) on
+	 * the same prefix when a session service is provided (Phase 2).
+	 */
+	promptEditSessions?: PromptEditSessionService;
 }
 
 function normalizePrefix(prefix: string): string {
@@ -66,8 +73,16 @@ export function createKernelCatalogApi(
 	const prefix = normalizePrefix(options.prefix ?? "/kernel");
 	const allowWrites = options.allowWrites ?? service.allowWrites;
 
+	const promptEditSessionsApi = options.promptEditSessions
+		? createKernelPromptEditSessionApi(options.promptEditSessions, {
+				prefix: options.prefix,
+				allowWrites,
+			})
+		: new Elysia();
+
 	return new Elysia()
 		.use(createKernelCatalogAnnotationsApi(service, { prefix: options.prefix, allowWrites }))
+		.use(promptEditSessionsApi)
 		.get(`${prefix}/catalog/agents`, async ({ set }) => {
 			try {
 				return { agents: await service.listAgents() };

@@ -46,11 +46,20 @@ The registry normalizes each bundle into `ParsedAgent`: `config` (an `AgentConfi
 
 ## Registry API
 
-`buildRegistry({ roots, toolProfiles })` scans the catalog roots recursively. `AgentRegistry` exposes:
+`buildRegistry({ roots, toolProfiles })` scans the catalog roots recursively. A
+root is either a plain path string (listed by default) or
+`{ path, listed: false }`. An unlisted root still participates in validation,
+prompt-revision registration, direct detail lookup, prompt editing, annotations,
+and spawn-by-name; it is omitted only from browse-oriented agent lists. Direct
+detail URLs intentionally work for unlisted agents because the flag controls
+discovery, not authorization.
+
+`AgentRegistry` exposes:
 
 - `get(name)`
 - `tryGet(name)`
-- `list()`
+- `list()` — agents from listed roots
+- `listAll()` — all agents, for kernel infrastructure
 - `roots()`
 
 `createKernel` builds the registry from `catalog.roots` on first use and caches it.
