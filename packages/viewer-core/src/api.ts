@@ -49,6 +49,10 @@ export const KERNEL_CATALOG_PATHS = {
 	revisionStats(name: string, hash: string): string {
 		return `/kernel/catalog/agents/${encodeURIComponent(name)}/revisions/${encodeURIComponent(hash)}/stats`;
 	},
+	/** Rendered state document for one named fixture (the lab's State view). */
+	agentFixtureStatePreview(name: string, fixtureId: string): string {
+		return `/kernel/catalog/agents/${encodeURIComponent(name)}/fixtures/${encodeURIComponent(fixtureId)}/state-preview`;
+	},
 	// -- Annotation sidecar routes (kernel catalog-annotations-api.ts). GET
 	// lists, POST adds; the :id mutations follow the 409 + { currentHash }
 	// optimistic-concurrency idiom via expectedHash in the body.

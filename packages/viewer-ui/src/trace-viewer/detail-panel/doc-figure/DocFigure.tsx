@@ -22,10 +22,19 @@ import {
 	EDITOR_COLORS,
 	EDITOR_METRICS,
 	PROMPT_EDITOR_ROOT_CLASS,
-	editorRuleBackground,
 	highlightXmlLine,
 	promptEditorGutterWidth,
 } from "@codecaine-ai/prompt-kit/ui/surface";
+
+/**
+ * Ruled-paper hairlines for the figure — LOCAL: the prompt surfaces retired
+ * their rule/zebra theming (2026-08-04 one-theme cleanup), but the trace
+ * figure keeps its own ruled look for raw-source correlation.
+ */
+const docFigureRuleBackground = {
+	backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent calc(${'${EDITOR_METRICS.lineHeight}'} - 1px), rgb(255 255 255 / 0.025) calc(${'${EDITOR_METRICS.lineHeight}'} - 1px), rgb(255 255 255 / 0.025) ${'${EDITOR_METRICS.lineHeight}'})`,
+	backgroundPosition: "0 0",
+} as const;
 
 import { dedent as dedentSource } from "../renderers/state-block";
 import {
@@ -246,7 +255,7 @@ function GutterSource({
 			style={{
 				backgroundColor: EDITOR_COLORS.bg,
 				color: EDITOR_COLORS.fg,
-				...editorRuleBackground,
+				...docFigureRuleBackground,
 				...(maxHeight ? { maxHeight } : {}),
 			}}
 		>
@@ -283,8 +292,8 @@ function GutterSource({
 									minWidth: gutterWidth,
 									width: gutterWidth,
 									backgroundColor: EDITOR_COLORS.bg,
-									backgroundImage: `linear-gradient(var(--prompt-editor-row-zebra, transparent), var(--prompt-editor-row-zebra, transparent)), ${editorRuleBackground.backgroundImage}`,
-									backgroundPosition: editorRuleBackground.backgroundPosition,
+									backgroundImage: `linear-gradient(var(--prompt-editor-row-zebra, transparent), var(--prompt-editor-row-zebra, transparent)), ${docFigureRuleBackground.backgroundImage}`,
+									backgroundPosition: docFigureRuleBackground.backgroundPosition,
 									color: EDITOR_COLORS.lineNumber,
 									userSelect: "none",
 								}}

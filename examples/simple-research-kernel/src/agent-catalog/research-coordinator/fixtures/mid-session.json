@@ -1,0 +1,17 @@
+{
+	"label": "Mid session",
+	"variables": {
+		"userPrompt": "Compare the three leading approaches to agent memory persistence."
+	},
+	"state": {
+		"phase": "research",
+		"brief": "Compare agent memory persistence approaches: state snapshots, transcript replay, external stores.",
+		"scoutsDispatched": 3,
+		"scoutReportsReceived": 1,
+		"openQuestions": [
+			"How do external stores handle concurrent writers?",
+			"What is the replay cost ceiling for long transcripts?"
+		],
+		"turnCount": 6
+	}
+}

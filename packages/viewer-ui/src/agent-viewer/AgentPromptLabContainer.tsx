@@ -15,6 +15,8 @@ import {
 	type CatalogAgentDetail,
 	type CatalogContextPreview,
 	type CatalogManifestSaveResult,
+	type CatalogStatePreview,
+	type PromptEditSessionStateDto,
 	type PromptRevisionListResponse,
 	type PromptRevisionSummary,
 } from "@agent-kernel/viewer-core";
@@ -22,6 +24,7 @@ import {
 import {
 	PromptInlineLab,
 	type LabContextPreview,
+	type LabStateZone,
 	type ManifestSaveOutcome,
 	type PromptSaveOutcome,
 } from "@codecaine-ai/prompt-kit/ui/lab";
@@ -82,6 +85,24 @@ interface ManifestFields {
  * write new revisions server-side — the container refetches the agent detail
  * per revision move so accepted text renders as normal rows.
  *
+ * FILING GESTURES. The lab's three annotation-filing gestures reach the kernel
+ * through the same `promptEditSession` prop, as callbacks bound by the
+ * controller (identity-stable with the rest of the session prop):
+ *
+ *   onFileRequest(filing)             all three dispositions — persists one
+ *                                    open agent-request annotation
+ *   onRunRequest(annotationId)        run now — a session scoped to that one
+ *                                    request, started immediately
+ *   onApplyQueue(annotationIds[])     apply — one session over the queued batch
+ *   onRerunRequest(annotationId, replyText)
+ *                                    reply on a staged request's thread; the
+ *                                    server runs another agent turn that
+ *                                    REPLACES that request's staged proposal
+ *
+ * "Add to batch" and "add to global" stop at the filing — nothing runs until
+ * Apply. All of them are optional on the lab's side, so a lab build without
+ * the gestures falls back to onSendRequest and the strip's "Apply N notes".
+ *
  * The shell itself stays host-agnostic — all fetching lives here (and in the
  * framework-free controller, prompt-lab-session-controller.ts).
  */
@@ -103,6 +124,9 @@ export function AgentPromptLabContainer({
 	const [revisions, setRevisions] = useState<PromptRevisionSummary[]>([]);
 	const [revisionsLoading, setRevisionsLoading] = useState(false);
 	const [revisionsError, setRevisionsError] = useState<string | undefined>(undefined);
+	/** State view: the selected fixture and its rendered state document. */
+	const [activeFixtureId, setActiveFixtureId] = useState<string | null>(null);
+	const [renderedState, setRenderedState] = useState<string | null>(null);
 
 	const detailRef = useRef<CatalogAgentDetail | undefined>(undefined);
 	detailRef.current = detail;
@@ -176,6 +200,8 @@ export function AgentPromptLabContainer({
 		setManifestFields(undefined);
 		setDocumentsByHash({});
 		setRevisions([]);
+		setActiveFixtureId(null);
+		setRenderedState(null);
 
 		loadDetail().catch((cause) => {
 			if (!cancelled) {
@@ -188,6 +214,41 @@ export function AgentPromptLabContainer({
 			cancelled = true;
 		};
 	}, [loadDetail, refreshRevisions]);
+
+	// State view: default the selection to the first fixture once the detail
+	// (and with it the fixture list) is in.
+	const fixtures = detail?.fixtures ?? [];
+	useEffect(() => {
+		if (activeFixtureId === null && fixtures.length > 0) {
+			setActiveFixtureId(fixtures[0].id);
+		}
+	}, [activeFixtureId, fixtures]);
+
+	// Fetch/recompute the rendered state document whenever the selection moves.
+	useEffect(() => {
+		if (activeFixtureId === null) {
+			setRenderedState(null);
+			return;
+		}
+		let cancelled = false;
+		setRenderedState(null);
+		(async () => {
+			try {
+				const response = await fetch(
+					`${origin}${KERNEL_CATALOG_PATHS.agentFixtureStatePreview(agentName, activeFixtureId)}`,
+				);
+				if (!response.ok) throw new Error(`state preview failed (${response.status})`);
+				const body = (await response.json()) as CatalogStatePreview;
+				if (!cancelled) setRenderedState(body.renderedState);
+			} catch {
+				// Contract: null means loading/none — the view degrades quietly.
+				if (!cancelled) setRenderedState(null);
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [origin, agentName, activeFixtureId]);
 
 	const handleSave = useCallback(
 		async (doc: PromptDocument): Promise<PromptSaveOutcome> => {
@@ -266,12 +327,26 @@ export function AgentPromptLabContainer({
 		);
 	}
 
+	// State view wiring per the lab's stateZone contract — undefined when the
+	// bundle ships no fixtures, so the lab simply won't offer the view.
+	const stateZone: LabStateZone | undefined =
+		fixtures.length > 0
+			? {
+					fixtures,
+					activeFixtureId,
+					onFixtureSelect: setActiveFixtureId,
+					renderedState,
+				}
+			: undefined;
+
 	const session = sessionSnapshot.session;
 	const stagedCount = promptEditSession?.proposals.length ?? 0;
+	// The idle "N open notes / Apply" segment retired 2026-08-05: the queue
+	// and Apply live in the lab's AI panel, and edit mode stays clean of the
+	// annotation layer. The strip now surfaces only live sessions and errors.
 	const showSessionStrip =
 		session !== null ||
 		sessionSnapshot.sessionStarting ||
-		sessionSnapshot.openRequestCount > 0 ||
 		sessionSnapshot.sessionError !== undefined ||
 		sessionSnapshot.annotationsError !== undefined ||
 		sessionSnapshot.streamError !== undefined;
@@ -289,41 +364,21 @@ export function AgentPromptLabContainer({
 					data-prompt-session-strip=""
 					className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-background px-3 py-1.5 text-[11px]"
 				>
-					{session === null && !sessionSnapshot.sessionStarting && (
-						<>
-							{sessionSnapshot.openRequestCount > 0 && (
-								<span className="text-muted-foreground">
-									{sessionSnapshot.openRequestCount} open note
-									{sessionSnapshot.openRequestCount === 1 ? "" : "s"}
-								</span>
-							)}
-							{sessionSnapshot.openRequestCount > 0 && (
-								<button
-									type="button"
-									data-prompt-session-run=""
-									className="rounded-md border border-border px-2 py-0.5 text-[11px] hover:border-ring"
-									onClick={() => void controller.startSession()}
-								>
-									Apply {sessionSnapshot.openRequestCount} note
-									{sessionSnapshot.openRequestCount === 1 ? "" : "s"}
-								</button>
-							)}
-						</>
-					)}
 					{sessionSnapshot.sessionStarting && (
 						<span className="text-muted-foreground">Starting session…</span>
 					)}
 					{session !== null && (
 						<>
 							<span className="text-muted-foreground">
-								{session.agent.error !== undefined
-									? `Agent failed to start: ${session.agent.error}`
-									: session.status === "running"
-										? session.agent.spawned
-											? "Agent working…"
-											: "Session open (no agent run)"
-										: "Agent finished"}
+								{sessionStatusLabel(session)}
 							</span>
+							{session.scope != null && (
+								<span className="text-muted-foreground/70">
+									{session.scope.length === 1
+										? "run now"
+										: `batch of ${session.scope.length}`}
+								</span>
+							)}
 							{stagedCount > 0 && (
 								<span className="text-teal-500">
 									{stagedCount} proposal{stagedCount === 1 ? "" : "s"} staged
@@ -371,6 +426,7 @@ export function AgentPromptLabContainer({
 					context={context ?? toLabContextPreview(detail.context)}
 					styleSettings={styleSettings}
 					promptEditSession={promptEditSession}
+					stateZone={stateZone}
 					revisionsZone={
 						<RevisionHistoryPanel
 							revisions={revisions}
@@ -394,6 +450,27 @@ export function AgentPromptLabContainer({
 			</div>
 		</div>
 	);
+}
+
+/**
+ * The strip's one-line agent status. `agent.running` is per TURN, so a run-now
+ * session that is iterating on replies flips back to "working…" on every
+ * re-run; `rerunPending` covers a reply that landed mid-turn and is already
+ * scheduled behind it. Both fields are optional on the DTO (older kernels), so
+ * this falls back to the pre-turn-tracking wording.
+ */
+function sessionStatusLabel(session: PromptEditSessionStateDto): string {
+	const agent = session.agent;
+	if (agent.error !== undefined && agent.running !== true) {
+		return `Agent failed to start: ${agent.error}`;
+	}
+	if (agent.rerunPending === true) return "Agent working… (reply queued)";
+	if (agent.running === true) return "Agent working…";
+	if (session.status !== "running") return "Agent finished";
+	if (!agent.spawned) return "Session open (no agent run)";
+	// Spawned, not running, session still open: a turn settled and the queue is
+	// waiting on the human (a staged diff to review, or a question to answer).
+	return agent.turns === undefined ? "Agent working…" : "Waiting on you";
 }
 
 function readManifestFields(detail: CatalogAgentDetail, agentName: string): ManifestFields {

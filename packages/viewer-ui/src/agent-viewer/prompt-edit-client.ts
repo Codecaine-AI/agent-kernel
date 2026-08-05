@@ -25,6 +25,7 @@ import {
 	type CatalogAnnotationsResponse,
 	type PromptEditSessionAcceptSuccess,
 	type PromptEditSessionAddRequestBody,
+	type PromptEditSessionCreateFailure,
 	type PromptEditSessionCreateRequest,
 	type PromptEditSessionEventDto,
 	type PromptEditSessionRejectSuccess,
@@ -46,8 +47,12 @@ export interface PromptEditClientFailure {
 	errors: string[];
 	/** Present on the 409 stale-hash idiom (annotations + session saves). */
 	currentHash?: string | null;
-	/** Present on session review conflicts (accept/reject/undo 4xx bodies). */
-	failure?: PromptEditSessionReviewFailure;
+	/**
+	 * Present on session review conflicts (accept/reject/undo 4xx bodies) and
+	 * on the create route's 409s (agent-busy / empty-scope). Review failures
+	 * are discriminated by `kind`, create failures by `reason`.
+	 */
+	failure?: PromptEditSessionReviewFailure | PromptEditSessionCreateFailure;
 }
 
 export type PromptEditClientResult<T> = T | PromptEditClientFailure;
@@ -183,7 +188,9 @@ async function toFailure(response: Response): Promise<PromptEditClientFailure> {
 		failure.currentHash = body.currentHash as string | null;
 	}
 	if (body.failure && typeof body.failure === "object") {
-		failure.failure = body.failure as PromptEditSessionReviewFailure;
+		failure.failure = body.failure as
+			| PromptEditSessionReviewFailure
+			| PromptEditSessionCreateFailure;
 	}
 	return failure;
 }

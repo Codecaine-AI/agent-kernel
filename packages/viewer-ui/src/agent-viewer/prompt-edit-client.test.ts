@@ -115,7 +115,11 @@ describe("failure mapping", () => {
 		const result = await client.acceptProposal("s", "R1");
 		if (!isPromptEditClientFailure(result)) throw new Error("expected failure");
 		expect(result.currentHash).toBe("hash-live");
-		expect(result.failure?.kind).toBe("stale_base");
+		// The failure union now also carries create-route conflicts (keyed by
+		// `reason`), so review failures narrow on `kind`.
+		expect(
+			result.failure && "kind" in result.failure ? result.failure.kind : undefined,
+		).toBe("stale_base");
 	});
 
 	test("errors arrays and error strings both surface", async () => {

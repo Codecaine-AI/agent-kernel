@@ -45,6 +45,24 @@ export interface CatalogContextPreview {
 	renderedContext: string | null;
 }
 
+/** One named state fixture (`fixtures/<id>.json` in the agent bundle). */
+export interface CatalogFixtureSummary {
+	id: string;
+	label: string;
+}
+
+/**
+ * Rendered state document for one agent + fixture — the lab's State view.
+ * Response of `GET /kernel/catalog/agents/:name/fixtures/:id/state-preview`.
+ */
+export interface CatalogStatePreview {
+	fixtureId: string;
+	/** "state-module" when the bundle's state render produced it; "fallback"
+	 * is a pseudo-XML pretty-print of the fixture's state value. */
+	source: "state-module" | "fallback";
+	renderedState: string;
+}
+
 /** Response of `GET /kernel/catalog/agents/:name`. */
 export interface CatalogAgentDetail {
 	manifest: Record<string, unknown>;
@@ -59,6 +77,11 @@ export interface CatalogAgentDetail {
 	 * Optional so payloads from kernels that omit the field still typecheck.
 	 */
 	context?: CatalogContextPreview | null;
+	/**
+	 * Named state fixtures of the bundle — empty when it ships none. Optional
+	 * so payloads from kernels that omit the field still typecheck.
+	 */
+	fixtures?: CatalogFixtureSummary[];
 }
 
 /** Body of `PUT /kernel/catalog/agents/:name/manifest`. */
@@ -297,6 +320,14 @@ export interface PromptEditSessionProposalDto {
 export interface PromptEditSessionAgentDto {
 	spawned: boolean;
 	error?: string;
+	// The turn fields below are always served by this kernel; they are optional
+	// so payloads from kernels that predate re-run-on-reply still typecheck.
+	/** An agent turn is in flight (the lab's "working…" state). */
+	running?: boolean;
+	/** Turns started so far: 1 is the session's own spawn, 2+ are reply re-runs. */
+	turns?: number;
+	/** A reply arrived mid-turn; a follow-up turn is already scheduled. */
+	rerunPending?: boolean;
 }
 
 /** One annotation that did not become a request at session creation. */
@@ -319,6 +350,13 @@ export interface PromptEditSessionStateDto {
 	status: "running" | "completed";
 	instruction?: string;
 	createdAt: string;
+	/**
+	 * The annotation ids this session was scoped to, or null when it works
+	 * every open agent-request. One id is the lab's "run now"; a set is
+	 * "apply the batch". Optional so payloads from kernels that predate
+	 * request scoping still typecheck (absent reads as unscoped).
+	 */
+	scope?: string[] | null;
 	requests: PromptEditSessionRequestDto[];
 	proposals: PromptEditSessionProposalDto[];
 	/** Staging-order pointer: the only alias accept will take next. */
@@ -340,6 +378,7 @@ export interface PromptEditSessionSummaryDto {
 	requestCount: number;
 	proposalCount: number;
 	appliedCount: number;
+	scope?: string[] | null;
 }
 
 /** Response of `GET /kernel/prompt-edit-sessions`. */
@@ -351,6 +390,13 @@ export interface PromptEditSessionListResponse {
 export interface PromptEditSessionCreateRequest {
 	/** Operator instruction; also the agent kickoff prompt. */
 	instruction?: string;
+	/**
+	 * Scope the session to these annotation ids — the lab's filing gestures:
+	 * one id for "run now", the queued set for "apply". Omitted: every open
+	 * agent-request. Must be non-empty when present (400 otherwise); a scope
+	 * where nothing is actionable answers 409 `empty-scope`.
+	 */
+	requestIds?: string[];
 	/** Requests appended after the annotation-derived ones. */
 	extraRequests?: Array<{
 		id: string;
@@ -492,4 +538,43 @@ export type PromptEditSessionEventDto =
 			transactionId: string;
 			hash: string;
 	  }
+	| {
+			/**
+			 * An agent turn on this session started, finished, or failed to
+			 * start. Turn 1 is the session's own spawn; later turns are the
+			 * re-runs a human reply on a thread triggers ("working…" in the lab).
+			 */
+			type: "agent-turn";
+			sessionId: string;
+			phase: "started" | "finished" | "failed";
+			turn: number;
+			/** Aliases the turn was kicked off for; empty for turn 1. */
+			aliases: string[];
+			error?: string;
+	  }
 	| { type: "session-disposed"; sessionId: string };
+
+/**
+ * 409 body of `POST /kernel/catalog/agents/:name/edit-sessions`: the request
+ * was well-formed but could not become a session.
+ *
+ * - `agent-busy`: another session already holds this agent. Sessions are
+ *   base-hash pinned, so only one can safely stage at a time — end the named
+ *   one (DELETE) or wait for it.
+ * - `empty-scope`: none of `requestIds` is an open, actionable agent request
+ *   (already resolved, dangling, or gone); `skipped` says which and why.
+ */
+export type PromptEditSessionCreateFailure =
+	| { ok: false; reason: "agent-busy"; targetAgent: string; sessionId: string }
+	| {
+			ok: false;
+			reason: "empty-scope";
+			requestIds: string[];
+			skipped: PromptEditSessionSkippedDto[];
+	  };
+
+/** 409 body of the create route: human-readable `error` + the typed failure. */
+export interface PromptEditSessionCreateConflict {
+	error: string;
+	failure: PromptEditSessionCreateFailure;
+}

@@ -1,9 +1,10 @@
 /**
  * prompt-edit-session/session-data — the sessionData payload the prompt-editor
- * bundle's context sidecar consumes (catalog/prompt-editor/context/index.ts).
+ * bundle's state sidecar consumes (catalog/prompt-editor/state/index.ts).
  *
  * The bundle's documented contract, reproduced key for key:
  *
+ *   sessionData.targetAgent         string — catalog name of the target agent
  *   sessionData.targetPromptRender  string — node-id-stamped render of the
  *                                   target prompt
  *   sessionData.targetPromptHash    string — canonical hash (pk1-…) proposals
@@ -18,15 +19,17 @@
  * on the base revision, staged edits do not move it.
  *
  * What the runner does with a rebuilt payload: the spawn pipeline snapshots
- * `sessionData` once per spawn and assembles the context block once at session
- * creation — it does NOT re-assemble mid-run. A rebuilt payload therefore only
+ * `sessionData` once per spawn and seeds the state sidecar once at session
+ * creation — it does NOT re-seed mid-run. A rebuilt payload therefore only
  * reaches a model on a NEW spawn; mid-run freshness is the `read_prompt`
  * tool's job, which serves these same renders straight off the session.
  */
 import type { PromptEditSession } from "./session";
 
-/** Exactly the three keys the prompt-editor context contract names. */
+/** The four prompt-edit-session keys supplied to the prompt-editor state
+ * contract. */
 export interface PromptEditSessionData {
+	targetAgent: string;
 	targetPromptRender: string;
 	targetPromptHash: string;
 	requestQueue: string;
@@ -35,10 +38,11 @@ export interface PromptEditSessionData {
 export function sessionDataForPromptEditSession(
 	session: Pick<
 		PromptEditSession,
-		"baseHash" | "renderedPrompt" | "requestsBlock"
+		"targetAgent" | "baseHash" | "renderedPrompt" | "requestsBlock"
 	>,
 ): PromptEditSessionData {
 	return {
+		targetAgent: session.targetAgent,
 		targetPromptRender: session.renderedPrompt(),
 		targetPromptHash: session.baseHash,
 		requestQueue: session.requestsBlock(),

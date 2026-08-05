@@ -5,7 +5,10 @@
  * wiring, like the annotation routes), or used standalone:
  *
  *   POST   <prefix>/catalog/agents/:name/edit-sessions
- *            body: { instruction?, extraRequests?, sessionId?, spawn? }
+ *            body: { instruction?, requestIds?, extraRequests?, sessionId?,
+ *                    spawn? }
+ *            `requestIds` scopes the session: one id is the lab's "run now",
+ *            the queued set is "apply", omitted works every open request.
  *   GET    <prefix>/prompt-edit-sessions                      listing
  *   GET    <prefix>/prompt-edit-sessions/:id                  state snapshot
  *   GET    <prefix>/prompt-edit-sessions/:id/events           SSE stream
@@ -24,6 +27,11 @@
  * { currentHash } — the savePrompt idiom — plus out-of-order accepts,
  * non-latest rejects/undos, already-applied), and 400 + { errors } for
  * invalid input.
+ *
+ * The create route adds two 409 conflicts of its own, both carrying a typed
+ * `failure` so the lab can explain them: `agent-busy` (a session already holds
+ * this agent — end it or wait; see service.ts's concurrency policy) and
+ * `empty-scope` (none of the requested ids is an actionable request).
  *
  * The SSE stream sends one `session-state` snapshot event on connect, then
  * forwards EVERY service stream event (session events + review events) as
@@ -148,6 +156,19 @@ export function createKernelPromptEditSessionApi(
 					) {
 						errors.push("extraRequests: expected an array");
 					}
+					if (input.requestIds !== undefined) {
+						if (
+							!Array.isArray(input.requestIds) ||
+							input.requestIds.some((id) => typeof id !== "string")
+						) {
+							errors.push("requestIds: expected an array of strings");
+						} else if (input.requestIds.length === 0) {
+							// An empty scope means "no requests", which can only ever
+							// produce an empty queue — reject it as input, not as a
+							// conflict.
+							errors.push("requestIds: expected at least one id");
+						}
+					}
 					if (errors.length > 0) {
 						set.status = 400;
 						return { errors };
@@ -156,6 +177,7 @@ export function createKernelPromptEditSessionApi(
 						instruction: input.instruction as string | undefined,
 						sessionId: input.sessionId as string | undefined,
 						spawn: input.spawn as boolean | undefined,
+						requestIds: input.requestIds as string[] | undefined,
 						// Request-shape problems surface as typed session/launch
 						// failures; the wire check above stays structural.
 						extraRequests: input.extraRequests as never,
@@ -164,6 +186,21 @@ export function createKernelPromptEditSessionApi(
 						if (result.reason === "unknown-agent") {
 							set.status = 404;
 							return { error: `Agent ${params.name} not found in catalog` };
+						}
+						if (result.reason === "agent-busy") {
+							set.status = 409;
+							return {
+								error: `Agent ${params.name} already has an open prompt-edit session (${result.sessionId})`,
+								failure: result,
+							};
+						}
+						if (result.reason === "empty-scope") {
+							set.status = 409;
+							return {
+								error:
+									"None of the requested annotations is an open agent request",
+								failure: result,
+							};
 						}
 						set.status = 422;
 						return { errors: result.errors };

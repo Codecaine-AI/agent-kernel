@@ -4,9 +4,14 @@
  *
  *   registry def (prompt + hash + declared variables)
  *     → open agent-request annotations (Track A ops)
+ *     → OPTIONAL scope filter (`requestIds`) — run-now is one id, apply is the
+ *       queued set, omitted is every open request
  *     → request queue (from-annotations adapter, R-aliases in sidecar order)
  *     → createPromptEditSession (stale-base guard wired to the registry)
- *     → { session, sessionData, tools, spawn }
+ *     → { session, sessionData, tools, scope, spawn }
+ *
+ * `relaunchPromptEditSession` rebuilds that payload for a FOLLOW-UP turn on the
+ * same session (the reply→re-run path); see its own docs.
  *
  * The host's spawn line, end to end (kernel runtime):
  *
@@ -17,7 +22,6 @@
  *   });
  *   if (launch.ok) {
  *     await kernel.spawnAgent(launch.spawn.agentName, launch.spawn.prompt, null, {
- *       variables: launch.spawn.variables,
  *       sessionData: launch.spawn.sessionData,
  *     });
  *   }
@@ -66,8 +70,25 @@ export interface LaunchPromptEditSessionOptions {
 	 */
 	annotationOps?: Pick<KernelCatalogAnnotationOps, "listAnnotations">;
 	/**
+	 * REQUEST SCOPE — the explicit set of annotation ids this session works.
+	 * Only these become requests; every other annotation on the sidecar is
+	 * skipped "out-of-scope" and never reaches the agent's `<requests>` block
+	 * (the prompt-editor bundle renders `sessionData.requestQueue` verbatim, so
+	 * scoping here IS the scoping the model sees).
+	 *
+	 *   run now  → one id
+	 *   apply    → the queued set
+	 *   omitted  → every open agent-request (the pre-scope behavior)
+	 *
+	 * Aliases are assigned over the SCOPED queue, so a run-now session's single
+	 * request is always R1. Correlate back to the lab through `annotationId`,
+	 * which rides on every entry.
+	 */
+	requestIds?: readonly string[];
+	/**
 	 * Requests appended AFTER the annotation-derived ones — aliases continue
-	 * (annotations claim R1… in sidecar creation order first).
+	 * (annotations claim R1… in sidecar creation order first). Explicit caller
+	 * input: NOT filtered by `requestIds`.
 	 */
 	extraRequests?: PromptEditRequestInput[];
 	/** Operator instruction: stored on the session and used as the kickoff prompt. */
@@ -78,24 +99,37 @@ export interface LaunchPromptEditSessionOptions {
 export interface LaunchedPromptEditSession {
 	ok: true;
 	session: PromptEditSession;
-	/** Exactly the prompt-editor context contract's three keys. */
+	/** The four prompt-edit-session keys supplied to the prompt-editor state
+	 * contract. */
 	sessionData: PromptEditSessionData;
 	/** `promptEditSessionTools(session)` — AgentPrivateTools-shaped binder. */
 	tools: (pi: ExtensionAPI) => void;
 	/** Annotations that did not become requests, with reasons. */
 	skipped: SkippedAnnotation[];
+	/** The annotation ids this session was scoped to, or null when unscoped
+	 * (every open agent-request). */
+	scope: readonly string[] | null;
 	/** Everything kernel.spawnAgent needs, minus the tools binding above. */
 	spawn: {
 		agentName: typeof PROMPT_EDITOR_AGENT_NAME;
 		prompt: string;
-		variables: { targetAgent: string };
 		sessionData: PromptEditSessionData;
 	};
 }
 
 export type LaunchPromptEditSessionFailure =
 	| { ok: false; reason: "unknown-agent"; targetAgent: string }
-	| { ok: false; reason: "annotations-invalid"; errors: string[] };
+	| { ok: false; reason: "annotations-invalid"; errors: string[] }
+	| {
+			/** A scope was supplied and nothing in it is an actionable request
+			 * (already resolved, dangling, or gone). Launching anyway would spawn
+			 * an agent with an empty queue, so the launch refuses and hands back
+			 * the per-id reasons for the UI to explain. */
+			ok: false;
+			reason: "empty-scope";
+			requestIds: readonly string[];
+			skipped: SkippedAnnotation[];
+	  };
 
 export type LaunchPromptEditSessionResult =
 	| LaunchedPromptEditSession
@@ -142,9 +176,22 @@ export async function launchPromptEditSession(
 	const mapped = promptEditRequestsFromAnnotations(
 		listed.annotations.annotations,
 		def.promptDocument,
-		{ dangling: listed.dangling },
+		{
+			dangling: listed.dangling,
+			...(options.requestIds !== undefined
+				? { scopeIds: options.requestIds }
+				: {}),
+		},
 	);
 	const requests = [...mapped.requests, ...(options.extraRequests ?? [])];
+	if (options.requestIds !== undefined && requests.length === 0) {
+		return {
+			ok: false,
+			reason: "empty-scope",
+			requestIds: options.requestIds,
+			skipped: mapped.skipped,
+		};
+	}
 
 	const session = createPromptEditSession({
 		targetAgent,
@@ -164,11 +211,52 @@ export async function launchPromptEditSession(
 		sessionData,
 		tools: promptEditSessionTools(session),
 		skipped: mapped.skipped,
+		scope: options.requestIds ?? null,
 		spawn: {
 			agentName: PROMPT_EDITOR_AGENT_NAME,
 			prompt: options.instruction ?? DEFAULT_PROMPT_EDIT_KICKOFF,
-			variables: { targetAgent },
 			sessionData,
 		},
 	};
+}
+
+/**
+ * Rebuild a launch payload for ANOTHER agent turn on an existing session — the
+ * follow-up spawn behind "reply on a thread re-runs the request".
+ *
+ * The session object is reused as-is, so the new turn's tools drive the same
+ * queue, working document and staged proposals: a re-proposal on the same alias
+ * REPLACES the staged one (session.propose's `replacing` path), which is
+ * exactly the "old diff is stripped, a revised one is staged in its place"
+ * behavior the lab shows. Everything else is recomputed off live session state
+ * — `sessionData` is a pure function of it, and the spawn pipeline snapshots
+ * sessionData per spawn, so the new turn sees the reply in its `<requests>`
+ * block and the working document in `targetPromptRender`.
+ */
+export function relaunchPromptEditSession(
+	previous: LaunchedPromptEditSession,
+	prompt: string,
+): LaunchedPromptEditSession {
+	const sessionData = sessionDataForPromptEditSession(previous.session);
+	return {
+		...previous,
+		sessionData,
+		tools: promptEditSessionTools(previous.session),
+		spawn: {
+			agentName: PROMPT_EDITOR_AGENT_NAME,
+			prompt,
+			sessionData,
+		},
+	};
+}
+
+/** Kickoff prompt for a re-run turn triggered by human replies on threads. */
+export function promptEditRerunKickoff(aliases: readonly string[]): string {
+	const list = aliases.join(", ");
+	return (
+		`The human replied on ${list}. Read the updated <requests> queue, take the ` +
+		`reply into account, and re-propose the transaction for ${list} ` +
+		"(proposing again on a request replaces its staged proposal). Resolve it " +
+		"when the reply is satisfied."
+	);
 }

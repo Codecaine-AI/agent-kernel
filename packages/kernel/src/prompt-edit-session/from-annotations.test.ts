@@ -158,6 +158,66 @@ describe("promptEditRequestsFromAnnotations", () => {
 		]);
 	});
 
+	test("scopeIds narrows the queue and reports everything else out-of-scope", () => {
+		const { requests, skipped } = promptEditRequestsFromAnnotations(
+			[annotation({ id: "a" }), annotation({ id: "b" }), annotation({ id: "c" })],
+			doc,
+			{ scopeIds: ["b"] },
+		);
+		// Run-now shape: exactly the scoped request, so its alias becomes R1.
+		expect(requests.map((request) => request.id)).toEqual(["b"]);
+		expect(skipped).toEqual([
+			{ annotationId: "a", reason: "out-of-scope", detail: "not in the requested scope" },
+			{ annotationId: "c", reason: "out-of-scope", detail: "not in the requested scope" },
+		]);
+	});
+
+	test("a scoped batch keeps sidecar order regardless of the order of the ids", () => {
+		const { requests } = promptEditRequestsFromAnnotations(
+			[annotation({ id: "a" }), annotation({ id: "b" }), annotation({ id: "c" })],
+			doc,
+			{ scopeIds: ["c", "a"] },
+		);
+		expect(requests.map((request) => request.id)).toEqual(["a", "c"]);
+	});
+
+	test("in-scope annotations that fail a later gate keep their specific reason and are not double-reported", () => {
+		const { requests, skipped } = promptEditRequestsFromAnnotations(
+			[annotation({ id: "gone", status: "resolved" }), annotation({ id: "live" })],
+			doc,
+			{ scopeIds: ["gone", "live"] },
+		);
+		expect(requests.map((request) => request.id)).toEqual(["live"]);
+		expect(skipped).toEqual([
+			{ annotationId: "gone", reason: "not-open", detail: 'status is "resolved"' },
+		]);
+	});
+
+	test("a scope id that matches no annotation is reported scope-unmatched", () => {
+		const { requests, skipped } = promptEditRequestsFromAnnotations(
+			[annotation({ id: "live" })],
+			doc,
+			{ scopeIds: ["live", "never-existed"] },
+		);
+		expect(requests.map((request) => request.id)).toEqual(["live"]);
+		expect(skipped).toEqual([
+			{
+				annotationId: "never-existed",
+				reason: "scope-unmatched",
+				detail: "no annotation with this id on the sidecar",
+			},
+		]);
+	});
+
+	test("omitting scopeIds is unchanged: every open agent-request enters the queue", () => {
+		const { requests, skipped } = promptEditRequestsFromAnnotations(
+			[annotation({ id: "a" }), annotation({ id: "b" })],
+			doc,
+		);
+		expect(requests.map((request) => request.id)).toEqual(["a", "b"]);
+		expect(skipped).toEqual([]);
+	});
+
 	test("keeps sidecar order so aliases land R1, R2, … in creation order", () => {
 		const { requests } = promptEditRequestsFromAnnotations(
 			[annotation({ id: "first" }), annotation({ id: "second" }), annotation({ id: "third" })],

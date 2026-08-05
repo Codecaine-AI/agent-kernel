@@ -185,7 +185,14 @@ describe("createSession", () => {
 		expect(state.requests[0]?.review).toBe("pending");
 		expect(state.nextAcceptAlias).toBeNull();
 		expect(state.undoableAlias).toBeNull();
-		expect(state.agent).toEqual({ spawned: false });
+		expect(state.agent).toEqual({
+			spawned: false,
+			running: false,
+			turns: 0,
+			rerunPending: false,
+		});
+		// Unscoped: the session works every open agent-request.
+		expect(state.scope).toBeNull();
 		expect(service.list().map((row) => row.sessionId)).toEqual([
 			state.sessionId,
 		]);
@@ -211,10 +218,321 @@ describe("createSession", () => {
 		expect(seen).toHaveLength(1);
 		expect(seen[0]?.session.id).toBe(created.state.sessionId);
 		expect(seen[0]?.spawn.agentName).toBe("prompt-editor");
+		expect(seen[0]?.spawn).not.toHaveProperty("variables");
+		expect(seen[0]?.spawn.sessionData.targetAgent).toBe(AGENT);
 		expect(spawning.getState(created.state.sessionId)?.agent.error).toBe(
 			"no runtime in tests",
 		);
 		spawning.disposeAll();
+	});
+});
+
+describe("request scoping", () => {
+	test("a run-now session tracks and renders ONLY the scoped request", async () => {
+		const first = await addAgentRequest("para-0", "Make the opening direct.");
+		await addAgentRequest("para-1", "Tighten the brevity rule.");
+
+		const created = await service.createSession(AGENT, { requestIds: [first] });
+		expect(created.ok).toBe(true);
+		if (!created.ok) return;
+
+		// The session tracks one request, aliased over the SCOPED queue.
+		expect(created.state.scope).toEqual([first]);
+		expect(created.state.requests).toHaveLength(1);
+		expect(created.state.requests[0]).toMatchObject({
+			alias: "R1",
+			annotationId: first,
+			body: "Make the opening direct.",
+		});
+		expect(
+			created.state.skipped.map((entry) => entry.reason),
+		).toEqual(["out-of-scope"]);
+
+		// And the AGENT sees only that request: the prompt-editor bundle renders
+		// sessionData.requestQueue verbatim into its <requests> block, so this
+		// string IS the model-facing context.
+		const queue = service.getLaunch(created.state.sessionId)!.sessionData
+			.requestQueue;
+		expect(queue).toContain("Make the opening direct.");
+		expect(queue).not.toContain("Tighten the brevity rule.");
+		expect(queue).toContain("REQUESTS · 0/1 disposed");
+	});
+
+	test("an apply session scopes to the queued set, leaving the rest of the sidecar alone", async () => {
+		const first = await addAgentRequest("para-0", "Make the opening direct.");
+		const second = await addAgentRequest("para-1", "Tighten the brevity rule.");
+		const third = await addAgentRequest("para-1", "Mention the audience.");
+
+		const created = await service.createSession(AGENT, {
+			requestIds: [first, third],
+		});
+		if (!created.ok) throw new Error("create failed");
+		expect(created.state.requests.map((entry) => entry.annotationId)).toEqual([
+			first,
+			third,
+		]);
+		const queue = service.getLaunch(created.state.sessionId)!.sessionData
+			.requestQueue;
+		expect(queue).toContain("REQUESTS · 0/2 disposed");
+		expect(queue).not.toContain("Tighten the brevity rule.");
+		expect(
+			created.state.skipped.find((entry) => entry.annotationId === second)
+				?.reason,
+		).toBe("out-of-scope");
+	});
+
+	test("unscoped creation is unchanged: every open request, scope null", async () => {
+		await addAgentRequest("para-0", "One.");
+		await addAgentRequest("para-1", "Two.");
+		const created = await service.createSession(AGENT);
+		if (!created.ok) throw new Error("create failed");
+		expect(created.state.scope).toBeNull();
+		expect(created.state.requests.map((entry) => entry.alias)).toEqual([
+			"R1",
+			"R2",
+		]);
+		expect(created.state.skipped).toEqual([]);
+		expect(service.list()[0]?.scope).toBeNull();
+	});
+
+	test("a scope where nothing is actionable refuses with empty-scope and per-id reasons", async () => {
+		const only = await addAgentRequest("para-0", "Make the opening direct.");
+		// Resolve it out from under the scope, then ask for it plus a ghost id.
+		const resolved = await catalog.resolveAnnotation(AGENT, only, {
+			resolution: "handled by hand",
+		});
+		if (!resolved || !resolved.ok) throw new Error("fixture resolve failed");
+
+		const created = await service.createSession(AGENT, {
+			requestIds: [only, "no-such-annotation"],
+		});
+		expect(created.ok).toBe(false);
+		if (created.ok) return;
+		expect(created.reason).toBe("empty-scope");
+		if (created.reason !== "empty-scope") return;
+		expect(created.requestIds).toEqual([only, "no-such-annotation"]);
+		expect(created.skipped).toEqual([
+			{ annotationId: only, reason: "not-open", detail: 'status is "resolved"' },
+			{
+				annotationId: "no-such-annotation",
+				reason: "scope-unmatched",
+				detail: "no annotation with this id on the sidecar",
+			},
+		]);
+		// Nothing was registered — the failure is not a half-created session.
+		expect(service.list()).toEqual([]);
+	});
+});
+
+describe("concurrency policy", () => {
+	test("a second session for the same agent is refused with the blocking session id", async () => {
+		const first = await addAgentRequest("para-0", "One.");
+		const second = await addAgentRequest("para-1", "Two.");
+		const open = await service.createSession(AGENT, { requestIds: [first] });
+		if (!open.ok) throw new Error("create failed");
+
+		// Run-now while a session is live: refused, not queued. Sessions are
+		// base-hash pinned, so the second one's proposals would bounce on the
+		// stale-base guard the moment the first accepts.
+		const busy = await service.createSession(AGENT, { requestIds: [second] });
+		expect(busy.ok).toBe(false);
+		if (busy.ok) return;
+		expect(busy.reason).toBe("agent-busy");
+		if (busy.reason !== "agent-busy") return;
+		expect(busy.sessionId).toBe(open.state.sessionId);
+		expect(busy.targetAgent).toBe(AGENT);
+		expect(service.list()).toHaveLength(1);
+
+		// Disposing the holder is the escape hatch.
+		expect(service.dispose(open.state.sessionId)).toBe(true);
+		const retry = await service.createSession(AGENT, { requestIds: [second] });
+		expect(retry.ok).toBe(true);
+	});
+});
+
+describe("re-run on reply", () => {
+	/** A service whose spawn seam records every turn instead of running an LLM. */
+	function spawningService(
+		onSpawn?: (launch: LaunchedPromptEditSession) => Promise<void> | void,
+	) {
+		const launches: LaunchedPromptEditSession[] = [];
+		const spawned = createPromptEditSessionService({
+			registry: async () => registry,
+			catalog,
+			allowWrites: true,
+			spawnAgent: async (launch) => {
+				launches.push(launch);
+				await onSpawn?.(launch);
+			},
+		});
+		return { spawned, launches };
+	}
+
+	test("a human reply starts another turn on the SAME session, with the reply in the queue it hands the agent", async () => {
+		const annotationId = await addAgentRequest("para-0", "Make it direct.");
+		const { spawned, launches } = spawningService();
+		const created = await spawned.createSession(AGENT, {
+			requestIds: [annotationId],
+		});
+		if (!created.ok) throw new Error("create failed");
+		const sessionId = created.state.sessionId;
+		await Bun.sleep(0);
+		expect(launches).toHaveLength(1);
+
+		// The agent stages a proposal, as its tools would.
+		const session = spawned.getSession(sessionId)!;
+		const staged = await session.propose(
+			"R1",
+			[{ op: "update_node", nodeId: "para-0", patch: { content: ["Be direct."] } }],
+			"Rewrite the opening.",
+		);
+		expect(staged.ok).toBe(true);
+
+		const events: PromptEditSessionStreamEvent[] = [];
+		spawned.subscribe(sessionId, (event) => events.push(event));
+
+		// The human iterates on the staged diff by replying on the thread.
+		const replied = spawned.replyToRequest(sessionId, "R1", "Shorter, please.");
+		expect(replied?.ok).toBe(true);
+		await Bun.sleep(0);
+
+		expect(launches).toHaveLength(2);
+		const rerun = launches[1]!;
+		// Same session object — the turn drives the same queue and working doc.
+		expect(rerun.session).toBe(session);
+		// Kickoff names the request; the rebuilt queue carries the reply and the
+		// staged state, and the render is the WORKING document (post-proposal).
+		expect(rerun.spawn.prompt).toContain("R1");
+		expect(rerun.spawn.sessionData.requestQueue).toContain("Shorter, please.");
+		expect(rerun.spawn.sessionData.requestQueue).toContain("proposal-staged");
+		expect(rerun.spawn.sessionData.targetPromptRender).toContain("Be direct.");
+
+		expect(
+			events.filter((event) => event.type === "agent-turn").map((event) => ({
+				phase: (event as { phase: string }).phase,
+				turn: (event as { turn: number }).turn,
+			})),
+		// Turn 1 had already settled before this listener attached.
+		).toEqual([
+			{ phase: "started", turn: 2 },
+			{ phase: "finished", turn: 2 },
+		]);
+		spawned.disposeAll();
+	});
+
+	test("re-proposing on the re-run REPLACES the staged proposal instead of stacking one", async () => {
+		const annotationId = await addAgentRequest("para-0", "Make it direct.");
+		const { spawned } = spawningService();
+		const created = await spawned.createSession(AGENT, {
+			requestIds: [annotationId],
+		});
+		if (!created.ok) throw new Error("create failed");
+		const session = spawned.getSession(created.state.sessionId)!;
+		await session.propose(
+			"R1",
+			[{ op: "update_node", nodeId: "para-0", patch: { content: ["Be direct."] } }],
+			"First cut.",
+		);
+		spawned.replyToRequest(created.state.sessionId, "R1", "Shorter.");
+		await Bun.sleep(0);
+		const second = await session.propose(
+			"R1",
+			[{ op: "update_node", nodeId: "para-0", patch: { content: ["Direct."] } }],
+			"Tighter cut.",
+		);
+		expect(second.ok).toBe(true);
+
+		const state = spawned.getState(created.state.sessionId)!;
+		expect(state.proposals).toHaveLength(1);
+		expect(state.proposals[0]?.summary).toBe("Tighter cut.");
+		expect(state.nextAcceptAlias).toBe("R1");
+		spawned.disposeAll();
+	});
+
+	test("replies during a live turn never overlap runs — they coalesce into one follow-up", async () => {
+		const annotationId = await addAgentRequest("para-0", "Make it direct.");
+		let release: (() => void) | undefined;
+		const firstTurnBlocked = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		let turn = 0;
+		const { spawned, launches } = spawningService(async () => {
+			turn += 1;
+			// Hold turn 1 open so the replies below land mid-run.
+			if (turn === 1) await firstTurnBlocked;
+		});
+		const created = await spawned.createSession(AGENT, {
+			requestIds: [annotationId],
+		});
+		if (!created.ok) throw new Error("create failed");
+		const sessionId = created.state.sessionId;
+		await Bun.sleep(0);
+		expect(spawned.getState(sessionId)?.agent.running).toBe(true);
+
+		spawned.replyToRequest(sessionId, "R1", "One more thing.");
+		spawned.replyToRequest(sessionId, "R1", "And another.");
+		await Bun.sleep(0);
+		// Still a single run in flight; the follow-up is scheduled, not started.
+		expect(launches).toHaveLength(1);
+		expect(spawned.getState(sessionId)?.agent.rerunPending).toBe(true);
+
+		release?.();
+		await Bun.sleep(5);
+		// Exactly ONE follow-up turn for both replies.
+		expect(launches).toHaveLength(2);
+		expect(spawned.getState(sessionId)?.agent).toMatchObject({
+			running: false,
+			turns: 2,
+			rerunPending: false,
+		});
+		spawned.disposeAll();
+	});
+
+	test("a headless session (no spawn seam) just records the reply", async () => {
+		const { sessionId, session } = await sessionWithTwoProposals();
+		const result = service.replyToRequest(sessionId, "R1", "Shorter.");
+		expect(result?.ok).toBe(true);
+		expect(
+			session.requests().find((entry) => entry.alias === "R1")?.replies.at(-1),
+		).toMatchObject({ author: "human", body: "Shorter." });
+		expect(service.getState(sessionId)?.agent).toMatchObject({
+			spawned: false,
+			running: false,
+			turns: 0,
+		});
+	});
+
+	test("spawn:false keeps the session headless for its whole life, replies included", async () => {
+		const annotationId = await addAgentRequest("para-0", "Make it direct.");
+		const { spawned, launches } = spawningService();
+		const created = await spawned.createSession(AGENT, {
+			requestIds: [annotationId],
+			spawn: false,
+		});
+		if (!created.ok) throw new Error("create failed");
+		await Bun.sleep(0);
+		expect(launches).toHaveLength(0);
+		expect(spawned.replyToRequest(created.state.sessionId, "R1", "Shorter.")?.ok).toBe(
+			true,
+		);
+		await Bun.sleep(0);
+		expect(launches).toHaveLength(0);
+		spawned.disposeAll();
+	});
+
+	test("a rejected reply (closed thread) starts no turn", async () => {
+		const annotationId = await addAgentRequest("para-0", "Make it direct.");
+		const { spawned, launches } = spawningService();
+		const created = await spawned.createSession(AGENT, {
+			requestIds: [annotationId],
+		});
+		if (!created.ok) throw new Error("create failed");
+		await Bun.sleep(0);
+		const result = spawned.replyToRequest(created.state.sessionId, "R9", "Hi.");
+		expect(result?.ok).toBe(false);
+		await Bun.sleep(0);
+		expect(launches).toHaveLength(1);
+		spawned.disposeAll();
 	});
 });
 

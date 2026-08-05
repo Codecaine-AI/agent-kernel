@@ -27,9 +27,13 @@ import type {
 	PromptAnnotation,
 	PromptAnnotationTarget,
 } from "@codecaine-ai/prompt-kit/annotations";
-import type { PromptEditSession as LabSession } from "@codecaine-ai/prompt-kit/ui/lab";
+import type {
+	PromptEditSession as LabSession,
+	PromptRequestFiling,
+} from "@codecaine-ai/prompt-kit/ui/lab";
 import type {
 	CatalogAnnotationMutationSuccess,
+	PromptEditSessionCreateRequest,
 	PromptEditSessionEventDto,
 	PromptEditSessionStateDto,
 } from "@agent-kernel/viewer-core";
@@ -81,7 +85,37 @@ export interface PromptLabSessionControllerOptions {
 export interface PromptLabSessionController {
 	/** Loads the sidecar annotations. Call once on mount. */
 	load(): Promise<void>;
+	/**
+	 * Creates a session over EVERY open agent-request (the header strip's
+	 * "Apply N notes"). Unscoped — the pre-gesture behavior.
+	 */
 	startSession(instruction?: string): Promise<void>;
+	/**
+	 * A composer submit with its disposition (run now / batch / global). All
+	 * three persist the same way — one open agent-request annotation — and the
+	 * lab follows a run-now filing with `runRequest`.
+	 */
+	fileRequest(filing: PromptRequestFiling): Promise<void>;
+	/**
+	 * RUN NOW: a session scoped to one annotation, started immediately. The
+	 * agent stages a proposal for just that request; the human iterates with
+	 * `rerunRequest` and settles with accept/reject. Accepts the lab-minted
+	 * filing handle as well as a real sidecar id.
+	 */
+	runRequest(annotationId: string, instruction?: string): Promise<void>;
+	/**
+	 * APPLY: one session over the queued batch. Same lifecycle as run-now, one
+	 * proposal per request, accepted in staging order.
+	 */
+	applyQueue(annotationIds: readonly string[], instruction?: string): Promise<void>;
+	/**
+	 * RE-RUN: reply on a live request's thread, which makes the server run
+	 * another agent turn that REPLACES that request's staged proposal. Falls
+	 * back to a plain sidecar reply when no session covers the annotation.
+	 */
+	rerunRequest(annotationId: string, replyText: string): Promise<void>;
+	/** Dismiss a queued note: resolve its sidecar annotation as dismissed. */
+	dismissRequest(annotationId: string): Promise<void>;
 	/** DELETEs the session server-side and drops the local mirror. */
 	endSession(): Promise<void>;
 	accept(alias: string): Promise<void>;
@@ -105,7 +139,16 @@ export interface PromptLabSessionController {
 
 function failureMessage(failure: PromptEditClientFailure): string {
 	const typed = failure.failure;
-	if (typed) {
+	if (typed && "reason" in typed) {
+		// Create-route conflicts (409): discriminated by `reason`.
+		switch (typed.reason) {
+			case "agent-busy":
+				return "Another prompt-edit session is already open for this agent — end it first.";
+			case "empty-scope":
+				return "That note is no longer an open request.";
+		}
+	}
+	if (typed && "kind" in typed) {
 		switch (typed.kind) {
 			case "writes_disabled":
 				return "Catalog writes are disabled on this kernel.";
@@ -188,7 +231,7 @@ export function createPromptLabSessionController(
 		run: (
 			expectedHash: string | undefined,
 		) => Promise<PromptEditClientResult<CatalogAnnotationMutationSuccess>>,
-	): Promise<void> {
+	): Promise<CatalogAnnotationMutationSuccess | null> {
 		let result = await run(annotationsHash ?? undefined);
 		if (isPromptEditClientFailure(result) && result.status === 409) {
 			await reloadAnnotations();
@@ -196,16 +239,83 @@ export function createPromptLabSessionController(
 		}
 		if (isPromptEditClientFailure(result)) {
 			annotationsError = failureMessage(result);
-			return;
+			return null;
 		}
 		annotations = result.annotations.annotations;
 		annotationsHash = result.hash;
 		annotationsError = undefined;
+		return result;
+	}
+
+	/**
+	 * Files one annotate-mode request onto the sidecar and answers the id the
+	 * KERNEL assigned it. The lab mints its own id when it files, so run-now and
+	 * apply have to translate through `filings` below — the kernel's annotation
+	 * POST does not take a caller-supplied id.
+	 */
+	async function addSidecarRequest(
+		target: PromptAnnotationTarget | null,
+		body: string,
+	): Promise<string | null> {
+		const result = await annotationMutation((expectedHash) =>
+			client.addAnnotation({
+				target: toAnnotationTarget(target, options.docId()),
+				body,
+				intent: "agent-request",
+				author,
+				...(expectedHash !== undefined ? { expectedHash } : {}),
+			}),
+		);
+		return result?.annotation.id ?? null;
+	}
+
+	/**
+	 * Lab-minted filing id → the sidecar id it became.
+	 *
+	 * The lab mints an id, calls `onFileRequest` WITHOUT awaiting it, then calls
+	 * `onRunRequest(thatId)` in the same tick. The kernel assigns its own id on
+	 * POST, so run-now/apply must wait for the in-flight filing and swap the id
+	 * before they can scope a session to it. Ids the lab never minted (every
+	 * request that came back from the sidecar) pass straight through.
+	 */
+	const filings = new Map<string, Promise<string | null>>();
+
+	/**
+	 * Annotation ids launched through `runRequest` — the session DTO carries no
+	 * disposition, so this is the only record that a session request is a
+	 * run-now (inline at the section) rather than a queue card. Lost on a page
+	 * reload mid-run: the card then degrades to the queue until disposed.
+	 */
+	const runNowAnnotationIds = new Set<string>();
+
+	/** Resolves a lab-facing request handle to a sidecar annotation id. */
+	async function resolveAnnotationId(handle: string): Promise<string | null> {
+		const pending = filings.get(handle);
+		return pending === undefined ? handle : await pending;
 	}
 
 	function stopStream(): void {
 		unsubscribeStream?.();
 		unsubscribeStream = null;
+	}
+
+	/**
+	 * A session whose every request is disposed and every proposal settled has
+	 * nothing left to say — dispose it so the kernel's one-session-per-agent
+	 * slot frees up (otherwise the NEXT run-now/Apply create silently refuses).
+	 */
+	function releaseSettledSession(): void {
+		if (session === null) return;
+		if (session.status !== "completed") return;
+		if (session.agent.running || session.agent.rerunPending) return;
+		const requestsDisposed = session.requests.every(
+			(request) => request.status === "done" || request.status === "declined",
+		);
+		const proposalsSettled = session.proposals.every(
+			(proposal) =>
+				proposal.review === "applied" || proposal.review === "rejected",
+		);
+		if (requestsDisposed && proposalsSettled) void api.endSession();
 	}
 
 	function handleEvent(event: PromptEditSessionEventDto): void {
@@ -220,6 +330,7 @@ export function createPromptLabSessionController(
 		if (session === null) return;
 		session = applySessionEvent(session, event);
 		notify();
+		releaseSettledSession();
 		if (event.type === "proposal-applied" || event.type === "proposal-undone") {
 			void refreshPrompt(event.hash).then(notify);
 		}
@@ -261,7 +372,40 @@ export function createPromptLabSessionController(
 			session = applySessionEvent(session, reduce(result));
 		}
 		notify();
+		releaseSettledSession();
 		return true;
+	}
+
+	/**
+	 * The one create path behind all three filing gestures — they differ only
+	 * in the `requestIds` scope on the body (none = every open request, one =
+	 * run now, many = apply the batch). Only one session may be live at a time
+	 * (the kernel enforces the same rule per target agent), so a create while
+	 * one is open is a no-op rather than a busy error the user did not ask for.
+	 */
+	async function beginSession(
+		input: PromptEditSessionCreateRequest,
+	): Promise<void> {
+		if (session !== null || sessionStarting) return;
+		sessionStarting = true;
+		sessionError = undefined;
+		notify();
+		try {
+			const result = await client.createSession(input);
+			if (isPromptEditClientFailure(result)) {
+				sessionError = failureMessage(result);
+				return;
+			}
+			session = result.state;
+			lastRefreshedHash = result.state.currentHash;
+			subscribeStream(result.state.sessionId);
+		} catch (cause) {
+			sessionError =
+				cause instanceof Error ? cause.message : "session create failed";
+		} finally {
+			sessionStarting = false;
+			notify();
+		}
 	}
 
 	async function refreshSessionState(sessionId: string): Promise<void> {
@@ -273,33 +417,90 @@ export function createPromptLabSessionController(
 
 	const api: PromptLabSessionController = {
 		async load() {
+			// Re-arm after dispose: the host memoizes the controller across
+			// remounts (React StrictMode mounts, disposes, and mounts again with
+			// the SAME instance), and a permanently-disposed controller would
+			// silently drop every session event.
+			disposed = false;
 			await reloadAnnotations();
 			notify();
 		},
 
-		async startSession(instruction) {
-			if (session !== null || sessionStarting) return;
-			sessionStarting = true;
-			sessionError = undefined;
-			notify();
-			try {
-				const result = await client.createSession(
-					instruction !== undefined ? { instruction } : {},
-				);
-				if (isPromptEditClientFailure(result)) {
-					sessionError = failureMessage(result);
-					return;
-				}
-				session = result.state;
-				lastRefreshedHash = result.state.currentHash;
-				subscribeStream(result.state.sessionId);
-			} catch (cause) {
-				sessionError =
-					cause instanceof Error ? cause.message : "session create failed";
-			} finally {
-				sessionStarting = false;
+		startSession(instruction) {
+			return beginSession(instruction !== undefined ? { instruction } : {});
+		},
+
+		async runRequest(annotationId, instruction) {
+			// RUN NOW: scope the session to this one annotation so the agent's
+			// <requests> block holds exactly it (server-side scoping). The id may
+			// still be the lab-minted handle of a filing that is mid-POST.
+			const resolved = await resolveAnnotationId(annotationId);
+			if (resolved === null) {
+				sessionError = annotationsError ?? "The note could not be filed.";
 				notify();
+				return;
 			}
+			runNowAnnotationIds.add(resolved);
+			await beginSession({
+				requestIds: [resolved],
+				...(instruction !== undefined ? { instruction } : {}),
+			});
+		},
+
+		async applyQueue(annotationIds, instruction) {
+			if (annotationIds.length === 0) return;
+			const resolved = (
+				await Promise.all(annotationIds.map(resolveAnnotationId))
+			).filter((id): id is string => id !== null);
+			if (resolved.length === 0) return;
+			await beginSession({
+				requestIds: resolved,
+				...(instruction !== undefined ? { instruction } : {}),
+			});
+		},
+
+		async dismissRequest(annotationId) {
+			// A queued note nobody ran: resolve the sidecar annotation as
+			// dismissed — it leaves the open queue on the next annotations echo.
+			const resolved = await resolveAnnotationId(annotationId);
+			if (resolved === null) return;
+			runNowAnnotationIds.delete(resolved);
+			await annotationMutation((expectedHash) =>
+				client.resolveAnnotation(resolved, {
+					status: "resolved",
+					resolution: "dismissed",
+					...(expectedHash !== undefined ? { expectedHash } : {}),
+				}),
+			);
+			notify();
+		},
+
+		async rerunRequest(annotationId, replyText) {
+			const trimmed = replyText.trim();
+			if (trimmed === "") return;
+			// The lab keys re-runs by `requestRunId`: the annotation id when it
+			// has one, else the alias — so match on both.
+			const alias = session?.requests.find(
+				(request) =>
+					request.annotationId === annotationId ||
+					request.alias === annotationId,
+			)?.alias;
+			if (alias !== undefined) {
+				// The session reply is what triggers the server-side re-run turn:
+				// the agent re-proposes, REPLACING the staged proposal.
+				await api.replyToRequest(alias, trimmed);
+				return;
+			}
+			// No live session covers this annotation — degrade to a sidecar reply
+			// so the note is not lost; the next run picks it up as thread context.
+			await annotationMutation((expectedHash) =>
+				client.replyToAnnotation(annotationId, {
+					author,
+					body: trimmed,
+					...(expectedHash !== undefined ? { expectedHash } : {}),
+				}),
+			);
+			notify();
 		},
 
 		async endSession() {
@@ -404,16 +605,29 @@ export function createPromptLabSessionController(
 				notify();
 				return;
 			}
-			await annotationMutation((expectedHash) =>
-				client.addAnnotation({
-					target: toAnnotationTarget(target, options.docId()),
-					body: trimmed,
-					intent: "agent-request",
-					author,
-					...(expectedHash !== undefined ? { expectedHash } : {}),
-				}),
-			);
+			await addSidecarRequest(target, trimmed);
 			notify();
+		},
+
+		fileRequest(filing) {
+			const trimmed = filing.body.trim();
+			if (trimmed === "") return Promise.resolve();
+			if (session !== null) {
+				// Mid-session filing joins the live queue instead of the sidecar,
+				// same as the disposition-blind onSendRequest path.
+				return api.sendRequest(filing.target, trimmed);
+			}
+			// All three dispositions persist identically: one open agent-request
+			// annotation. What differs is what happens NEXT — run-now follows with
+			// onRunRequest, batch/global sit in the queue until Apply. A `global`
+			// filing carries a null target, which maps to the document target.
+			const pending = addSidecarRequest(filing.target, trimmed);
+			// Registered BEFORE the await so the onRunRequest that fires in this
+			// same tick finds it and waits rather than racing the POST.
+			filings.set(filing.annotationId, pending);
+			return pending.then(() => {
+				notify();
+			});
 		},
 
 		async replyToRequest(alias, body) {
@@ -462,6 +676,17 @@ export function createPromptLabSessionController(
 			const callbacks: Partial<LabSession> = {
 				onSendRequest: (target, body) => api.sendRequest(target, body),
 				onReplyToRequest: (alias, body) => api.replyToRequest(alias, body),
+				// The filing gestures. onFileRequest persists ALL three
+				// dispositions (the lab prefers it over onSendRequest when both
+				// are present); run/apply/rerun are keyed by annotation id, not
+				// alias, because they happen before a session (and its aliases)
+				// exists.
+				onFileRequest: (filing) => api.fileRequest(filing),
+				onRunRequest: (annotationId) => api.runRequest(annotationId),
+				onDismissRequest: (annotationId) => api.dismissRequest(annotationId),
+				onApplyQueue: (annotationIds) => api.applyQueue(annotationIds),
+				onRerunRequest: (annotationId, replyText) =>
+					api.rerunRequest(annotationId, replyText),
 				...(session !== null
 					? {
 							onAccept: (alias: string) => api.accept(alias),
@@ -472,14 +697,45 @@ export function createPromptLabSessionController(
 						}
 					: {}),
 			};
-			labSessionCache =
-				session !== null
-					? { ...toLabSessionData(session, options.docId()), ...callbacks }
-					: {
-							requests: annotationsToLabRequests(annotations),
-							proposals: [],
-							...callbacks,
-						};
+			if (session !== null) {
+				const data = toLabSessionData(session, options.docId());
+				// Stamp run-now dispositions (the DTO has none) so those loops
+				// render inline at the section instead of as queue cards.
+				const requests = data.requests.map((request) =>
+					request.annotationId !== undefined &&
+					runNowAnnotationIds.has(request.annotationId)
+						? { ...request, disposition: "run-now" as const }
+						: request,
+				);
+				// Sidecar notes the session does not cover keep their queue cards —
+				// a run-now scoped to one annotation must not blank the batch.
+				const covered = new Set(
+					requests
+						.map((request) => request.annotationId)
+						.filter((id): id is string => id !== undefined),
+				);
+				const leftovers = annotationsToLabRequests(annotations)
+					.filter(
+						(request) =>
+							request.annotationId !== undefined &&
+							!covered.has(request.annotationId),
+					)
+					.map((request, index) => ({
+						...request,
+						alias: `R${requests.length + index + 1}`,
+					}));
+				labSessionCache = {
+					...data,
+					requests: [...requests, ...leftovers],
+					...callbacks,
+				};
+			} else {
+				labSessionCache = {
+					requests: annotationsToLabRequests(annotations),
+					proposals: [],
+					...callbacks,
+				};
+			}
 			return labSessionCache;
 		},
 

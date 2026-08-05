@@ -88,6 +88,34 @@ export const context = defineContext({
 });
 `;
 
+/**
+ * state.ts sidecar fixture: seed answers the explicit prior (the fixture's
+ * `state`) verbatim, or an initial state read off ctx.variables — so both the
+ * fixture-state seeding path and the variables overlay are observable in the
+ * rendered preview.
+ */
+const STATE_TS = `import { defineState } from "@agent-kernel/kernel/agent-definition";
+
+export const state = defineState({
+  seed: (ctx, prior) => prior ?? { focus: ctx.variables.focus, turns: 0 },
+  update: (s) => s,
+  render: (s) => ({
+    messages: [{ role: "user", content: [{ type: "text", text: "<state focus=\\"" + s.focus + "\\" turns=\\"" + s.turns + "\\"/>" }], timestamp: 1 }],
+    stateMessageCount: 1
+  })
+});
+`;
+
+/** A contract-complete state.ts whose render throws (the degrade path). */
+const THROWING_STATE_TS = `import { defineState } from "@agent-kernel/kernel/agent-definition";
+
+export const state = defineState({
+  seed: () => ({}),
+  update: (s) => s,
+  render: () => { throw new Error("render bug"); }
+});
+`;
+
 /** Custom loader kind: "ok" only when live session data is present. */
 const sessionNotesLoader: Loader = {
 	kind: "session-notes",
@@ -124,7 +152,14 @@ function writePromptFile(content: string): void {
 	utimesSync(promptFile, stamp, stamp);
 }
 
-async function bootFixture(opts: { contextTs?: string } = {}): Promise<void> {
+async function bootFixture(
+	opts: {
+		contextTs?: string;
+		stateTs?: string;
+		/** state/fixtures/<name> → raw file content. */
+		fixtures?: Record<string, string>;
+	} = {},
+): Promise<void> {
 	dir = mkdtempSync(join(import.meta.dir, ".catalog-service-test-"));
 	catalogRoot = join(dir, "agent-catalog");
 	agentDir = join(catalogRoot, AGENT_NAME);
@@ -135,6 +170,15 @@ async function bootFixture(opts: { contextTs?: string } = {}): Promise<void> {
 	writeFileSync(join(agentDir, "prompt.json"), canonicalizePrompt(originalDocument), "utf8");
 	if (opts.contextTs) {
 		writeFileSync(join(agentDir, "context.ts"), opts.contextTs, "utf8");
+	}
+	if (opts.stateTs) {
+		writeFileSync(join(agentDir, "state.ts"), opts.stateTs, "utf8");
+	}
+	if (opts.fixtures) {
+		mkdirSync(join(agentDir, "state", "fixtures"), { recursive: true });
+		for (const [name, content] of Object.entries(opts.fixtures)) {
+			writeFileSync(join(agentDir, "state", "fixtures", name), content, "utf8");
+		}
 	}
 	promptFile = join(agentDir, "prompt.json");
 	mtimeTick = Date.now() + 5000;
@@ -278,5 +322,95 @@ describe("catalog service context preview", () => {
 			inputs: [],
 			renderedContext: null,
 		});
+	});
+});
+
+describe("catalog service state fixtures + preview", () => {
+	test("detail lists fixtures sorted with defaulted labels; malformed files are skipped", async () => {
+		await bootFixture({
+			fixtures: {
+				"mid-session.json": JSON.stringify({ label: "Mid session", state: { turns: 7 } }),
+				"empty-run.json": JSON.stringify({}),
+				"broken.json": "{ not json",
+			},
+		});
+
+		const detail = await service.getAgentDetail(AGENT_NAME);
+		expect(detail?.fixtures).toEqual([
+			{ id: "empty-run", label: "empty-run" },
+			{ id: "mid-session", label: "Mid session" },
+		]);
+	});
+
+	test("a bundle without a state/fixtures/ directory answers fixtures: []", async () => {
+		await bootFixture();
+		const detail = await service.getAgentDetail(AGENT_NAME);
+		expect(detail?.fixtures).toEqual([]);
+	});
+
+	test("state module preview: the fixture's state seeds render; fixture variables overlay manifest defaults", async () => {
+		await bootFixture({
+			stateTs: STATE_TS,
+			fixtures: {
+				"mid-session.json": JSON.stringify({ state: { focus: "seeded", turns: 7 } }),
+				"empty-run.json": JSON.stringify({ variables: { focus: "fixture-focus" } }),
+				"default-run.json": JSON.stringify({}),
+			},
+		});
+
+		// The fixture's state is the seed's explicit prior.
+		const seeded = await service.getStatePreview(AGENT_NAME, "mid-session");
+		expect(seeded).toEqual({
+			fixtureId: "mid-session",
+			source: "state-module",
+			renderedState: '<state focus="seeded" turns="7"/>',
+		});
+
+		// No fixture state → initial seed, with fixture variables winning over
+		// the manifest default ("default-focus").
+		const overlaid = await service.getStatePreview(AGENT_NAME, "empty-run");
+		expect(overlaid?.renderedState).toBe('<state focus="fixture-focus" turns="0"/>');
+
+		const defaults = await service.getStatePreview(AGENT_NAME, "default-run");
+		expect(defaults?.renderedState).toBe('<state focus="default-focus" turns="0"/>');
+	});
+
+	test("without a state module the preview falls back to a pseudo-XML pretty-print", async () => {
+		await bootFixture({
+			fixtures: {
+				"mid-session.json": JSON.stringify({ state: { turns: 7 } }),
+				"empty-run.json": JSON.stringify({}),
+			},
+		});
+
+		const preview = await service.getStatePreview(AGENT_NAME, "mid-session");
+		expect(preview?.source).toBe("fallback");
+		expect(preview?.renderedState).toBe('<state>\n{\n  "turns": 7\n}\n</state>');
+
+		// A fixture carrying no state at all still previews readably.
+		const empty = await service.getStatePreview(AGENT_NAME, "empty-run");
+		expect(empty?.renderedState).toBe("<state>\nnull\n</state>");
+	});
+
+	test("a throwing state module degrades to the fallback instead of failing", async () => {
+		await bootFixture({
+			stateTs: THROWING_STATE_TS,
+			fixtures: {
+				"mid-session.json": JSON.stringify({ state: { turns: 7 } }),
+			},
+		});
+
+		const preview = await service.getStatePreview(AGENT_NAME, "mid-session");
+		expect(preview?.source).toBe("fallback");
+		expect(preview?.renderedState).toContain('"turns": 7');
+	});
+
+	test("unknown fixture or agent answers null", async () => {
+		await bootFixture({
+			fixtures: { "empty-run.json": JSON.stringify({}) },
+		});
+
+		expect(await service.getStatePreview(AGENT_NAME, "no-such-fixture")).toBeNull();
+		expect(await service.getStatePreview("no-such-agent", "empty-run")).toBeNull();
 	});
 });

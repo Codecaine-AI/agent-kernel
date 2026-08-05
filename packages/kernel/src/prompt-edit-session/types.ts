@@ -276,6 +276,24 @@ export type PromptEditSessionEvent =
 			transactionId: string;
 			/** Canonical hash of the prompt after the revert save. */
 			hash: string;
+	  }
+	| {
+			/**
+			 * An agent run attached to this session started, finished, or failed
+			 * to start. Turn 1 is the session's own spawn; later turns are the
+			 * re-runs a human reply on a thread triggers. Also emitted by the
+			 * service only — the state machine knows nothing about agent runs.
+			 */
+			type: "agent-turn";
+			sessionId: string;
+			phase: "started" | "finished" | "failed";
+			/** 1-based turn number within the session. */
+			turn: number;
+			/** Request aliases this turn was kicked off for (empty for turn 1,
+			 * which works the whole scoped queue). */
+			aliases: string[];
+			/** Set on phase "failed". */
+			error?: string;
 	  };
 
 export type PromptEditSessionListener = (event: PromptEditSessionEvent) => void;

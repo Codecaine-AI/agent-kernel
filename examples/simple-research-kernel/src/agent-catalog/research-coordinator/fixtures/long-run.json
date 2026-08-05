@@ -1,0 +1,15 @@
+{
+	"label": "Long run",
+	"variables": {
+		"userPrompt": "Produce a full survey of trace-viewer architectures across agent harnesses."
+	},
+	"state": {
+		"phase": "synthesis",
+		"brief": "Survey trace-viewer architectures: event models, span trees, replay affordances, multi-harness normalization.",
+		"scoutsDispatched": 7,
+		"scoutReportsReceived": 7,
+		"openQuestions": [],
+		"draftSections": ["event-models", "span-trees", "replay", "normalization"],
+		"turnCount": 23
+	}
+}

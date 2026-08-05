@@ -42,10 +42,12 @@ import {
 
 import {
 	buildAgentPromptState,
+	discoverStateFixtures,
 	RegistryError,
 	syncAgentPromptFromDisk,
 	type AgentDefinition,
 	type AgentRegistry,
+	type AgentStateFixture,
 } from "./agent-registry";
 import {
 	RENDERED_SNAPSHOT_HEADER,
@@ -62,6 +64,12 @@ import {
 	type AgentContextResolver,
 	type LoaderCatalog,
 } from "./context";
+import {
+	messageText,
+	normalizeRenderOutput,
+	resolveWindowPolicy,
+	type RenderContext,
+} from "./state";
 
 /** One row of `GET .../catalog/agents`. */
 export interface KernelCatalogAgentSummary {
@@ -94,6 +102,25 @@ export interface KernelCatalogContextPreview {
 	renderedContext: string | null;
 }
 
+/** One named state fixture (`state/fixtures/<id>.json` in the bundle). */
+export interface KernelCatalogFixtureSummary {
+	id: string;
+	label: string;
+}
+
+/**
+ * Rendered state document for one agent + fixture — the lab's State view.
+ * Built through the bundle's state module (`seed` from the fixture's state,
+ * then `render` against an empty transcript) when the bundle ships one;
+ * otherwise a pseudo-XML fallback pretty-printing the fixture's state value.
+ */
+export interface KernelCatalogStatePreview {
+	fixtureId: string;
+	/** "state-module" when render() produced it; "fallback" is the pretty-print. */
+	source: "state-module" | "fallback";
+	renderedState: string;
+}
+
 /** Response body of `GET .../catalog/agents/:name`. */
 export interface KernelCatalogAgentDetail {
 	manifest: Record<string, unknown>;
@@ -105,6 +132,8 @@ export interface KernelCatalogAgentDetail {
 	modelAliases: string[];
 	/** null when the agent has no context.ts sidecar. */
 	context: KernelCatalogContextPreview | null;
+	/** Named state fixtures of the bundle. Empty when it ships none. */
+	fixtures: KernelCatalogFixtureSummary[];
 }
 
 /** Partial manifest patch accepted by `PUT .../catalog/agents/:name/manifest`. */
@@ -145,6 +174,11 @@ export interface KernelCatalogService extends KernelCatalogAnnotationOps {
 	 * remain directly detail-fetchable; unlisted controls browsing, not access.
 	 */
 	getAgentDetail(name: string): Promise<KernelCatalogAgentDetail | null>;
+	/** null when the agent or the fixture is not found. */
+	getStatePreview(
+		name: string,
+		fixtureId: string,
+	): Promise<KernelCatalogStatePreview | null>;
 	/** null when the agent is not in the registry.
 	 * `source` labels the prompt_revisions row; defaults to "lab-save" (the
 	 * Phase 2 apply path passes "agent-run"). */
@@ -208,6 +242,77 @@ export * from "./catalog-annotations";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * The state preview when the bundle ships no state module (or its module
+ * throws): a pseudo-XML block pretty-printing the fixture's state value, so
+ * the State view shows *something* readable for any fixture.
+ */
+function fallbackStatePreview(
+	fixture: AgentStateFixture,
+): KernelCatalogStatePreview {
+	const value = fixture.hasState ? fixture.state : null;
+	return {
+		fixtureId: fixture.id,
+		source: "fallback",
+		renderedState: `<state>\n${JSON.stringify(value, null, 2) ?? "null"}\n</state>`,
+	};
+}
+
+/**
+ * Assemble the rendered state document for one agent + fixture. Mirrors
+ * buildContextPreview's stance: manifest variable defaults (overlaid with the
+ * fixture's variables), no session data, and a module bug degrades — here to
+ * the pseudo-XML fallback — instead of failing the route.
+ */
+function buildStatePreview(
+	def: AgentDefinition,
+	fixture: AgentStateFixture,
+): KernelCatalogStatePreview {
+	const module = def.stateModule;
+	if (!module) return fallbackStatePreview(fixture);
+
+	const variables: Record<string, unknown> = {};
+	for (const [name, declaration] of Object.entries(def.manifest.variables)) {
+		variables[name] = declaration.default;
+	}
+	Object.assign(variables, fixture.variables);
+	const spawnContext = createSpawnContext({
+		agentName: def.name,
+		runtime: { cwd: dirname(def.manifestFile) },
+		variables,
+		caller: { kind: "system", id: "catalog-preview" },
+		sessionData: null,
+	});
+
+	try {
+		// A fixture's `state` IS the previewed state — a fixture names a
+		// hypothetical run, and "state feeds the state render" (the lab design
+		// record). Routing it through seed as a prior lets seeds that re-derive
+		// from session data (which a preview never has) hollow the fixture out.
+		// A fixture without a state previews the agent's initial state; a state
+		// the render cannot digest degrades to the pseudo-XML fallback below.
+		const state = fixture.hasState
+			? (fixture.state as Parameters<typeof module.render>[0])
+			: module.seed(spawnContext);
+		const renderCtx: RenderContext = {
+			agentName: def.name,
+			messages: [],
+			turnIndex: 0,
+			window: resolveWindowPolicy(def.stateConfig?.window ?? module.window ?? null),
+		};
+		const rendered = normalizeRenderOutput(module.render(state, renderCtx));
+		return {
+			fixtureId: fixture.id,
+			source: "state-module",
+			renderedState: rendered.messages
+				.map((message) => messageText(message))
+				.join("\n\n"),
+		};
+	} catch {
+		return fallbackStatePreview(fixture);
+	}
 }
 
 export function createKernelCatalogService(
@@ -336,7 +441,22 @@ export function createKernelCatalogService(
 				declaredVariables: Object.keys(def.manifest.variables),
 				modelAliases: modelAliases(),
 				context: await buildContextPreview(def),
+				fixtures: discoverStateFixtures(def.bundleLayout.dir).map((fixture) => ({
+					id: fixture.id,
+					label: fixture.label,
+				})),
 			};
+		},
+
+		async getStatePreview(name, fixtureId) {
+			const registry = await opts.registry();
+			const def = registry.tryGet(name);
+			if (!def) return null;
+			const fixture = discoverStateFixtures(def.bundleLayout.dir).find(
+				(candidate) => candidate.id === fixtureId,
+			);
+			if (!fixture) return null;
+			return buildStatePreview(def, fixture);
 		},
 
 		async savePrompt(name, input, expectedHash, source) {

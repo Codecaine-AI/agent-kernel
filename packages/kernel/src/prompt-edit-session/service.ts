@@ -48,6 +48,40 @@
  * whatever the agent left it at (accepting does not forge an agent
  * resolution; rejecting DOES close the entry via session.discardProposal,
  * because the discard must revert the working document).
+ *
+ * ---------------------------------------------------------------------------
+ * Three additions for the lab's filing gestures (run now / add to batch /
+ * apply), each a documented decision:
+ *
+ * - REQUEST SCOPE. `createSession` takes `requestIds`: the explicit set of
+ *   annotation ids the session works. "Run now" is a session scoped to one id,
+ *   "Apply" is one scoped to the queued set, and omitting it keeps the original
+ *   whole-sidecar behavior. Scoping happens at the launch layer, so it governs
+ *   BOTH what the session tracks and what the agent sees — the prompt-editor
+ *   bundle renders `sessionData.requestQueue` verbatim into its `<requests>`
+ *   block, so a scoped queue is a scoped context with no bundle change.
+ *
+ * - RE-RUN ON REPLY. A human reply into a request thread starts ANOTHER agent
+ *   turn on the SAME session (`relaunchPromptEditSession` + the injected
+ *   spawnAgent), which is how "iterate on the staged diff by replying" works:
+ *   re-proposing on an alias replaces its staged proposal, so the old diff is
+ *   swapped for the revised one in place. Turns never overlap — a reply while a
+ *   turn is running is coalesced into ONE follow-up turn kicked off when the
+ *   current one settles (the running agent may well pick the reply up itself
+ *   via read_prompt; the follow-up turn guarantees it either way). Sessions
+ *   without a spawn function (headless/tests) just record the reply.
+ *
+ * - ONE LIVE SESSION PER TARGET AGENT. Creating a session for an agent that
+ *   already has one is refused with `{ reason: "agent-busy", sessionId }`
+ *   rather than queued. Reason: sessions are base-hash pinned. Two live
+ *   sessions would both stage against the same base, and the first accept moves
+ *   the registry hash — so the second session's proposals would bounce on the
+ *   stale-base guard AFTER its agent had already done the work. Refusing up
+ *   front is strictly cheaper than discovering the conflict at accept time, and
+ *   it gives the UI a signal it can show ("finish or end that session first").
+ *   Serial launch queuing and rebasing are deliberately NOT built — the escape
+ *   hatch is `dispose(sessionId)`. Sessions on DIFFERENT agents are
+ *   independent (separate documents, separate hashes) and never conflict.
  */
 import { PROMPT_REVISION_SOURCE } from "@agent-kernel/db";
 import type { PromptDocument } from "@codecaine-ai/prompt-kit";
@@ -62,6 +96,8 @@ import type { KernelCatalogService } from "../catalog-service";
 import type { SkippedAnnotation } from "./from-annotations";
 import {
 	launchPromptEditSession,
+	promptEditRerunKickoff,
+	relaunchPromptEditSession,
 	type LaunchedPromptEditSession,
 	type LaunchPromptEditSessionFailure,
 } from "./launch";
@@ -123,6 +159,12 @@ export interface PromptEditSessionAgentState {
 	spawned: boolean;
 	/** Set when the spawn function threw/rejected; the session stays usable. */
 	error?: string;
+	/** An agent turn is in flight right now (the lab's "working…" state). */
+	running: boolean;
+	/** Turns started so far: 1 is the session's own spawn, 2+ are reply re-runs. */
+	turns: number;
+	/** A reply arrived mid-turn and a follow-up turn is already scheduled. */
+	rerunPending: boolean;
 }
 
 /** Full session state snapshot (GET session / SSE hello event). */
@@ -136,6 +178,9 @@ export interface PromptEditSessionState {
 	status: PromptEditSessionStatus;
 	instruction?: string;
 	createdAt: string;
+	/** Annotation ids this session was scoped to, or null when it works every
+	 * open agent-request on the sidecar. */
+	scope: string[] | null;
 	requests: PromptEditSessionRequestState[];
 	proposals: PromptEditSessionProposalState[];
 	/** Staging-order pointer: the only alias acceptProposal will take next. */
@@ -157,6 +202,7 @@ export interface PromptEditSessionSummary {
 	requestCount: number;
 	proposalCount: number;
 	appliedCount: number;
+	scope: string[] | null;
 }
 
 /** Everything the SSE stream carries: session events, service review events,
@@ -261,9 +307,24 @@ export type UndoAcceptedProposalResult =
 	| { ok: true; alias: string; transactionId: string; hash: string }
 	| { ok: false; failure: UndoAcceptedProposalFailure };
 
+/**
+ * Everything that can stop a session from being created: the launch failures
+ * plus the service-level concurrency refusal (see the header — one live
+ * session per target agent, no queuing).
+ */
+export type CreatePromptEditSessionFailure =
+	| LaunchPromptEditSessionFailure
+	| {
+			ok: false;
+			reason: "agent-busy";
+			targetAgent: string;
+			/** The session already holding this agent — end it or wait for it. */
+			sessionId: string;
+	  };
+
 export type CreatePromptEditSessionResult =
 	| { ok: true; state: PromptEditSessionState }
-	| LaunchPromptEditSessionFailure;
+	| CreatePromptEditSessionFailure;
 
 export type PromptEditSimpleResult =
 	| { ok: true; request: PromptEditRequestEntry }
@@ -275,10 +336,19 @@ export type PromptEditSimpleResult =
 
 export interface CreatePromptEditSessionInput {
 	instruction?: string;
+	/**
+	 * Scope the session to these annotation ids — one id for "run now", the
+	 * queued set for "apply". Omitted: every open agent-request on the sidecar
+	 * (unchanged pre-scope behavior). An id that is not an actionable request
+	 * fails the create with `reason: "empty-scope"` when NOTHING in the scope
+	 * lands, and is reported in `skipped` otherwise.
+	 */
+	requestIds?: readonly string[];
 	extraRequests?: PromptEditRequestInput[];
 	sessionId?: string;
-	/** Skip the spawn function for this session (headless). Default: spawn
-	 * when a spawn function is configured. */
+	/** Skip the spawn function for this session (headless) — for its whole
+	 * life, replies included. Default: spawn when a spawn function is
+	 * configured. */
 	spawn?: boolean;
 }
 
@@ -356,7 +426,7 @@ export interface CreatePromptEditSessionServiceOptions {
 	 * injectable seam between the manager and the kernel's run machinery.
 	 * The host's real implementation is the launch.ts header's spawn line
 	 * (`kernel.spawnAgent(launch.spawn.agentName, launch.spawn.prompt, null,
-	 * {variables, sessionData})` with `launch.tools` bound via `sharedTools`).
+	 * {sessionData})` with `launch.tools` bound via `sharedTools`).
 	 * Errors are captured onto the session's agent state, never thrown to the
 	 * caller. Omitted: sessions run headless.
 	 */
@@ -390,6 +460,14 @@ interface ManagedSession {
 	listeners: Set<PromptEditSessionStreamListener>;
 	unsubscribeSession: () => void;
 	agent: PromptEditSessionAgentState;
+	/** False when the session was created with `spawn: false` — it stays
+	 * headless for its whole life, replies included. */
+	spawnEnabled: boolean;
+	/** Aliases replied to while a turn was running, coalesced into the next
+	 * follow-up turn (insertion-ordered, deduplicated). */
+	pendingRerunAliases: Set<string>;
+	/** True once dispose() ran — stops a settling turn from scheduling more. */
+	disposed: boolean;
 }
 
 export function createPromptEditSessionService(
@@ -443,6 +521,70 @@ export function createPromptEditSessionService(
 		};
 	}
 
+	/**
+	 * Runs ONE agent turn on a session and settles the turn bookkeeping. Turn 1
+	 * is the session's own launch; later turns are reply re-runs built with
+	 * `relaunchPromptEditSession` off live session state.
+	 *
+	 * Turns never overlap: a request to run while one is in flight only records
+	 * the aliases, and the settling turn drains them into exactly one follow-up.
+	 * Detached by design — spawn failures land on the session's agent state,
+	 * never on the caller (the human's reply/create already succeeded).
+	 */
+	function runAgentTurn(
+		m: ManagedSession,
+		launch: LaunchedPromptEditSession,
+		aliases: string[],
+	): void {
+		if (!opts.spawnAgent || !m.spawnEnabled || m.disposed) return;
+		if (m.agent.running) {
+			for (const alias of aliases) m.pendingRerunAliases.add(alias);
+			m.agent.rerunPending = m.pendingRerunAliases.size > 0;
+			return;
+		}
+		m.agent.spawned = true;
+		m.agent.running = true;
+		m.agent.turns += 1;
+		const turn = m.agent.turns;
+		emit(m, {
+			type: "agent-turn",
+			sessionId: m.session.id,
+			phase: "started",
+			turn,
+			aliases: [...aliases],
+		});
+		Promise.resolve()
+			.then(() => opts.spawnAgent?.(launch))
+			.then(
+				() => undefined,
+				(error: unknown) => {
+					m.agent.error =
+						error instanceof Error ? error.message : String(error);
+					return m.agent.error;
+				},
+			)
+			.then((error) => {
+				m.agent.running = false;
+				emit(m, {
+					type: "agent-turn",
+					sessionId: m.session.id,
+					phase: error === undefined ? "finished" : "failed",
+					turn,
+					aliases: [...aliases],
+					...(error !== undefined ? { error } : {}),
+				});
+				const pending = [...m.pendingRerunAliases];
+				m.pendingRerunAliases.clear();
+				m.agent.rerunPending = false;
+				if (pending.length === 0 || m.disposed) return;
+				runAgentTurn(
+					m,
+					relaunchPromptEditSession(m.launch, promptEditRerunKickoff(pending)),
+					pending,
+				);
+			});
+	}
+
 	function snapshot(m: ManagedSession): PromptEditSessionState {
 		const proposals = m.session.proposals();
 		return {
@@ -455,6 +597,7 @@ export function createPromptEditSessionService(
 				? { instruction: m.session.instruction }
 				: {}),
 			createdAt: m.createdAt,
+			scope: m.launch.scope === null ? null : [...m.launch.scope],
 			requests: m.session.requests().map((entry) => requestState(m, entry)),
 			proposals: proposals.map((proposal) => proposalState(m, proposal)),
 			nextAcceptAlias: proposals[m.acceptedCount]?.requestAlias ?? null,
@@ -545,6 +688,23 @@ export function createPromptEditSessionService(
 		allowWrites,
 
 		async createSession(targetAgent, input = {}) {
+			// CONCURRENCY POLICY (header): one live session per target agent.
+			// Sessions are base-hash pinned, so a second one would stage against
+			// a base the first invalidates on its first accept — refusing here is
+			// cheaper than bouncing the agent's work later. dispose() is the
+			// escape hatch; other agents are unaffected.
+			const busy = [...sessions.values()].find(
+				(candidate) => candidate.targetAgent === targetAgent,
+			);
+			if (busy) {
+				return {
+					ok: false,
+					reason: "agent-busy",
+					targetAgent,
+					sessionId: busy.session.id,
+				};
+			}
+
 			const registry = await opts.registry();
 			const launch = await launchPromptEditSession({
 				registry,
@@ -552,6 +712,9 @@ export function createPromptEditSessionService(
 				targetAgent,
 				...(input.instruction !== undefined
 					? { instruction: input.instruction }
+					: {}),
+				...(input.requestIds !== undefined
+					? { requestIds: input.requestIds }
 					: {}),
 				...(input.extraRequests !== undefined
 					? { extraRequests: input.extraRequests }
@@ -575,7 +738,15 @@ export function createPromptEditSessionService(
 				review: new Map(),
 				listeners: new Set(),
 				unsubscribeSession: () => {},
-				agent: { spawned: false },
+				agent: {
+					spawned: false,
+					running: false,
+					turns: 0,
+					rerunPending: false,
+				},
+				spawnEnabled: input.spawn !== false,
+				pendingRerunAliases: new Set(),
+				disposed: false,
 			};
 			// Forward session events enriched with the review overlay, so the
 			// wire always carries DTO-shaped requests/proposals.
@@ -601,17 +772,11 @@ export function createPromptEditSessionService(
 			});
 			sessions.set(launch.session.id, m);
 
-			if (opts.spawnAgent && input.spawn !== false) {
-				m.agent.spawned = true;
-				// Detached: the agent run outlives this call; failures land on
-				// the session's agent state instead of failing creation.
-				Promise.resolve()
-					.then(() => opts.spawnAgent?.(launch))
-					.catch((error) => {
-						m.agent.error =
-							error instanceof Error ? error.message : String(error);
-					});
-			}
+			// Turn 1 works the whole (scoped) queue, hence no aliases. Detached:
+			// the agent run outlives this call; failures land on the session's
+			// agent state instead of failing creation. A no-op when the session
+			// is headless (no spawn function, or `spawn: false`).
+			runAgentTurn(m, launch, []);
 
 			return { ok: true, state: snapshot(m) };
 		},
@@ -632,6 +797,7 @@ export function createPromptEditSessionService(
 				requestCount: m.session.requests().length,
 				proposalCount: m.session.proposals().length,
 				appliedCount: m.applied.length,
+				scope: m.launch.scope === null ? null : [...m.launch.scope],
 			}));
 		},
 
@@ -917,7 +1083,38 @@ export function createPromptEditSessionService(
 		replyToRequest(sessionId, requestAlias, body) {
 			const m = sessions.get(sessionId);
 			if (!m) return null;
-			return m.session.appendHumanReply(requestAlias, body);
+			// RE-RUN ON REPLY includes a request the agent already resolved
+			// `done`: while its staged proposal awaits review, a human reply
+			// REOPENS the loop (the next turn re-proposes, replacing the staged
+			// proposal). Once the review settled it (applied/rejected), the
+			// thread is genuinely closed and appendHumanReply refuses below.
+			const entry = m.session
+				.requests()
+				.find((candidate) => candidate.alias === requestAlias.trim());
+			const review = entry && m.review.get(entry.alias);
+			if (
+				entry !== undefined &&
+				entry.status === "done" &&
+				(review === undefined || review === "undone")
+			) {
+				const reopened = m.session.reopenForRerun(entry.alias);
+				if (!reopened.ok) return reopened;
+			}
+			const result = m.session.appendHumanReply(requestAlias, body);
+			if (!result.ok) return result;
+			// RE-RUN ON REPLY (header): the reply is now on the thread, so a new
+			// turn re-proposes for this request — replacing its staged proposal
+			// rather than stacking a second one. Detached and coalesced; a
+			// headless session (no spawn function) just keeps the reply.
+			runAgentTurn(
+				m,
+				relaunchPromptEditSession(
+					m.launch,
+					promptEditRerunKickoff([result.request.alias]),
+				),
+				[result.request.alias],
+			);
+			return result;
 		},
 
 		addHumanRequest(sessionId, input) {
@@ -937,6 +1134,13 @@ export function createPromptEditSessionService(
 		dispose(sessionId) {
 			const m = sessions.get(sessionId);
 			if (!m) return false;
+			// Stops a settling turn from scheduling a follow-up. A turn already
+			// in flight is NOT killed — the service does not own the agent run;
+			// its tools keep driving a session nobody is listening to, which is
+			// harmless (nothing is written without an accept).
+			m.disposed = true;
+			m.pendingRerunAliases.clear();
+			m.agent.rerunPending = false;
 			emit(m, { type: "session-disposed", sessionId: m.session.id });
 			m.unsubscribeSession();
 			m.listeners.clear();

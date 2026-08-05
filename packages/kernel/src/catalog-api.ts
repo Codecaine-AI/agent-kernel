@@ -12,6 +12,7 @@
  *   GET  <prefix>/catalog/agents/:name/revisions       history (hash, source, date)
  *   GET  <prefix>/catalog/agents/:name/revisions/:hash/document
  *   GET  <prefix>/catalog/agents/:name/revisions/:hash/stats
+ *   GET  <prefix>/catalog/agents/:name/fixtures/:fixtureId/state-preview
  *
  * The PUT mutates catalog files on disk, so it answers 403 unless writes are
  * enabled (local-dev trust model): production harnesses ship read-only
@@ -219,6 +220,28 @@ export function createKernelCatalogApi(
 					console.error("Error fetching kernel prompt revision stats:", error);
 					set.status = 500;
 					return { error: "Failed to fetch kernel prompt revision stats" };
+				}
+			},
+		)
+		.get(
+			`${prefix}/catalog/agents/:name/fixtures/:fixtureId/state-preview`,
+			async ({ params, set }) => {
+				try {
+					const preview = await service.getStatePreview(
+						params.name,
+						params.fixtureId,
+					);
+					if (preview === null) {
+						set.status = 404;
+						return {
+							error: `Fixture ${params.fixtureId} not found for agent ${params.name}`,
+						};
+					}
+					return preview;
+				} catch (error) {
+					console.error("Error building kernel state preview:", error);
+					set.status = 500;
+					return { error: "Failed to build kernel state preview" };
 				}
 			},
 		);

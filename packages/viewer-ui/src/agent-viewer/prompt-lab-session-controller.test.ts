@@ -104,6 +104,8 @@ interface FakeClientState {
 	acceptResult?:
 		| { kind: "ok"; hash: string; transactionId: string }
 		| { kind: "failure"; failure: PromptEditClientFailure };
+	/** Scripted create failure (the 409 conflicts of the create route). */
+	createSessionFailure?: PromptEditClientFailure;
 }
 
 function makeFakeClient(state: FakeClientState): PromptEditClient {
@@ -157,6 +159,7 @@ function makeFakeClient(state: FakeClientState): PromptEditClient {
 		resolveAnnotation: notImplemented,
 		async createSession(input) {
 			record("createSession", input);
+			if (state.createSessionFailure) return state.createSessionFailure;
 			return { state: state.sessionState };
 		},
 		async getSession(sessionId) {
@@ -432,5 +435,184 @@ describe("review actions", () => {
 			body: "One more thing.",
 		});
 		expect(called(state, "addAnnotation")).toHaveLength(0);
+	});
+});
+
+describe("filing gestures (run now / apply / re-run)", () => {
+	test("runRequest scopes the create to one annotation id", async () => {
+		const { state, controller } = setup();
+		await controller.load();
+		await controller.runRequest("ann-1");
+		const creates = called(state, "createSession");
+		expect(creates).toHaveLength(1);
+		expect(creates[0]!.args[0]).toEqual({ requestIds: ["ann-1"] });
+		expect(controller.getSnapshot().session?.sessionId).toBe("sess-1");
+	});
+
+	test("applyQueue scopes the create to the queued set; an empty batch is a no-op", async () => {
+		const { state, controller } = setup();
+		await controller.load();
+		await controller.applyQueue([]);
+		expect(called(state, "createSession")).toHaveLength(0);
+		await controller.applyQueue(["ann-1", "ann-2"]);
+		expect(called(state, "createSession")[0]!.args[0]).toEqual({
+			requestIds: ["ann-1", "ann-2"],
+		});
+	});
+
+	test("startSession stays unscoped (the strip's Apply-all path is unchanged)", async () => {
+		const { state, controller } = setup();
+		await controller.load();
+		await controller.startSession("Work the queue.");
+		expect(called(state, "createSession")[0]!.args[0]).toEqual({
+			instruction: "Work the queue.",
+		});
+	});
+
+	test("rerunRequest replies on the SESSION thread when a session covers the annotation", async () => {
+		const { state, controller } = setup();
+		await controller.load();
+		await controller.runRequest("ann-1");
+		await controller.rerunRequest("ann-1", "  Shorter, please.  ");
+		// Alias-resolved from the session's requests, and trimmed.
+		expect(called(state, "replyToSessionRequest")[0]!.args).toEqual([
+			"sess-1",
+			"R1",
+			"Shorter, please.",
+		]);
+		expect(called(state, "replyToAnnotation")).toHaveLength(0);
+	});
+
+	test("rerunRequest degrades to a sidecar reply when no session covers the annotation", async () => {
+		const { state, controller } = setup();
+		await controller.load();
+		await controller.rerunRequest("ann-1", "Shorter, please.");
+		expect(called(state, "replyToAnnotation")[0]!.args[0]).toBe("ann-1");
+		expect(called(state, "replyToSessionRequest")).toHaveLength(0);
+		// Empty replies never reach the wire.
+		await controller.rerunRequest("ann-1", "   ");
+		expect(called(state, "replyToAnnotation")).toHaveLength(1);
+	});
+
+	test("the agent-busy conflict surfaces as a readable session error", async () => {
+		const { controller } = setup({
+			createSessionFailure: {
+				ok: false,
+				status: 409,
+				errors: ["Agent layout-editor already has an open prompt-edit session"],
+				failure: {
+					ok: false,
+					reason: "agent-busy",
+					targetAgent: "layout-editor",
+					sessionId: "sess-other",
+				},
+			},
+		});
+		await controller.load();
+		await controller.runRequest("ann-1");
+		expect(controller.getSnapshot().session).toBeNull();
+		expect(controller.getSnapshot().sessionError).toBe(
+			"Another prompt-edit session is already open for this agent — end it first.",
+		);
+	});
+
+	test("every gesture rides on the lab session prop", async () => {
+		const { controller } = setup();
+		await controller.load();
+		const lab = controller.labSession()!;
+		expect(lab.onFileRequest).toBeDefined();
+		expect(lab.onRunRequest).toBeDefined();
+		expect(lab.onApplyQueue).toBeDefined();
+		expect(lab.onRerunRequest).toBeDefined();
+	});
+
+	test("fileRequest persists every disposition as an open agent-request", async () => {
+		const { state, controller } = setup();
+		await controller.load();
+		await controller.fileRequest({
+			annotationId: "lab-1",
+			disposition: "batch",
+			target: { kind: "prompt-node", docId: DOC, nodeId: "para-0" },
+			body: "Queue this.",
+		});
+		await controller.fileRequest({
+			annotationId: "lab-2",
+			disposition: "global",
+			target: null,
+			body: "Whole-doc note.",
+		});
+		const adds = called(state, "addAnnotation");
+		expect(adds).toHaveLength(2);
+		expect(adds[0]!.args[0]).toMatchObject({
+			intent: "agent-request",
+			target: { kind: "prompt-node", docId: DOC, nodeId: "para-0" },
+		});
+		// A global filing has a null target, which maps to the document target.
+		expect(adds[1]!.args[0]).toMatchObject({
+			target: { kind: "prompt-node", docId: DOC, nodeId: DOC },
+		});
+	});
+
+	test("run-now translates the lab-minted filing id to the kernel's annotation id", async () => {
+		const { state, controller } = setup();
+		await controller.load();
+		// The lab fires onFileRequest WITHOUT awaiting it, then onRunRequest with
+		// its own minted id in the same tick — run-now must wait for the POST and
+		// scope the session to the id the kernel actually assigned.
+		const filing = controller.fileRequest({
+			annotationId: "lab-minted-id",
+			disposition: "run-now",
+			target: { kind: "prompt-node", docId: DOC, nodeId: "para-0" },
+			body: "Run this now.",
+		});
+		const run = controller.runRequest("lab-minted-id");
+		await Promise.all([filing, run]);
+
+		const kernelId = state.annotations.annotations.annotations.at(-1)!.id;
+		expect(kernelId).not.toBe("lab-minted-id");
+		const creates = called(state, "createSession");
+		expect(creates).toHaveLength(1);
+		expect(creates[0]!.args[0]).toEqual({ requestIds: [kernelId] });
+	});
+
+	test("apply translates in-flight filing handles too, and drops ones that failed", async () => {
+		const { state, controller } = setup({
+			addAnnotationResults: [{ kind: "conflict", currentHash: "h" }, { kind: "conflict", currentHash: "h" }],
+		});
+		await controller.load();
+		const filing = controller.fileRequest({
+			annotationId: "lab-doomed",
+			disposition: "batch",
+			target: null,
+			body: "This POST fails.",
+		});
+		await Promise.all([filing, controller.applyQueue(["lab-doomed"])]);
+		// Nothing resolvable, so no session was created.
+		expect(called(state, "createSession")).toHaveLength(0);
+	});
+
+	test("an agent-turn event flips the session's running flag", async () => {
+		const { state, controller } = setup();
+		await controller.load();
+		await controller.runRequest("ann-1");
+		state.emit!({
+			type: "agent-turn",
+			sessionId: "sess-1",
+			phase: "started",
+			turn: 2,
+			aliases: ["R1"],
+		});
+		expect(controller.getSnapshot().session?.agent).toMatchObject({
+			running: true,
+			turns: 2,
+		});
+		state.emit!({
+			type: "agent-turn",
+			sessionId: "sess-1",
+			phase: "finished",
+			turn: 2,
+			aliases: ["R1"],
+		});
+		expect(controller.getSnapshot().session?.agent.running).toBe(false);
 	});
 });

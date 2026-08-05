@@ -20,7 +20,11 @@
  *   (create/get/list/dispose) plus the accept/reject/undo review flow that
  *   writes accepted proposals through savePrompt (source "agent-run") and
  *   settles the annotation sidecar. Its HTTP surface is
- *   ../prompt-edit-session-api.ts.
+ *   ../prompt-edit-session-api.ts. It also owns the lab's filing gestures:
+ *   request-scoped sessions (`requestIds`), re-run-on-reply, and the one-live-
+ *   session-per-agent policy — all documented in service.ts's header.
+ * - `relaunchPromptEditSession` / `promptEditRerunKickoff` — the follow-up
+ *   spawn payload for another agent turn on an existing session.
  */
 export {
 	PROMPT_EDITOR_AGENT_NAME,
@@ -104,12 +108,15 @@ export type {
 export {
 	DEFAULT_PROMPT_EDIT_KICKOFF,
 	launchPromptEditSession,
+	promptEditRerunKickoff,
+	relaunchPromptEditSession,
 } from "./launch";
 
 export { createPromptEditSessionService } from "./service";
 export type {
 	AcceptPromptEditProposalFailure,
 	AcceptPromptEditProposalResult,
+	CreatePromptEditSessionFailure,
 	CreatePromptEditSessionInput,
 	CreatePromptEditSessionResult,
 	CreatePromptEditSessionServiceOptions,

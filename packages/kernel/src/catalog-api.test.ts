@@ -644,3 +644,59 @@ describe("GET /kernel/catalog/agents/:name/revisions/:hash/stats", () => {
 		expect(response.status).toBe(404);
 	});
 });
+
+describe("GET /kernel/catalog/agents/:name/fixtures/:fixtureId/state-preview", () => {
+	// Fixtures are discovered on demand, never cached at boot — writing them
+	// after buildRegistry is exactly the supported flow.
+	function writeFixtureFile(name: string, content: string): void {
+		mkdirSync(join(agentDir, "state", "fixtures"), { recursive: true });
+		writeFileSync(join(agentDir, "state", "fixtures", name), content, "utf8");
+	}
+
+	test("serves the rendered state document for a named fixture", async () => {
+		writeFixtureFile(
+			"mid-session.json",
+			JSON.stringify({ label: "Mid session", state: { turns: 7 } }),
+		);
+
+		const detail = await app.handle(
+			new Request(url(`/kernel/catalog/agents/${AGENT_NAME}`)),
+		);
+		expect((await detail.json()).fixtures).toEqual([
+			{ id: "mid-session", label: "Mid session" },
+		]);
+
+		const response = await app.handle(
+			new Request(
+				url(`/kernel/catalog/agents/${AGENT_NAME}/fixtures/mid-session/state-preview`),
+			),
+		);
+		const body = await response.json();
+
+		expect(response.status).toBe(200);
+		// No state.ts in this bundle: the pseudo-XML fallback.
+		expect(body).toEqual({
+			fixtureId: "mid-session",
+			source: "fallback",
+			renderedState: '<state>\n{\n  "turns": 7\n}\n</state>',
+		});
+	});
+
+	test("404 for an unknown fixture and for an unknown agent", async () => {
+		writeFixtureFile("empty-run.json", JSON.stringify({}));
+
+		const unknownFixture = await app.handle(
+			new Request(
+				url(`/kernel/catalog/agents/${AGENT_NAME}/fixtures/no-such/state-preview`),
+			),
+		);
+		expect(unknownFixture.status).toBe(404);
+
+		const unknownAgent = await app.handle(
+			new Request(
+				url("/kernel/catalog/agents/no-such-agent/fixtures/empty-run/state-preview"),
+			),
+		);
+		expect(unknownAgent.status).toBe(404);
+	});
+});

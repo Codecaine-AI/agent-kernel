@@ -291,7 +291,14 @@ export function annotationsToLabRequests(
 			author: annotationAuthorToLabAuthor(annotation.author),
 			status: "open",
 			body: annotation.body,
-			target: annotation.target,
+			// The sidecar's whole-document convention (nodeId === docId — it has
+			// no `doc` kind) maps back to the lab's `null`, so the card reads as
+			// the global note it was filed as.
+			target:
+				annotation.target.kind === "prompt-node" &&
+				annotation.target.nodeId === annotation.target.docId
+					? null
+					: annotation.target,
 			...(thread.length > 0 ? { thread } : {}),
 		});
 	}
@@ -416,6 +423,17 @@ export function applySessionEvent(
 			let next = patchRequest(state, event.alias, { review: "undone" });
 			next = patchProposal(next, event.alias, { review: "undone" });
 			return recomputePointers({ ...next, currentHash: event.hash });
+		}
+		case "agent-turn": {
+			// Turn bookkeeping only — the work itself arrives as request/proposal
+			// events. `running` drives the lab's "working…" affordance; a fresh
+			// turn clears a previous spawn error.
+			const agent = { ...state.agent, spawned: true };
+			agent.running = event.phase === "started";
+			agent.turns = Math.max(agent.turns ?? 0, event.turn);
+			if (event.phase === "started") delete agent.error;
+			else if (event.error !== undefined) agent.error = event.error;
+			return { ...state, agent };
 		}
 		case "session-disposed":
 			return state;

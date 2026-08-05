@@ -1,0 +1,11 @@
+{
+	"label": "Empty run",
+	"state": {
+		"phase": "research",
+		"brief": null,
+		"scoutsDispatched": 0,
+		"scoutReportsReceived": 0,
+		"openQuestions": [],
+		"turnCount": 0
+	}
+}

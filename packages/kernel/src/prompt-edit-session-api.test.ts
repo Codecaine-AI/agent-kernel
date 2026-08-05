@@ -129,7 +129,7 @@ function post(path: string, body?: unknown) {
 	);
 }
 
-async function addAgentRequest(body: string): Promise<void> {
+async function addAgentRequest(body: string): Promise<string> {
 	const result = await catalog.addAnnotation(AGENT, {
 		target: { kind: "prompt-node", docId: DOC_ID, nodeId: "para-0" },
 		body,
@@ -137,6 +137,7 @@ async function addAgentRequest(body: string): Promise<void> {
 		author: "ford",
 	});
 	if (!result || !result.ok) throw new Error("fixture annotation add failed");
+	return result.annotation.id;
 }
 
 async function createSessionViaRoute(): Promise<string> {
@@ -192,6 +193,88 @@ describe("create / read routes", () => {
 			(await app.handle(new Request(url("/kernel/prompt-edit-sessions/nope"))))
 				.status,
 		).toBe(404);
+	});
+
+	test("requestIds scopes the created session (the lab's run-now / apply gestures)", async () => {
+		const first = await addAgentRequest("Sharpen the opening.");
+		await addAgentRequest("Tighten the brevity rule.");
+
+		const response = await post(
+			`/kernel/catalog/agents/${AGENT}/edit-sessions`,
+			{ requestIds: [first] },
+		);
+		expect(response.status).toBe(201);
+		const body = (await response.json()) as {
+			state: {
+				scope: string[] | null;
+				requests: Array<{ annotationId: string }>;
+			};
+		};
+		expect(body.state.scope).toEqual([first]);
+		expect(body.state.requests.map((request) => request.annotationId)).toEqual([
+			first,
+		]);
+	});
+
+	test("requestIds must be a non-empty array of strings", async () => {
+		await addAgentRequest("Sharpen the opening.");
+		for (const requestIds of [[], "ann-1", [1]]) {
+			const response = await post(
+				`/kernel/catalog/agents/${AGENT}/edit-sessions`,
+				{ requestIds },
+			);
+			expect(response.status).toBe(400);
+			const body = (await response.json()) as { errors: string[] };
+			expect(body.errors.join(" ")).toContain("requestIds");
+		}
+	});
+
+	test("a second session on the same agent answers 409 agent-busy with the blocking id", async () => {
+		await addAgentRequest("Sharpen the opening.");
+		const sessionId = await createSessionViaRoute();
+
+		const response = await post(`/kernel/catalog/agents/${AGENT}/edit-sessions`);
+		expect(response.status).toBe(409);
+		const body = (await response.json()) as {
+			error: string;
+			failure: { reason: string; sessionId: string };
+		};
+		expect(body.failure.reason).toBe("agent-busy");
+		expect(body.failure.sessionId).toBe(sessionId);
+
+		// Ending the holder frees the agent.
+		await app.handle(
+			new Request(url(`/kernel/prompt-edit-sessions/${sessionId}`), {
+				method: "DELETE",
+			}),
+		);
+		expect(
+			(await post(`/kernel/catalog/agents/${AGENT}/edit-sessions`)).status,
+		).toBe(201);
+	});
+
+	test("a scope with nothing actionable answers 409 empty-scope with per-id reasons", async () => {
+		await addAgentRequest("Sharpen the opening.");
+		const response = await post(
+			`/kernel/catalog/agents/${AGENT}/edit-sessions`,
+			{ requestIds: ["no-such-annotation"] },
+		);
+		expect(response.status).toBe(409);
+		const body = (await response.json()) as {
+			failure: {
+				reason: string;
+				requestIds: string[];
+				skipped: Array<{ annotationId: string; reason: string }>;
+			};
+		};
+		expect(body.failure.reason).toBe("empty-scope");
+		expect(body.failure.requestIds).toEqual(["no-such-annotation"]);
+		expect(body.failure.skipped).toContainEqual(
+			expect.objectContaining({
+				annotationId: "no-such-annotation",
+				reason: "scope-unmatched",
+			}),
+		);
 	});
 });
 

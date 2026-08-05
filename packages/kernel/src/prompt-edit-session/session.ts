@@ -138,6 +138,15 @@ export interface PromptEditSession {
 		body: string,
 	): ReplyPromptEditRequestResult;
 	/**
+	 * Host-side (RE-RUN ON REPLY): reopen a `done` request so a human reply
+	 * can start another turn — the loop runs several rounds until accept.
+	 * Only `done` reopens (its staged proposal awaits review; the next
+	 * propose REPLACES it); `declined` stays closed. The caller (service)
+	 * is responsible for refusing once the human review has settled the
+	 * proposal — review state lives there, not here.
+	 */
+	reopenForRerun(aliasOrId: string): ResolvePromptEditRequestResult;
+	/**
 	 * Host-side (Phase 2 review surface): discard the staged proposal for a
 	 * request and mark it declined with the reviewer's note — regardless of
 	 * whether the agent already resolved the entry "done" (the human review
@@ -466,6 +475,28 @@ export function createPromptEditSession(
 		return { ok: true, request: updated };
 	}
 
+	function reopenForRerun(aliasOrId: string): ResolvePromptEditRequestResult {
+		const entry = findEntry(aliasOrId);
+		if (!entry) {
+			return { ok: false, message: `No request "${aliasOrId.trim()}" in the queue.` };
+		}
+		if (entry.status !== "done") {
+			return {
+				ok: false,
+				message: `${entry.alias} is ${entry.status} — only a done request reopens for a re-run.`,
+			};
+		}
+		const updated = replaceEntry(entry.alias, {
+			// Back to proposal-ready: the staged proposal stays until the next
+			// propose replaces it (or the human settles it).
+			status: entry.proposalId !== undefined ? "proposal-ready" : "open",
+			waitingOnHuman: false,
+		});
+		emit({ type: "request-updated", sessionId: id, request: updated });
+		refreshStatus();
+		return { ok: true, request: updated };
+	}
+
 	function discardProposal(
 		aliasOrId: string,
 		note: string,
@@ -611,6 +642,7 @@ export function createPromptEditSession(
 		addNote,
 		appendHumanReply: (aliasOrId, body) =>
 			appendReply(aliasOrId, "human", body),
+		reopenForRerun,
 		discardProposal,
 		addRequest,
 	};

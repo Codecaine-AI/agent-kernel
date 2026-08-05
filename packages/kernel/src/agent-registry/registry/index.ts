@@ -26,6 +26,11 @@ export type {
 	ResolvedBundleEntry,
 } from "./bundle-layout";
 export {
+	discoverStateFixtures,
+	FIXTURES_DIR_NAME,
+} from "./state-fixtures";
+export type { AgentStateFixture } from "./state-fixtures";
+export {
 	__resetAgentRegistryForTests,
 	getAgentRegistry,
 	initAgentRegistry,
