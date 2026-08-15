@@ -33,6 +33,9 @@ How apps such as Spectre mount and extend the kernel without moving workflow sem
 ### [60-prompt-system-model.md](60-prompt-system-model.md)
 How prompt authoring should produce kernel-ready agent definitions, context resolvers, and prompt skills. Also carries the decision log, including the agent state model agreed on 2026-07-27 (D81–D97).
 
+### [70-harness-model.md](70-harness-model.md)
+How agents run outside their owning apps: app harnesses vs the terminal harness (`@agent-kernel/tui`), catalog precedence, `host`/tool-policy classification, the core kernel, TUI session tracing, and the checklist any kernel follows to join the Observatory.
+
 ### [explainers/](explainers/state-shapes.html)
 Design explainers (HTML, open in a browser) — the design record, including the alternatives that were rejected and the verbatim review decisions behind them.
 

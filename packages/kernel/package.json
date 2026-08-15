@@ -8,7 +8,8 @@
   "bin": {
     "agent-kernel-doctor": "./src/doctor-cli.ts",
     "agent-kernel-render-prompts": "./src/render-prompts-cli.ts",
-    "agent-kernel-backfill": "./src/transcript-recovery/backfill-cli.ts"
+    "agent-kernel-backfill": "./src/transcript-recovery/backfill-cli.ts",
+    "agent-kernel-tui-ingest": "./src/transcript-recovery/tui-ingest-cli.ts"
   },
   "exports": {
     ".": "./src/index.ts",

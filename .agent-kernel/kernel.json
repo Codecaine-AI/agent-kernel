@@ -1,0 +1,12 @@
+{
+  "manifestVersion": 2,
+  "kernelId": "agent-kernel",
+  "displayName": "Agent Kernel",
+  "kernelRoot": "/Users/Ford/Github Repos/Codecaine/Core/agent-kernel/.agent-kernel",
+  "dbPath": "/Users/Ford/Github Repos/Codecaine/Core/agent-kernel/.agent-kernel/trace.db",
+  "catalogRoots": [
+    "/Users/Ford/Github Repos/Codecaine/Core/agent-kernel/catalog"
+  ],
+  "piSessionsDir": "/Users/Ford/Github Repos/Codecaine/Core/agent-kernel/.agent-kernel/pi-sessions",
+  "readApiBaseUrl": "http://127.0.0.1:4860"
+}

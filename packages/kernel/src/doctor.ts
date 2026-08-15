@@ -476,6 +476,198 @@ export function formatCatalogDoctorReport(report: CatalogDoctorReport): string {
 	return lines.join("\n");
 }
 
+/* ------------------------------------------------------------------------ *
+ * Host portability doctor — `host: "any"` bundles must actually load
+ * standalone.
+ *
+ * A bundle declaring `host: "any"` promises its sidecars evaluate without
+ * the owning app harness. The TUI harness (and future spawn_agent gates)
+ * trust the declaration instead of crash-discovering, so doctor is where a
+ * false declaration surfaces: each sidecar module is imported in a Node
+ * subprocess through jiti — the same loader pi runs extensions with — and a
+ * failure flags the bundle. `host: "app"` bundles are skipped by design.
+ * ------------------------------------------------------------------------ */
+
+export interface HostPortabilityWarning {
+	agentDir: string;
+	name: string;
+	/** Absolute path of the failing sidecar module. */
+	sidecar: string;
+	message: string;
+}
+
+export interface HostPortabilityReport {
+	checkedAt: string;
+	roots: string[];
+	counts: {
+		/** Bundles declaring host:"any". */
+		anyBundles: number;
+		checkedSidecars: number;
+	};
+	warnings: HostPortabilityWarning[];
+	skipped: { reason: string }[];
+	ok: boolean;
+}
+
+/** First meaningful stderr line of a failed sidecar import. */
+function firstFailureLine(stderr: string, exitCode: number | null): string {
+	const lines = stderr
+		.split("\n")
+		.map((line) => line.trim())
+		.filter(
+			(line) =>
+				line.length > 0 &&
+				!line.startsWith("(node:") &&
+				!line.startsWith("at ") &&
+				!line.startsWith("(Use `node") &&
+				!line.includes("ExperimentalWarning"),
+		);
+	const errorLine = lines.find((line) => /error|cannot find|throw/i.test(line));
+	return errorLine ?? lines[0] ?? `sidecar import failed (exit ${exitCode})`;
+}
+
+export async function runHostPortabilityDoctor(
+	roots: string[],
+): Promise<HostPortabilityReport> {
+	const { createRequire } = await import("node:module");
+	const { pathToFileURL } = await import("node:url");
+	const { spawnSync } = await import("node:child_process");
+	const { readFileSync } = await import("node:fs");
+
+	const warnings: HostPortabilityWarning[] = [];
+	const skipped: { reason: string }[] = [];
+	let anyBundles = 0;
+	let checkedSidecars = 0;
+
+	// Resolve the jiti pi actually loads extensions with — the copy nested
+	// under pi-coding-agent (2.x, `createJiti`). A hoisted top-level jiti can
+	// be an unrelated 1.x with a different API, so prefer pi's.
+	let jitiUrl: string | null = null;
+	const req = createRequire(import.meta.url);
+	try {
+		// package.json, not the bare specifier: bun's createRequire.resolve
+		// rejects the exports-mapped entry but answers the manifest path.
+		const piManifest = req.resolve(
+			"@earendil-works/pi-coding-agent/package.json",
+		);
+		jitiUrl = pathToFileURL(createRequire(piManifest).resolve("jiti")).href;
+	} catch {
+		try {
+			jitiUrl = pathToFileURL(req.resolve("jiti")).href;
+		} catch {
+			jitiUrl = null;
+		}
+	}
+	if (!jitiUrl) {
+		skipped.push({
+			reason:
+				"jiti is not resolvable from the kernel package — host portability not checked",
+		});
+	}
+
+	if (jitiUrl) {
+		for (const root of roots) {
+			for (const agentDir of collectBundleDirs(root)) {
+				let manifest: { name?: unknown; host?: unknown };
+				try {
+					manifest = JSON.parse(
+						readFileSync(`${agentDir}/agent.json`, "utf8"),
+					) as { name?: unknown; host?: unknown };
+				} catch {
+					continue; // unreadable manifest is the registry's problem
+				}
+				if (manifest.host !== "any") continue;
+				anyBundles += 1;
+				const name =
+					typeof manifest.name === "string" ? manifest.name : agentDir;
+
+				const layout = resolveBundleLayout(agentDir);
+				const sidecars = [
+					layout.context.path,
+					layout.tools.path,
+					layout.state.path,
+				].filter((path): path is string => path != null);
+				for (const sidecar of sidecars) {
+					checkedSidecars += 1;
+					const script = [
+						"const m = await import(process.env.AK_JITI_URL);",
+						"const createJiti = m.createJiti ?? m.default?.createJiti;",
+						"const jiti = createJiti(process.env.AK_BASE_URL, { moduleCache: false });",
+						"await jiti.import(process.env.AK_SIDECAR);",
+					].join("\n");
+					let result: ReturnType<typeof spawnSync>;
+					try {
+						result = spawnSync("node", ["--input-type=module", "-e", script], {
+							env: {
+								...process.env,
+								AK_JITI_URL: jitiUrl,
+								AK_BASE_URL: pathToFileURL(sidecar).href,
+								AK_SIDECAR: sidecar,
+							},
+							encoding: "utf8",
+							timeout: 30_000,
+						});
+					} catch (err) {
+						skipped.push({
+							reason: `node subprocess unavailable (${err instanceof Error ? err.message : String(err)}) — host portability not checked`,
+						});
+						break;
+					}
+					if (result.error) {
+						skipped.push({
+							reason: `node subprocess unavailable (${result.error.message}) — host portability not checked`,
+						});
+						break;
+					}
+					if (result.status !== 0) {
+						warnings.push({
+							agentDir,
+							name,
+							sidecar,
+							message: `declared host:"any" but sidecars fail under Node: ${firstFailureLine(String(result.stderr ?? ""), result.status)}`,
+						});
+					}
+				}
+			}
+		}
+	}
+
+	return {
+		checkedAt: new Date().toISOString(),
+		roots: [...roots],
+		counts: { anyBundles, checkedSidecars },
+		warnings,
+		skipped,
+		ok: warnings.length === 0,
+	};
+}
+
+/** Human-readable host portability report for the CLI. */
+export function formatHostPortabilityReport(
+	report: HostPortabilityReport,
+): string {
+	const lines: string[] = [];
+	lines.push(
+		`host portability: ${report.counts.anyBundles} host:"any" bundle(s), ` +
+			`${report.counts.checkedSidecars} sidecar(s) checked under Node`,
+	);
+	for (const entry of report.skipped) {
+		lines.push(`  skipped: ${entry.reason}`);
+	}
+	if (report.warnings.length === 0) {
+		lines.push("OK — every host:\"any\" bundle loads standalone.");
+	} else {
+		lines.push(`WARN — ${report.warnings.length} host portability warning(s):`);
+		for (const w of report.warnings) {
+			lines.push("");
+			lines.push(`  ${w.name} (${w.agentDir})`);
+			lines.push(`    ${w.message}`);
+			lines.push(`    sidecar: ${w.sidecar}`);
+		}
+	}
+	return lines.join("\n");
+}
+
 /** Human-readable report for the CLI. */
 export function formatDoctorReport(report: DoctorReport, dbPath?: string): string {
 	const lines: string[] = [];

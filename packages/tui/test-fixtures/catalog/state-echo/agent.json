@@ -1,0 +1,8 @@
+{
+	"$schema": "agent-kernel/agent-v1",
+	"name": "state-echo",
+	"description": "TUI test fixture: minimal bundle with a state sidecar and a fixture, used to assert ③ assembly.",
+	"model": "mock/tui-fixture",
+	"host": "any",
+	"extensions": false
+}

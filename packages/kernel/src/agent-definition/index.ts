@@ -63,12 +63,23 @@ export interface AgentVariantDefinition {
  * registry pairs it with a sibling `prompt.json` (canonical PromptDocument,
  * D70); `context.ts` and `tools.ts` attach by filename convention.
  */
+/**
+ * Where an agent may run. "app" (the default): only inside its owning app
+ * harness — its sidecars may bind app services, and standalone harnesses
+ * (the TUI, future spawn_agent gates) classify it without evaluating them.
+ * "any": standalone-safe; sidecars must load under plain Node (doctor
+ * verifies this).
+ */
+export type AgentHost = "app" | "any";
+
 export interface AgentManifest {
 	$schema?: string;
 	name: string;
 	description: string;
 	/** Model id or a kernel-config alias resolved at spawn (D76/4b). */
 	model: string;
+	/** Runtime placement (see AgentHost). Absent = "app". */
+	host?: AgentHost;
 	thinking?: string;
 	maxTurns?: number;
 	coreTools?: string[];
@@ -85,6 +96,7 @@ export interface AgentManifest {
 }
 
 export type NormalizedAgentManifest = AgentManifest & {
+	host: AgentHost;
 	coreTools: string[];
 	disallowedTools: string[];
 	extensions: AgentExtensionsConfig;
@@ -100,6 +112,7 @@ export function normalizeAgentManifest(
 ): NormalizedAgentManifest {
 	return {
 		...manifest,
+		host: manifest.host ?? "app",
 		coreTools: manifest.coreTools ?? [],
 		disallowedTools: manifest.disallowedTools ?? [],
 		extensions: manifest.extensions ?? true,

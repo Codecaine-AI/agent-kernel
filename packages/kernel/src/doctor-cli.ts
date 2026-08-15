@@ -23,7 +23,9 @@ import { KERNEL_DB_RELATIVE_PATH, openKernelDatabase } from "@agent-kernel/db";
 import {
 	formatCatalogDoctorReport,
 	formatDoctorReport,
+	formatHostPortabilityReport,
 	runCatalogDoctor,
+	runHostPortabilityDoctor,
 	runTraceDoctor,
 } from "./doctor";
 
@@ -48,7 +50,10 @@ export async function doctorCliMain(
 		}
 		const report = runCatalogDoctor(roots);
 		console.log(formatCatalogDoctorReport(report));
-		return report.ok || !strict ? 0 : 1;
+		const hostReport = await runHostPortabilityDoctor(roots);
+		console.log("");
+		console.log(formatHostPortabilityReport(hostReport));
+		return (report.ok && hostReport.ok) || !strict ? 0 : 1;
 	}
 
 	const dbPath = resolve(argv[0] ?? KERNEL_DB_RELATIVE_PATH);

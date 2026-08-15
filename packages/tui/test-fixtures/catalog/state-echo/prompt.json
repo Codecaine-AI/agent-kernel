@@ -1,0 +1,23 @@
+{
+	"kind": "prompt",
+	"schemaVersion": "prompt-kit/v1",
+	"id": "stateEchoPrompt",
+	"title": "State echo",
+	"archetype": "workflow",
+	"nodes": [
+		{
+			"type": "section",
+			"id": "node-section-role",
+			"tag": "role",
+			"children": [
+				{
+					"type": "paragraph",
+					"id": "node-paragraph-role",
+					"content": [
+						"You are the state-echo agent, a TUI harness test fixture. Echo the notes in your state section back to the user."
+					]
+				}
+			]
+		}
+	]
+}

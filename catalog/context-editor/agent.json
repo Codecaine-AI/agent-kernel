@@ -1,0 +1,10 @@
+{
+	"$schema": "agent-kernel/agent-v1",
+	"name": "context-editor",
+	"description": "Edits the context (②) and state (③) sidecars of Agent Kernel bundles in whatever repo the session runs in: loaders, standing blocks, state seed/render code, and fixtures — the definitions and generators, never live session state. Orients via the authoring brief, proposes before editing, and verifies with typecheck, doctor, and fixture renders.",
+	"model": "context-editor",
+	"host": "any",
+	"thinking": "medium",
+	"maxTurns": 40,
+	"extensions": false
+}

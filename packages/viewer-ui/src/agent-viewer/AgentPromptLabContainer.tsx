@@ -78,30 +78,25 @@ interface ManifestFields {
  *
  * Phase 2 wiring (plan item 9): annotate-mode composer submissions persist to
  * the kernel's annotation sidecar (the lab's in-memory store fallback is
- * unused here), the header strip's "Apply N notes" creates a prompt-edit
- * session (spawning the prompt-editor agent server-side), an SSE subscription
- * mirrors the session state, and staged proposals surface through the lab's
- * `promptEditSession` prop for inline accept/reject/undo. Accepted proposals
- * write new revisions server-side — the container refetches the agent detail
- * per revision move so accepted text renders as normal rows.
+ * unused here), the lab's Apply creates a prompt-edit session (spawning the
+ * prompt-editor agent server-side), an SSE subscription mirrors the session
+ * state, and staged proposals surface through the lab's `promptEditSession`
+ * prop for inline accept/reject/undo. Accepted proposals write new revisions
+ * server-side — the container refetches the agent detail per revision move so
+ * accepted text renders as normal rows. The strip above the lab surfaces only
+ * LIVE sessions and errors (its idle "N open notes / Apply" segment retired
+ * 2026-08-05 — the queue and Apply live in the lab's AI panel).
  *
- * FILING GESTURES. The lab's three annotation-filing gestures reach the kernel
- * through the same `promptEditSession` prop, as callbacks bound by the
- * controller (identity-stable with the rest of the session prop):
+ * FILING. Every note queues (run-now retired 2026-08-05); nothing runs until
+ * Apply. The doors reach the kernel through the same `promptEditSession`
+ * prop, as callbacks bound by the controller (identity-stable with the rest
+ * of the session prop):
  *
- *   onFileRequest(filing)             all three dispositions — persists one
- *                                    open agent-request annotation
- *   onRunRequest(annotationId)        run now — a session scoped to that one
- *                                    request, started immediately
- *   onApplyQueue(annotationIds[])     apply — one session over the queued batch
- *   onRerunRequest(annotationId, replyText)
- *                                    reply on a staged request's thread; the
- *                                    server runs another agent turn that
- *                                    REPLACES that request's staged proposal
- *
- * "Add to batch" and "add to global" stop at the filing — nothing runs until
- * Apply. All of them are optional on the lab's side, so a lab build without
- * the gestures falls back to onSendRequest and the strip's "Apply N notes".
+ *   onFileRequest(filing)             batch/global — persists one open
+ *                                    agent-request annotation
+ *   onApplyQueue(annotationIds[])     apply — ONE session over the queued batch
+ *   onRunRequest / onRerunRequest     legacy run-now doors: still served by
+ *                                    the kernel, no longer called by the lab
  *
  * The shell itself stays host-agnostic — all fetching lives here (and in the
  * framework-free controller, prompt-lab-session-controller.ts).

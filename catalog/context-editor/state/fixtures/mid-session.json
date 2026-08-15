@@ -1,0 +1,10 @@
+{
+	"label": "Mid-session on a target bundle",
+	"state": {
+		"targetBundle": "layout-editor",
+		"notes": [
+			"state render gains a <pinned_objects> block",
+			"matching ② state_grammar block must document it in the same change"
+		]
+	}
+}

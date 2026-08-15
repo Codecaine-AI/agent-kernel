@@ -3,6 +3,7 @@
 	"name": "source-scout",
 	"description": "Investigates one focused angle, reads local evidence, and writes a durable research note.",
 	"model": "research-default",
+	"host": "any",
 	"thinking": "low",
 	"extensions": false,
 	"variables": {

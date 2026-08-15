@@ -1,0 +1,49 @@
+{
+  "providers": {
+    "codex-lb": {
+      "baseUrl": "http://127.0.0.1:2455/backend-api/codex",
+      "api": "openai-responses",
+      "apiKey": "sk-clb-T_Mwx-9FEt-ytLSWQ4SqXMDnHLsg190QV_GyZbxf040",
+      "models": [
+        {
+          "id": "gpt-5.5",
+          "name": "GPT-5.5 via codex-lb",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 272000,
+          "maxTokens": 100000,
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": "xhigh"
+          }
+        },
+        {
+          "id": "gpt-5.6-sol",
+          "name": "GPT-5.6 Sol via codex-lb",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 272000,
+          "maxTokens": 100000,
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": "xhigh"
+          }
+        }
+      ]
+    }
+  }
+}

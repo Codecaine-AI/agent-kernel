@@ -3,6 +3,7 @@
 	"name": "report-writer",
 	"description": "Synthesizes scout reports and source context into a complete markdown research report.",
 	"model": "research-default",
+	"host": "any",
 	"thinking": "low",
 	"extensions": false,
 	"variables": {

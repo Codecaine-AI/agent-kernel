@@ -1,0 +1,11 @@
+{
+	"$schema": "agent-kernel/agent-v1",
+	"name": "docs-writer",
+	"description": "Kicks off and executes documentation tasks in whatever repo the session runs in using the docs-system doc.json format: orients on the repo's docs tree, proposes a document plan, writes through the docs tooling, and verifies structure, metadata, and rendered output against the framework standards.",
+	"model": "docs-writer",
+	"host": "any",
+	"disallowedTools": ["write", "edit"],
+	"thinking": "medium",
+	"maxTurns": 40,
+	"extensions": false
+}

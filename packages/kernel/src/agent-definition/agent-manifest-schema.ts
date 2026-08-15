@@ -20,6 +20,7 @@ const TOP_LEVEL_KEYS = new Set([
 	"name",
 	"description",
 	"model",
+	"host",
 	"thinking",
 	"maxTurns",
 	"coreTools",
@@ -33,6 +34,8 @@ const TOP_LEVEL_KEYS = new Set([
 ]);
 
 const VARIABLE_KEYS = new Set(["default", "description", "optional", "required"]);
+
+const HOSTS = new Set(["app", "any"]);
 
 const STATE_KEYS = new Set(["window"]);
 
@@ -68,6 +71,7 @@ export const agentManifestJsonSchema = {
 		name: { type: "string", minLength: 1 },
 		description: { type: "string" },
 		model: { type: "string", minLength: 1 },
+		host: { type: "string", enum: ["app", "any"] },
 		thinking: { type: "string" },
 		maxTurns: { type: "number" },
 		coreTools: { type: "array", items: { type: "string" } },
@@ -162,6 +166,14 @@ export function validateAgentManifestShape(
 		);
 	}
 	checkRequiredString(value, "model", errors);
+
+	if (value.host !== undefined) {
+		if (typeof value.host !== "string" || !HOSTS.has(value.host)) {
+			errors.push(
+				`manifest.host: expected "app" or "any", got ${describe(value.host)}`,
+			);
+		}
+	}
 
 	checkOptionalString(value, "thinking", errors);
 	checkOptionalNumber(value, "maxTurns", errors);

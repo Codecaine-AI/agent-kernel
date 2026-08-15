@@ -3,6 +3,7 @@
 	"name": "research-coordinator",
 	"description": "Coordinates a research request, dispatches focused scouts, manages working memory, and returns a final report.",
 	"model": "research-default",
+	"host": "any",
 	"thinking": "low",
 	"extensions": false,
 	"variables": {

@@ -54,6 +54,18 @@ describe("adapter contract — list mode", () => {
 		expect(markup).toContain(defaultTraceStatusClass("running"));
 	});
 
+	test("origin badge renders only when a row provides one", () => {
+		const markup = render({
+			rows: [
+				{ id: "t1", title: "TUI trace", status: "done", badge: "tui" },
+				{ id: "t2", title: "Plain trace", status: "done" },
+			],
+		});
+		expect(markup).toContain(">tui<");
+		expect(markup).toContain("TUI trace");
+		expect(render({})).not.toContain(">tui<");
+	});
+
 	test("delete affordances exist ONLY when the host provides onDelete", () => {
 		const withDelete = render({ onDelete: () => {} });
 		expect(withDelete).toContain("Delete trace First trace");

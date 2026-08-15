@@ -51,6 +51,8 @@ export interface TraceWorkspaceRow {
 	title: string;
 	subtitle?: string;
 	status: string;
+	/** Optional origin pill beside the title (e.g. "tui" for TUI sessions). */
+	badge?: string | null;
 	/** Row delete button disabled (e.g. running traces). Needs onDelete. */
 	deleteDisabled?: boolean;
 	/** Row delete in flight — shows the busy affordance. */
@@ -92,6 +94,12 @@ export interface KernelTraceWorkspaceProps {
 	spans: TraceSpan[];
 	loading?: boolean;
 	onSelect: (rowId: string) => void;
+	/**
+	 * Drill-out hook: called when the user returns to the list ("‹ All
+	 * traces", or delete-from-inside). Hosts that map the open trace to a
+	 * route clear it here; without it the drill-out stays workspace-internal.
+	 */
+	onBack?: () => void;
 	/** Omit entirely to hide every delete affordance (list + overflow). */
 	onDelete?: (rowId: string) => void;
 	/** status → badge classes; defaults to the shared status mapping. */
@@ -133,6 +141,7 @@ export function KernelTraceWorkspace({
 	spans,
 	loading = false,
 	onSelect,
+	onBack,
 	onDelete,
 	statusClass = defaultTraceStatusClass,
 	usageData,
@@ -199,7 +208,8 @@ export function KernelTraceWorkspace({
 	const handleBack = useCallback(() => {
 		setListOpen(true);
 		setMenuOpen(false);
-	}, []);
+		onBack?.();
+	}, [onBack]);
 
 	const handleHeaderDelete = useCallback(() => {
 		if (!detail || !onDelete) return;
@@ -207,8 +217,9 @@ export function KernelTraceWorkspace({
 		// Deleting the trace you are inside means you are done with it: return
 		// to the list either way (the host's confirm may still cancel).
 		setListOpen(true);
+		onBack?.();
 		onDelete(detail.id);
-	}, [detail, onDelete]);
+	}, [detail, onBack, onDelete]);
 
 	const showList = listOpen || !detail;
 
@@ -298,8 +309,15 @@ export function KernelTraceWorkspace({
 												className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_90px] items-center gap-2 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-status-info-border"
 											>
 												<span className="min-w-0">
-													<span className="block truncate text-[13px] font-bold leading-5">
-														{row.title}
+													<span className="flex min-w-0 items-center gap-1.5">
+														<span className="min-w-0 truncate text-[13px] font-bold leading-5">
+															{row.title}
+														</span>
+														{row.badge && (
+															<span className="shrink-0 rounded-[2px] border border-border px-1 py-px text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+																{row.badge}
+															</span>
+														)}
 													</span>
 													{row.subtitle && (
 														<span className="block truncate text-[11px] leading-4 text-muted-foreground">

@@ -39,7 +39,17 @@ agent-catalog/<agent-name>/
 
 The layout follows D98 in the [prompt-system design record](../10-system-design/60-prompt-system-model.md). Each section may stay as one file or expand into a folder whose listed entry point is the only discovered file. Resolution is file first, folder second. If both forms exist, the file wins and catalog doctor reports the shadowed folder. Folder internals remain private to the section.
 
-`agent.json` owns the durable manifest: identity and description; model, thinking, and turn settings; shared/core tool configuration; variable declarations; variants; and optional state-window configuration. Section sidecars attach by filename convention rather than explicit imports.
+`agent.json` owns the durable manifest: identity and description; model, thinking, and turn settings; runtime placement (`host`); shared/core tool configuration; variable declarations; variants; and optional state-window configuration. Section sidecars attach by filename convention rather than explicit imports.
+
+`host` declares where the agent may run. `"app"` — the default when the field is absent — means the bundle runs only inside its owning app harness: its sidecars may import app services, and standalone harnesses (the pi TUI, sub-agent spawns outside the app) classify it from the manifest without evaluating those sidecars. `"any"` means the bundle is standalone-safe: every sidecar must load under plain Node with no app runtime — catalog doctor's host portability check (`agent-kernel-doctor --catalog`) verifies this. Declare `"any"` only when it is true; the declaration is trusted, not probed.
+
+`disallowedTools` is enforced in every runtime: the spawn pipeline applies it
+as the session tool disallowlist, and the pi TUI blocks the listed built-ins
+at `tool_call` while the agent is active (interactive sessions keep their
+built-in tools, so blocking is the enforcement). Use it to force an agent's
+mutations through its own typed tools sidecar while leaving reads open — e.g.
+`docs-writer` disallows `write` and `edit` and writes docs only through its
+validated `docs_write` tool.
 
 There is no authored `agent.ts` entry point in the current bundle contract. Older guidance that assigns manifest or composition responsibilities to `agent.ts` is obsolete; those responsibilities belong to `agent.json` and the convention-discovered sections. The [agent-registry implementation record](../20-implementation/20-kernel/20-agent-registry.md) is authoritative for discovery and normalization.
 
