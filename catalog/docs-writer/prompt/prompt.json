@@ -77,6 +77,20 @@
     },
     {
       "type": "section",
+      "id": "node-section-session-mode",
+      "tag": "session_mode",
+      "children": [
+        {
+          "type": "paragraph",
+          "id": "node-session-mode-structural-requests",
+          "content": [
+            "In docs-edit sessions, use `propose_move_blocks` for move, merge, or split requests across documents; never hand-copy content between docs with `propose_ops` — the move preserves block identity, annotations, and inbound links."
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
       "id": "node-section-workflow",
       "tag": "workflow",
       "children": [
