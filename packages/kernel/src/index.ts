@@ -19,6 +19,7 @@ import {
 } from "./agent-registry";
 import {
 	createKernelCatalogService,
+	type CreateKernelCatalogServiceOptions,
 	type KernelCatalogService,
 } from "./catalog-service";
 import { createContainerApi, type KernelContainerApi } from "./containers";
@@ -163,7 +164,10 @@ export interface KernelInstance<TToolRuntime = unknown> {
 	 * only when the kernel runs in dev mode; production harnesses ship
 	 * read-only catalogs (the PUT route answers 403).
 	 */
-	catalogApiService(opts?: { allowWrites?: boolean }): KernelCatalogService;
+	catalogApiService(opts?: {
+		allowWrites?: boolean;
+		toolsPreview?: CreateKernelCatalogServiceOptions["toolsPreview"];
+	}): KernelCatalogService;
 	/**
 	 * Spawn a catalog agent. Builds the registry from catalog.roots on first
 	 * use. `opts.variant` selects a manifest variant; model aliases resolve
@@ -392,6 +396,9 @@ export function createKernel<TToolRuntime = unknown>(
 				allowWrites: opts.allowWrites ?? false,
 				modelAliases: () => Object.keys(config.models?.aliases ?? {}),
 				contextCatalog: createContextLoaderCatalog,
+				...(opts.toolsPreview !== undefined
+					? { toolsPreview: opts.toolsPreview }
+					: {}),
 			});
 		},
 		spawnAgent,

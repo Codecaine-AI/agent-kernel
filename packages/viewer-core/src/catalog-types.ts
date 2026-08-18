@@ -82,6 +82,21 @@ export interface CatalogAgentDetail {
 	 * so payloads from kernels that omit the field still typecheck.
 	 */
 	fixtures?: CatalogFixtureSummary[];
+	/**
+	 * The agent's runtime tool surface, when the host kernel supplies a
+	 * preview (session tools bind at spawn, so only the host can enumerate
+	 * them statically). Optional/null for kernels or agents without one.
+	 */
+	tools?: CatalogToolPreview[] | null;
+}
+
+/** One tool of an agent's runtime tool surface. */
+export interface CatalogToolPreview {
+	name: string;
+	label: string;
+	description: string;
+	/** JSON-schema parameters object, as registered with the provider. */
+	parameters: Record<string, unknown>;
 }
 
 /** Body of `PUT /kernel/catalog/agents/:name/manifest`. */

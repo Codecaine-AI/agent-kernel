@@ -121,6 +121,15 @@ export interface KernelCatalogStatePreview {
 	renderedState: string;
 }
 
+/** One tool of an agent's runtime tool surface, as shown in the lab. */
+export interface KernelCatalogToolPreview {
+	name: string;
+	label: string;
+	description: string;
+	/** JSON-schema parameters object, as registered with the provider. */
+	parameters: Record<string, unknown>;
+}
+
 /** Response body of `GET .../catalog/agents/:name`. */
 export interface KernelCatalogAgentDetail {
 	manifest: Record<string, unknown>;
@@ -134,6 +143,12 @@ export interface KernelCatalogAgentDetail {
 	context: KernelCatalogContextPreview | null;
 	/** Named state fixtures of the bundle. Empty when it ships none. */
 	fixtures: KernelCatalogFixtureSummary[];
+	/**
+	 * The agent's tool surface, when the host supplies a preview (session
+	 * tools are bound at spawn, so only the host knows them statically).
+	 * null when no preview is available for this agent.
+	 */
+	tools: KernelCatalogToolPreview[] | null;
 }
 
 /** Partial manifest patch accepted by `PUT .../catalog/agents/:name/manifest`. */
@@ -227,6 +242,14 @@ export interface CreateKernelCatalogServiceOptions {
 	 * context block whose renderedContext is null.
 	 */
 	contextCatalog?: () => LoaderCatalog;
+	/**
+	 * Host-supplied tool-surface preview per agent (session tools bind at
+	 * spawn, so the kernel cannot enumerate them itself). Return null for
+	 * agents the host has no preview for.
+	 */
+	toolsPreview?: (
+		agentName: string,
+	) => KernelCatalogToolPreview[] | null | Promise<KernelCatalogToolPreview[] | null>;
 }
 
 /**
@@ -445,6 +468,7 @@ export function createKernelCatalogService(
 					id: fixture.id,
 					label: fixture.label,
 				})),
+				tools: (await opts.toolsPreview?.(name)) ?? null,
 			};
 		},
 

@@ -25,10 +25,12 @@ import {
 	PromptInlineLab,
 	type LabContextPreview,
 	type LabStateZone,
+	type LabToolsZone,
 	type ManifestSaveOutcome,
 	type PromptSaveOutcome,
 } from "@codecaine-ai/prompt-kit/ui/lab";
 import type { PromptStyleSettings } from "@codecaine-ai/prompt-kit/ui/style";
+import { renderToolsDocument } from "./render-tools";
 import {
 	loadPromptRevisionDocument,
 	savePromptDocument,
@@ -324,6 +326,14 @@ export function AgentPromptLabContainer({
 
 	// State view wiring per the lab's stateZone contract — undefined when the
 	// bundle ships no fixtures, so the lab simply won't offer the view.
+	// Tools view wiring: a rendered document built from the host-supplied tool
+	// previews — undefined when the kernel has none for this agent, so the lab
+	// simply won't offer the view.
+	const toolsZone: LabToolsZone | undefined =
+		detail.tools && detail.tools.length > 0
+			? { renderedTools: renderToolsDocument(detail.tools) }
+			: undefined;
+
 	const stateZone: LabStateZone | undefined =
 		fixtures.length > 0
 			? {
@@ -422,6 +432,7 @@ export function AgentPromptLabContainer({
 					styleSettings={styleSettings}
 					promptEditSession={promptEditSession}
 					stateZone={stateZone}
+					toolsZone={toolsZone}
 					revisionsZone={
 						<RevisionHistoryPanel
 							revisions={revisions}
