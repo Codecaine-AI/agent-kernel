@@ -1,20 +1,17 @@
 /**
- * Section ② — the docs-writer's STANDING KNOWLEDGE, and nothing else.
+ * Section ② — standing docs-system knowledge for the docs writer.
  *
- * `assemble()` bakes the docs-system reference into named blocks: the
- * framework skill, structure standards, intent-based cookbook, and writing
- * style. Each block is served by kernel `file` loaders and rendered as its
- * own XML tag. Paths are anchored to this file and routed through the Core
- * meta-workspace so the sibling docs-system repo resolves from any working
- * directory.
+ * Two corpus-rendered sources, mirroring docs-lab-editor: structure
+ * standards and the style guide load as doc.json bundles from the sibling
+ * docs-system repo and render through the sanctioned agent projection, so
+ * they stay current by construction (the retired packages/framework
+ * markdown copies are gone). Tool mechanics live in the bundle's tools.ts
+ * definitions, not here.
  *
- * There is deliberately NO envelope here. The kernel's L2 context set wraps
- * section ② in its single <context> message itself — these blocks land as
- * entries inside it, and wrapping again would double-envelope the request.
+ * Deep docs-model subpath imports on purpose: the barrel breaks under pi
+ * (@sinclair/typebox Type.Recursive) — same rule as tools/runtime.ts.
  *
- * The session's aim (which doc is being worked, task notes) is section ③ and
- * belongs to the state sidecar (../state/index.ts). This module never reads
- * `sessionData`.
+ * There is deliberately no outer <context> envelope: the kernel supplies it.
  */
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,67 +21,46 @@ import type {
 	LoadedMap,
 	SpawnContext,
 } from "@agent-kernel/kernel/context";
-
-export interface ContextBlock {
-	/** XML tag emitted for this section ② block. */
-	readonly tag: string;
-	/** Source files joined inside the tag, in reading order. */
-	readonly files: ReadonlyArray<string>;
-}
+import { validateDocDocument } from "@codecaine-ai/docs-model/doc-schema";
+import { projectToMarkdown } from "@codecaine-ai/docs-model/project-markdown";
 
 /**
- * Resolve through agent-kernel into the Core meta-workspace and its sibling
- * docs-system repo. import.meta.url, not the bun-only import.meta.dir: the
- * registry evaluates host:"any" sidecars under Node via jiti.
+ * Anchor paths to this bundle so host:"any" evaluation works under Node and
+ * from any process working directory.
  */
 const HERE = dirname(fileURLToPath(import.meta.url));
 const KERNEL_ROOT = resolve(HERE, "..", "..", "..");
 const CORE_ROOT = resolve(KERNEL_ROOT, "..");
-const DOCS_SYSTEM_ROOT = join(CORE_ROOT, "docs-system");
+const DOCS_ROOT = join(CORE_ROOT, "docs-system", "docs");
 
-const frameworkFile = (...segments: string[]): string =>
-	join(DOCS_SYSTEM_ROOT, "packages", "framework", ...segments);
-
-/** The standing context blocks, in their rendered reading order. */
-export const CONTEXT_BLOCKS: ReadonlyArray<ContextBlock> = [
-	{
-		tag: "docs_framework_skill",
-		files: [frameworkFile("SKILL.md")],
-	},
-	{
-		tag: "docs_structure_standards",
-		files: [
-			frameworkFile("20-standards", "00-overview.md"),
-			frameworkFile("20-standards", "10-hierarchy-layers.md"),
-			frameworkFile("20-standards", "20-directory-rules.md"),
-			frameworkFile("20-standards", "25-frontmatter-schema.md"),
-			frameworkFile("20-standards", "30-numbering-system.md"),
-			frameworkFile("20-standards", "40-doc-linking.md"),
-			frameworkFile("20-standards", "50-code-linking.md"),
-		],
-	},
-	{
-		tag: "docs_cookbook",
-		files: [
-			frameworkFile("10-cookbook", "10-navigate.md"),
-			frameworkFile("10-cookbook", "20-produce.md"),
-			frameworkFile("10-cookbook", "30-maintain.md"),
-		],
-	},
-	{
-		tag: "docs_writing_style",
-		files: [join(DOCS_SYSTEM_ROOT, "writingstyle.md")],
-	},
+/**
+ * The corpus bundles rendered into <docs_structure_standards>, in reading
+ * order. Standards live in the docs-system corpus.
+ */
+export const STANDARDS_BUNDLES: ReadonlyArray<string> = [
+	"10-system-design/10-doc-standards/10-structure",
+	"10-system-design/10-doc-standards/20-numbering",
+	"10-system-design/10-doc-standards/30-cross-doc-linking",
+	"10-system-design/10-doc-standards/40-code-linking",
+	"10-system-design/10-doc-standards/50-in-code-docs",
+	"10-system-design/10-doc-standards/60-implementation-layer",
 ];
 
-/** All source files in kernel-loader order. */
-export const CONTEXT_FILES: ReadonlyArray<string> = CONTEXT_BLOCKS.flatMap(
-	(entry) => entry.files,
-);
+/** The corpus bundles rendered into <docs_style_guide>, in reading order. */
+export const STYLE_GUIDE_BUNDLES: ReadonlyArray<string> = [
+	"99-appendix/10-style-guide/10-writing-style",
+	"99-appendix/10-style-guide/20-structure",
+];
 
-const loaders: AgentContextResolver["loaders"] = CONTEXT_FILES.map((path) => ({
-	kind: "file",
-	path,
+const bundleFile = (bundle: string): string =>
+	join(DOCS_ROOT, bundle, "doc.json");
+
+const loaders: AgentContextResolver["loaders"] = [
+	...STANDARDS_BUNDLES,
+	...STYLE_GUIDE_BUNDLES,
+].map((bundle) => ({
+	kind: "file" as const,
+	path: bundleFile(bundle),
 }));
 
 function loadedPath(input: LoadedMap[number]): string {
@@ -93,29 +69,67 @@ function loadedPath(input: LoadedMap[number]): string {
 		: "";
 }
 
-function block(tag: string, body: string): string {
-	return [`<${tag}>`, body, `</${tag}>`].join("\n");
+const INDENT = "  ";
+
+function indent(body: string): string {
+	return body
+		.split("\n")
+		.map((line) => (line.length > 0 ? `${INDENT}${line}` : line))
+		.join("\n");
 }
 
-// `_ctx` is the contract's second parameter, deliberately unread: section ②
-// is session-invariant standing knowledge. Session state rides section ③.
+/** Wraps body in a tag, indenting it one level; nested calls accumulate. */
+function block(tag: string, attrs: string, body: string): string {
+	const open = attrs.length > 0 ? `<${tag} ${attrs}>` : `<${tag}>`;
+	return [open, indent(body), `</${tag}>`].join("\n");
+}
+
+function renderCorpusDoc(bundle: string, raw: string): string {
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return `<doc path="${bundle}" status="unparseable"></doc>`;
+	}
+	const validated = validateDocDocument(parsed);
+	if (!validated.ok) {
+		return `<doc path="${bundle}" status="invalid"></doc>`;
+	}
+	const title = validated.document.title ?? bundle;
+	return block(
+		"doc",
+		`path="${bundle}" title="${title}"`,
+		projectToMarkdown(validated.document),
+	);
+}
+
+// Standing knowledge is session-invariant; the session aim belongs to state.
 function assemble(loaded: LoadedMap, _ctx: SpawnContext): string {
 	const loadedByPath = new Map(loaded.map((input) => [loadedPath(input), input]));
 
-	return CONTEXT_BLOCKS.map((entry) => {
-		const inputs = entry.files.map((path) => loadedByPath.get(path));
-		const unavailableIndex = inputs.findIndex(
-			(input) => input === undefined || input.status !== "ok",
-		);
-		if (unavailableIndex === -1) {
-			const body = inputs.map((input) => input?.content ?? "").join("\n\n");
-			return block(entry.tag, body);
-		}
+	const renderBundles = (bundles: ReadonlyArray<string>): string =>
+		bundles
+			.map((bundle) => {
+				const input = loadedByPath.get(bundleFile(bundle));
+				if (input === undefined || input.status !== "ok") {
+					return `<doc path="${bundle}" status="${input?.status ?? "missing"}"></doc>`;
+				}
+				return renderCorpusDoc(bundle, input.content);
+			})
+			.join("\n");
 
-		const unavailable = inputs[unavailableIndex];
-		const status = unavailable?.status ?? "missing";
-		return `<${entry.tag} status="${status}"></${entry.tag}>`;
-	}).join("\n");
+	return [
+		block(
+			"docs_structure_standards",
+			'source="docs-system corpus · 10-system-design/10-doc-standards"',
+			renderBundles(STANDARDS_BUNDLES),
+		),
+		block(
+			"docs_style_guide",
+			'source="docs-system corpus · 99-appendix/10-style-guide"',
+			renderBundles(STYLE_GUIDE_BUNDLES),
+		),
+	].join("\n");
 }
 
 export const context = defineContext({ loaders, assemble });

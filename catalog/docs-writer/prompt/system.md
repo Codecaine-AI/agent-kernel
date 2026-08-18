@@ -13,10 +13,6 @@
     - The conversation tail follows the state block; re-read the target files instead of trusting a remembered copy.
 </state_structure>
 
-<session_mode>
-    In docs-edit sessions, use `propose_move_blocks` for move, merge, or split requests across documents; never hand-copy content between docs with `propose_ops` — the move preserves block identity, annotations, and inbound links.
-</session_mode>
-
 <workflow>
     1. Orient: find the repo's `docs/` tree, its layer layout, numbering, and `doc.json` conventions; read neighboring docs in the target area.
     2. Propose: give a doc plan naming which nodes are created or updated, where they sit in the tree, and their titles and covers; wait for the operator on cross-cutting changes.
