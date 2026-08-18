@@ -304,8 +304,9 @@ async function loadOne(
 			: null;
 		const harvested = privateTools
 			? await harvestPrivateToolsFromRegister(privateTools)
-			: { names: [], spawnerTools: {} };
+			: { names: [], definitions: [], spawnerTools: {} };
 		const privateToolNames = harvested.names;
+		const privateToolDefinitions = harvested.definitions;
 		const spawnerTools = harvested.spawnerTools;
 		const coreTools = manifest.coreTools;
 		const tools = [...new Set([...coreTools, ...profileTools, ...privateToolNames])];
@@ -343,6 +344,7 @@ async function loadOne(
 				contextModulePath,
 				privateTools,
 				privateToolNames,
+				privateToolDefinitions,
 				spawnerTools,
 				toolsModulePath,
 				stateModule,

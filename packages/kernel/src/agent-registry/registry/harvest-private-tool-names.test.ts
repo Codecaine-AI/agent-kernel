@@ -43,9 +43,23 @@ describe("harvestPrivateToolsFromRegister", () => {
 		const harvested = await harvestPrivateToolsFromRegister(register);
 
 		expect(hookCalls).toBe(0);
-		expect(harvested).toEqual({
-			names: ["plain_tool", "spawn_helper"],
-			spawnerTools: { spawn_helper: ["helper-agent"] },
+		expect(harvested.names).toEqual(["plain_tool", "spawn_helper"]);
+		expect(harvested.spawnerTools).toEqual({ spawn_helper: ["helper-agent"] });
+		expect(harvested.definitions.map((definition) => definition.name)).toEqual([
+			"plain_tool",
+			"spawn_helper",
+		]);
+		expect(harvested.definitions[0]).toMatchObject({
+			name: "plain_tool",
+			label: "Plain tool",
+			description: "A plain private tool.",
+			parameters: { type: "object", properties: {} },
 		});
+		expect(harvested.definitions[1]).toMatchObject({
+			name: "spawn_helper",
+			label: "Spawn helper",
+			description: "Dispatch a helper agent.",
+		});
+		expect(harvested.definitions[1]?.parameters.type).toBe("object");
 	});
 });

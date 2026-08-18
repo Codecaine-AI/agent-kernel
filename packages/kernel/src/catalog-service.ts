@@ -243,9 +243,11 @@ export interface CreateKernelCatalogServiceOptions {
 	 */
 	contextCatalog?: () => LoaderCatalog;
 	/**
-	 * Host-supplied tool-surface preview per agent (session tools bind at
-	 * spawn, so the kernel cannot enumerate them itself). Return null for
-	 * agents the host has no preview for.
+	 * Host-supplied tool-surface preview per agent, for tools the kernel
+	 * cannot enumerate itself (session-bound shared tools bind at spawn).
+	 * Bundle tools.ts registrations need no hook — the registry harvests
+	 * their full declarations at boot and agent detail falls back to those
+	 * when this returns null.
 	 */
 	toolsPreview?: (
 		agentName: string,
@@ -468,7 +470,11 @@ export function createKernelCatalogService(
 					id: fixture.id,
 					label: fixture.label,
 				})),
-				tools: (await opts.toolsPreview?.(name)) ?? null,
+				tools:
+					(await opts.toolsPreview?.(name)) ??
+					(def.privateToolDefinitions.length > 0
+						? def.privateToolDefinitions.map((tool) => ({ ...tool }))
+						: null),
 			};
 		},
 

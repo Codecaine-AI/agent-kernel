@@ -9,6 +9,7 @@ import type {
 import type { AgentContextResolver } from "../../context";
 import type { StateModule } from "../../state/types";
 import type { AgentBundleLayout } from "./bundle-layout";
+import type { HarvestedToolDefinition } from "./harvest-private-tool-names";
 
 /**
  * Object form for a catalog root. `listed: false` keeps the root's agents
@@ -60,6 +61,8 @@ export interface AgentDefinition {
 	/** Tools sidecar (tools.ts | tools/index.ts), attached by convention. */
 	privateTools: AgentPrivateTools | null;
 	privateToolNames: string[];
+	/** Full declarations harvested at boot: name/label/description/parameters. */
+	privateToolDefinitions: HarvestedToolDefinition[];
 	/** Harvested spawner declarations: tool name → `spawns` allowlist (D77). */
 	spawnerTools: Record<string, string[]>;
 	toolsModulePath: string | null;
