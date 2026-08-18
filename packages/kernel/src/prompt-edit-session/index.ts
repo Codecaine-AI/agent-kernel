@@ -90,6 +90,7 @@ export type { PromptEditToolName, PromptEditToolResult } from "./tools";
 
 export {
 	promptEditSessionTools,
+	promptEditToolPreviews,
 	registerPromptEditSessionTools,
 	registryPromptHashLookup,
 } from "./bind-tools";

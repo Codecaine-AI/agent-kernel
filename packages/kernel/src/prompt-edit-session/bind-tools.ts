@@ -13,6 +13,10 @@ import { Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import type { AgentRegistry } from "../agent-registry";
+import {
+	harvestPrivateToolsFromRegister,
+	type HarvestedToolDefinition,
+} from "../agent-registry/registry/harvest-private-tool-names";
 import type { PromptEditSession } from "./session";
 import {
 	toolAddNote,
@@ -173,4 +177,23 @@ export function promptEditSessionTools(
 	session: PromptEditSession,
 ): (pi: ExtensionAPI) => void {
 	return (pi) => registerPromptEditSessionTools(pi, session);
+}
+
+/**
+ * Static preview of the session tool surface — declarations only, no
+ * session. Only the execute closures touch the session, and the harvest
+ * stub never invokes them, so registering against a null session is safe.
+ * Hosts feed this to catalogApiService's toolsPreview so the lab's TOOLS
+ * view can render the prompt-editor surface without a live session.
+ */
+export async function promptEditToolPreviews(): Promise<
+	HarvestedToolDefinition[]
+> {
+	const harvested = await harvestPrivateToolsFromRegister((pi) =>
+		registerPromptEditSessionTools(
+			pi as ExtensionAPI,
+			null as unknown as PromptEditSession,
+		),
+	);
+	return harvested.definitions;
 }
