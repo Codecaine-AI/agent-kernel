@@ -33,6 +33,8 @@ export interface RunBackfillOptions {
   db?: KernelDatabase;
   /** Mapper options (session-binding marker type/fields, lifecycle types). */
   mapper?: EventMapperOptions;
+  /** Accepts container ids eligible for binding. Overrides mapper.acceptContainerId. */
+  acceptContainerId?: (id: string) => boolean;
   /** Events per idempotent batch insert. */
   batchSize?: number;
 }
@@ -111,7 +113,12 @@ export async function runBackfill(options: RunBackfillOptions): Promise<Backfill
         summary.warnings.push(`${filePath}: ignored partial (non-terminated) last line`);
       }
 
-      const mapper = new EventMapper(options.mapper);
+      const mapper = new EventMapper({
+        ...options.mapper,
+        ...(options.acceptContainerId
+          ? { acceptContainerId: options.acceptContainerId }
+          : {}),
+      });
       const mapped: TraceEvent[] = [];
       for (const event of events) {
         const result = mapper.map(event);

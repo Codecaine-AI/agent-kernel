@@ -5,6 +5,7 @@ import type { PiEvent } from "./types";
 
 const PI_SESSION_UUID = "11111111-2222-3333-4444-555555555555";
 const CONTAINER_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+const HIERARCHICAL_CONTAINER_ID = `melee:${CONTAINER_ID}:session:run:example`;
 const RUN_ID = "99999999-8888-7777-6666-555555555555";
 const T0 = "2026-07-01T10:00:00.000Z";
 
@@ -127,13 +128,32 @@ describe("EventMapper (container-first envelope)", () => {
     expect(events[0]!.runId).toBe(RUN_ID);
   });
 
-  test("rejects a non-uuid containerId and keeps events pending", () => {
+  test("rejects a hierarchical containerId by default and keeps events pending", () => {
     const mapper = new EventMapper(BINDING_OPTIONS);
     mapper.map(sessionEvent());
-    const result = mapper.map(bindingEvent({ containerId: "not-a-uuid" }));
+    const result = mapper.map(
+      bindingEvent({ containerId: HIERARCHICAL_CONTAINER_ID }),
+    );
     expect(result.traceEvents).toEqual([]);
     expect(mapper.hasContainerBinding()).toBe(false);
     expect(mapper.hasPending()).toBe(true);
+  });
+
+  test("accepts a hierarchical containerId when configured", () => {
+    const mapper = new EventMapper({
+      ...BINDING_OPTIONS,
+      acceptContainerId: (id) => id.startsWith("melee:"),
+    });
+    mapper.map(sessionEvent());
+
+    const result = mapper.map(
+      bindingEvent({ containerId: HIERARCHICAL_CONTAINER_ID, runId: RUN_ID }),
+    );
+
+    expect(result.traceEvents).toHaveLength(1);
+    expect(result.traceEvents[0]!.containerId).toBe(HIERARCHICAL_CONTAINER_ID);
+    expect(mapper.getContainerId()).toBe(HIERARCHICAL_CONTAINER_ID);
+    expect(mapper.hasPending()).toBe(false);
   });
 
   test("binding field names are configurable", () => {

@@ -51,11 +51,14 @@ export interface EventMapperOptions {
   sessionBinding?: EventMapperSessionBindingOptions;
   lifecycleCustomType?: string;
   subagentLinkCustomType?: string;
+  /** Accepts container ids eligible for binding. Default: UUID-shaped ids only. */
+  acceptContainerId?: (id: string) => boolean;
 }
 
 const DEFAULT_MAPPER_OPTIONS = Object.freeze({
   lifecycleCustomType: "agent-kernel:pi-lifecycle",
   subagentLinkCustomType: "agent-kernel:subagent-link",
+  acceptContainerId: (id: string) => UUID_RE.test(id),
 } satisfies Required<Omit<EventMapperOptions, "sessionBinding">>);
 
 /**
@@ -127,8 +130,8 @@ export class EventMapper {
    * events with the identity stamped on.
    */
   setContainerBinding(containerId: string, runId?: string): TraceEvent[] {
-    if (!UUID_RE.test(containerId)) {
-      console.error(`[mapper] setContainerBinding rejected non-uuid: ${containerId}`);
+    if (!this.options.acceptContainerId(containerId)) {
+      console.error(`[mapper] setContainerBinding rejected container id: ${containerId}`);
       return [];
     }
     this.containerId = containerId;

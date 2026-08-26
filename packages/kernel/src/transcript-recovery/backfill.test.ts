@@ -7,6 +7,7 @@ import { runBackfill } from "./backfill";
 
 const PI_SESSION_UUID = "11111111-2222-3333-4444-555555555555";
 const CONTAINER_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+const HIERARCHICAL_CONTAINER_ID = `melee:${CONTAINER_ID}:session:run:example`;
 const RUN_ID = "99999999-8888-7777-6666-555555555555";
 
 const MAPPER_OPTIONS = {
@@ -22,7 +23,7 @@ function jsonl(lines: unknown[]): string {
  * marker, lifecycle markers, a user message, an assistant message with a
  * tool call + usage, and a tool result.
  */
-function fixtureSessionLines(): unknown[] {
+function fixtureSessionLines(containerId = CONTAINER_ID): unknown[] {
   const t = (s: number) => `2026-07-01T10:00:${String(s).padStart(2, "0")}.000Z`;
   return [
     { type: "session", version: 3, id: PI_SESSION_UUID, timestamp: t(0), cwd: "/tmp" },
@@ -30,7 +31,7 @@ function fixtureSessionLines(): unknown[] {
       type: "custom",
       customType: "agent-kernel:session-binding",
       data: {
-        containerId: CONTAINER_ID,
+        containerId,
         runId: RUN_ID,
         appSessionSlug: "fixture-session",
         appSessionDir: "/tmp/fixture-session",
@@ -218,6 +219,24 @@ describe("runBackfill", () => {
       batchSize: 2,
     });
     expect(summary.eventsInserted).toBe(EXPECTED_EVENT_COUNT);
+    expect(countTraceEvents(dbPath)).toBe(EXPECTED_EVENT_COUNT);
+  });
+
+  test("passes acceptContainerId through to the mapper", async () => {
+    await writeFile(
+      join(jsonlDir, "hierarchical.jsonl"),
+      jsonl(fixtureSessionLines(HIERARCHICAL_CONTAINER_ID)),
+    );
+
+    const summary = await runBackfill({
+      jsonlDir,
+      dbPath,
+      mapper: MAPPER_OPTIONS,
+      acceptContainerId: () => true,
+    });
+
+    expect(summary.eventsInserted).toBe(EXPECTED_EVENT_COUNT);
+    expect(summary.warnings).toEqual([]);
     expect(countTraceEvents(dbPath)).toBe(EXPECTED_EVENT_COUNT);
   });
 

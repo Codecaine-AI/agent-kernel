@@ -95,4 +95,27 @@ describe("docs-writer typed tools", () => {
 		const result = await run("docs_read", { path: "99-none/00-missing" });
 		expect(result).toStartWith("ERROR:");
 	});
+
+	test("check rejects dangling doc references and internal links", async () => {
+		await run("docs_write", {
+			path: "10-system-design/20-link-check",
+			markdown: [
+				"# Link Check",
+				"",
+				"[Existing doc](/docs/10-system-design/10-example.md)",
+				"",
+				"[Missing doc](/docs/10-system-design/99-missing.md)",
+				"",
+				"[Internal path](../30-internal)",
+				"",
+				"[External URL](https://example.com)",
+			].join("\n"),
+		});
+
+		const check = await run("docs_check", { path: "10-system-design/20-link-check" });
+		expect(check).toContain("1/1 doc(s) failed");
+		expect(check).toContain("doc reference does not resolve: docs/10-system-design/99-missing.md");
+		expect(check).toContain("internal paths must use a doc reference: ../30-internal");
+		expect(check).not.toContain("https://example.com");
+	});
 });

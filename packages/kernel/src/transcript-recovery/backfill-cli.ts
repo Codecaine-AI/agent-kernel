@@ -8,6 +8,7 @@
  *     [--binding-type <customType>]      default: agent-kernel:session-binding
  *     [--lifecycle-type <customType>]    default: agent-kernel:pi-lifecycle
  *     [--subagent-type <customType>]     default: agent-kernel:subagent-link
+ *     [--any-container-id]
  */
 import { runBackfill } from "./backfill";
 
@@ -18,12 +19,14 @@ interface CliArgs {
   bindingType: string;
   lifecycleType?: string;
   subagentType?: string;
+  anyContainerId: boolean;
 }
 
 function usage(): never {
   console.error(
     "Usage: backfill-cli.ts <jsonl-dir> --db <db-path> [--batch-size <n>] " +
-      "[--binding-type <t>] [--lifecycle-type <t>] [--subagent-type <t>]",
+      "[--binding-type <t>] [--lifecycle-type <t>] [--subagent-type <t>] " +
+      "[--any-container-id]",
   );
   process.exit(2);
 }
@@ -35,6 +38,7 @@ function parseArgs(argv: string[]): CliArgs {
   let bindingType = "agent-kernel:session-binding";
   let lifecycleType: string | undefined;
   let subagentType: string | undefined;
+  let anyContainerId = false;
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!;
@@ -60,6 +64,9 @@ function parseArgs(argv: string[]): CliArgs {
       case "--subagent-type":
         subagentType = argv[++i];
         break;
+      case "--any-container-id":
+        anyContainerId = true;
+        break;
       case "--help":
       case "-h":
         usage();
@@ -78,7 +85,15 @@ function parseArgs(argv: string[]): CliArgs {
   }
 
   if (!jsonlDir || !dbPath) usage();
-  return { jsonlDir, dbPath, batchSize, bindingType, lifecycleType, subagentType };
+  return {
+    jsonlDir,
+    dbPath,
+    batchSize,
+    bindingType,
+    lifecycleType,
+    subagentType,
+    anyContainerId,
+  };
 }
 
 const args = parseArgs(process.argv.slice(2));
@@ -88,6 +103,7 @@ try {
     jsonlDir: args.jsonlDir,
     dbPath: args.dbPath,
     batchSize: args.batchSize,
+    ...(args.anyContainerId ? { acceptContainerId: () => true } : {}),
     mapper: {
       sessionBinding: { customType: args.bindingType },
       ...(args.lifecycleType ? { lifecycleCustomType: args.lifecycleType } : {}),
