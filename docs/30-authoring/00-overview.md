@@ -2,12 +2,14 @@
 covers: "Task-facing guidance for choosing and editing the files in an Agent Kernel bundle: the agent.json manifest, prompt, context, tools, state, validation, and canonical examples."
 concepts: [agent-authoring, agent-bundle, agent-json, prompt, context-sidecar, tools-sidecar, state-sidecar, bundle-layout]
 code-ref: examples/simple-research-kernel/src/agent-catalog/, packages/kernel/src/agent-registry/
-depends-on: [../10-system-design/60-prompt-system-model.md, ../20-implementation/20-kernel/20-agent-registry.md, ../20-implementation/20-kernel/60-agent-state.md]
+depends-on: [../10-system-design/60-prompt-system-model.md, ../10-system-design/10-runtime-model.md]
 ---
 
 # Agent Authoring
 
 Start with the kind of change, then edit the smallest bundle section that owns it.
+
+This tier is a declared **guides extension**: task-facing how-to material for bundle authors. It is non-normative — authority over behavior and contracts stays with [10-system-design](../10-system-design/00-overview.md), and authority over code structure stays with [20-implementation](../20-implementation/00-overview.md). Where this tier and those layers disagree, the layers win and this tier has a bug.
 
 ---
 
@@ -51,7 +53,7 @@ mutations through its own typed tools sidecar while leaving reads open — e.g.
 `docs-writer` disallows `write` and `edit` and writes docs only through its
 validated `docs_write` tool.
 
-There is no authored `agent.ts` entry point in the current bundle contract. Older guidance that assigns manifest or composition responsibilities to `agent.ts` is obsolete; those responsibilities belong to `agent.json` and the convention-discovered sections. The [agent-registry implementation record](../20-implementation/20-kernel/20-agent-registry.md) is authoritative for discovery and normalization.
+There is no authored `agent.ts` entry point in the current bundle contract. Older guidance that assigns manifest or composition responsibilities to `agent.ts` is obsolete; those responsibilities belong to `agent.json` and the convention-discovered sections. The [runtime model](../10-system-design/10-runtime-model.md) is authoritative for discovery and normalization.
 
 ## The Four Sections
 
@@ -66,7 +68,7 @@ The canonical prompt order is `purpose`, optional `goal`, `state_structure`, `wo
 
 Every prompt variable must be declared in `agent.json`; every declaration must match actual prompt usage. Keep PromptKit generic: kernel runtime configuration, context loading, private tool implementation, and state transitions stay outside the prompt document.
 
-Section ② contains standing reference material. Anything that moves during the run belongs to section ③, including the conversation tail. For the complete state contract and three-section request assembly, use [Agent State](../20-implementation/20-kernel/60-agent-state.md) rather than duplicating those internals here.
+Section ② contains standing reference material. Anything that moves during the run belongs to section ③, including the conversation tail. For the complete state contract and three-section request assembly, use the [runtime model's state section](../10-system-design/10-runtime-model.md) rather than duplicating those internals here.
 
 ## Non-Negotiables
 
@@ -88,9 +90,8 @@ The Simple Research Kernel catalog contains the current folder-form examples:
 
 Use these bundles for layout and runtime-boundary examples. Use the prompt-kit repo, `docs/30-prompt-structure/`, for canonical prompt structure.
 
-## Implementation References
+## Design References
 
-- [Agent Registry](../20-implementation/20-kernel/20-agent-registry.md) — bundle discovery, file-or-folder resolution, prompt snapshots, and boot validation.
-- [Context Loaders](../20-implementation/20-kernel/30-context-loaders.md) — resolver and loader runtime contracts.
-- [Agent State](../20-implementation/20-kernel/60-agent-state.md) — full state contract, windowing, persistence, and request assembly.
-- [Request Snapshots](../20-implementation/20-kernel/70-request-snapshots.md) — section tags and the exact request captured for inspection.
+- [Runtime Model](../10-system-design/10-runtime-model.md) — bundle discovery and boot validation, context assembly, the full state contract, and three-section request assembly.
+- [Observability Model](../10-system-design/20-observability-model.md) — request snapshots: section tags and the exact request captured for inspection.
+- [Kernel area page](../20-implementation/20-kernel/00-overview.md) — the structural decisions behind the bundle layout (D98 file-or-folder resolution, committed prompt renders, sidecar harvest).

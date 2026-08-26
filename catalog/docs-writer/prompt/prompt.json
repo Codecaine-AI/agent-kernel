@@ -155,6 +155,13 @@
             },
             {
               "type": "listItem",
+              "id": "node-rules-cross-doc-links",
+              "content": [
+                "Write every mention of another doc as a markdown link to that doc's `docs/` path so it converts to a typed doc reference span — never leave a doc mention as plain prose and never use a bare URL for an internal doc. Keep bare URLs and ordinary markdown links for external `http(s)` or `mailto` destinations only, and follow the cross-doc-linking restraint rules already loaded in context: one canonical home, no ancestor links, and every link is a claim."
+              ]
+            },
+            {
+              "type": "listItem",
               "id": "node-rules-cross-cutting",
               "content": [
                 "Propose and wait for the operator before cross-cutting restructuring, moves, or renumbering."

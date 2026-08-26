@@ -2,7 +2,7 @@
 covers: "How to validate an authored agent bundle: static boot checks, runtime-only failures, generated prompt checks, catalog layout checks, and viewer inspection."
 concepts: [agent-authoring, validation, registry-boot, runtime-traces, catalog-doctor, agent-viewer]
 code-ref: packages/kernel/src/agent-registry/, packages/kernel/src/doctor.ts, packages/kernel/src/catalog-service.ts, packages/viewer-ui/src/agent-viewer/, packages/viewer-ui/src/trace-viewer/
-depends-on: [00-overview.md, ../20-implementation/20-kernel/20-agent-registry.md, ../20-implementation/20-kernel/60-agent-state.md, ../20-implementation/60-viewer/00-overview.md]
+depends-on: [00-overview.md, ../10-system-design/10-runtime-model.md, ../20-implementation/60-viewer/00-overview.md]
 ---
 
 # Validation
@@ -41,7 +41,7 @@ Fix these before running an agent:
 - a tool profile is unknown, a private tool registration cannot be harvested, or a spawner names an agent outside the catalog.
 - a context, tools, or state sidecar exports the wrong shape; a state sidecar must provide `seed`, `update`, and `render`.
 
-The registry's current aggregate checks are recorded in [Agent Registry](../20-implementation/20-kernel/20-agent-registry.md). Keep static failures at this boundary instead of converting them into runtime warnings.
+The registry's current aggregate checks are recorded in the [runtime model](../10-system-design/10-runtime-model.md). Keep static failures at this boundary instead of converting them into runtime warnings.
 
 ## Catch at Runtime
 

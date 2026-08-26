@@ -2,7 +2,7 @@
 covers: "How to author an agent context sidecar: choose its bundle shape, declare loaders, assemble standing reference material, and keep live working state in section ③."
 concepts: [agent-authoring, context-sidecar, defineContext, context-loaders, context-assembly, standing-context, section-2]
 code-ref: packages/kernel/src/agent-definition/index.ts, packages/kernel/src/context/, packages/kernel/src/agent-registry/registry/bundle-layout.ts
-depends-on: [00-overview.md, ../20-implementation/20-kernel/30-context-loaders.md, ../20-implementation/20-kernel/60-agent-state.md, ../10-system-design/60-prompt-system-model.md]
+depends-on: [00-overview.md, ../10-system-design/10-runtime-model.md, ../10-system-design/60-prompt-system-model.md]
 ---
 
 # Author a Context Sidecar
@@ -51,7 +51,7 @@ export const context = defineContext({ loaders, assemble });
 export default context;
 ```
 
-The bundle owns loader declarations and assembly. Loader implementations remain kernel- or app-registered infrastructure. Built-in declarations cover files, directories, skills, commands, and inline text; apps may register additional `kind` values. See [Context Loaders](../20-implementation/20-kernel/30-context-loaders.md) for the current resolver, loader catalog, `SpawnContext`, status, and trace contracts.
+The bundle owns loader declarations and assembly. Loader implementations remain kernel- or app-registered infrastructure. Built-in declarations cover files, directories, skills, commands, and inline text; apps may register additional `kind` values. See the [runtime model](../10-system-design/10-runtime-model.md) for the current resolver, loader catalog, `SpawnContext`, status, and trace contracts.
 
 Each `LoadedMap` entry reports `ok`, `empty`, or `error`. Decide in `assemble` whether empty and failed inputs should be omitted, labeled, or rendered as an explicit limitation. Keep that policy local to the agent rather than assuming every loader succeeds.
 
@@ -59,7 +59,7 @@ Each `LoadedMap` entry reports `ok`, `empty`, or `error`. Decide in `assemble` w
 
 The context sidecar supplies section ②: standing material that should remain available as requests are rebuilt. Appropriate inputs include capabilities, skills, style guides, reference sheets, and stable supporting evidence.
 
-Do not use it for material that moves with the work. Target documents, work queues, current requests, editor state, progress, and conversation belong to the state sidecar's section ③ render. Context and state are sibling request sections; state is never nested inside context. The full request and state contract lives in [Agent State](../20-implementation/20-kernel/60-agent-state.md), with the governing decisions in [D81–D99](../10-system-design/60-prompt-system-model.md#amendments--2026-07-27-state-model-interview).
+Do not use it for material that moves with the work. Target documents, work queues, current requests, editor state, progress, and conversation belong to the state sidecar's section ③ render. Context and state are sibling request sections; state is never nested inside context. The full request and state contract lives in the [runtime model's state section](../10-system-design/10-runtime-model.md), with the governing decisions D81–D99 in the [prompt system model](../10-system-design/60-prompt-system-model.md).
 
 When an agent uses the state extension, the assembled result becomes an entry in the kernel-held context set and is rebuilt into one section ② message per request. Pass-through behavior and current injection details remain implementation concerns; author against the section boundary.
 

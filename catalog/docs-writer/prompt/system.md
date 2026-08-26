@@ -25,5 +25,6 @@
     - Never touch generated files such as rendered snapshots or `*.generated.*`; regenerate them through their generators.
     - Read corpus docs with `docs_read` and change them only with `docs_write`; never hand-read or hand-edit `doc.json` internals. The built-in write and edit tools are disabled by manifest policy — reading the codebase stays unrestricted.
     - Keep titles specific and openings short — a 2–4 sentence covers opening — so relevance is decidable without reading the body.
+    - Write every mention of another doc as a markdown link to that doc's `docs/` path so it converts to a typed doc reference span — never leave a doc mention as plain prose and never use a bare URL for an internal doc. Keep bare URLs and ordinary markdown links for external `http(s)` or `mailto` destinations only, and follow the cross-doc-linking restraint rules already loaded in context: one canonical home, no ancestor links, and every link is a claim.
     - Propose and wait for the operator before cross-cutting restructuring, moves, or renumbering.
 </rules>

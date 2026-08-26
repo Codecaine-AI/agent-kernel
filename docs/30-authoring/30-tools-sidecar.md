@@ -2,7 +2,7 @@
 covers: "How to author an agent tool surface: allow shared core tools in agent.json, register private tools in a sidecar, and bind app services through runtime injection."
 concepts: [agent-authoring, tools-sidecar, coreTools, private-tools, defineTools, runtime-injection, tool-registration]
 code-ref: packages/kernel/src/agent-definition/index.ts, packages/kernel/src/agent-registry/registry/registry.ts, packages/kernel/src/index.ts
-depends-on: [00-overview.md, 10-context-sidecar.md, ../20-implementation/20-kernel/20-agent-registry.md, ../10-system-design/60-prompt-system-model.md]
+depends-on: [00-overview.md, 10-context-sidecar.md, ../10-system-design/10-runtime-model.md, ../10-system-design/60-prompt-system-model.md]
 ---
 
 # Author a Tools Sidecar
@@ -69,7 +69,7 @@ Keep app-owned clients, stores, and filesystem services out of the bundle. Type 
 
 Registry boot invokes the registration function with a recorder and no app runtime so it can harvest tool names. Register the same stable tool names in that mode; do not require runtime services while the callback itself runs. Check for the runtime inside `execute`, where a real spawn has received the configured implementation.
 
-The binding and harvesting path is documented in [Agent Registry](../20-implementation/20-kernel/20-agent-registry.md#sidecars). The bundle contract and file-or-folder rule are decisions D77 and D98 in [Prompt System Model](../10-system-design/60-prompt-system-model.md#decision-log).
+The binding and harvesting path is documented in the [runtime model](../10-system-design/10-runtime-model.md), with the boot-time harvest decision on the [kernel area page](../20-implementation/20-kernel/00-overview.md). The bundle contract and file-or-folder rule are decisions D77 and D98 in [Prompt System Model](../10-system-design/60-prompt-system-model.md).
 
 ## 4. Keep Guidance and Behavior Separate
 

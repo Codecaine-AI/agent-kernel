@@ -1,57 +1,30 @@
 ---
-covers: "Transcript recovery (backfill) inside the kernel: re-deriving trace rows from Pi JSONL transcripts — mapper, session binding, deterministic event ids, emitter id parity, runBackfill, and the CLI."
-concepts: [transcript-recovery, backfill, jsonl, event-mapper, deterministic-ids, session-binding, idempotent-insert]
+covers: "Structural decisions in transcript recovery: co-location with the emitter for id parity, and the recovery-tool (not daemon) posture."
+concepts: [transcript-recovery, backfill, emitter-parity, deterministic-ids]
 code-ref: packages/kernel/src/transcript-recovery/
-depends-on: [../10-protocol/00-overview.md, ../../10-system-design/20-observability-model.md]
+depends-on: [00-overview.md, ../../10-system-design/20-observability-model.md]
 ---
 
 # Transcript Recovery
 
-`@agent-kernel/kernel/transcript-recovery` re-derives trace rows from Pi JSONL transcripts. It is a recovery/import tool, not a daemon: the primary trace path is the kernel's in-process emitter, and Pi's JSONL is the durable record this module reads back when the live rows are missing.
-
-It lives inside the kernel package, co-located with the emitter it must stay in parity with. The two paths share id derivation and usage extraction through `@agent-kernel/protocol`.
-
-Use it for:
-
-- **Disaster rebuild** — reconstruct a trace database from the JSONL transcripts after loss or corruption.
-- **Importing externally-run sessions** — bring sessions that ran outside the kernel into a kernel trace db.
-- **Schema re-derivation** — re-map transcripts through updated event mapping.
-
-The old daemon posture — directory watcher loop, cursor snapshots, health port, registration-row discovery — is gone.
+`packages/kernel/src/transcript-recovery/` re-derives trace rows from Pi JSONL transcripts: `runBackfill`, the `EventMapper`, and the `agent-kernel-backfill` CLI bin. The behavior — what backfill is for, session-binding stamping, idempotent inserts against live emission — is design: [20-observability-model.md](../../10-system-design/20-observability-model.md) § Event Sources.
 
 ---
 
-## Components
+## Decisions
 
-| Component | Purpose |
-|---|---|
-| `runBackfill(options)` | Scans a JSONL directory (or explicit file list), maps whole files, batch-inserts idempotently, returns a summary |
-| `EventMapper` | Re-derives protocol `TraceEvent`s from Pi JSONL entries |
-| `readJsonlFile` | Reads and parses one JSONL transcript |
-| `createRecoveryConfig` | Normalizes batch size |
-| `backfill-cli.ts` | CLI entry over `runBackfill` (exposed as the `agent-kernel-backfill` bin) |
+### Recovery lives inside the kernel package, beside the emitter
 
-## Event Mapping
+**Decision.** The backfill mapper is a kernel module, co-located with the in-process emitter it must stay in parity with; both derive ids and usage through `@agent-kernel/protocol`, and the emitter's id-parity test imports `EventMapper` directly from `../transcript-recovery` as an intra-package drift guard.
 
-The mapper understands Pi entries such as `session`, `message`, `model_change`, and `custom`, and emits protocol events for user messages, assistant messages, tool call starts/ends, agent session starts, turn boundaries with `TurnUsage`, and lifecycle custom events.
+**Why.** The two emission paths must produce identical event ids or idempotent inserts stop deduplicating. A separate recovery package was rejected: it turns the parity requirement into a cross-repo contract that can drift between releases; co-location makes divergence a failing test in the same build.
 
-## Deterministic Ids And Emitter Parity
+**Applies to.** `packages/kernel/src/transcript-recovery/` and `packages/kernel/src/emitter/` — any change to either path's id derivation or event mapping must keep the parity test passing, and new emission paths join the same package under the same guard.
 
-Event ids are derived deterministically from `(piSessionUuid, JSONL entry id, ordinal, type)` via the shared `piEntryEventId` helper in `@agent-kernel/protocol`. The kernel's in-process emitter derives the identical ids at emit time, so live emission followed by a backfill of the same session produces the same id set — `insertTraceEventsBatch` is `INSERT OR IGNORE` on `event_id`, and replays insert zero new rows. The backfill summary reports mapped, inserted, and skipped (already present) counts.
+### A recovery tool, not a daemon
 
-Because the mapper now lives beside the emitter in the same package, the emitter's id-parity test imports `EventMapper` directly from `../transcript-recovery` — an intra-package drift guard that fails fast if the two paths diverge.
+**Decision.** Recovery is an invoked operation — `runBackfill(options)` over a JSONL directory or file list (also accepting an already-open db handle for embedding), plus the CLI. The old daemon posture — directory watcher loop, cursor snapshots, health port, registration-row discovery — is gone.
 
-## Session Binding
+**Why.** The primary trace path is the in-process emitter; a watcher daemon duplicated it badly and needed its own lifecycle. A tool that reads the durable JSONL on demand covers disaster rebuild and import without a second always-on writer.
 
-Pi JSONL starts with Pi's own session id. Envelope identity — required `containerId` and optional `runId` — arrives through the session-binding marker the kernel's spawn pipeline writes into every transcript. The mapper holds events pending until it sees the marker, then stamps and releases them.
-
-Marker and lifecycle custom types are configurable through `EventMapperOptions`; the kernel defaults are `agent-kernel:session-binding`, `agent-kernel:pi-lifecycle`, and `agent-kernel:subagent-link`.
-
-## CLI Usage
-
-```bash
-bun run packages/kernel/src/transcript-recovery/backfill-cli.ts <jsonl-dir> --db <db-path> \
-  [--batch-size <n>] [--binding-type <t>] [--lifecycle-type <t>] [--subagent-type <t>]
-```
-
-The CLI opens the database (ensuring the schema), scans the directory recursively for `.jsonl` files, and prints the backfill summary. `runBackfill` also accepts an already-open `db` handle for embedding — the example app mounts it behind a dev `/api/backfill` endpoint.
+**Applies to.** `packages/kernel/src/transcript-recovery/backfill.ts`, `backfill-cli.ts` — future recovery features extend the invoked-tool surface rather than reintroducing a watcher.

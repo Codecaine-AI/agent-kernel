@@ -182,6 +182,49 @@ function readValidated(docFile: string): DocDocument | { error: string } {
 	return result.document;
 }
 
+function resolveReferencedDocFile(root: string, referencePath: string): string | null {
+	const normalized = referencePath
+		.replaceAll("\\", "/")
+		.replace(/^\/?docs\//, "")
+		.replace(/\/doc\.json$/, "")
+		.replace(/\.(?:md|mdx|markdown)$/, "")
+		.replace(/^\/+|\/+$/g, "");
+	const dir = resolveDocDir(root, normalized);
+	return typeof dir === "string" ? join(dir, "doc.json") : null;
+}
+
+function isExternalLink(value: string): boolean {
+	try {
+		const url = new URL(value);
+		return url.protocol === "http:" || url.protocol === "https:" || url.protocol === "mailto:";
+	} catch {
+		return false;
+	}
+}
+
+function checkTextSpanLinks(root: string, doc: DocDocument): string[] {
+	const failures: string[] = [];
+	for (const [blockId, block] of Object.entries(doc.blocks)) {
+		for (const [spanIndex, span] of (block.text ?? []).entries()) {
+			const attributes = span.attributes;
+			if (attributes?.reference?.kind === "doc") {
+				const referencedFile = resolveReferencedDocFile(root, attributes.reference.path);
+				if (!referencedFile || !existsSync(referencedFile)) {
+					failures.push(
+						`$.blocks.${blockId}.text[${spanIndex}].attributes.reference: doc reference does not resolve: ${attributes.reference.path}`,
+					);
+				}
+			}
+			if (attributes?.link && !isExternalLink(attributes.link)) {
+				failures.push(
+					`$.blocks.${blockId}.text[${spanIndex}].attributes.link: internal paths must use a doc reference: ${attributes.link}`,
+				);
+			}
+		}
+	}
+	return failures;
+}
+
 export function registerDocsTools(pi: ExtensionAPI): void {
 	pi.registerTool({
 		name: "docs_tree",
@@ -306,7 +349,14 @@ export function registerDocsTools(pi: ExtensionAPI): void {
 					continue;
 				}
 				const doc = readValidated(join(dir, "doc.json"));
-				if ("error" in doc) failures.push(`${target}: ${doc.error}`);
+				if ("error" in doc) {
+					failures.push(`${target}: ${doc.error}`);
+					continue;
+				}
+				const linkFailures = checkTextSpanLinks(root, doc);
+				if (linkFailures.length > 0) {
+					failures.push(`${target}: ${linkFailures.join("\n  ")}`);
+				}
 			}
 			if (failures.length > 0) {
 				return errorResult(`${failures.length}/${targets.length} doc(s) failed:\n${failures.join("\n")}`);

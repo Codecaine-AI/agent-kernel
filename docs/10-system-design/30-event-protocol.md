@@ -1,7 +1,7 @@
 ---
-covers: "Event protocol design: TraceEvent envelope, core event types, trace levels, sources, deterministic event ids, and app extension behavior."
-concepts: [event-protocol, trace-event, event-type, trace-level, trace-source, deterministic-ids, turn-usage, app-events]
-code-ref: packages/protocol/src/envelope.ts, packages/protocol/src/types.ts, packages/protocol/src/factories.ts, packages/protocol/src/ids.ts, packages/protocol/src/usage.ts
+covers: "Event protocol design: TraceEvent envelope, core event types, trace levels, sources, deterministic event ids, kernel-authored message markers, and app extension behavior."
+concepts: [event-protocol, trace-event, event-type, trace-level, trace-source, deterministic-ids, turn-usage, kernel-messages, app-events]
+code-ref: packages/protocol/src/envelope.ts, packages/protocol/src/types.ts, packages/protocol/src/factories.ts, packages/protocol/src/ids.ts, packages/protocol/src/usage.ts, packages/protocol/src/kernel-messages.ts
 depends-on: [20-observability-model.md, 15-identity-model.md]
 ---
 
@@ -53,10 +53,17 @@ The core catalog covers:
 - tools: `tool_call_*`, `pre_tool_hook`, `post_tool_hook`
 - grouping: `phase_*`, `container_*`
 - diagnostics: `error`, `warning`
+- snapshots: `pi_request_snapshot`
 
 `run_steered` records a steering message injected into a running run — steering is a control action, and without the event it would be invisible in the trace. The old UI ask event types were removed from the core catalog; apps that need them re-register them as open-string types.
 
 Usage rides on lifecycle payloads: `pi_turn_end.eventData.usage` carries per-model-call `TurnUsage` (input/output/cache tokens, resolved model, optional cost estimate), and `agent_run_end.eventData.usage` carries the run rollup. `system_prompt_resolved` carries the `prompt_hash` of the prompt revision the system prompt was rendered from.
+
+`pi_request_snapshot` payloads (`PiRequestSnapshotData`, with its message-ref, section, and tool shapes) are protocol types because kernel capture, storage, the read API, and the viewer all type against them; the snapshot behavior itself is [20-observability-model.md](20-observability-model.md).
+
+## Kernel-Authored Message Markers
+
+The kernel's built requests contain synthetic lines — the section-② context message and section-③ state blocks — that reach the provider as ordinary user turns but were authored by the kernel, not the user. They are marked on the wire with a `kernel:`-prefixed custom type (`kernel:context`, `kernel:state`), and the constants plus the `isKernelAuthoredMessage()` predicate live in this package because the marker is wire-visible: it survives into request snapshots, and the viewer reads it back to badge those lines **KERNEL** instead of **USER** (D99, [60-prompt-system-model.md](60-prompt-system-model.md)).
 
 ## Deterministic Event Ids
 

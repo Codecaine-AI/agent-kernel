@@ -2,7 +2,7 @@
 covers: "How to author an agent state sidecar: choosing a file shape, implementing defineState, configuring the conversation window, and adding preview fixtures."
 concepts: [agent-authoring, state-sidecar, define-state, state-fixture, window-policy, rendered-state]
 code-ref: packages/kernel/src/state/, packages/kernel/src/agent-definition/index.ts, packages/kernel/src/agent-registry/registry/state-fixtures.ts
-depends-on: [00-overview.md, ../20-implementation/20-kernel/60-agent-state.md, ../10-system-design/60-prompt-system-model.md]
+depends-on: [00-overview.md, ../10-system-design/10-runtime-model.md, ../10-system-design/60-prompt-system-model.md]
 ---
 
 # State Sidecar
@@ -54,7 +54,7 @@ Replace the placeholder `update` and `render` behavior with the agent's domain r
 - Keep `S` JSON-serializable. The kernel treats it as opaque and snapshots it to `state.json`.
 - Window over `ctx.messages`; do not duplicate the transcript inside `S`.
 
-The complete event shapes, render output rules, persistence behavior, and activation gate live in [Agent State](../20-implementation/20-kernel/60-agent-state.md).
+The complete event shapes, render output rules, persistence behavior, and activation gate live in the [runtime model's state section](../10-system-design/10-runtime-model.md).
 
 ## Configure the Window
 

@@ -62,12 +62,21 @@
 - Run `bun run typecheck`.
 - Run `bun run test`.
 - The boundary check is the important portability gate: platform packages must not import the host application or reference host-app paths.
-- To check a kernel trace database against the linkage/usage invariants, run the trace doctor: `bun run packages/kernel/src/doctor-cli.ts <db-path>`.
+- Per-package typechecks exist as `bun run typecheck:<name>` for `protocol`, `db`, `kernel`, `tui`, `core-harness`, `viewer-core`, `viewer-ui`, `viewer-shell`, and `examples`.
+- When changing package boundaries, also sweep manually: `rg -n "@spectre|\.spectre|Spectre|SPECTRE|apps/backend|apps/frontend|checkpoint-slice|SessionStateManager" packages docs` — app-specific names may appear in docs only when explaining adapter boundaries, never in package source.
+- To check a kernel trace database against the linkage/usage invariants, run the trace doctor: `bun run packages/kernel/src/doctor-cli.ts <db-path>`. Without an argument it defaults to `.agent-kernel/trace.db` under the current directory; non-zero exit means violations.
+
+## Running this repo's kernel
+
+- This repo is itself a kernel; its service leg is the core harness: `bun run core-harness` serves health, the kernel read API, catalog routes, and prompt-edit sessions on `http://127.0.0.1:4860`.
+- The terminal harness (`/kernel` inside pi) is [`packages/tui`](packages/tui/README.md) — setup, usage, and troubleshooting live in its README.
+- To fold marked TUI sessions into the owning kernel's `trace.db`, run `bunx agent-kernel-tui-ingest` (batch, idempotent).
+- To register a kernel with the Observatory, run `bun run registry:check` / `bun run registry:sync` in the observatory repo (Core's doctor warns on drift).
 
 ## Examples
 
 - The Prompt Kit kernel host has moved to the sibling Prompt Kit repo at `../prompt-kit/packages/prompt-kit-agent`; from `../prompt-kit`, start it with `bun run dev:agent`.
-- `examples/simple-research-kernel` is a runnable standalone Simple Research Kernel.
+- `examples/simple-research-kernel` is a runnable standalone Simple Research Kernel — run instructions in [its README](examples/simple-research-kernel/README.md).
 - The example defines agents in a catalog (folder-form bundles: `agent.json` + `prompt/` + `context/` + `tools/`), loads context sidecars, spawns scout subagents, waits for their reports, reviews gaps, queues a report writer, writes working memory, persists kernel observability rows, and renders traces through the viewer shell.
 - Start it with `bun run dev:simple-research` — no Postgres, no Docker, no service processes.
 - It runs against a single local SQLite file (`examples/simple-research-kernel/.agent-kernel/trace.db`, WAL mode) created on boot, alongside a local kernel manifest (`.agent-kernel/kernel.json`).

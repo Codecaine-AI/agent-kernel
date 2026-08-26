@@ -1,61 +1,87 @@
 ---
-covers: "Viewer implementation packages: viewer-core DTOs, causal event ordering, turn nesting and trace transforms; viewer-ui tree cards, detail panel and prompt lab; viewer-shell workspace, trace viewer and shared style system."
+covers: "Viewer implementation area: the three-package split, structural decisions governing viewer-core transforms, viewer-ui components, and the cross-package style/token boundaries."
 type: overview
-concepts: [viewer-core, viewer-ui, viewer-shell, trace-builder, event-order, turn-nesting, detail-panel, trace-workspace, style-system, plugin-slots]
+concepts: [viewer-core, viewer-ui, viewer-shell, trace-builder, renderer-registry, doc-figure, vertical-slices, style-tokens]
 code-ref: packages/viewer-core/src/, packages/viewer-ui/src/, packages/viewer-shell/src/
-depends-on: [../../10-system-design/40-viewer-model.md, ../50-read-api/00-overview.md]
+depends-on: [../../10-system-design/40-viewer-model.md, ../50-read-api.md]
 ---
 
 # Viewer Packages
 
-The viewer packages turn kernel trace read responses into a reusable UI: viewer-core builds spans, viewer-ui renders them, viewer-shell composes the whole instrument for a host app.
+The viewer implementation spans three packages: `packages/viewer-core` (browser-safe data contracts and trace transforms), `packages/viewer-ui` (reusable React components), `packages/viewer-shell` (what a host mounts — composition surfaces and the shared style system, see [40-workspace-shell.md](40-workspace-shell.md)).
+
+Governed by: [10-system-design/40-viewer-model.md](../../10-system-design/40-viewer-model.md) — the viewer's behavior, layout standards, and extension contracts. This page records only how the code is organized and why.
 
 ---
 
-## `@agent-kernel/viewer-core`
+## Package boundaries
 
-Browser-safe data contracts and trace transforms:
+**Decision**: The viewer is three packages — core (data), ui (components), shell (composition + style) — not one.
+**Why**: A host that only needs transforms and DTOs (a custom workflow UI, the observer) must not pull React components; a host composing `viewer-ui` directly must not inherit shell chrome. One merged package — the rejected alternative — makes every consumer carry everything.
+**Applies to**: `packages/viewer-core/`, `packages/viewer-ui/`, `packages/viewer-shell/`, and any future viewer code, which joins the layer matching what it exports.
 
-- `KERNEL_TRACE_READ_PATHS`, `KERNEL_CATALOG_PATHS`, `KERNEL_OBSERVER_READ_PATHS`
-- kernel trace DTOs; catalog DTOs (`catalog-types.ts`)
-- `buildTraceSpans(events, piSessions, agentRuns, containers)`
-- **canonical event ordering** (`eventOrder.ts`) — the read API orders by `(timestamp, eventId)`, but timestamps are millisecond-precision and event ids are content-derived, so same-millisecond events tie and then order arbitrarily. `buildTraceSpans` re-sorts once up front on timestamp → turn number (when both events carry one) → causal type rank (the emitter's actual within-cycle firing order) → event id. Every downstream sort keys on `startTime` with a stable sort, so this order survives the pipeline.
-- **turn nesting** (`nesting.ts`) — folds each turn's tool calls, UI asks, and assistant replies under the `pi_request_snapshot` ("Turn N") span that issued them. Ownership is *causal*, not attribute-based, because tool events carry no turn number: after the canonical sort, a span belongs to the most recent preceding Turn span. Traces with no snapshot spans return unchanged, so agents without the state extension and older traces keep the flat shape. The module also folds `pi_turn_end` usage onto its matching Turn span (without consuming the debug event), groups context inputs under their build, wraps provisioning spans, and resolves spawner dispatch to its nested session by explicit tool-use id rather than timestamp containment.
-- event pairing, run bucketing (envelope `runId` preferred, span-window inference as fallback), phase grouping, container grouping, parent tool-call nesting
-- span attributes and factories — including the request snapshot's `sections` attribute, serialized as a JSON string for the offline fallback ([../20-kernel/70-request-snapshots.md](../20-kernel/70-request-snapshots.md))
-- `diffPromptDocuments(a, b)` — block-level structural diff keyed by stable node ids
+**Decision**: `viewer-core` is browser-safe by construction: it never imports Drizzle schema, `@agent-kernel/db`, or app DB types. Its API surface is path constants (`KERNEL_TRACE_READ_PATHS`, `KERNEL_CATALOG_PATHS`, `KERNEL_OBSERVER_READ_PATHS` in `api.ts`), DTOs (`catalog-types.ts` and the trace DTOs), and pure transforms (`buildTraceSpans`, `diffPromptDocuments`).
+**Why**: Viewers read through APIs that return viewer-core DTOs (the design page's rule); a direct DB import — the rejected shortcut — would silently couple browser bundles to server schema.
+**Applies to**: everything under `packages/viewer-core/src/`.
 
-This package must not import Drizzle schema or app DB types. A byte-exact characterization snapshot pins its output; styling work must never move it.
+**Decision**: viewer-ui emits only Tailwind utilities; color *values* are host theme tokens (`--trace-*`, `--selection-*`, band alphas as `--band-*` tokens) supplied by viewer-shell's style system, always with baked fallbacks.
+**Why**: Hosts must retheme without forking components. Baking values into viewer-ui — the rejected alternative — makes every theme change a package release. The token ownership crosses the package boundary on purpose.
+**Applies to**: all styled components in `packages/viewer-ui/src/`, token emission in `packages/viewer-shell/src/style/`.
 
-## `@agent-kernel/viewer-ui`
+**Decision**: Presentation knobs travel as options and CSS variables — `SpanCardViewOptions` is defined in viewer-ui (`SpanCard.tsx`) and consumed by the shell; persistence and rail UI live only in viewer-shell.
+**Why**: The packages stay host-agnostic; per-host forks or prop-drilled preference plumbing (rejected) were how earlier hosts diverged. Where a surface has no prop path from the host (the detail panel's message cards), options reach it through `icons/icon-settings.tsx` rather than a new prop chain.
+**Applies to**: every user-tunable presentation option, current and future.
 
-Reusable React components:
+## viewer-core structure
 
-- `TreeView`, `SpanCard` and its variants, the icon system — see [10-trace-card-design.md](10-trace-card-design.md)
-- `SpanDetailPanel` and the `detail-panel/` system: the shell, the data-only renderer contract, the shared code-block component, the Turn body, and the Details takeover — see [30-detail-panel.md](30-detail-panel.md)
-- `AgentCatalogViewer`, `PromptInlineLab`, `RevisionHistoryPanel`, `RevisionStatsStrip`, `AgentPromptLabContainer` — the prompt lab, see [20-prompt-editor-design.md](20-prompt-editor-design.md)
-- `DoctorPanel`, `UsageStrip`, `UsageSummaryPanel`, trace filtering and lookup helpers
+**Decision**: One canonical event sort, applied once at the top of `buildTraceSpans` (`trace-builder/eventOrder.ts`); every later stage sorts stably on `startTime` and never re-orders otherwise.
+**Why**: The ordering semantics (timestamp → turn number → causal rank → event id, see the design page) must hold at every zoom. Per-consumer re-sorting — the rejected alternative — lets each surface resolve same-millisecond ties differently.
+**Applies to**: `trace-builder/`, any new transform stage.
 
-It consumes viewer-core/protocol types, prompt-kit documents, and Agent Prism span types.
+**Decision**: All span folding lives in `trace-builder/nesting.ts` — turn ownership, usage folding, context-input grouping, provisioning wrapping, dispatch resolution — as post-sort passes over the span list.
+**Why**: Nesting is causal, so it is only correct *after* the canonical sort; scattering fold logic into per-span factories (rejected) would re-derive order locally and drift.
+**Applies to**: `trace-builder/nesting.ts` and any future folding rule.
 
-## `@agent-kernel/viewer-shell`
+**Decision**: A byte-exact characterization snapshot (`trace-builder/__snapshots__/characterization.test.ts.snap`) pins trace-builder output. Styling work must never move it — styling changes land in viewer-ui, viewer-shell, or the host, never in viewer-core semantics.
+**Why**: It separates semantic changes (rare, reviewed against the snapshot) from presentation churn (frequent). Trusting unit tests alone — the rejected alternative — let semantic drift ride in on styling PRs.
+**Applies to**: every change touching `packages/viewer-core/src/trace-builder/`.
 
-What a host mounts: `KernelTraceWorkspace` (list and drill-in), `KernelTraceViewer` (the 40/60 tree + detail split), and the shared style system — see [40-workspace-shell.md](40-workspace-shell.md).
+## viewer-ui structure
 
-## Design Records
+**Decision**: Card chrome — cap kind, group, side, style — is resolved once in `trace-viewer/SpanCard/SpanCard.tsx` and threaded to variants as a `SpanCardChrome` bundle; variants (`SpanCard/variants/`) supply content only.
+**Why**: Per-variant chrome (rejected) is how row anatomies drift apart. A new variant gets the standard frame for free and cannot opt out.
+**Applies to**: `SpanCard/variants/`, including variants not yet written.
 
-The viewer's UX decisions — including the alternatives that were considered and rejected — live as explainers under [`docs/10-system-design/explainers/`](../../10-system-design/explainers/): `detail-view-options.html` (the detail-panel layout standard, the audit behind it, and the three directions) and `state-tab-options.html` (the State tab's postures, and the index rail and focus posture that were cut on review). The implementation docs here describe what is built; the explainers say why.
+**Decision**: `trace-viewer/icons/resolve-span-icon.tsx` is the single resolver from display type + status to icon kind, semantic group, and accent utilities; every surface that shows role or kind color resolves through it (the detail panel's message stream included). `icons/span-icons.test.tsx` enforces the reserved-status rule.
+**Why**: Duplicated hue tables (rejected) are how the tree and the panel stop agreeing on what blue means.
+**Applies to**: `icons/`, and any new surface rendering span identity.
 
-## Child Nodes
+**Decision**: The card type scale lives only in `SpanCard/variants/card-type.ts` (`CARD_TYPE_LABEL` / `CARD_TYPE_BODY` / `CARD_TYPE_META`); connector geometry lives only in `SpanCard/SpanCardConnector.tsx`, pinned by `span-indent.test.tsx`; cap sizing lives in `icons/SpanIconCap.tsx` (`SPAN_CAP_SIZE`).
+**Why**: Each visual constant has exactly one owner module so the design page's invariants (three sizes, fixed 24px cells, square caps) have one place to be violated and one test to catch it. Ad-hoc local constants were the rejected default.
+**Applies to**: all trace-tree rendering code.
 
-### [10-trace-card-design.md](10-trace-card-design.md)
-The trace tree and card system: TraceCard anatomy, the band color system, connector geometry, icons, typography, and style-rail knobs.
+**Decision**: Detail renderers are data-only functions registered in `trace-viewer/detail-panel/rendererRegistry.ts`; the registry is exported, and `contract-conformance.test.tsx` iterates it. The contract types and `BLOCK_SLOT_ORDER` live in `detail-panel/contract.ts`; the host seam is the `DetailBlockProvider` type with its `DetailBlocksProvider` context (`detail-panel/blocks.ts`).
+**Why**: Registry-driven conformance (vs a manually maintained test list, rejected) means a renderer added later is covered without touching the test — the contract enforces itself on unwritten code.
+**Applies to**: `detail-panel/renderers/`, every future renderer and extension block source.
 
-### [20-prompt-editor-design.md](20-prompt-editor-design.md)
-The Agent XML prompt editor: surface contract, block and keyboard editing, undo model, and save flow.
+**Decision**: `detail-panel/doc-figure/` is the single data-block substrate app-wide (figure, `tokenize.ts`, `Clamped.tsx`); JSON canonicalization sits beside the renderers (`renderers/json-document.ts`), and the primary-figure clamp constant is `renderers/primary-figure.ts`, stamped by `renderers/TurnBody.tsx`.
+**Why**: Byte-exactness, gutter, zebra, and clamp behavior are contracts (design page); one substrate means one place they can break. Per-surface code blocks were the rejected pattern.
+**Applies to**: any surface rendering source text, including future tabs and renderers, which inherit the primary-figure policy from the Turn body rather than naming it.
 
-### [30-detail-panel.md](30-detail-panel.md)
-The detail panel: layout standard, renderer contract, block vocabulary, doc-figure and clamp policies, the Turn body, Details takeover, Escape ladder, and extension seam.
+**Decision**: viewer-ui keeps a local structural mirror of the request-snapshot section-tag type (`RequestSectionTag` / `RequestSectionKind` in `detail-panel/renderers/turn-sections.ts`) rather than importing the canonical type from `@agent-kernel/protocol` (`PiRequestSnapshotData`). The shapes are intentionally identical, and snapshots without tags parse to `null` so the renderer falls back to the flat context list.
+**Why**: viewer-ui must stay buildable against protocol versions that predate the field. Importing the protocol type directly — the rejected alternative — couples viewer-ui builds to protocol version.
+**Applies to**: `detail-panel/renderers/turn-sections.ts`, and any future viewer type mirroring an optional protocol field.
 
-### [40-workspace-shell.md](40-workspace-shell.md)
-The workspace and trace viewer composition surfaces, and the shared style system.
+**Decision**: Viewer components are vertical slices: a folder named for the component with a thin index composition root and responsibility-named siblings; external import specifiers resolve through the folder index, so restructuring is invisible to consumers. Single-responsibility modules stay flat files — folderizing for symmetry is an anti-pattern.
+**Why**: The alternative — shared-by-layer folders (`components/`, `hooks/`, `utils/`) — scatters one component's parts and makes deletion unsafe.
+**Applies to**: `agent-viewer/AgentCatalogViewer/` (the exemplar) and every new multi-file component.
+
+**Decision**: Prompt-rendering surfaces build on prompt-kit's shared editor surface: the editor tokens are defined once in `@codecaine-ai/prompt-kit` (`ui/surface/editor-surface.ts`), and the inline lab (`PromptInlineLab`) is re-exported from prompt-kit rather than reimplemented; viewer-ui adds the kernel-facing shells (`AgentCatalogViewer`, `AgentPromptLabContainer`, `RevisionHistoryPanel`, `RevisionStatsStrip`).
+**Why**: Every prompt view sharing one token source is what keeps views from drifting (the fidelity contract); a viewer-local token copy or lab fork (rejected) would drift on the first edit.
+**Applies to**: `agent-viewer/`, and any new prompt-rendering surface.
+
+## Roster
+
+- `viewer-core` — path constants, DTOs, `buildTraceSpans`, event ordering, nesting, run bucketing, `diffPromptDocuments`
+- `viewer-ui` — `TreeView`, `SpanCard` + variants, the detail panel, the agent viewer / prompt lab shells, `DoctorPanel`, usage panels, trace filtering helpers
+- `viewer-shell` — `KernelTraceWorkspace`, `KernelTraceViewer`, the shared style system ([40-workspace-shell.md](40-workspace-shell.md))

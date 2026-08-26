@@ -1,85 +1,30 @@
 ---
-covers: "Subagent implementation: spawner tools (D77), AgentManager, foreground/background spawn, concurrency queue, parent tool-call linkage, run context propagation, steering, cleanup, and notifications."
-concepts: [subagents, spawner-tools, agent-manager, background-agents, spawn-and-wait, parent-tool-use-id, run-context]
+covers: "Structural decisions in the subagent module: per-tool spawn grants (D77) and the AgentManager's runtime-host independence."
+concepts: [subagents, spawner-tools, agent-manager, spawn-adapter]
 code-ref: packages/kernel/src/subagents/
-depends-on: [10-spawn-pipeline.md]
+depends-on: [00-overview.md, ../../10-system-design/10-runtime-model.md]
 ---
 
 # Subagents
 
-Subagents are managed agent runs spawned from inside another agent's turn.
+`packages/kernel/src/subagents/` implements subagent orchestration — spawner-tool binding, the `AgentManager`, foreground/background dispatch, and steering. The behavior (dispatch semantics, queueing, identity forwarding, steering observability) is design: [10-runtime-model.md](../../10-system-design/10-runtime-model.md) § Subagents.
 
 ---
 
-## Spawner Tools (D77)
+## Decisions
 
-Spawning is granted per tool, not per agent. The old agent-level
-`canSpawnSubagent` boolean is retired; there is no manifest flag that makes an
-agent generally able to spawn. Instead, a `tools.ts` sidecar declares a
-spawner tool with `defineSpawnerTool({ name, parameters, spawns, execute })`,
-where `spawns` is the explicit allowlist of agent names the tool may dispatch
-(`["*"]` is the loud opt-in for a deliberately general spawner).
+### Spawning is a tool declaration, not an agent flag (D77)
 
-The declaration compiles into an ordinary Pi-registerable tool. At session
-build time the kernel wraps the register function with `bindSpawnerTools`,
-which replaces the placeholder execute with one that hands the author a
-scoped `dispatch(agentName, prompt, opts?)` handle over the `AgentManager`.
-The handle enforces the allowlist, validates the target exists in the agent
-catalog (a wildcard spawner cannot turn a typo into a silently errored
-record), and auto-forwards `parentToolUseId` (the enclosing tool call id),
-`trigger: "parent-tool"`, and run-context identity — captured at dispatch
-time and passed explicitly, so a queued background spawn keeps its own
-parent's identity no matter when (or from whose async context) the queue
-drains. The tool author cannot get these wrong.
+**Decision.** The only way an agent gains spawn capability is a spawner tool declared in its tools sidecar via `defineSpawnerTool({ name, parameters, spawns, execute })`, with `spawns` an explicit allowlist of agent names (`["*"]` is the loud general opt-in). The declaration compiles into an ordinary Pi-registerable tool; at session build time `bindSpawnerTools` replaces the placeholder execute with one holding the scoped `dispatch` handle. The agent-level `canSpawnSubagent` manifest boolean is retired, and the generic Pi subagent tools are disallowed for every kernel agent.
 
-Foreground dispatch awaits completion and resolves with the agent record.
-`opts.background: true` maps onto the manager's background queue and resolves
-immediately with a `SpawnerBackgroundHandle` — `{ id, agentName, status,
-done }`, where `done` always exists and resolves with the final record when
-the child actually completes (including queued children, which have no record
-promise until they start, and queued children aborted before starting).
+**Why.** An agent-level flag grants a capability without naming its targets, so nothing can validate the fan-out at boot and a typo becomes a silently errored record at runtime. A per-tool allowlist is boot-validated against the catalog and puts the grant on the action surface where the tool author already is.
 
-Spawner declarations are harvested at registry boot (targets are validated
-against the catalog), and the emitter marks spawner tool calls with
-`toolKind: "spawner"` + `spawns` in trace eventData. The generic Pi subagent
-tools (`Agent`, `get_subagent_result`, `steer_subagent`) are disallowed for
-every kernel agent.
+**Applies to.** `packages/kernel/src/subagents/spawner-binding.ts`, spawner harvest in the registry, and every future spawner tool — new spawn capabilities must be declared this way, never as manifest flags.
 
-## AgentManager
+### `AgentManager` takes a `spawnAgent` adapter
 
-`AgentManager` owns:
+**Decision.** The manager does not import the spawn pipeline; it requires a `spawnAgent` function at construction.
 
-- agent records
-- foreground `spawnAndWait`
-- background `spawn`
-- background concurrency limits
-- queued background work
-- stop and cleanup behavior
-- tool-use counters
-- result and error storage
+**Why.** Subagent orchestration (records, queueing, stop/cleanup, steering) stays independent of the concrete runtime host and testable without one. The rejected alternative — the manager calling the pipeline directly — makes orchestration and spawning one unswappable unit.
 
-It requires a `spawnAgent` adapter. That keeps subagent orchestration independent from the concrete runtime host.
-
-## Foreground And Background
-
-Foreground agents bypass the background queue and are awaited directly.
-
-Background agents enter a FIFO queue when the concurrency limit is reached. The default limit is 4, and the kernel instance can adjust it.
-
-## Parent Linkage
-
-When a subagent is spawned from a tool call, the manager forwards:
-
-- the current `containerId` from `RunContext`
-- current phase
-- `parentToolUseId`
-- optional parent run id
-- the run `trigger`, defaulting to `parent-tool`
-
-It also writes a custom parent/child Pi session marker to the parent Pi session when both session ids are known. The backfill mapper uses that marker to link Pi sessions into a tree.
-
-## Steering
-
-The manager can store steering messages before a subagent session exists and flush them once the session is created. This lets callers interact with long-running subagents without breaking the runtime abstraction.
-
-Steering is a control action, so it is observable: each steering message emits exactly one `run_steered` trace event, with `delivery: "delivered"` when it steered a live session or `delivery: "queued"` when it was held until the session existed. Queued emissions wait for the run's trace identity and flush with it.
+**Applies to.** `packages/kernel/src/subagents/manager.ts` and any future orchestration feature: new manager behavior must go through the adapter, not reach into the pipeline.

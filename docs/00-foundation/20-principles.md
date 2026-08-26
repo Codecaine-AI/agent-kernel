@@ -36,28 +36,12 @@ Timestamps order events. They do not prove parentage.
 
 ## App Identity Is Generic
 
-Host correlation happens through containers: an app maps its domain rows to container `kind` + `key` vocabulary, and the kernel derives stable ids from them. Containers can carry app labels, paths, and opaque metadata because every host needs to correlate kernel work with its own domain rows — but there is no separate app-session identity, and nothing may imply one host app's database structure.
+Host correlation happens through containers, not through any app's own session identity. There is no separate app-session concept in the kernel, and nothing in the kernel may imply one host app's database structure. The container mechanics — kinds, keys, derived ids, linkage invariants — are design contracts in the [identity model](../10-system-design/15-identity-model.md).
 
 ## Adapters Are Allowed To Be Specific
 
-The kernel should stay neutral. Adapters are where specificity belongs:
-
-- Spectre creates app sessions and maps them to kernel containers.
-- Spectre registers the `checkpoint-slice` loader.
-- Spectre provides `SessionStateManager` to app tools through run context.
-- Spectre mounts the kernel read API in its data backend.
-- Spectre registers viewer panels for spec, plan, build, and docs.
+The kernel stays neutral; adapters are where specificity belongs. Everything a host app wires into the kernel — identity mapping, custom loaders, injected services, mounted APIs, viewer plugins — lives in an explicit adapter layer small enough to audit. The contract is the [app adapter model](../10-system-design/50-app-adapter-model.md); the concrete wiring is recorded in [implementation](../20-implementation/70-app-adapters.md).
 
 ## Packages Are The Unit Of Portability
 
-The package boundary matters more than the repository boundary. A package under `packages/*` must be portable before it is useful to split into a separate repo.
-
-The current packages are:
-
-- `@agent-kernel/protocol`
-- `@agent-kernel/db`
-- `@agent-kernel/kernel`
-- `@codecaine-ai/prompt-kit`
-- `@agent-kernel/viewer-core`
-- `@agent-kernel/viewer-ui`
-- `@agent-kernel/viewer-shell`
+The package boundary matters more than the repository boundary. A package under `packages/*` must be portable before it is useful to split into a separate repo. The current package map and its dependency rules live in the [implementation overview](../20-implementation/00-overview.md).
