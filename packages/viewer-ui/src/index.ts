@@ -148,7 +148,10 @@ export {
 	AGENT_PRISM_TOKENS,
 	type AgentPrismToken,
 } from "./trace-viewer/theme";
-export { AgentCatalogViewer } from "./agent-viewer/AgentCatalogViewer";
+export {
+	AgentCatalogViewer,
+	type AgentCatalogViewerProps,
+} from "./agent-viewer/AgentCatalogViewer";
 
 // Prompt authoring — the editing surface, the lab shell, and the style model —
 // belongs to @codecaine-ai/prompt-kit, which owns the prompt document. It is

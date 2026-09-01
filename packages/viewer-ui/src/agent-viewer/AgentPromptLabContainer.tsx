@@ -23,6 +23,7 @@ import {
 
 import {
 	PromptInlineLab,
+	type LabConfigZone,
 	type LabContextPreview,
 	type LabStateZone,
 	type LabToolsZone,
@@ -43,8 +44,13 @@ import {
 	createPromptLabSessionController,
 	type PromptLabSessionController,
 } from "./prompt-lab-session-controller";
+import {
+	loadPromptLabSession,
+	promptLabSessionPresentation,
+} from "./prompt-lab-session-mode";
 import { RevisionHistoryPanel } from "./RevisionHistoryPanel";
 import { RevisionStatsStrip } from "./RevisionStatsStrip";
+import type { AgentViewerDefinition } from "./types";
 
 export interface AgentPromptLabContainerProps {
 	/** Kernel API origin, e.g. "http://localhost:4477". */
@@ -59,6 +65,23 @@ export interface AgentPromptLabContainerProps {
 	context?: LabContextPreview;
 	/** Viewer-only style settings controlled by the host application. */
 	styleSettings?: PromptStyleSettings;
+	/** Whether prompt and manifest editing is enabled. Defaults to true. */
+	editable?: boolean;
+	/**
+	 * Catalog detail supplied by the host. When present, the container uses it
+	 * instead of fetching GET /kernel/catalog/agents/:name.
+	 */
+	detail?: CatalogAgentDetail;
+	/**
+	 * Viewer definition supplied by the host. A definition with a parsed
+	 * prompt bypasses the agent-detail fetch; one without a prompt falls back
+	 * to the baseUrl fetch path.
+	 */
+	definition?: AgentViewerDefinition;
+	/** Host-owned TOOLS zone. Overrides the zone derived from detail.tools. */
+	toolsZone?: LabToolsZone;
+	/** Host-owned inline CONFIG panel zone. */
+	configZone?: LabConfigZone;
 	/**
 	 * Test seam: substitute the annotation/session client (defaults to the
 	 * real fetch-backed client scoped to baseUrl + agentName).
@@ -109,9 +132,19 @@ export function AgentPromptLabContainer({
 	className,
 	context,
 	styleSettings,
+	editable = true,
+	detail: suppliedDetail,
+	definition,
+	toolsZone,
+	configZone,
 	promptEditClient,
 }: AgentPromptLabContainerProps) {
 	const origin = trimTrailingSlash(baseUrl);
+	const definitionDetail = useMemo(
+		() => detailFromDefinition(definition),
+		[definition],
+	);
+	const directDetail = suppliedDetail ?? definitionDetail;
 	const [detail, setDetail] = useState<CatalogAgentDetail | undefined>(undefined);
 	const [loadError, setLoadError] = useState<string | undefined>(undefined);
 	const [savedHash, setSavedHash] = useState<string | undefined>(undefined);
@@ -144,6 +177,16 @@ export function AgentPromptLabContainer({
 	}, [origin, agentName]);
 
 	const loadDetail = useCallback(async (): Promise<void> => {
+		if (directDetail) {
+			setDetail(directDetail);
+			setSavedHash(suppliedDetail?.promptHash);
+			setManifestFields(readManifestFields(directDetail, agentName));
+			setDocumentsByHash((current) => ({
+				...current,
+				[directDetail.promptHash]: directDetail.prompt,
+			}));
+			return;
+		}
 		const response = await fetch(`${origin}${KERNEL_CATALOG_PATHS.agentDetail(agentName)}`);
 		if (!response.ok) throw new Error(`agent request failed (${response.status})`);
 		const body = (await response.json()) as CatalogAgentDetail;
@@ -151,7 +194,7 @@ export function AgentPromptLabContainer({
 		setSavedHash(body.promptHash);
 		setManifestFields(readManifestFields(body, agentName));
 		setDocumentsByHash((current) => ({ ...current, [body.promptHash]: body.prompt }));
-	}, [origin, agentName]);
+	}, [origin, agentName, suppliedDetail, directDetail]);
 
 	// Latest-detail refresh, reachable from the (agent-stable) controller.
 	const refreshPromptRef = useRef<() => Promise<void>>(async () => {});
@@ -178,16 +221,21 @@ export function AgentPromptLabContainer({
 	);
 
 	useEffect(() => {
-		void controller.load();
+		void loadPromptLabSession(controller, editable);
 		return () => controller.dispose();
-	}, [controller]);
+	}, [controller, editable]);
 
 	const sessionSnapshot = useSyncExternalStore(
 		controller.subscribe,
 		controller.getSnapshot,
 		controller.getSnapshot,
 	);
-	const promptEditSession = controller.labSession() ?? undefined;
+	const sessionPresentation = promptLabSessionPresentation(
+		controller,
+		sessionSnapshot,
+		editable,
+	);
+	const promptEditSession = sessionPresentation.promptEditSession;
 
 	useEffect(() => {
 		let cancelled = false;
@@ -329,10 +377,10 @@ export function AgentPromptLabContainer({
 	// Tools view wiring: a rendered document built from the host-supplied tool
 	// previews — undefined when the kernel has none for this agent, so the lab
 	// simply won't offer the view.
-	const toolsZone: LabToolsZone | undefined =
-		detail.tools && detail.tools.length > 0
+	const effectiveToolsZone: LabToolsZone | undefined =
+		toolsZone ?? (detail.tools && detail.tools.length > 0
 			? { renderedTools: renderToolsDocument(detail.tools) }
-			: undefined;
+			: undefined);
 
 	const stateZone: LabStateZone | undefined =
 		fixtures.length > 0
@@ -349,18 +397,7 @@ export function AgentPromptLabContainer({
 	// The idle "N open notes / Apply" segment retired 2026-08-05: the queue
 	// and Apply live in the lab's AI panel, and edit mode stays clean of the
 	// annotation layer. The strip now surfaces only live sessions and errors.
-	const showSessionStrip =
-		session !== null ||
-		sessionSnapshot.sessionStarting ||
-		sessionSnapshot.sessionError !== undefined ||
-		sessionSnapshot.annotationsError !== undefined ||
-		sessionSnapshot.streamError !== undefined;
-	const stripError =
-		sessionSnapshot.sessionError ??
-		sessionSnapshot.annotationsError ??
-		(sessionSnapshot.streamError !== undefined
-			? `Event stream dropped (${sessionSnapshot.streamError}) — reviews still work.`
-			: undefined);
+	const { showSessionStrip, stripError } = sessionPresentation;
 
 	return (
 		<div className={cn("flex h-full min-h-0 flex-col bg-card font-mono", className)}>
@@ -419,20 +456,21 @@ export function AgentPromptLabContainer({
 					prompt={detail.prompt}
 					declaredVariables={detail.declaredVariables}
 					savedHash={savedHash}
-					onSave={handleSave}
+					onSave={editable ? handleSave : undefined}
 					manifest={{
 						name: manifestFields.name,
 						model: manifestFields.model,
 						description: manifestFields.description,
 						modelAliases: detail.modelAliases ?? [],
-						editable: true,
+						editable,
 					}}
-					onManifestSave={handleManifestSave}
+					onManifestSave={editable ? handleManifestSave : undefined}
 					context={context ?? toLabContextPreview(detail.context)}
 					styleSettings={styleSettings}
 					promptEditSession={promptEditSession}
 					stateZone={stateZone}
-					toolsZone={toolsZone}
+					toolsZone={effectiveToolsZone}
+					configZone={configZone}
 					revisionsZone={
 						<RevisionHistoryPanel
 							revisions={revisions}
@@ -485,6 +523,26 @@ function readManifestFields(detail: CatalogAgentDetail, agentName: string): Mani
 		name: typeof manifest.name === "string" ? manifest.name : agentName,
 		model: typeof manifest.model === "string" ? manifest.model : "",
 		description: typeof manifest.description === "string" ? manifest.description : "",
+	};
+}
+
+function detailFromDefinition(
+	definition: AgentViewerDefinition | undefined,
+): CatalogAgentDetail | undefined {
+	if (!definition?.prompt) return undefined;
+	return {
+		manifest: {
+			name: definition.name,
+			model: definition.model,
+			description: definition.description,
+		},
+		prompt: definition.prompt,
+		// Definitions do not carry the kernel's persisted prompt hash. Keep the
+		// direct document addressable without treating this key as a save guard.
+		promptHash: `definition:${definition.name}`,
+		rendered: definition.renderedPrompt?.content ?? definition.body,
+		declaredVariables: Object.keys(definition.variables),
+		modelAliases: [],
 	};
 }
 

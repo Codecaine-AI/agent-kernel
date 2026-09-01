@@ -8,9 +8,14 @@ import cn from "classnames";
 import { useMemo, useState, type ReactNode } from "react";
 
 import { AgentPromptLabContainer } from "../AgentPromptLabContainer";
-import type { LabContextPreview } from "@codecaine-ai/prompt-kit/ui/lab";
+import type {
+	LabConfigZone,
+	LabContextPreview,
+	LabToolsZone,
+} from "@codecaine-ai/prompt-kit/ui/lab";
+import type { PromptStyleSettings } from "@codecaine-ai/prompt-kit/ui/style";
 import type { AgentViewerDefinition } from "../types";
-import { Led, Panel } from "./primitives";
+import { Panel } from "./primitives";
 
 const GROUP_ORDER = ["intake", "spec", "plan", "build", "docs", "research", "other"] as const;
 const GROUP_LABEL: Record<string, string> = {
@@ -31,32 +36,46 @@ export interface AgentCatalogViewerProps {
 	onSelectedNameChange?: (name: string) => void;
 	className?: string;
 	emptyState?: ReactNode;
+	/** Labels to add to or override the built-in catalog group labels. */
+	groupLabels?: Record<string, string>;
+	/** Groups to show first, followed by built-in and otherwise unknown groups. */
+	groupOrder?: string[];
+	/** Static TOOLS zone or a zone derived from the selected agent. */
+	toolsZone?: LabToolsZone | ((agent: AgentViewerDefinition) => LabToolsZone | undefined);
+	/** Static inline CONFIG zone or a zone derived from the selected agent. */
+	configZone?: LabConfigZone | ((agent: AgentViewerDefinition) => LabConfigZone | undefined);
+	/** Viewer-only style settings passed to the prompt lab. */
+	styleSettings?: PromptStyleSettings;
+	/** Whether prompt and manifest editing is enabled. Defaults to true. */
+	editable?: boolean;
+	/** Use each catalog definition's parsed prompt instead of fetching agent detail. */
+	useAgentDefinitions?: boolean;
 }
 
-function groupKey(agent: AgentViewerDefinition): string {
+function groupKey(agent: AgentViewerDefinition, knownGroups: readonly string[]): string {
 	if (agent.group) return agent.group;
 	const match = agent.agentFile.match(/\/agents\/([^/]+)\//);
 	const segment = match?.[1];
-	if (segment && (GROUP_ORDER as readonly string[]).includes(segment)) return segment;
+	if (segment && knownGroups.includes(segment)) return segment;
 	return "other";
 }
 
-function groupAgents(agents: AgentViewerDefinition[]) {
+function groupAgents(agents: AgentViewerDefinition[], order: readonly string[]) {
 	const groups = new Map<string, AgentViewerDefinition[]>();
 	for (const agent of agents) {
-		const key = groupKey(agent);
+		const key = groupKey(agent, order);
 		const bucket = groups.get(key) ?? [];
 		bucket.push(agent);
 		groups.set(key, bucket);
 	}
 
 	const ordered: Array<{ group: string; agents: AgentViewerDefinition[] }> = [];
-	for (const group of GROUP_ORDER) {
+	for (const group of order) {
 		const bucket = groups.get(group);
 		if (bucket?.length) ordered.push({ group, agents: bucket });
 	}
 	for (const [group, bucket] of groups) {
-		if (!(GROUP_ORDER as readonly string[]).includes(group)) ordered.push({ group, agents: bucket });
+		if (!order.includes(group)) ordered.push({ group, agents: bucket });
 	}
 	return ordered;
 }
@@ -77,9 +96,27 @@ export function AgentCatalogViewer({
 	onSelectedNameChange,
 	className,
 	emptyState,
+	groupLabels,
+	groupOrder,
+	toolsZone,
+	configZone,
+	styleSettings,
+	editable = true,
+	useAgentDefinitions = false,
 }: AgentCatalogViewerProps) {
 	const [internalSelectedName, setInternalSelectedName] = useState<string | null>(null);
-	const grouped = useMemo(() => groupAgents(agents), [agents]);
+	const effectiveGroupLabels = useMemo(
+		() => ({ ...GROUP_LABEL, ...groupLabels }),
+		[groupLabels],
+	);
+	const effectiveGroupOrder = useMemo(
+		() => Array.from(new Set([...(groupOrder ?? []), ...GROUP_ORDER])),
+		[groupOrder],
+	);
+	const grouped = useMemo(
+		() => groupAgents(agents, effectiveGroupOrder),
+		[agents, effectiveGroupOrder],
+	);
 	const effectiveSelectedName = selectedName ?? internalSelectedName ?? agents[0]?.name ?? null;
 	const selectedAgent = agents.find((agent) => agent.name === effectiveSelectedName) ?? agents[0] ?? null;
 
@@ -101,24 +138,27 @@ export function AgentCatalogViewer({
 		);
 	}
 
+	const selectedToolsZone =
+		typeof toolsZone === "function" ? toolsZone(selectedAgent) : toolsZone;
+	const selectedConfigZone =
+		typeof configZone === "function" ? configZone(selectedAgent) : configZone;
+
 	return (
 		<div className={cn("@container flex min-h-0 w-full gap-3 font-mono", className)}>
 			{/* ── Catalog navigation ──────────────────────────────── */}
 			<Panel className="w-60 shrink-0">
-				<div className="min-h-0 flex-1 overflow-auto">
-					<div className="flex flex-col gap-2 p-2">
+				<nav aria-label="Agents" className="min-h-0 flex-1 overflow-auto">
+					<div className="flex flex-col">
 						{grouped.map(({ group, agents: groupAgentsList }) => (
 							<section
 								key={group}
-								className="overflow-hidden rounded-[3px] border border-border bg-background/40"
+								className="[&+&]:border-t [&+&]:border-border"
 							>
-								<h2 className="flex h-6 items-center border-b border-border px-2.5">
-									<span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-										{GROUP_LABEL[group] ?? group}
-									</span>
+								<h2 className="px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-foreground/70">
+									{effectiveGroupLabels[group] ?? group}
 								</h2>
 								<ul className="flex flex-col">
-									{groupAgentsList.map((agent, idx) => {
+									{groupAgentsList.map((agent) => {
 										const isSelected = agent.name === selectedAgent.name;
 										return (
 											<li key={agent.name}>
@@ -127,20 +167,16 @@ export function AgentCatalogViewer({
 													onClick={() => setSelectedName(agent.name)}
 													aria-pressed={isSelected}
 													className={cn(
-														"flex w-full items-center gap-2 px-2.5 text-left transition-colors",
-														idx > 0 && "border-t border-border/60",
+														"relative w-full py-2 pl-7 pr-4 text-left text-xs font-semibold transition-colors",
 														isSelected
-															? "bg-status-success-fill/40 text-foreground"
-															: "text-muted-foreground hover:bg-muted/40 hover:text-foreground",
+															? "bg-muted text-foreground"
+															: "text-muted-foreground hover:bg-muted/50",
 													)}
-													style={{ height: 32 }}
 												>
-													<span className="inline-flex w-1.5 shrink-0 justify-center">
-														{isSelected && <Led tone="green" pulse />}
-													</span>
-													<span className="min-w-0 flex-1 truncate text-[13px]">
-														{agent.name}
-													</span>
+													{isSelected && (
+														<span className="absolute inset-y-0 left-0 w-0.5 bg-accent" />
+													)}
+													<span className="block truncate">{agent.name}</span>
 												</button>
 											</li>
 										);
@@ -149,7 +185,7 @@ export function AgentCatalogViewer({
 							</section>
 						))}
 					</div>
-				</div>
+				</nav>
 			</Panel>
 
 			{/* ── Lab shell ───────────────────────────────────────── */}
@@ -158,7 +194,12 @@ export function AgentCatalogViewer({
 					key={selectedAgent.name}
 					baseUrl={baseUrl}
 					agentName={selectedAgent.name}
+					definition={useAgentDefinitions ? selectedAgent : undefined}
 					context={contextPreviewFor(selectedAgent)}
+					toolsZone={selectedToolsZone}
+					configZone={selectedConfigZone}
+					styleSettings={styleSettings}
+					editable={editable}
 					className="h-full"
 				/>
 			</Panel>
