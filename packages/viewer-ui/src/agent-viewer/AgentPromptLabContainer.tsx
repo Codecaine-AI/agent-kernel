@@ -157,6 +157,7 @@ export function AgentPromptLabContainer({
 	/** State view: the selected fixture and its rendered state document. */
 	const [activeFixtureId, setActiveFixtureId] = useState<string | null>(null);
 	const [renderedState, setRenderedState] = useState<string | null>(null);
+	const [contextFixtureId, setContextFixtureId] = useState<string | null>(null);
 
 	const detailRef = useRef<CatalogAgentDetail | undefined>(undefined);
 	detailRef.current = detail;
@@ -246,6 +247,7 @@ export function AgentPromptLabContainer({
 		setDocumentsByHash({});
 		setRevisions([]);
 		setActiveFixtureId(null);
+		setContextFixtureId(null);
 		setRenderedState(null);
 
 		loadDetail().catch((cause) => {
@@ -377,9 +379,12 @@ export function AgentPromptLabContainer({
 	// Tools view wiring: a rendered document built from the host-supplied tool
 	// previews — undefined when the kernel has none for this agent, so the lab
 	// simply won't offer the view.
+	const contextFixtures = detail.contextFixtures ?? [];
+	const selectedContextFixture = contextFixtures.find(fixture => fixture.id === contextFixtureId) ?? contextFixtures[0];
+	const previewTools = !context && selectedContextFixture?.tools !== undefined ? selectedContextFixture.tools : detail.tools;
 	const effectiveToolsZone: LabToolsZone | undefined =
-		toolsZone ?? (detail.tools && detail.tools.length > 0
-			? { renderedTools: renderToolsDocument(detail.tools) }
+		toolsZone ?? (previewTools && previewTools.length > 0
+			? { renderedTools: renderToolsDocument(previewTools) }
 			: undefined);
 
 	const stateZone: LabStateZone | undefined =
@@ -465,7 +470,12 @@ export function AgentPromptLabContainer({
 						editable,
 					}}
 					onManifestSave={editable ? handleManifestSave : undefined}
-					context={context ?? toLabContextPreview(detail.context)}
+					context={context ?? toLabContextPreview(selectedContextFixture ? selectedContextFixture.context : detail.context)}
+					contextFixtures={!context && contextFixtures.length > 0 ? {
+						fixtures: contextFixtures,
+						activeFixtureId: selectedContextFixture?.id ?? null,
+						onFixtureSelect: setContextFixtureId,
+					} : undefined}
 					styleSettings={styleSettings}
 					promptEditSession={promptEditSession}
 					stateZone={stateZone}

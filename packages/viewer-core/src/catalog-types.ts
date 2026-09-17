@@ -65,6 +65,8 @@ export interface CatalogStatePreview {
 
 /** Response of `GET /kernel/catalog/agents/:name`. */
 export interface CatalogAgentDetail {
+	/** Named fictional inputs assembled through the agent's context resolver. */
+	contextFixtures?: Array<{ id: string; label: string; context: CatalogContextPreview | null; tools?: CatalogToolPreview[] | null }>;
 	manifest: Record<string, unknown>;
 	prompt: PromptDocument;
 	promptHash: string;

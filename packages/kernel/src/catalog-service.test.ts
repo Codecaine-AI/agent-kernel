@@ -282,6 +282,25 @@ describe("catalog service disk-freshness (prompt.json rewritten out-of-band)", (
 });
 
 describe("catalog service context preview", () => {
+	test('named context fixtures pass isolated session inputs through the real resolver and tool preview', async () => {
+		await bootFixture({ contextTs: `export default { loaders: [], assemble: (_loaded, ctx) => JSON.stringify({criterion:ctx.sessionData?.criterion,market:ctx.variables.market,caller:ctx.caller.id}) };` });
+		const dir=join(agentDir,'context/fixtures'); mkdirSync(dir,{recursive:true});
+		for (const code of ['B1','B2']) writeFileSync(join(dir,`${code}.json`),JSON.stringify({label:code,sessionData:{criterion:code},variables:{market:'US'}}));
+		const previewService=createKernelCatalogService({registry:async()=>registry,db:()=>handle.db,contextCatalog:()=>createDefaultCatalog(),
+			toolsPreview:(_name,session)=>session ? [{name:String(session.criterion),label:'submit',description:'fixture tool',parameters:{}}] : null});
+		const detail=await previewService.getAgentDetail(AGENT_NAME);
+		expect(detail!.contextFixtures!.map(f=>f.id)).toEqual(['B1','B2']);
+		for(const fixture of detail!.contextFixtures!) {
+			expect(fixture.context!.renderedContext).toContain(`"criterion":"${fixture.id}"`);
+			expect(fixture.context!.renderedContext).toContain('"market":"US"');
+			expect(fixture.context!.renderedContext).toContain('catalog-preview');
+			expect(fixture.tools![0]!.name).toBe(fixture.id);
+		}
+		expect(detail!.fixtures).toEqual([]);
+		expect(detail!.context).toEqual(detail!.contextFixtures![0]!.context);
+		writeFileSync(join(dir,'B1.json'),JSON.stringify({sessionData:{criterion:'B1-updated'}}));
+		expect((await previewService.getAgentDetail(AGENT_NAME))!.context!.renderedContext).toContain('B1-updated');
+	});
 	test("agent without a context.ts sidecar answers context: null", async () => {
 		await bootFixture();
 
