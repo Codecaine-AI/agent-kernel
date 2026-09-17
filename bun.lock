@@ -14,7 +14,7 @@
     },
     "examples/simple-research-kernel": {
       "name": "@agent-kernel/example-simple-research-kernel",
-      "version": "0.1.0",
+      "version": "0.0.1",
       "dependencies": {
         "@agent-kernel/db": "workspace:*",
         "@agent-kernel/kernel": "workspace:*",
@@ -44,7 +44,7 @@
     },
     "packages/db": {
       "name": "@agent-kernel/db",
-      "version": "0.1.0",
+      "version": "0.0.1",
       "dependencies": {
         "@agent-kernel/protocol": "workspace:*",
         "drizzle-orm": "^0.45.0",
@@ -55,7 +55,7 @@
     },
     "packages/kernel": {
       "name": "@agent-kernel/kernel",
-      "version": "0.1.0",
+      "version": "0.0.1",
       "bin": {
         "agent-kernel-doctor": "./src/doctor-cli.ts",
         "agent-kernel-backfill": "./src/transcript-recovery/backfill-cli.ts",
@@ -75,14 +75,14 @@
     },
     "packages/protocol": {
       "name": "@agent-kernel/protocol",
-      "version": "0.1.0",
+      "version": "0.0.1",
       "devDependencies": {
         "@types/bun": "latest",
       },
     },
     "packages/viewer-core": {
       "name": "@agent-kernel/viewer-core",
-      "version": "0.1.0",
+      "version": "0.0.1",
       "dependencies": {
         "@agent-kernel/protocol": "workspace:*",
         "@codecaine-ai/prompt-kit": "git+https://github.com/Codecaine-AI/prompt-kit.git#cf9e9aa7333739f911ea5b64fcd1d8a760e5f511",
@@ -95,7 +95,7 @@
     },
     "packages/viewer-shell": {
       "name": "@agent-kernel/viewer-shell",
-      "version": "0.1.0",
+      "version": "0.0.1",
       "dependencies": {
         "@agent-kernel/viewer-core": "workspace:*",
         "@agent-kernel/viewer-ui": "workspace:*",
@@ -111,7 +111,7 @@
     },
     "packages/viewer-ui": {
       "name": "@agent-kernel/viewer-ui",
-      "version": "0.1.0",
+      "version": "0.0.1",
       "dependencies": {
         "@agent-kernel/protocol": "workspace:*",
         "@agent-kernel/viewer-core": "workspace:*",
