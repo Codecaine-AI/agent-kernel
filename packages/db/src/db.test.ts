@@ -57,6 +57,20 @@ describe("openKernelDatabase", () => {
   });
 });
 
+describe("trace session event counts", () => {
+  test("bootstrap upgrades existing databases to indexed session counts", async () => {
+    handle.db.run("DROP INDEX idx_events_pi_session");
+    await ensureKernelObservabilitySchema(handle.db);
+    await ensureKernelObservabilitySchema(handle.db);
+
+    const plan = handle.db.all<{ detail: string }>(
+      "EXPLAIN QUERY PLAN SELECT pi_session_id, count(*) FROM trace_events WHERE pi_session_id IN ('session-1', 'session-2') GROUP BY pi_session_id",
+    );
+    expect(plan.some((row) => row.detail.includes("USING COVERING INDEX idx_events_pi_session"))).toBe(true);
+    expect(plan.some((row) => row.detail.includes("SCAN trace_events"))).toBe(false);
+  });
+});
+
 describe("container upsert determinism", () => {
   test("same (kernelId, kind, appKey) resolves to the same row", async () => {
     const first = await upsertContainer(handle.db, {
