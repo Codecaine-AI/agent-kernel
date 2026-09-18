@@ -22,7 +22,7 @@
  * service is read-only unless created with `allowWrites: true`.
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, isAbsolute, relative, sep } from "node:path";
 
 import {
 	getPromptRevision,
@@ -39,6 +39,7 @@ import {
 	validatePromptDocumentShape,
 	type PromptDocument,
 } from "@codecaine-ai/prompt-kit";
+import { createPromptStore } from "@codecaine-ai/prompt-kit-server";
 
 import {
 	buildAgentPromptState,
@@ -53,7 +54,11 @@ import {
 	RENDERED_SNAPSHOT_HEADER,
 	renderedPromptSnapshot,
 } from "./agent-registry/prompt-snapshot";
-import { validateAgentManifestShape } from "./agent-definition";
+import {
+	normalizeAgentManifest,
+	validateAgentManifestShape,
+	type AgentManifest,
+} from "./agent-definition";
 import {
 	createCatalogAnnotationOps,
 	type KernelCatalogAnnotationOps,
@@ -174,7 +179,7 @@ export interface KernelCatalogRevisionDocument {
 export type KernelCatalogPromptSaveResult =
 	| { ok: true; hash: string }
 	| { ok: false; currentHash: string }
-	| { ok: false; errors: string[] };
+	| { ok: false; errors: string[]; committed?: boolean; hash?: string };
 
 export type KernelCatalogManifestSaveResult =
 	| { ok: true; manifest: Record<string, unknown> }
@@ -345,6 +350,18 @@ export function createKernelCatalogService(
 ): KernelCatalogService {
 	const allowWrites = opts.allowWrites ?? false;
 	const modelAliases = opts.modelAliases ?? (() => []);
+	const pendingRevisions = new Map<
+		string,
+		{
+			hash: string;
+			agentName: string;
+			schemaVersion: string;
+			document: string;
+			renderedText: string;
+			source: PromptRevisionSource;
+			createdAt: string;
+		}
+	>();
 
 	// Revisions + stats live in the db, but the read surface must keep
 	// answering (from the cached registry) when no db was configured — the
@@ -354,6 +371,20 @@ export function createKernelCatalogService(
 			return opts.db();
 		} catch {
 			return null;
+		}
+	}
+
+	/** Retry a post-commit revision upsert without making catalog reads fail. */
+	async function retryPendingRevision(name: string): Promise<void> {
+		const pending = pendingRevisions.get(name);
+		const db = tryDb();
+		if (!pending || !db) return;
+		try {
+			await upsertPromptRevision(db, pending);
+			if (pendingRevisions.get(name) === pending) pendingRevisions.delete(name);
+		} catch {
+			// The committed prompt stays authoritative. A later catalog operation
+			// retries this content-addressed, idempotent upsert.
 		}
 	}
 
@@ -457,6 +488,7 @@ export function createKernelCatalogService(
 		async getAgentDetail(name) {
 			const registry = await opts.registry();
 			if (!registry.tryGet(name)) return null;
+			await retryPendingRevision(name);
 			const def = await syncAgentPromptFromDisk(tryDb(), registry, name);
 			return {
 				manifest: def.manifest as unknown as Record<string, unknown>,
@@ -492,57 +524,109 @@ export function createKernelCatalogService(
 		async savePrompt(name, input, expectedHash, source) {
 			const registry = await opts.registry();
 			if (!registry.tryGet(name)) return null;
-			// Compare against the disk-fresh canonical prompt, not just the
-			// registry snapshot captured at boot. This also records an
-			// out-of-band edit as a disk-sync revision before reporting the
-			// conflict.
-			await syncAgentPromptFromDisk(tryDb(), registry, name);
-			// Re-read after the await: another save may have completed while
-			// this request was syncing its disk snapshot.
+			await retryPendingRevision(name);
 			const def = registry.get(name);
-			if (expectedHash !== undefined && expectedHash !== def.promptHash) {
-				return { ok: false, currentHash: def.promptHash };
-			}
 
 			const shape = validatePromptDocumentShape(input);
 			if (!shape.valid) return { ok: false, errors: shape.errors };
 			const document = input as PromptDocument;
 
-			// Exactly the boot-time validation (declared variables + rendered
-			// {{var}} references), so a saved prompt is one the next boot accepts.
-			let rendered: string;
-			let hash: string;
-			try {
-				const state = buildAgentPromptState(def.manifest, document, def.manifestFile);
-				rendered = state.body;
-				hash = state.promptHash;
-			} catch (err) {
-				if (err instanceof RegistryError) return { ok: false, errors: err.violations };
-				throw err;
+			// The shared store owns optimistic concurrency, atomic replacement,
+			// recovery, and the machine-wide per-canonical-file lock used by MCP.
+			// Use the owning catalog root so Kernel and MCP also share journal scope.
+			const storeRoot = registry
+				.roots()
+				.filter((root) => {
+					const path = relative(root, def.promptFile);
+					return path !== ".." && !path.startsWith(`..${sep}`) && !isAbsolute(path);
+				})
+				.sort((left, right) => right.length - left.length)[0] ?? dirname(def.promptFile);
+			const store = createPromptStore({ root: storeRoot });
+			const target = {
+				promptPath: relative(storeRoot, def.promptFile),
+				renderedPath: relative(storeRoot, def.renderedPromptFile),
+				renderedHeader: RENDERED_SNAPSHOT_HEADER,
+			};
+			// Legacy Kernel callers predate revision arguments. Give them a
+			// disk-fresh CAS base; a concurrent edit after this read still conflicts.
+			let saveBase = expectedHash;
+			if (saveBase === undefined) {
+				const current = await store.read(target);
+				if (!current.ok) return { ok: false, errors: [current.detail] };
+				saveBase = current.hash;
+			}
+			const saved = await store.save(
+				target,
+				{
+					document,
+					expectedHash: saveBase,
+					source: source ?? PROMPT_REVISION_SOURCE.LAB_SAVE,
+					validate: ({ document: candidate }) => {
+						try {
+							// Reload manifest variables while the prompt lock is held.
+							// This preserves Kernel's raw {{var}} and declaration validation.
+							const live = registry.get(name);
+							const rawManifest = JSON.parse(readFileSync(live.manifestFile, "utf8"));
+							const manifestShape = validateAgentManifestShape(rawManifest);
+							if (!manifestShape.valid) {
+								return { ok: false, errors: manifestShape.errors };
+							}
+							const freshManifest = normalizeAgentManifest(rawManifest as AgentManifest);
+							const state = buildAgentPromptState(
+								freshManifest,
+								candidate,
+								live.manifestFile,
+							);
+							return { ok: true, rendered: state.body };
+						} catch (err) {
+							if (err instanceof RegistryError) {
+								return { ok: false, errors: err.violations };
+							}
+							throw err;
+						}
+					},
+				},
+			);
+			if (!saved.ok) {
+				if (saved.code === "conflict" && saved.currentHash) {
+					// Keep the runtime and disk-sync revision history aligned with the
+					// winner before returning the stale-write response.
+					const current = await syncAgentPromptFromDisk(tryDb(), registry, name);
+					return { ok: false, currentHash: current.promptHash };
+				}
+				return {
+					ok: false,
+					errors: saved.errors ?? [saved.detail],
+					...(saved.committed ? { committed: true } : {}),
+				};
 			}
 
-			const canonical = canonicalizePrompt(document);
-			writeFileSync(def.promptFile, canonical, "utf8");
-			// Form-aware: prompt.rendered.md beside a flat prompt.json,
-			// prompt/system.md inside a folder-form bundle.
-			writeFileSync(def.renderedPromptFile, renderedPromptSnapshot(rendered), "utf8");
-
-			// Hot-swap immediately after the synchronous file writes so another
-			// save resuming while the revision upsert is in flight observes this
-			// request's hash during its optimistic-concurrency check.
-			registry.reloadAgentPrompt(name);
-
-			await upsertPromptRevision(opts.db(), {
-				hash,
+			// Disk is committed at this point. Report post-commit failures as such
+			// so callers never mistake a revision-recording failure for no save.
+			const revision = {
+				hash: saved.hash,
 				agentName: def.name,
-				schemaVersion: document.schemaVersion,
-				document: canonical,
-				renderedText: rendered,
+				schemaVersion: saved.document.schemaVersion,
+				document: canonicalizePrompt(saved.document),
+				renderedText: saved.rendered,
 				source: source ?? PROMPT_REVISION_SOURCE.LAB_SAVE,
 				createdAt: new Date().toISOString(),
-			});
+			};
+			try {
+				registry.reloadAgentPrompt(name);
+				await upsertPromptRevision(opts.db(), revision);
+			} catch (err) {
+				pendingRevisions.set(name, revision);
+				const detail = err instanceof Error ? err.message : String(err);
+				return {
+					ok: false,
+					errors: [`Prompt saved as ${saved.hash}, but Kernel revision recording failed: ${detail}`],
+					committed: true,
+					hash: saved.hash,
+				};
+			}
 
-			return { ok: true, hash };
+			return { ok: true, hash: saved.hash };
 		},
 
 		async saveManifest(name, input) {
@@ -614,6 +698,7 @@ export function createKernelCatalogService(
 		async listRevisions(name) {
 			const registry = await opts.registry();
 			if (!registry.tryGet(name)) return null;
+			await retryPendingRevision(name);
 			// Disk-freshness: an out-of-band rewrite gets its disk-sync revision
 			// row upserted before the history is read.
 			await syncAgentPromptFromDisk(tryDb(), registry, name);

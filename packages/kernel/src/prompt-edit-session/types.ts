@@ -11,12 +11,12 @@
  * per-request disposition, non-blocking agent threads) and adapted to
  * prompt-kit targets: node / node-range / whole-document.
  */
+import type { PromptDiagnostic } from "@codecaine-ai/prompt-kit";
 import type {
-	PromptBlockNode,
-	PromptDiagnostic,
-} from "@codecaine-ai/prompt-kit";
+	PromptEditOp,
+	PromptEditOpError,
+} from "@codecaine-ai/prompt-kit/authoring";
 import type {
-	PromptBlockNodePatch,
 	PromptStep,
 	PromptTransaction,
 } from "@codecaine-ai/prompt-kit/ui";
@@ -125,35 +125,11 @@ export interface PromptEditRequestEntry {
 // Semantic ops (the tool boundary — id-relative, never path-based)
 // ---------------------------------------------------------------------------
 
-export type PromptEditOp =
-	| { op: "update_node"; nodeId: string; patch: PromptBlockNodePatch }
-	| { op: "insert_after"; refNodeId: string; node: PromptBlockNode }
-	| {
-			op: "insert_into";
-			parentNodeId: string;
-			index?: number;
-			node: PromptBlockNode;
-	  }
-	| { op: "remove_node"; nodeId: string }
-	| { op: "move_after"; nodeId: string; refNodeId: string };
-
-export type PromptEditOpErrorCode =
-	| "invalid_op_shape"
-	| "unknown_node"
-	| "cannot_contain_children"
-	| "cannot_change_id"
-	| "cannot_change_type"
-	| "noop_update"
-	| "move_ref_inside_subtree"
-	| "empty_ops";
-
-export interface PromptEditOpError {
-	code: PromptEditOpErrorCode;
-	/** Index of the offending op in the submitted ops array (-1 for empty_ops). */
-	opIndex: number;
-	nodeId?: string;
-	message: string;
-}
+export type {
+	PromptEditOp,
+	PromptEditOpError,
+	PromptEditOpErrorCode,
+} from "@codecaine-ai/prompt-kit/authoring";
 
 export type PromptEditCompileResult =
 	| {

@@ -135,8 +135,13 @@ export function createKernelCatalogApi(
 						set.status = 409;
 						return { currentHash: result.currentHash };
 					}
-					set.status = 400;
-					return { errors: result.errors };
+					set.status = result.committed ? 500 : 400;
+					return {
+						errors: result.errors,
+						...(result.committed
+							? { committed: true, hash: result.hash }
+							: {}),
+					};
 				}
 				return { hash: result.hash };
 			} catch (error) {

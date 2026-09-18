@@ -1,9 +1,14 @@
+import { basename, dirname } from "node:path";
+
 import {
+	PROMPT_REVISION_SOURCE,
 	upsertPromptRevision,
 	type KernelDatabase,
 	type PromptRevision,
+	type PromptRevisionSource,
 } from "@agent-kernel/db";
 import { canonicalizePrompt } from "@codecaine-ai/prompt-kit";
+import { readLatestPromptChange } from "@codecaine-ai/prompt-kit-server";
 
 import type { AgentDefinition, AgentRegistry } from "./registry/types";
 
@@ -53,13 +58,25 @@ export async function syncAgentPromptFromDisk(
 ): Promise<AgentDefinition> {
 	const { def, changed, error } = registry.refreshAgentPromptFromDisk(name);
 	if (error || !changed || !db) return def;
+	let source: PromptRevisionSource = PROMPT_REVISION_SOURCE.DISK_SYNC;
+	const latestChange = await readLatestPromptChange({
+		root: dirname(def.promptFile),
+		target: { promptPath: basename(def.promptFile) },
+		expectedHash: def.promptHash,
+	});
+	if (
+		latestChange.ok &&
+		latestChange.change?.source === PROMPT_REVISION_SOURCE.PROMPT_KIT_MCP
+	) {
+		source = PROMPT_REVISION_SOURCE.PROMPT_KIT_MCP;
+	}
 	await upsertPromptRevision(db, {
 		hash: def.promptHash,
 		agentName: def.name,
 		schemaVersion: def.promptDocument.schemaVersion,
 		document: canonicalizePrompt(def.promptDocument),
 		renderedText: def.parsed.body,
-		source: "disk-sync",
+		source,
 		createdAt: new Date().toISOString(),
 	});
 	return def;

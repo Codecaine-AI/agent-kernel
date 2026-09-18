@@ -5,6 +5,8 @@ export const PROMPT_REVISION_SOURCE = {
   REGISTRY_BOOT: "registry-boot",
   LAB_SAVE: "lab-save",
   DISK_SYNC: "disk-sync",
+  /** Direct mutation committed by the Prompt Kit MCP shared store. */
+  PROMPT_KIT_MCP: "prompt-kit-mcp",
   MIGRATION: "migration",
   /** Accepted prompt-editor agent proposal applied by the Phase 2 apply path. */
   AGENT_RUN: "agent-run",
