@@ -69,25 +69,7 @@
           }
         },
         {
-          "insert": " § Subagents. "
-        },
-        {
-          "insert": "parallel-completion.ts",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " exports a "
-        },
-        {
-          "insert": "GroupJoinManager",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " that nothing in the workspace uses yet."
+          "insert": " § Subagents."
         }
       ],
       "children": []

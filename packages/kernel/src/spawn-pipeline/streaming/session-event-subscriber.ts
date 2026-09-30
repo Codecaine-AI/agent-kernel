@@ -1,5 +1,5 @@
 import type { KernelEmitter } from "../../emitter";
-import { getGraceTurns } from "../config/turn-limits";
+import { GRACE_TURNS } from "../config/turn-limits";
 import { getLastAssistantText } from "../trace/assistant-message-inspection";
 import type {
 	KernelAgentSessionEventLike,
@@ -51,7 +51,7 @@ export function subscribeToSession<TSession extends KernelAgentSessionLike>(
 					session.steer(
 						"You have reached your turn limit. Wrap up immediately - provide your final answer now.",
 					);
-				} else if (softLimitReached && turnCount >= maxTurns + getGraceTurns()) {
+				} else if (softLimitReached && turnCount >= maxTurns + GRACE_TURNS) {
 					aborted = true;
 					turnLimitAborted = true;
 					session.abort();

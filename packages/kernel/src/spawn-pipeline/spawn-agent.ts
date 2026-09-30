@@ -40,7 +40,7 @@ import {
 	type WindowPolicy,
 } from "../state";
 import type { TraceWriterSink } from "../subagents/types";
-import { getDefaultMaxTurns, normalizeMaxTurns } from "./config/turn-limits";
+import { normalizeMaxTurns } from "./config/turn-limits";
 import { createPiSession, type SessionBindingInput } from "./pi-session-factory";
 import { resolveLifecycleEmitter } from "./runtime/lifecycle-emitter";
 import { buildRunContext } from "./runtime/run-context-builder";
@@ -463,7 +463,7 @@ export function createSpawnAgent(
 		}
 
 		const maxTurns = normalizeMaxTurns(
-			opts.maxTurns ?? resolved.config.maxTurns ?? getDefaultMaxTurns(),
+			opts.maxTurns ?? resolved.config.maxTurns,
 		);
 		const sub = subscribeToSession(
 			session,

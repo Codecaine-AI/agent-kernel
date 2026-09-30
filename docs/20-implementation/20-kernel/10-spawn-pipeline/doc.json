@@ -184,7 +184,7 @@
           },
           {
             "path": "packages/kernel/src/spawn-pipeline/config/turn-limits.ts",
-            "note": "default maxTurns and grace turns"
+            "note": "normalizeMaxTurns and the GRACE_TURNS constant"
           },
           {
             "path": "packages/kernel/src/spawn-pipeline/hooks/domain-guard.ts",
@@ -810,10 +810,7 @@
           }
         },
         {
-          "insert": " "
-        },
-        {
-          "insert": "The limit resolves from the spawn's "
+          "insert": " The limit resolves from the spawn's "
         },
         {
           "insert": "maxTurns",
@@ -831,15 +828,6 @@
           }
         },
         {
-          "insert": ", then the process default in "
-        },
-        {
-          "insert": "config/turn-limits.ts",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
           "insert": "; "
         },
         {
@@ -849,7 +837,7 @@
           }
         },
         {
-          "insert": " or unset means no limit. When the count reaches the limit, "
+          "insert": " or unset means no limit, and there is no process-wide default. When the count reaches the limit, "
         },
         {
           "insert": "streaming/session-event-subscriber.ts",
@@ -858,7 +846,16 @@
           }
         },
         {
-          "insert": " steers the session once with a wrap-up instruction. After the grace turns (default 5) it aborts, and the run closes with status "
+          "insert": " steers the session once with a wrap-up instruction. After "
+        },
+        {
+          "insert": "GRACE_TURNS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " more turns (5) it aborts, and the run closes with status "
         },
         {
           "insert": "turn-limit",
@@ -922,25 +919,16 @@
           }
         },
         {
-          "insert": ". The process defaults are module state set through "
+          "insert": ". "
         },
         {
-          "insert": "setDefaultMaxTurns",
+          "insert": "GRACE_TURNS",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " and "
-        },
-        {
-          "insert": "setGraceTurns",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": ", not "
+          "insert": " is a fixed constant, not a "
         },
         {
           "insert": "CreateKernelConfig",
@@ -949,7 +937,16 @@
           }
         },
         {
-          "insert": " fields; nothing in the workspace calls the setters today."
+          "insert": " field. A host that needs a different grace count or a default limit adds a config field and passes it through "
+        },
+        {
+          "insert": "createSpawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", never through module state."
         }
       ],
       "children": []

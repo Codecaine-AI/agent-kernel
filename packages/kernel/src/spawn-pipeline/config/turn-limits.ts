@@ -1,23 +1,14 @@
-let defaultMaxTurns: number | undefined;
-let graceTurns = 5;
+/**
+ * Turns a run may take past its soft turn limit (the wrap-up steer) before
+ * the session is aborted.
+ */
+export const GRACE_TURNS = 5;
 
+/**
+ * A missing or zero limit means unlimited. There is no process-wide default:
+ * a spawn with neither a per-spawn nor a per-agent `maxTurns` runs unlimited.
+ */
 export function normalizeMaxTurns(n: number | undefined): number | undefined {
 	if (n == null || n === 0) return undefined;
 	return Math.max(1, n);
-}
-
-export function getDefaultMaxTurns(): number | undefined {
-	return defaultMaxTurns;
-}
-
-export function setDefaultMaxTurns(n: number | undefined): void {
-	defaultMaxTurns = normalizeMaxTurns(n);
-}
-
-export function getGraceTurns(): number {
-	return graceTurns;
-}
-
-export function setGraceTurns(n: number): void {
-	graceTurns = Math.max(1, n);
 }
