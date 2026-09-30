@@ -42,7 +42,7 @@
         "b-20-observability-model-storage-6",
         "b-20-observability-model-storage-is-one-local-sql-7",
         "b-20-observability-model-state-snapshots",
-        "b-20-observability-model-a-postgres-mirror-of-the-8",
+        "b-20-observability-model-sqlite-only-store",
         "b-20-observability-model-identity-layers-9",
         "b-20-observability-model-identity-is-container-fi-10",
         "b-20-observability-model-containerid-is-the-sin-11",
@@ -968,13 +968,13 @@
       ],
       "children": []
     },
-    "b-20-observability-model-a-postgres-mirror-of-the-8": {
-      "id": "b-20-observability-model-a-postgres-mirror-of-the-8",
+    "b-20-observability-model-sqlite-only-store": {
+      "id": "b-20-observability-model-sqlite-only-store",
       "type": "paragraph",
       "props": {},
       "text": [
         {
-          "insert": "SQLite is the only runtime store. A Postgres mirror of the schema exists with the same column names, row shapes, constraints, and indexes, and no code path reads or writes through it."
+          "insert": "SQLite is the only store. The schema has one dialect, and no service-backed database is supported."
         }
       ],
       "children": []

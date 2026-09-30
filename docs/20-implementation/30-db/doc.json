@@ -13,11 +13,10 @@
           "db",
           "sqlite",
           "drizzle",
-          "pg-mirror",
           "bootstrap",
           "actions-layer"
         ],
-        "covers": "Implementation area page for @agent-kernel/db: role, source pointer, governing design pages, and structural decisions about dialects, bootstrap, and the actions layer.",
+        "covers": "Implementation area page for @agent-kernel/db: role, source pointer, governing design pages, and structural decisions about the SQLite-only store, bootstrap, and the actions layer.",
         "depends-on": [
           "10-system-design/20-observability-model"
         ],
@@ -118,7 +117,7 @@
         "entries": [
           {
             "path": "packages/db/src/index.ts",
-            "note": "entry \".\"; everything except schema/pg"
+            "note": "entry \".\"; re-exports every module below"
           },
           {
             "path": "packages/db/src/client.ts",
@@ -139,10 +138,6 @@
           {
             "path": "packages/db/src/schema/",
             "note": "one file per table, Drizzle SQLite"
-          },
-          {
-            "path": "packages/db/src/schema/pg.ts",
-            "note": "Postgres mirror, schema/pg subpath"
           },
           {
             "path": "packages/db/src/actions/",
@@ -921,7 +916,7 @@
       },
       "text": [
         {
-          "insert": "SQLite-first actions; the Postgres mirror is schema-only, behind a subpath"
+          "insert": "SQLite is the only dialect"
         }
       ],
       "children": []
@@ -938,25 +933,16 @@
           }
         },
         {
-          "insert": " SQLite is the only runtime store. The actions layer is typed against the Bun-SQLite Drizzle handle. "
+          "insert": " SQLite is the only store and the only schema dialect. "
         },
         {
-          "insert": "schema/pg.ts",
+          "insert": "schema/",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " is an inert Postgres mirror of the schema with matching column names, row shapes, constraints, and indexes, and timestamps stay ISO-8601 TEXT. No package imports the mirror, and it is exported only through the "
-        },
-        {
-          "insert": "schema/pg",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " subpath."
+          "insert": " is Drizzle SQLite, and the actions layer is typed against the Bun-SQLite Drizzle handle. There is no second-dialect schema and no dialect abstraction."
         }
       ],
       "children": []
@@ -973,7 +959,7 @@
           }
         },
         {
-          "insert": " The mirror keeps the table shapes ready for a Postgres deployment. No Postgres deployment exists, so making every action dual-dialect was rejected as cost without a consumer. The subpath keeps the default entrypoint SQLite-only so nothing accidentally depends on the mirror."
+          "insert": " Each kernel owns one local database file, so the store needs no service process. A second dialect was rejected: no deployment uses one, and an unused copy of the schema still has to change with every table, column, and index."
         }
       ],
       "children": []
@@ -993,13 +979,22 @@
           "insert": " "
         },
         {
-          "insert": "packages/db/src/schema/pg.ts",
+          "insert": "packages/db/src/schema/",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " and every future schema change: new actions are written SQLite-first, and every new table, column, and index is added to both schemas with matching shapes."
+          "insert": ", "
+        },
+        {
+          "insert": "packages/db/src/actions/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and every future schema change: tables and actions are written for SQLite alone."
         }
       ],
       "children": []

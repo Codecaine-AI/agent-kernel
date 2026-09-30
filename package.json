@@ -8,7 +8,6 @@
   "scripts": {
     "core-harness": "bun packages/core-harness/src/server.ts",
     "dev:simple-research": "bun run --cwd examples/simple-research-kernel dev",
-    "dev:services": "bun run scripts/dev-services.ts",
     "test": "bun run test:boundaries && bun run test:packages",
     "test:boundaries": "bun run scripts/check-package-boundaries.ts",
     "test:packages": "bun test ./packages/kernel/src ./packages/viewer-core/src ./packages/viewer-ui/src ./packages/tui/src ./examples/simple-research-kernel/src/agent-catalog/prompt-snapshots.test.ts ./packages/viewer-shell/src",

@@ -131,7 +131,7 @@
           },
           {
             "path": "packages/db/",
-            "note": "SQLite store, schema, pg mirror, manifest"
+            "note": "SQLite store, schema, manifest"
           },
           {
             "path": "packages/kernel/",
@@ -176,10 +176,6 @@
           {
             "path": "scripts/check-package-boundaries.ts",
             "note": "rejects Spectre strings in packages"
-          },
-          {
-            "path": "scripts/dev-services.ts",
-            "note": "starts local Postgres via docker compose"
           },
           {
             "path": "scripts/render-prompts-to-json.ts",

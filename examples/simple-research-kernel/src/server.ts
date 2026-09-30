@@ -2,8 +2,8 @@
  * Simple Research Kernel API — single local SQLite trace database.
  *
  * Boot: open .agent-kernel/trace.db (WAL), ensure the observability schema,
- * write the local kernel manifest (.agent-kernel/kernel.json). No Postgres,
- * no Docker, no tailer daemon (transcript recovery is an in-kernel import
+ * write the local kernel manifest (.agent-kernel/kernel.json). No service
+ * processes and no tailer daemon (transcript recovery is an in-kernel import
  * tool) — trace reads and writes go through the kernel's default traceWriter
  * / readApiService (Phase 4b).
  */

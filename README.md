@@ -37,7 +37,7 @@
 - This is a platform monorepo while the contracts settle:
 
   - `@agent-kernel/protocol` — trace/event envelopes, event factories, deterministic event ids, and turn usage
-  - `@agent-kernel/db` — per-kernel SQLite observability store, schema (with a Postgres mirror), kernel manifest, and query helpers
+  - `@agent-kernel/db` — per-kernel SQLite observability store, schema, kernel manifest, and query helpers
   - `@agent-kernel/kernel` — `createKernel` runtime, container identity, registry, context assembly, spawn pipeline, in-process emitter, subagents, trace doctor, read API, and transcript recovery
   - `@codecaine-ai/prompt-kit` — prompt document model, canonicalization/hashing, renderers, and editor primitives (sibling repo and Core workspace member)
   - `@agent-kernel/viewer-core` — viewer DTOs, read/catalog API paths, trace transforms, and prompt diffing
@@ -78,7 +78,6 @@
 - The Prompt Kit kernel host has moved to the sibling Prompt Kit repo at `../prompt-kit/packages/prompt-kit-agent`; from `../prompt-kit`, start it with `bun run dev:agent`.
 - `examples/simple-research-kernel` is a runnable standalone Simple Research Kernel — run instructions in [its README](examples/simple-research-kernel/README.md).
 - The example defines agents in a catalog (folder-form bundles: `agent.json` + `prompt/` + `context/` + `tools/`), loads context sidecars, spawns scout subagents, waits for their reports, reviews gaps, queues a report writer, writes working memory, persists kernel observability rows, and renders traces through the viewer shell.
-- Start it with `bun run dev:simple-research` — no Postgres, no Docker, no service processes.
+- Start it with `bun run dev:simple-research` — SQLite only, no service processes.
 - It runs against a single local SQLite file (`examples/simple-research-kernel/.agent-kernel/trace.db`, WAL mode) created on boot, alongside a local kernel manifest (`.agent-kernel/kernel.json`).
 - The launcher starts the API on `http://127.0.0.1:8788` and the viewer on `http://127.0.0.1:5174`.
-- `bun run dev:services` remains only for optional shared-Postgres experiments against the `@agent-kernel/db/schema/pg` mirror; the example does not use it.

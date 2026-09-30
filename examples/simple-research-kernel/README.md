@@ -1,9 +1,9 @@
 # Simple Research Kernel
 
 A runnable host application for inspecting the kernel outside any product
-app. It runs entirely against one local SQLite file — no Postgres, no Docker,
-no service processes (transcript recovery is an in-kernel import tool, not a
-running daemon).
+app. It runs entirely against one local SQLite file, with no service
+processes (transcript recovery is an in-kernel import tool, not a running
+daemon).
 
 Architecture and the harness taxonomy it belongs to:
 [`docs/10-system-design/70-harness-model/`](../../docs/10-system-design/70-harness-model/).
@@ -47,7 +47,3 @@ Agent bundles, context sidecars, subagent orchestration, scout-report
 review, working-memory writes, protocol events, SQLite persistence, usage
 rollups, the read API, viewer-core transforms, and the viewer shell — all
 still working together after a change.
-
-`bun run dev:services` (repo root) exists only for optional shared-Postgres
-experiments against the `@agent-kernel/db/schema/pg` mirror — this example
-does not need it.

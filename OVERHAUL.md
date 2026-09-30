@@ -18,10 +18,8 @@ decisions are recorded as D70–D80 in
   one grouping primitive, deterministic ids via
   `kernel.container({ kind, key })` (UUIDv5, collision-safe encoding).
 - Each kernel owns a local SQLite database (`.agent-kernel/trace.db`, WAL) —
-  no Postgres, no Docker, no service processes. `kernel_registrations` became
-  a local `kernel.json` manifest. A Postgres schema mirror remains at
-  `@agent-kernel/db/schema/pg` for a hypothetical shared plane (inert,
-  actions are SQLite-only).
+  SQLite only, no service processes. `kernel_registrations` became a local
+  `kernel.json` manifest.
 - Runs are explicit message-in → response-out loops with a `trigger`
   vocabulary (`operator`/`parent-tool`/`steer`/`resume`/`system`) and
   inbound/outbound event references.
@@ -143,9 +141,8 @@ decisions are recorded as D70–D80 in
 
 - Grain overlay default: screen blend lifts all dark surfaces; decide
   keep / soft-light / lower default opacity (one-token change).
-- Postgres mirror + `dev:services` + docker-compose: keep as inert insurance
-  or delete (tailer-style simplification) once the multi-kernel observer
-  question is settled.
+- Resolved: the Postgres schema mirror, `dev:services`, and the
+  docker-compose file are deleted. The kernel is SQLite only.
 - Model price table (kernel config `models.prices`) so cost columns stop
   reading 0/— for providers that don't report cost.
 - Two flagged dead-code nits in viewer-ui (`caretAtEnd`, `_itemIndex`).

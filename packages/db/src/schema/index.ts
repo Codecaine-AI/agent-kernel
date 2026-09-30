@@ -1,10 +1,7 @@
 /**
- * SQLite schema (default dialect). One database file per kernel:
+ * SQLite schema (the only dialect). One database file per kernel:
  * .agent-kernel/trace.db, opened with Bun's built-in SQLite driver
  * through Drizzle (see ../client.ts).
- *
- * A compiling Postgres mirror for shared-plane deployments lives in
- * ./pg.ts and is exported via the "@agent-kernel/db/schema/pg" subpath.
  */
 export {
   containers,
