@@ -166,6 +166,20 @@
               "content": [
                 "Propose and wait for the operator before cross-cutting restructuring, moves, or renumbering."
               ]
+            },
+            {
+              "type": "listItem",
+              "id": "node-rules-corpus-guidance",
+              "content": [
+                "Follow the rendered docs_structure_standards and docs_style_guide in context. Each document includes its corpus path and source file. Writing Style includes the Unslop pattern catalog; apply it as corpus guidance. Preserve the existing bullets, nested detail, Title Case headings, and templates. Choose one primary reader purpose while retaining supporting reasons and reference details."
+              ]
+            },
+            {
+              "type": "listItem",
+              "id": "node-rules-authoring-lints",
+              "content": [
+                "Read the lint findings returned by document tools. Before finishing, run `docs_check` on each touched document, repair every blocking finding, and check again. Review warnings using the linked corpus guidance; warnings are advisory, and a clean lint report does not verify every writing rule. If a required repair remains blocked, report the exact finding without claiming completion."
+              ]
             }
           ]
         }

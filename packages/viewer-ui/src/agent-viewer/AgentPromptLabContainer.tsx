@@ -27,6 +27,7 @@ import {
 	type LabContextPreview,
 	type LabStateZone,
 	type LabToolsZone,
+	type LabView,
 	type ManifestSaveOutcome,
 	type PromptSaveOutcome,
 } from "@codecaine-ai/prompt-kit/ui/lab";
@@ -56,6 +57,9 @@ export interface AgentPromptLabContainerProps {
 	/** Kernel API origin, e.g. "http://localhost:4477". */
 	baseUrl: string;
 	agentName: string;
+	/** Host-controlled document view, including URL restoration. */
+	view?: LabView;
+	onViewChange?: (view: LabView) => void;
 	className?: string;
 	/**
 	 * Host override for the CONTEXT view. The catalog detail payload already
@@ -65,6 +69,8 @@ export interface AgentPromptLabContainerProps {
 	context?: LabContextPreview;
 	/** Viewer-only style settings controlled by the host application. */
 	styleSettings?: PromptStyleSettings;
+	/** Follow the host palette even when saved editor colors differ. */
+	followTheme?: boolean;
 	/** Whether prompt and manifest editing is enabled. Defaults to true. */
 	editable?: boolean;
 	/**
@@ -129,9 +135,12 @@ interface ManifestFields {
 export function AgentPromptLabContainer({
 	baseUrl,
 	agentName,
+	view,
+	onViewChange,
 	className,
 	context,
 	styleSettings,
+	followTheme,
 	editable = true,
 	detail: suppliedDetail,
 	definition,
@@ -157,6 +166,7 @@ export function AgentPromptLabContainer({
 	/** State view: the selected fixture and its rendered state document. */
 	const [activeFixtureId, setActiveFixtureId] = useState<string | null>(null);
 	const [renderedState, setRenderedState] = useState<string | null>(null);
+	const [contextFixtureId, setContextFixtureId] = useState<string | null>(null);
 
 	const detailRef = useRef<CatalogAgentDetail | undefined>(undefined);
 	detailRef.current = detail;
@@ -246,6 +256,7 @@ export function AgentPromptLabContainer({
 		setDocumentsByHash({});
 		setRevisions([]);
 		setActiveFixtureId(null);
+		setContextFixtureId(null);
 		setRenderedState(null);
 
 		loadDetail().catch((cause) => {
@@ -377,9 +388,12 @@ export function AgentPromptLabContainer({
 	// Tools view wiring: a rendered document built from the host-supplied tool
 	// previews — undefined when the kernel has none for this agent, so the lab
 	// simply won't offer the view.
+	const contextFixtures = detail.contextFixtures ?? [];
+	const selectedContextFixture = contextFixtures.find(fixture => fixture.id === contextFixtureId) ?? contextFixtures[0];
+	const previewTools = !context && selectedContextFixture?.tools !== undefined ? selectedContextFixture.tools : detail.tools;
 	const effectiveToolsZone: LabToolsZone | undefined =
-		toolsZone ?? (detail.tools && detail.tools.length > 0
-			? { renderedTools: renderToolsDocument(detail.tools) }
+		toolsZone ?? (previewTools && previewTools.length > 0
+			? { renderedTools: renderToolsDocument(previewTools) }
 			: undefined);
 
 	const stateZone: LabStateZone | undefined =
@@ -465,8 +479,16 @@ export function AgentPromptLabContainer({
 						editable,
 					}}
 					onManifestSave={editable ? handleManifestSave : undefined}
-					context={context ?? toLabContextPreview(detail.context)}
+					context={context ?? toLabContextPreview(selectedContextFixture ? selectedContextFixture.context : detail.context)}
+					contextFixtures={!context && contextFixtures.length > 0 ? {
+						fixtures: contextFixtures,
+						activeFixtureId: selectedContextFixture?.id ?? null,
+						onFixtureSelect: setContextFixtureId,
+					} : undefined}
 					styleSettings={styleSettings}
+					followTheme={followTheme}
+					view={view}
+					onViewChange={onViewChange}
 					promptEditSession={promptEditSession}
 					stateZone={stateZone}
 					toolsZone={effectiveToolsZone}

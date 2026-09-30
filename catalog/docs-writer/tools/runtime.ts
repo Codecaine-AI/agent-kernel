@@ -31,6 +31,11 @@ import {
 	type DocBlock,
 	type DocDocument,
 } from "@codecaine-ai/docs-model/doc-schema";
+import {
+	formatLintReport,
+	lintDocument,
+	titleHeadingFixOps,
+} from "@codecaine-ai/docs-model/lint";
 import { Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
@@ -160,9 +165,42 @@ export function renderDocMarkdown(doc: DocDocument): string {
 		const childDepth = block.type === "list-item" ? depth + 1 : 0;
 		for (const child of block.children) walk(child, childDepth);
 	};
+	// Saved docs carry the display title only in `title` (the repeated opening
+	// H1 is normalized away), so render it back as the opening H1: the text
+	// docs_read returns is what a full docs_write takes and re-derives it from.
+	if (doc.title?.trim() && titleHeadingFixOps(doc).length === 0) lines.push(`# ${doc.title}`, "");
 	const root = doc.blocks[doc.root];
 	for (const child of root?.children ?? []) walk(child, 0);
 	return lines.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd();
+}
+
+/**
+ * The save-time normalization every docs-system save applies (docs-server
+ * applyDocOps): drop the opening H1 that repeats the display title, keeping
+ * its children in place. titleHeadingFixOps decides; the one op it emits
+ * (deleteBlock, mode "reparent") is applied here because docs-model/doc-ops
+ * loads components/ and so is not importable under pi (see the import
+ * comment above).
+ */
+function removeRepeatedTitleHeading(doc: DocDocument): DocDocument {
+	const blocks = { ...doc.blocks };
+	for (const op of titleHeadingFixOps(doc)) {
+		if (op.type !== "deleteBlock") continue;
+		const target = blocks[op.blockId];
+		const parent = Object.values(blocks).find((block) => block.children.includes(op.blockId));
+		if (!target || !parent) continue;
+		const index = parent.children.indexOf(op.blockId);
+		blocks[parent.id] = {
+			...parent,
+			children: [
+				...parent.children.slice(0, index),
+				...target.children,
+				...parent.children.slice(index + 1),
+			],
+		};
+		delete blocks[op.blockId];
+	}
+	return { ...doc, blocks };
 }
 
 function readValidated(docFile: string): DocDocument | { error: string } {
@@ -226,6 +264,9 @@ function checkTextSpanLinks(root: string, doc: DocDocument): string[] {
 }
 
 export function registerDocsTools(pi: ExtensionAPI): void {
+	// Keep the first successful write's original content for this tool session.
+	// null marks a new document, whose findings must all count as introduced.
+	const writeBaselines = new Map<string, DocDocument | null>();
 	pi.registerTool({
 		name: "docs_tree",
 		label: "Docs tree",
@@ -276,7 +317,7 @@ export function registerDocsTools(pi: ExtensionAPI): void {
 		name: "docs_write",
 		label: "Write doc",
 		description:
-			"Create or fully replace one doc node from markdown. The markdown is converted to the doc.json block format and schema-validated; invalid documents are rejected without writing. Updating an existing node preserves its document id but regenerates block ids.",
+			"Create or fully replace one doc node from markdown. The markdown is converted to the doc.json block format and schema-validated and linted for completion. Invalid documents and newly introduced required lint errors are rejected without writing. Fix reported warnings with another full docs_write, then run docs_check to verify completion. Updating an existing node preserves its document id but regenerates block ids.",
 		promptSnippet: "Write corpus changes exclusively through docs_write.",
 		parameters: Type.Object({
 			path: Type.String({ description: "doc node path relative to the docs root" }),
@@ -301,7 +342,9 @@ export function registerDocsTools(pi: ExtensionAPI): void {
 				converted.doc.id = existing.id;
 			}
 
-			const result = validateDocDocument(converted.doc);
+			// mdxToDoc keeps the opening `# Title` as a block AND derives the
+			// display title from it; normalize like a docs save before linting.
+			const result = validateDocDocument(removeRepeatedTitleHeading(converted.doc));
 			if (!result.ok) {
 				return errorResult(
 					`converted document failed validation — nothing written:\n${result.issues
@@ -311,15 +354,35 @@ export function registerDocsTools(pi: ExtensionAPI): void {
 				);
 			}
 
+			const lint = lintDocument(result.document, {
+				phase: "complete",
+				baseline: writeBaselines.has(docFile)
+					? writeBaselines.get(docFile) ?? undefined
+					: existing && !("error" in existing) ? existing : undefined,
+			});
+			if (lint.blocking.length > 0) {
+				return errorResult(
+					`document failed completion lint; nothing written:\n${formatLintReport(lint)}\nFix the reported fields and retry docs_write with the full document.`,
+					{ path: relPath, lint, warnings: converted.warnings },
+				);
+			}
+
 			mkdirSync(dir, { recursive: true });
 			writeFileSync(docFile, serializeDocDocument(result.document));
+			if (!writeBaselines.has(docFile)) {
+				writeBaselines.set(docFile, existing && !("error" in existing) ? existing : null);
+			}
 			const action = existing ? "updated" : "created";
 			const warnings = converted.warnings.length
 				? `\nconversion warnings:\n${converted.warnings.map((w) => `  ${w}`).join("\n")}`
 				: "";
 			return textResult(
-				`${action} ${relPath} (${Object.keys(result.document.blocks).length} blocks)${warnings}`,
-				{ path: relPath, action, warnings: converted.warnings },
+				`${action} ${relPath} (${Object.keys(result.document.blocks).length} blocks)${warnings}${
+					lint.findings.length
+						? `\n${formatLintReport(lint)}\nFix reported findings with docs_write, then run docs_check before finishing.`
+						: ""
+				}`,
+				{ path: relPath, action, warnings: converted.warnings, lint },
 			);
 		},
 	});
@@ -328,7 +391,7 @@ export function registerDocsTools(pi: ExtensionAPI): void {
 		name: "docs_check",
 		label: "Check docs",
 		description:
-			"Validate one doc node (or the whole corpus) against the doc schema. Run on every touched doc before finishing.",
+			"Check one doc node or the whole corpus for schema, link, and completion lint errors. For docs written in this session, required lint findings fail only when introduced relative to the original document. Untouched docs receive an absolute audit; warnings include suggested fixes and documentation links. Fix findings through docs_write and rerun on every touched doc before finishing.",
 		promptSnippet: "Validate touched docs with docs_check before finishing.",
 		parameters: Type.Object({
 			path: Type.Optional(Type.String({ description: "one doc node; omit to check the whole corpus" })),
@@ -342,6 +405,7 @@ export function registerDocsTools(pi: ExtensionAPI): void {
 				? [params.path]
 				: listDocs(root).map((doc) => doc.path);
 			const failures: string[] = [];
+			const lintReports: Array<{ path: string; report: ReturnType<typeof lintDocument> }> = [];
 			for (const target of targets) {
 				const dir = resolveDocDir(root, target);
 				if (typeof dir !== "string") {
@@ -354,14 +418,32 @@ export function registerDocsTools(pi: ExtensionAPI): void {
 					continue;
 				}
 				const linkFailures = checkTextSpanLinks(root, doc);
-				if (linkFailures.length > 0) {
-					failures.push(`${target}: ${linkFailures.join("\n  ")}`);
+				// Untouched documents receive an absolute audit. Written documents
+				// retain their original baseline until these tools are registered again.
+				const lint = lintDocument(doc, {
+					phase: "complete",
+					baseline: writeBaselines.get(join(dir, "doc.json")) ?? undefined,
+				});
+				lintReports.push({ path: target, report: lint });
+				if (linkFailures.length > 0 || lint.blocking.length > 0) {
+					failures.push(`${target}: ${[
+						...linkFailures,
+						...(lint.blocking.length ? ["required completion lint findings"] : []),
+					].join("\n  ")}`);
 				}
 			}
+			const diagnostics = lintReports
+				.filter(({ report }) => report.findings.length > 0)
+				.map(({ path, report }) => `${path}:\n${formatLintReport(report)}`)
+				.join("\n");
+			const guidance = diagnostics
+				? `\n${diagnostics}\nFix reported findings with docs_write, then rerun docs_check.`
+				: "";
+			const details = { checked: targets.length, failures, lintReports };
 			if (failures.length > 0) {
-				return errorResult(`${failures.length}/${targets.length} doc(s) failed:\n${failures.join("\n")}`);
+				return errorResult(`${failures.length}/${targets.length} doc(s) failed:\n${failures.join("\n")}${guidance}`, details);
 			}
-			return textResult(`ok — ${targets.length} doc(s) valid`, { checked: targets.length });
+			return textResult(`ok — ${targets.length} doc(s) valid${guidance}`, details);
 		},
 	});
 }

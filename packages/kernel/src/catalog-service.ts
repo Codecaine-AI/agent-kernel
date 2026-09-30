@@ -23,6 +23,7 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, relative, sep } from "node:path";
+import { discoverContextFixtures, type ContextFixture } from './context-fixtures';
 
 import {
 	getPromptRevision,
@@ -96,8 +97,8 @@ export interface KernelCatalogContextInput {
 
 /**
  * Preview of an agent's assembled context, built from the context.ts sidecar
- * against manifest variable defaults and no session data. Session-dependent
- * inputs render as placeholders in `renderedContext`; `inputs` carries the
+ * against manifest defaults or a named fictional context fixture. Without a
+ * fixture, session-dependent inputs render as placeholders in `renderedContext`; `inputs` carries the
  * true per-loader statuses. `renderedContext` is null when the preview cannot
  * be built (no loader catalog wired, or the resolver throws).
  */
@@ -137,6 +138,7 @@ export interface KernelCatalogToolPreview {
 
 /** Response body of `GET .../catalog/agents/:name`. */
 export interface KernelCatalogAgentDetail {
+	contextFixtures?: Array<{ id: string; label: string; context: KernelCatalogContextPreview | null; tools?: KernelCatalogToolPreview[] | null }>;
 	manifest: Record<string, unknown>;
 	prompt: PromptDocument;
 	promptHash: string;
@@ -256,6 +258,7 @@ export interface CreateKernelCatalogServiceOptions {
 	 */
 	toolsPreview?: (
 		agentName: string,
+		sessionData?: Record<string, unknown>,
 	) => KernelCatalogToolPreview[] | null | Promise<KernelCatalogToolPreview[] | null>;
 }
 
@@ -389,13 +392,14 @@ export function createKernelCatalogService(
 	}
 
 	/**
-	 * Assemble the agent's context.ts against manifest variable defaults and
-	 * no session data. Session-dependent loaders resolve "empty"/"error";
+	 * Assemble the agent's context.ts against defaults or a named fixture.
+	 * Without fixture session data, session-dependent loaders resolve "empty"/"error";
 	 * assemble() sees placeholder content for those inputs while the reported
 	 * input statuses stay true to the build.
 	 */
 	async function buildContextPreview(
 		def: AgentDefinition,
+		fixture?: ContextFixture,
 	): Promise<KernelCatalogContextPreview | null> {
 		const resolver = def.contextResolver;
 		if (!resolver) return null;
@@ -408,12 +412,13 @@ export function createKernelCatalogService(
 		for (const [name, declaration] of Object.entries(def.manifest.variables)) {
 			variables[name] = declaration.default;
 		}
+		Object.assign(variables, fixture?.variables);
 		const spawnContext = createSpawnContext({
 			agentName: def.name,
 			runtime: { cwd: dirname(def.manifestFile) },
 			variables,
 			caller: { kind: "system", id: "catalog-preview" },
-			sessionData: null,
+			sessionData: fixture?.sessionData ?? null,
 		});
 		// Text-only preview: assembleImages is deliberately not forwarded.
 		const previewResolver: AgentContextResolver = {
@@ -450,7 +455,7 @@ export function createKernelCatalogService(
 					status: entry.status,
 					bytes: entry.bytes,
 				})),
-				renderedContext: result.renderedContext,
+				renderedContext: fixture ? `Example: ${fixture.label}\nFictional data for UI review.\n\n${result.renderedContext}` : result.renderedContext,
 			};
 		} catch {
 			// A resolver bug must not take down the detail route — the preview
@@ -490,6 +495,13 @@ export function createKernelCatalogService(
 			if (!registry.tryGet(name)) return null;
 			await retryPendingRevision(name);
 			const def = await syncAgentPromptFromDisk(tryDb(), registry, name);
+			const contextFixtures = await Promise.all(discoverContextFixtures(def.bundleLayout.dir).map(async fixture => {
+				let tools: KernelCatalogToolPreview[] | null = null;
+				try { tools = await opts.toolsPreview?.(name, fixture.sessionData) ?? null; }
+				catch { /* A broken example must not prevent other fixtures from loading. */ }
+				return { id: fixture.id, label: fixture.label, context: await buildContextPreview(def, fixture),
+					...(opts.toolsPreview ? { tools } : {}) };
+			}));
 			return {
 				manifest: def.manifest as unknown as Record<string, unknown>,
 				prompt: def.promptDocument,
@@ -497,12 +509,14 @@ export function createKernelCatalogService(
 				rendered: def.parsed.body,
 				declaredVariables: Object.keys(def.manifest.variables),
 				modelAliases: modelAliases(),
-				context: await buildContextPreview(def),
+				context: contextFixtures.length ? contextFixtures[0]!.context : await buildContextPreview(def),
+				...(contextFixtures.length ? { contextFixtures } : {}),
 				fixtures: discoverStateFixtures(def.bundleLayout.dir).map((fixture) => ({
 					id: fixture.id,
 					label: fixture.label,
 				})),
 				tools:
+					contextFixtures[0]?.tools ??
 					(await opts.toolsPreview?.(name)) ??
 					(def.privateToolDefinitions.length > 0
 						? def.privateToolDefinitions.map((tool) => ({ ...tool }))

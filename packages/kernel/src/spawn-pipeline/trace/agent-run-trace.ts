@@ -7,6 +7,14 @@ import {
 
 import type { TraceWriterSink } from "../../subagents/types";
 
+interface TraceEmissionLogger {
+	warn(message: string, data?: Record<string, unknown>): void;
+}
+
+function errorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
+}
+
 export function emitAgentRunStart(
 	traceWriter: TraceWriterSink,
 	ids: RunTraceEventIds,
@@ -28,6 +36,28 @@ export function emitAgentRunStart(
 	);
 }
 
+export function safeEmitAgentRunStart(
+	traceWriter: TraceWriterSink,
+	ids: RunTraceEventIds,
+	agentName: string,
+	logger: TraceEmissionLogger,
+	opts?: {
+		parentRunId?: string;
+		phase?: string;
+		parentToolUseId?: string;
+		displayLabel?: string;
+	},
+): void {
+	try {
+		emitAgentRunStart(traceWriter, ids, agentName, opts);
+	} catch (error) {
+		logger.warn("emitAgentRunStart failed", {
+			agent: agentName,
+			error: errorMessage(error),
+		});
+	}
+}
+
 export function emitAgentRunEnd(
 	traceWriter: TraceWriterSink,
 	ids: RunTraceEventIds,
@@ -44,6 +74,25 @@ export function emitAgentRunEnd(
 				})
 			: createAgentRunEndEvent(ids, agentName, "ok", usage ? { usage } : undefined),
 	);
+}
+
+export function safeEmitAgentRunEnd(
+	traceWriter: TraceWriterSink,
+	ids: RunTraceEventIds,
+	agentName: string,
+	status: "ok" | "error",
+	logger: TraceEmissionLogger,
+	errorMessage?: string,
+	usage?: TurnUsage,
+): void {
+	try {
+		emitAgentRunEnd(traceWriter, ids, agentName, status, errorMessage, usage);
+	} catch (error) {
+		logger.warn("emitAgentRunEnd failed", {
+			agent: agentName,
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
 }
 
 export const _test_emitAgentRunEnd = emitAgentRunEnd;

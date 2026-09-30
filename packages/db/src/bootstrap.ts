@@ -121,6 +121,7 @@ export async function ensureKernelObservabilitySchema(
   const indexes = [
     sql`CREATE INDEX IF NOT EXISTS idx_events_container_ts ON trace_events (container_id, timestamp)`,
     sql`CREATE INDEX IF NOT EXISTS idx_events_run ON trace_events (run_id)`,
+    sql`CREATE INDEX IF NOT EXISTS idx_events_pi_session ON trace_events (pi_session_id)`,
     sql`CREATE INDEX IF NOT EXISTS ix_containers_parent_container_id ON containers (parent_container_id)`,
     sql`CREATE INDEX IF NOT EXISTS ix_pi_agent_sessions_container_id ON pi_agent_sessions (container_id)`,
     sql`CREATE INDEX IF NOT EXISTS ix_pi_agent_sessions_parent_session_id ON pi_agent_sessions (parent_session_id)`,

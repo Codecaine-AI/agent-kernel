@@ -54,7 +54,7 @@ import {
 	type RequestSnapshotSessionLike,
 } from "./streaming/request-snapshot";
 import { subscribeToSession } from "./streaming/session-event-subscriber";
-import { emitAgentRunEnd, emitAgentRunStart } from "./trace/agent-run-trace";
+import { safeEmitAgentRunEnd, safeEmitAgentRunStart } from "./trace/agent-run-trace";
 import { createRunUsageRecorder, type RunUsageRecorder } from "./trace/usage-rollup";
 import { getLastAssistantError } from "./trace/assistant-message-inspection";
 import type { DomainRule, ParsedAgent, PiToolResultBlock } from "./types";
@@ -492,7 +492,7 @@ export function createSpawnAgent(
 			session.sessionId,
 		);
 		if (traceWriter) {
-			emitAgentRunStart(traceWriter, ids, name, {
+			safeEmitAgentRunStart(traceWriter, ids, name, log, {
 				parentRunId: opts.parentRunId,
 				phase: opts.phase,
 				parentToolUseId: opts.parentToolUseId,
@@ -521,7 +521,7 @@ export function createSpawnAgent(
 			const runUsage = kernelEmitter?.runUsage();
 			const outboundEventId = kernelEmitter?.outboundEventId();
 			if (traceWriter) {
-				emitAgentRunEnd(traceWriter, ids, name, "ok", undefined, runUsage);
+				safeEmitAgentRunEnd(traceWriter, ids, name, "ok", log, undefined, runUsage);
 			}
 			const status: RunStatus = sub.turnLimitReached()
 				? "turn-limit"
@@ -549,11 +549,12 @@ export function createSpawnAgent(
 			await snapshotRecorder?.flush().catch(() => {});
 			await stateExtension?.flush().catch(() => {});
 			if (traceWriter) {
-				emitAgentRunEnd(
+				safeEmitAgentRunEnd(
 					traceWriter,
 					ids,
 					name,
 					"error",
+					log,
 					(err as Error)?.message ?? String(err),
 					kernelEmitter?.runUsage(),
 				);
