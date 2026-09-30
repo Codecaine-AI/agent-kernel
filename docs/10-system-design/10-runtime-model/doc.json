@@ -1,0 +1,3152 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-10-runtime-model",
+  "title": "Runtime Model",
+  "root": "b-10-runtime-model-root-99",
+  "blocks": {
+    "b-10-runtime-model-root-99": {
+      "id": "b-10-runtime-model-root-99",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/index.ts, packages/kernel/src/agent-registry/, packages/kernel/src/spawn-pipeline/, packages/kernel/src/context/, packages/kernel/src/state/, packages/kernel/src/subagents/",
+        "concepts": [
+          "runtime-model",
+          "create-kernel",
+          "agent-bundle",
+          "agent-registry",
+          "spawn-pipeline",
+          "run-context",
+          "context-loader",
+          "agent-state",
+          "state-module",
+          "window-policy",
+          "context-set",
+          "three-section-request",
+          "subagents",
+          "spawner-tools",
+          "pi-session",
+          "variants",
+          "model-aliases",
+          "tool-profiles"
+        ],
+        "covers": "Runtime model for the kernel: createKernel config, the agent bundle and registry, spawn pipeline, run context, context assembly, the agent state model and three-section requests, variants and model aliases, and subagents.",
+        "depends-on": [
+          "00-foundation/30-boundaries",
+          "10-system-design/15-identity-model"
+        ]
+      },
+      "children": [
+        "b-10-runtime-model-the-runtime-model-is-int-2",
+        "b-10-runtime-model-divider-3",
+        "b-10-runtime-model-kernel-instance-6",
+        "b-10-runtime-model-createkernel-config-a-7",
+        "b-10-runtime-model-create-kernel-config-shape",
+        "b-10-runtime-model-the-instance-exposes-sp-19",
+        "b-10-runtime-model-kernel-instance-surface",
+        "b-10-runtime-model-the-agent-bundle-20",
+        "b-10-runtime-model-an-agent-is-a-directory-21",
+        "b-10-runtime-model-the-manifest-is-pure-dat-22",
+        "b-10-runtime-model-prompt-json-is-the-can-23",
+        "b-10-runtime-model-the-registry-24",
+        "b-10-runtime-model-the-registry-turns-the-c-25",
+        "b-10-runtime-model-each-bundle-normalizes-i-26",
+        "b-10-runtime-model-registry-boot-fails-with-27",
+        "b-10-runtime-model-spawn-pipeline-28",
+        "b-10-runtime-model-the-pipeline-sequence-is-29",
+        "b-10-runtime-model-spawn-outline",
+        "b-10-runtime-model-the-pipeline-creates-db-44",
+        "b-10-runtime-model-system-prompts-are-froze-45",
+        "b-10-runtime-model-run-context-46",
+        "b-10-runtime-model-runcontext-is-an-async-47",
+        "b-10-runtime-model-run-context-shape",
+        "b-10-runtime-model-emit-sites-build-envelop-54",
+        "b-10-runtime-model-variants-aliases-tool-55",
+        "b-10-runtime-model-spawnagent-name-prompt-56",
+        "b-10-runtime-model-context-assembly-57",
+        "b-10-runtime-model-the-context-builder-is-t-58",
+        "b-10-runtime-model-ts-59",
+        "b-10-runtime-model-loaders-declares-the-i-60",
+        "b-10-runtime-model-the-loader-catalog-is-an-61",
+        "b-10-runtime-model-the-builder-emits-conte-62",
+        "b-10-runtime-model-delivery-depends-on-the-63",
+        "b-10-runtime-model-state-extension-active-64",
+        "b-10-runtime-model-pass-through-agent-65",
+        "b-10-runtime-model-assembled-context-is-re-66",
+        "b-10-runtime-model-state-model-67",
+        "b-10-runtime-model-the-state-layer-implemen-68",
+        "b-10-runtime-model-activation-69",
+        "b-10-runtime-model-the-state-extension-acti-70",
+        "b-10-runtime-model-the-contract-71",
+        "b-10-runtime-model-the-state-sidecar-export-72",
+        "b-10-runtime-model-state-module-surface",
+        "b-10-runtime-model-s-is-the-agent-s-own-t-74",
+        "b-10-runtime-model-session-events-76",
+        "b-10-runtime-model-sessionevent-is-a-four-77",
+        "b-10-runtime-model-session-event-table-78",
+        "b-10-runtime-model-every-event-carries-seq-79",
+        "b-10-runtime-model-catch-up-is-idempotent-b-80",
+        "b-10-runtime-model-windows-81",
+        "b-10-runtime-model-two-strategies-ship-tu-82",
+        "b-10-runtime-model-defaults-are-tuning-open-83",
+        "b-10-runtime-model-window-policy-shape",
+        "b-10-runtime-model-window-policy-precedence-84",
+        "b-10-runtime-model-the-context-set-section-85",
+        "b-10-runtime-model-the-kernel-holds-an-id-86",
+        "b-10-runtime-model-kernel-authored-messages-87",
+        "b-10-runtime-model-the-synthetic-lines-in-a-88",
+        "b-10-runtime-model-three-section-assembly-89",
+        "b-10-runtime-model-the-builder-concatenates-90",
+        "b-10-runtime-model-persistence-91",
+        "b-10-runtime-model-state-snapshots-to-roo-92",
+        "b-10-runtime-model-state-snapshot-shape",
+        "b-10-runtime-model-subagents-93",
+        "b-10-runtime-model-spawning-is-granted-per-94",
+        "b-10-runtime-model-the-dispatch-handle-enfo-95",
+        "b-10-runtime-model-the-subagent-manager-coo-96",
+        "b-10-runtime-model-callers-can-steer-a-suba-97",
+        "b-10-runtime-model-subagent-sequence",
+        "b-10-runtime-model-subagent-execution-re-en-98"
+      ]
+    },
+    "b-10-runtime-model-the-runtime-model-is-int-2": {
+      "id": "b-10-runtime-model-the-runtime-model-is-int-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The runtime model is intentionally layered. The host app calls "
+        },
+        {
+          "insert": "createKernel(config)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and supplies app state, agent catalogs, tool runtimes, database access, and domain behavior. The kernel owns the shape of a run. The Pi SDK owns the model turn loop and the JSONL session output. The system map lives in "
+        },
+        {
+          "insert": "System Design",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-divider-3": {
+      "id": "b-10-runtime-model-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-runtime-model-kernel-instance-6": {
+      "id": "b-10-runtime-model-kernel-instance-6",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Kernel Instance"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-createkernel-config-a-7": {
+      "id": "b-10-runtime-model-createkernel-config-a-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "createKernel(config)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " absorbs what used to be a separate eight-adapter spawn bundle. Injected functions remain only for genuinely app-shaped slots ("
+        },
+        {
+          "insert": "appContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "loaders",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "sharedTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "createSessionBinding",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "); everything else is data."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-create-kernel-config-shape": {
+      "id": "b-10-runtime-model-create-kernel-config-shape",
+      "type": "state-shape",
+      "props": {
+        "description": "Every field is optional; spawnAgent needs db and catalog.roots.",
+        "example": "{\n  \"id\": \"simple-research-kernel\",\n  \"db\": \"<KernelDatabase>\",\n  \"concurrency\": { \"maxBackgroundAgents\": 3 },\n  \"catalog\": { \"roots\": [\"src/agent-catalog\"] },\n  \"models\": { \"aliases\": { \"research-default\": \"codex-lb/gpt-5.5\" } },\n  \"loaders\": [\"<workingMemoryLoader>\"],\n  \"toolRuntime\": \"<SimpleResearchToolRuntime>\",\n  \"appContext\": \"({ cwd }) => ({ sessionData: { workingMemoryDir } })\",\n  \"piSessionsDir\": \".agent-kernel/pi-sessions\",\n  \"piAgentDir\": \".pi-agent\",\n  \"piLifecycleCustomType\": \"agent-kernel:pi-lifecycle\",\n  \"logger\": \"console\"\n}",
+        "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "required": false,
+            "description": "Namespaces container id derivation. Default \"agent-kernel\"."
+          },
+          {
+            "name": "db",
+            "type": "KernelDatabase",
+            "required": false,
+            "description": "From openKernelDatabase in @agent-kernel/db. Required by spawnAgent, container(), traceWriter, readApiService, and doctor()."
+          },
+          {
+            "name": "catalog",
+            "type": "object",
+            "required": false,
+            "fields": [
+              {
+                "name": "roots",
+                "type": "CatalogRootSpec[]",
+                "description": "A path string (listed) or { path, listed: false }. Scanned for agent.json bundles at first use."
+              }
+            ]
+          },
+          {
+            "name": "models",
+            "type": "object",
+            "required": false,
+            "fields": [
+              {
+                "name": "aliases",
+                "type": "Record<string, string>",
+                "required": false,
+                "description": "Resolved at spawn; the resolved model lands on the session row and in events."
+              },
+              {
+                "name": "prices",
+                "type": "ModelPriceTable",
+                "required": false,
+                "description": "Keyed by resolved model; powers per-turn costEstimate."
+              }
+            ]
+          },
+          {
+            "name": "toolProfiles",
+            "type": "Record<string, string[]>",
+            "required": false,
+            "description": "Named tool bundles that manifest toolProfiles expand from at registry boot."
+          },
+          {
+            "name": "loaders",
+            "type": "Loader[]",
+            "required": false,
+            "description": "Registered into the default context-loader catalog."
+          },
+          {
+            "name": "sharedTools",
+            "type": "(config: AgentConfig) => ExtensionFactory[]",
+            "required": false,
+            "description": "Appended to every spawned session."
+          },
+          {
+            "name": "toolRuntime",
+            "type": "TToolRuntime",
+            "required": false,
+            "description": "Passed to each agent's private tools.ts register function."
+          },
+          {
+            "name": "appContext",
+            "type": "(input: KernelAppContextInput) => KernelAppContext | undefined",
+            "required": false,
+            "description": "Per-spawn injection of stateManager and sessionData."
+          },
+          {
+            "name": "piSessionsDir",
+            "type": "string",
+            "required": false,
+            "description": "Default Pi session JSONL directory."
+          },
+          {
+            "name": "piAgentDir",
+            "type": "string",
+            "required": false,
+            "description": "Pi auth, models, and settings directory."
+          },
+          {
+            "name": "stateRoot",
+            "type": "string",
+            "required": false,
+            "description": "Root of the state.json tree. Defaults per spawn to its working directory."
+          },
+          {
+            "name": "defaultUserId",
+            "type": "string",
+            "required": false,
+            "description": "Actor correlation stamped onto emitted events."
+          },
+          {
+            "name": "concurrency",
+            "type": "object",
+            "required": false,
+            "fields": [
+              {
+                "name": "maxBackgroundAgents",
+                "type": "number",
+                "required": false,
+                "description": "Default 4; at least 1."
+              }
+            ]
+          },
+          {
+            "name": "createSessionBinding",
+            "type": "(opts: KernelSpawnOptions) => SessionBindingInput | undefined",
+            "required": false,
+            "description": "Default marker agent-kernel:session-binding carries sessionDir and phase; the pipeline always merges containerId and runId."
+          },
+          {
+            "name": "piLifecycleCustomType",
+            "type": "string",
+            "required": false,
+            "description": "JSONL custom type for Pi lifecycle entries (backfill parity)."
+          },
+          {
+            "name": "subagentLinkCustomType",
+            "type": "string",
+            "required": false,
+            "description": "JSONL custom type for parent-session subagent link entries."
+          },
+          {
+            "name": "captureRequestSnapshots",
+            "type": "boolean",
+            "required": false,
+            "description": "Default true; a spawn option overrides it."
+          },
+          {
+            "name": "logger",
+            "type": "KernelLogger",
+            "required": false
+          }
+        ],
+        "name": "CreateKernelConfig<TToolRuntime>",
+        "source": {
+          "path": "packages/kernel/src/index.ts",
+          "symbol": "CreateKernelConfig"
+        }
+      },
+      "children": []
+    },
+    "b-10-runtime-model-the-instance-exposes-sp-19": {
+      "id": "b-10-runtime-model-the-instance-exposes-sp-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The instance also carries read-only "
+        },
+        {
+          "insert": "id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "concurrency",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The "
+        },
+        {
+          "insert": "createSpawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " adapter bundle is no longer a public surface."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-kernel-instance-surface": {
+      "id": "b-10-runtime-model-kernel-instance-surface",
+      "type": "interaction-surface",
+      "props": {
+        "operations": [
+          {
+            "name": "spawnAgent",
+            "kind": "action",
+            "description": "Reloads a changed prompt.json, resolves the variant and model aliases, merges config defaults and appContext into opts, then runs the spawn pipeline. Throws when the run fails.",
+            "params": [
+              {
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "name": "prompt",
+                "type": "string"
+              },
+              {
+                "name": "ctx",
+                "type": "ExtensionContext | null",
+                "required": false,
+                "description": "Parent Pi context; supplies cwd when opts.workingDir is absent."
+              },
+              {
+                "name": "opts",
+                "type": "KernelSpawnOptions",
+                "required": false,
+                "description": "Selected fields; callbacks, session reuse, and per-spawn overrides of config defaults are omitted.",
+                "fields": [
+                  {
+                    "name": "containerId",
+                    "type": "string",
+                    "required": false,
+                    "description": "Required unless inherited from the parent run context."
+                  },
+                  {
+                    "name": "variant",
+                    "type": "string",
+                    "required": false,
+                    "description": "Named manifest variant."
+                  },
+                  {
+                    "name": "workingDir",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "trigger",
+                    "type": "RunTrigger",
+                    "required": false,
+                    "description": "Default parent-tool when parentToolUseId is set, else operator."
+                  },
+                  {
+                    "name": "parentRunId",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "parentToolUseId",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "variables",
+                    "type": "Record<string, unknown>",
+                    "required": false
+                  },
+                  {
+                    "name": "maxTurns",
+                    "type": "number",
+                    "required": false
+                  },
+                  {
+                    "name": "window",
+                    "type": "WindowPolicy",
+                    "required": false,
+                    "description": "Wins over the manifest and module window."
+                  },
+                  {
+                    "name": "priorState",
+                    "type": "unknown",
+                    "required": false,
+                    "description": "Handed to the state module's seed; never auto-loaded."
+                  },
+                  {
+                    "name": "captureRequestSnapshots",
+                    "type": "boolean",
+                    "required": false
+                  },
+                  {
+                    "name": "signal",
+                    "type": "AbortSignal",
+                    "required": false
+                  }
+                ]
+              }
+            ],
+            "returns": "Promise<KernelSpawnAgentResult>",
+            "returnShape": {
+              "fields": [
+                {
+                  "name": "responseText",
+                  "type": "string",
+                  "description": "Final assistant text."
+                },
+                {
+                  "name": "session",
+                  "type": "AgentSession",
+                  "description": "The live Pi session."
+                },
+                {
+                  "name": "aborted",
+                  "type": "boolean"
+                }
+              ]
+            }
+          },
+          {
+            "name": "container",
+            "kind": "action",
+            "description": "Deterministic, idempotent upsert: the same (kind, key) always resolves to the same container id. Requires db.",
+            "params": [
+              {
+                "name": "spec",
+                "type": "KernelContainerSpec",
+                "description": "Defined in the Identity Model."
+              }
+            ],
+            "returns": "Promise<Container>"
+          },
+          {
+            "name": "setMaxBackgroundAgents",
+            "kind": "action",
+            "description": "Floors the limit, clamps it to at least 1, uses 4 for non-finite input, and drains the background queue up to the new limit.",
+            "params": [
+              {
+                "name": "limit",
+                "type": "number"
+              }
+            ],
+            "returns": "void"
+          },
+          {
+            "name": "dispose",
+            "kind": "action",
+            "description": "Clears the background queue, disposes child sessions, and settles every pending done promise so background handles never hang.",
+            "returns": "void"
+          },
+          {
+            "name": "registry",
+            "kind": "query",
+            "description": "The validated agent registry (see The Registry).",
+            "returns": "Promise<AgentRegistry>"
+          },
+          {
+            "name": "doctor",
+            "kind": "query",
+            "description": "Flushes pending trace writes, then checks trace invariants. Requires db.",
+            "returns": "Promise<DoctorReport>"
+          },
+          {
+            "name": "readApiService",
+            "kind": "query",
+            "description": "Lazily created; flushes the trace writer before each read. Backs createKernelTraceReadApi. Requires db.",
+            "returns": "KernelReadApiService"
+          },
+          {
+            "name": "catalogApiService",
+            "kind": "query",
+            "description": "Backs createKernelCatalogApi: agent listing, detail, prompt saves, and revision history.",
+            "params": [
+              {
+                "name": "opts",
+                "type": "object",
+                "required": false,
+                "fields": [
+                  {
+                    "name": "allowWrites",
+                    "type": "boolean",
+                    "required": false,
+                    "description": "Default false. Prompt saves write catalog files on disk, so enable only in dev; a read-only service answers the save route with 403."
+                  },
+                  {
+                    "name": "toolsPreview",
+                    "type": "CreateKernelCatalogServiceOptions[\"toolsPreview\"]",
+                    "required": false
+                  }
+                ]
+              }
+            ],
+            "returns": "KernelCatalogService"
+          },
+          {
+            "name": "agentManager",
+            "kind": "query",
+            "description": "Subagent manager over this kernel's spawn pipeline (see Subagents).",
+            "returns": "AgentManager"
+          },
+          {
+            "name": "traceWriter",
+            "kind": "query",
+            "description": "Default trace sink into the kernel db (submit and flush). Requires db.",
+            "returns": "KernelTraceWriter"
+          }
+        ],
+        "title": "KernelInstance"
+      },
+      "children": []
+    },
+    "b-10-runtime-model-the-agent-bundle-20": {
+      "id": "b-10-runtime-model-the-agent-bundle-20",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Agent Bundle"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-an-agent-is-a-directory-21": {
+      "id": "b-10-runtime-model-an-agent-is-a-directory-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An agent is a directory discovered by its "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " manifest: a prompt plus optional context, tools, and state sidecars that mirror the request sections. "
+        },
+        {
+          "insert": "Documents and Bundles",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/10-documents-and-bundles",
+              "label": "Documents and Bundles"
+            }
+          }
+        },
+        {
+          "insert": " defines the bundle file tree, the manifest, and the prompt document."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-manifest-is-pure-dat-22": {
+      "id": "b-10-runtime-model-the-manifest-is-pure-dat-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The manifest is pure data. There is no code entry point and no Markdown/frontmatter path; the manifest file itself is the registry entry, JSON-Schema validated. Spawning is granted per tool, not by a manifest flag (D77)."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-prompt-json-is-the-can-23": {
+      "id": "b-10-runtime-model-prompt-json-is-the-can-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "prompt.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the canonical prompt artifact (a prompt-kit "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and the source of truth. The registry validates it, renders it to XML-tagged Markdown, and computes its content hash ("
+        },
+        {
+          "insert": "pk1-<sha256>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " over the canonical bytes). The rendered markdown beside it is a committed "
+        },
+        {
+          "insert": "generated",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " snapshot (never hand-edited, never parsed by the registry), so PR diffs show the behavioral contract in the format the model receives."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-registry-24": {
+      "id": "b-10-runtime-model-the-registry-24",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Registry"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-registry-turns-the-c-25": {
+      "id": "b-10-runtime-model-the-registry-turns-the-c-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The registry turns the catalog into validated runtime definitions. "
+        },
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " builds it from "
+        },
+        {
+          "insert": "catalog.roots",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on first use and caches it. A failed boot is not cached: the next call retries, so a catalog fix lands without a restart. A root is either a plain path (listed by default) or "
+        },
+        {
+          "insert": "{ path, listed: false }",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; an unlisted root still participates in validation, prompt-revision registration, direct detail lookup, prompt editing, and spawn-by-name. It is omitted only from browse-oriented agent lists, because the flag controls discovery, not authorization."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-each-bundle-normalizes-i-26": {
+      "id": "b-10-runtime-model-each-bundle-normalizes-i-26",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Each bundle normalizes into a parsed agent: config, rendered prompt body, and "
+        },
+        {
+          "insert": "promptHash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The "
+        },
+        {
+          "insert": "tools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " allowlist is fully expanded at boot: manifest "
+        },
+        {
+          "insert": "coreTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", tool profiles expanded from the kernel-config profile map, and harvested private tool names. At boot the registry also upserts one "
+        },
+        {
+          "insert": "prompt_revisions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " row per agent, keyed by content hash, so re-booting an unchanged catalog is a no-op. Before each spawn, "
+        },
+        {
+          "insert": "syncAgentPromptFromDisk",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " reloads a "
+        },
+        {
+          "insert": "prompt.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " that changed on disk and records a "
+        },
+        {
+          "insert": "disk-sync",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " revision. Revision sources are "
+        },
+        {
+          "insert": "registry-boot",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "lab-save",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "disk-sync",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "prompt-kit-mcp",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "migration",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "agent-run",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The spawn pipeline later stamps the same hash onto the session, closing the loop between authored prompts and observed runs."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-registry-boot-fails-with-27": {
+      "id": "b-10-runtime-model-registry-boot-fails-with-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Registry boot fails with an aggregate of per-agent errors: unparseable manifests or prompts, prompt validation errors, variable drift, unknown tool profiles, spawner tools naming agents missing from the catalog (D77), name collisions, malformed sidecar exports. The goal is for broken agent definitions to fail at boot, not halfway through a user run."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-spawn-pipeline-28": {
+      "id": "b-10-runtime-model-spawn-pipeline-28",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Spawn Pipeline"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-pipeline-sequence-is-29": {
+      "id": "b-10-runtime-model-the-pipeline-sequence-is-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "One "
+        },
+        {
+          "insert": "spawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " call produces the trace below ("
+        },
+        {
+          "insert": "packages/kernel/src/spawn-pipeline/spawn-agent.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). Trace-marked steps name the events they emit. Without a trace writer the pipeline emits nothing and builds no "
+        },
+        {
+          "insert": "RunContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-spawn-outline": {
+      "id": "b-10-runtime-model-spawn-outline",
+      "type": "process-outline",
+      "props": {
+        "steps": [
+          {
+            "text": "Spawn one catalog agent",
+            "steps": [
+              {
+                "text": "`Host` calls `kernel.spawnAgent(name, prompt, ctx, opts)`",
+                "steps": [
+                  {
+                    "text": "The kernel reloads a changed `prompt.json`, resolves `opts.variant` and model aliases, and merges config defaults into `opts`.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Resolve run identity",
+                "steps": [
+                  {
+                    "text": "Take the working directory from `opts.workingDir`, else `ctx.cwd`"
+                  },
+                  {
+                    "text": "Require `containerId` from `opts` or the parent `RunContext`"
+                  },
+                  {
+                    "text": "Pick the trigger: `opts.trigger`, else `parent-tool` with a `parentToolUseId`, else `operator`"
+                  },
+                  {
+                    "text": "Mint the `runId`"
+                  }
+                ]
+              },
+              {
+                "text": "Resolve the agent",
+                "steps": [
+                  {
+                    "text": "Render the static system prompt with resolved variables"
+                  },
+                  {
+                    "text": "Build one `SpawnContext` for the context loaders and the state seed"
+                  },
+                  {
+                    "text": "Create the state extension when the bundle activates one",
+                    "steps": [
+                      {
+                        "text": "Otherwise nothing registers and the session stays pass-through.",
+                        "kind": "note"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "Create the Pi session",
+                "steps": [
+                  {
+                    "text": "Build or reuse a Pi session manager"
+                  },
+                  {
+                    "text": "Load shared and private tool factories",
+                    "steps": [
+                      {
+                        "text": "Spawner tools bind their `dispatch` handle to the `AgentManager` here.",
+                        "kind": "note"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "Create the Pi `AgentSession` with the session-binding marker",
+                    "steps": [
+                      {
+                        "text": "The marker always carries `containerId` and `runId`.",
+                        "kind": "note"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "Pre-insert the session row and the agent-run row",
+                "steps": [
+                  {
+                    "text": "The session row stamps `prompt_hash` and the resolved model; the run row stamps the trigger.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Attach the kernel emitter and usage recorder",
+                "steps": [
+                  {
+                    "text": "Emitter emits `agent_session_start`",
+                    "trace": true
+                  },
+                  {
+                    "text": "Attach the request-snapshot recorder unless `captureRequestSnapshots` is false"
+                  }
+                ]
+              },
+              {
+                "text": "Emit `system_prompt_resolved` with `prompt_hash`",
+                "trace": true
+              },
+              {
+                "text": "Build context when a resolver exists and the session has none",
+                "steps": [
+                  {
+                    "text": "Emit `context_build_started`",
+                    "trace": true
+                  },
+                  {
+                    "text": "Emit `context_input_resolved` once per loader",
+                    "trace": true
+                  },
+                  {
+                    "text": "Emit `context_build_completed`",
+                    "trace": true
+                  },
+                  {
+                    "text": "Add the result to the context set, or inject it into the transcript when pass-through"
+                  }
+                ]
+              },
+              {
+                "text": "Subscribe to session events for streaming and the turn limit"
+              },
+              {
+                "text": "Build `RunContext`"
+              },
+              {
+                "text": "Emit `agent_run_start`",
+                "trace": true
+              },
+              {
+                "text": "Trigger the Pi turn inside the run context",
+                "steps": [
+                  {
+                    "text": "Emitter emits `pi_agent_start`, then `pi_turn_start` and `pi_turn_end` per turn",
+                    "trace": true
+                  },
+                  {
+                    "text": "Emitter emits `user_message`, `assistant_message`, `tool_call_start`, and `tool_call_end`",
+                    "trace": true
+                  },
+                  {
+                    "text": "Recorder emits one `pi_request_snapshot` per turn",
+                    "trace": true
+                  },
+                  {
+                    "text": "Emitter emits `pi_agent_end`",
+                    "trace": true
+                  },
+                  {
+                    "text": "An assistant `stopReason` of `error` fails the run.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Close the run on success",
+                "steps": [
+                  {
+                    "text": "Settle the emitter, then flush the snapshot recorder and the state sink"
+                  },
+                  {
+                    "text": "Emit `agent_run_end` with status `ok` and run usage",
+                    "trace": true
+                  },
+                  {
+                    "text": "Fold run usage into the session and container rollups"
+                  },
+                  {
+                    "text": "Write run status with the outbound event, and session status `ended`",
+                    "steps": [
+                      {
+                        "text": "Run status is `turn-limit` when the turn limit hit, `aborted` when the run or signal aborted, else `done`.",
+                        "kind": "note"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "Close the run on failure",
+                "steps": [
+                  {
+                    "text": "Settle the emitter, then flush the snapshot recorder and the state sink"
+                  },
+                  {
+                    "text": "Emit `agent_run_end` with status `error` and the error message",
+                    "trace": true
+                  },
+                  {
+                    "text": "Fold usage observed before the failure into the rollups"
+                  },
+                  {
+                    "text": "Write run status `aborted` if the signal aborted, else `error`",
+                    "steps": [
+                      {
+                        "text": "Session status becomes `error`.",
+                        "kind": "note"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "Rethrow the error to the caller"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-10-runtime-model-the-pipeline-creates-db-44": {
+      "id": "b-10-runtime-model-the-pipeline-creates-db-44",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The pipeline creates DB rows before emitting run events or triggering the Pi turn, so every later event can refer to existing session and run records. That ordering is the difference between a runnable agent helper and a debuggable kernel runtime."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-system-prompts-are-froze-45": {
+      "id": "b-10-runtime-model-system-prompts-are-froze-45",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "System prompts are frozen at Pi session creation time, which is why "
+        },
+        {
+          "insert": "prompt_hash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " binds to the session, not the run."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-run-context-46": {
+      "id": "b-10-runtime-model-run-context-46",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Run Context"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-runcontext-is-an-async-47": {
+      "id": "b-10-runtime-model-runcontext-is-an-async-47",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "RunContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the async-local scope for one run."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-run-context-shape": {
+      "id": "b-10-runtime-model-run-context-shape",
+      "type": "state-shape",
+      "props": {
+        "description": "Built by the spawn pipeline only when a trace writer exists.",
+        "example": "{\n  \"containerId\": \"5b0d1f0e-8a3c-5c1e-9f64-2f7a1c9e4d11\",\n  \"runId\": \"0f6a3c2d-7b1e-4c9a-8d5f-3e2b1a0c9d87\",\n  \"trigger\": \"parent-tool\",\n  \"agentName\": \"source-scout\",\n  \"traceWriter\": \"<KernelTraceWriter>\",\n  \"parentRunId\": \"9c2e4b7a-1f3d-4e8b-a6c5-0d7f2e9b1a34\",\n  \"sessionDir\": \".agent-kernel/research-sessions/research-arm-vendors-0f6a3c2d\",\n  \"piSessionsDir\": \".agent-kernel/pi-sessions\",\n  \"workingDir\": \"examples/simple-research-kernel\",\n  \"stateManager\": null,\n  \"piSessionUuid\": \"a41d9e02-5c6b-4f7e-b3a8-1d2c0e9f8b76\",\n  \"phase\": \"research\"\n}",
+        "fields": [
+          {
+            "name": "containerId",
+            "type": "string",
+            "description": "Primary grouping identity; required on every event the run emits."
+          },
+          {
+            "name": "runId",
+            "type": "string"
+          },
+          {
+            "name": "trigger",
+            "type": "\"operator\" | \"parent-tool\" | \"steer\" | \"resume\" | \"system\""
+          },
+          {
+            "name": "agentName",
+            "type": "string"
+          },
+          {
+            "name": "traceWriter",
+            "type": "TraceWriterSink"
+          },
+          {
+            "name": "parentRunId",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "sessionDir",
+            "type": "string",
+            "required": false,
+            "description": "Session working directory for pipeline file layout."
+          },
+          {
+            "name": "piSessionsDir",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "workingDir",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "stateManager",
+            "type": "RunStateManagerLike | null",
+            "required": false,
+            "description": "App-provided, through opts or the appContext config slot."
+          },
+          {
+            "name": "piSessionUuid",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "userId",
+            "type": "string",
+            "required": false,
+            "description": "Actor correlation stamped onto envelope identity."
+          },
+          {
+            "name": "agentId",
+            "type": "string",
+            "required": false,
+            "description": "Stamped onto envelope identity when set; the spawn pipeline does not set it."
+          },
+          {
+            "name": "phase",
+            "type": "string",
+            "required": false
+          }
+        ],
+        "name": "RunContext",
+        "source": {
+          "path": "packages/kernel/src/run-context.ts",
+          "symbol": "RunContext"
+        }
+      },
+      "children": []
+    },
+    "b-10-runtime-model-emit-sites-build-envelop-54": {
+      "id": "b-10-runtime-model-emit-sites-build-envelop-54",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Emit sites build envelope identity through "
+        },
+        {
+          "insert": "currentTraceIds()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " / "
+        },
+        {
+          "insert": "traceIdsOf()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", never by hand. The kernel stamps "
+        },
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "runId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " onto every event from this scope, so adapters cannot mislabel identity."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-variants-aliases-tool-55": {
+      "id": "b-10-runtime-model-variants-aliases-tool-55",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Variants, Aliases, Tool Profiles"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-spawnagent-name-prompt-56": {
+      "id": "b-10-runtime-model-spawnagent-name-prompt-56",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "spawnAgent(name, prompt, ctx, { variant })",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " selects a named variant from the manifest: a sanctioned per-spawn override of model, thinking, turn limits, background behavior, or display label. Model strings (from the manifest or a variant) resolve through "
+        },
+        {
+          "insert": "models.aliases",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " at spawn; the "
+        },
+        {
+          "insert": "resolved",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " model lands on the session row and in turn usage, so fleet-wide retargeting is one config edit and cost attribution stays truthful. Manifest "
+        },
+        {
+          "insert": "toolProfiles",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " expand into tool allowlists from the kernel-config profile map at registry boot."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-context-assembly-57": {
+      "id": "b-10-runtime-model-context-assembly-57",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Context Assembly"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-context-builder-is-t-58": {
+      "id": "b-10-runtime-model-the-context-builder-is-t-58",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The context builder is the reference half of an agent request: it loads runtime data and hands it to an agent-owned assembler. A context sidecar exports:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-ts-59": {
+      "id": "b-10-runtime-model-ts-59",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "interface AgentContextResolver {\n  loaders: LoaderDeclaration[];\n  assemble(loaded: LoadedMap, ctx: SpawnContext): string | Promise<string>;\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-loaders-declares-the-i-60": {
+      "id": "b-10-runtime-model-loaders-declares-the-i-60",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "loaders",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " declares the inputs; "
+        },
+        {
+          "insert": "assemble()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " decides how to render them into model-facing context. "
+        },
+        {
+          "insert": "SpawnContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " carries the agent name, caller variables and identity, runtime state ("
+        },
+        {
+          "insert": "cwd",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", phase, session dir), paths, and optional app session data. Its "
+        },
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the spawn's primary grouping identity. Loaders that key work off the current grouping read it from "
+        },
+        {
+          "insert": "ctx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", not from a separate app-session id. "
+        },
+        {
+          "insert": "sessionData",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is opaque to the kernel; the "
+        },
+        {
+          "insert": "appContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " config slot and tests may prefill it to avoid duplicate DB reads or support synthetic sessions."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-loader-catalog-is-an-61": {
+      "id": "b-10-runtime-model-the-loader-catalog-is-an-61",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The loader catalog is an in-memory registry keyed by "
+        },
+        {
+          "insert": "kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": duplicate kinds fail at registration time, unknown kinds fail at resolution time. The default catalog registers "
+        },
+        {
+          "insert": "text",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "file",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "directory",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "command",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The "
+        },
+        {
+          "insert": "skill",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " loader is registered only when a "
+        },
+        {
+          "insert": "skillRegistry",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is passed to the catalog factory, and "
+        },
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " does not pass one. Apps register custom kinds through the "
+        },
+        {
+          "insert": "loaders",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " config slot; declarations beyond "
+        },
+        {
+          "insert": "kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are loader-specific parameters the kernel passes through opaquely. A loader that reads app workflow state belongs in the app."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-builder-emits-conte-62": {
+      "id": "b-10-runtime-model-the-builder-emits-conte-62",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The builder emits "
+        },
+        {
+          "insert": "context_build_started",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "context_input_resolved",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (once per loader), and "
+        },
+        {
+          "insert": "context_build_completed",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so context debugging is visible in the same trace stream as tool calls and messages."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-delivery-depends-on-the-63": {
+      "id": "b-10-runtime-model-delivery-depends-on-the-63",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Delivery depends on the state extension (D82, decided in "
+        },
+        {
+          "insert": "State Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/30-state-model",
+              "label": "State Model"
+            }
+          }
+        },
+        {
+          "insert": "):"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-state-extension-active-64": {
+      "id": "b-10-runtime-model-state-extension-active-64",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "State extension active",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": built context lands as the entry "
+        },
+        {
+          "insert": "agent-context:<name>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in the kernel-held context set and is rebuilt into section ② on every request. Nothing is pinned to history."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-pass-through-agent-65": {
+      "id": "b-10-runtime-model-pass-through-agent-65",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pass-through agent",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": built context is injected once as an "
+        },
+        {
+          "insert": "agent-context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " custom message into the transcript, guarded by agent name so reusing a Pi session cannot duplicate context blocks."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-assembled-context-is-re-66": {
+      "id": "b-10-runtime-model-assembled-context-is-re-66",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Assembled context is "
+        },
+        {
+          "insert": "reference",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " material. The dynamic working picture and the conversation window are section ③, produced by the state model below; loaders that deliver working state rather than reference material retire into state as agents adopt the sidecar (D81–D84, "
+        },
+        {
+          "insert": "State Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/30-state-model",
+              "label": "State Model"
+            }
+          }
+        },
+        {
+          "insert": ")."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-state-model-67": {
+      "id": "b-10-runtime-model-state-model-67",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "State Model"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-state-layer-implemen-68": {
+      "id": "b-10-runtime-model-the-state-layer-implemen-68",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The state layer implements D81–D92 ("
+        },
+        {
+          "insert": "State Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/30-state-model",
+              "label": "State Model"
+            }
+          }
+        },
+        {
+          "insert": "): one state object per agent, the messages are part of it, and every provider request is three sections: ① system prompt (Pi's), ② context, ③ state plus conversation tail, with the kernel building ② and ③."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-activation-69": {
+      "id": "b-10-runtime-model-activation-69",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Activation"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-state-extension-acti-70": {
+      "id": "b-10-runtime-model-the-state-extension-acti-70",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The state extension activates only when the bundle ships a state sidecar "
+        },
+        {
+          "insert": "or",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " the manifest declares a "
+        },
+        {
+          "insert": "state.window",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " block. Otherwise the extension is never registered and the session behaves exactly as it did before the state layer existed: the pass-through guarantee. \"Base agent\" is not a code path: an agent with neither runs no state code at all. An agent with window config but no sidecar gets the base module: bookkeeping counters plus a rolling-window renderer, with nothing in the request derived from the counters."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-contract-71": {
+      "id": "b-10-runtime-model-the-contract-71",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "The Contract"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-state-sidecar-export-72": {
+      "id": "b-10-runtime-model-the-state-sidecar-export-72",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The state sidecar exports a "
+        },
+        {
+          "insert": "StateModule<S>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "defineState",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the typed identity helper). The kernel owns when each function runs; the agent owns what it means. A module may also set "
+        },
+        {
+          "insert": "window",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", its default "
+        },
+        {
+          "insert": "WindowPolicy",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-state-module-surface": {
+      "id": "b-10-runtime-model-state-module-surface",
+      "type": "interaction-surface",
+      "props": {
+        "operations": [
+          {
+            "name": "seed",
+            "kind": "action",
+            "description": "Builds the initial state at spawn.",
+            "params": [
+              {
+                "name": "ctx",
+                "type": "SpawnContext",
+                "description": "The same SpawnContext the context loaders get; the pipeline builds it once (D87)."
+              },
+              {
+                "name": "prior",
+                "type": "S",
+                "required": false,
+                "description": "A previous run's final state, passed by the caller as priorState."
+              }
+            ],
+            "returns": "S"
+          },
+          {
+            "name": "update",
+            "kind": "action",
+            "description": "Called in order as each event lands, through Pi's blocking hooks and the request hook's catch-up pass.",
+            "params": [
+              {
+                "name": "state",
+                "type": "S"
+              },
+              {
+                "name": "event",
+                "type": "SessionEvent",
+                "description": "One of the four kinds in Session Events."
+              }
+            ],
+            "returns": "S"
+          },
+          {
+            "name": "render",
+            "kind": "query",
+            "description": "Produces section ③. A bare message array counts every message as tail.",
+            "params": [
+              {
+                "name": "state",
+                "type": "S"
+              },
+              {
+                "name": "ctx",
+                "type": "RenderContext",
+                "fields": [
+                  {
+                    "name": "agentName",
+                    "type": "string"
+                  },
+                  {
+                    "name": "containerId",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "messages",
+                    "type": "AgentMessage[]",
+                    "description": "The messages Pi is about to send; renderers window over them instead of copying them into S."
+                  },
+                  {
+                    "name": "turnIndex",
+                    "type": "number",
+                    "description": "0-based index of the turn about to run."
+                  },
+                  {
+                    "name": "window",
+                    "type": "ResolvedWindowPolicy"
+                  }
+                ]
+              }
+            ],
+            "returns": "RenderOutput: AgentMessage[] | RenderResult",
+            "returnShape": {
+              "fields": [
+                {
+                  "name": "messages",
+                  "type": "AgentMessage[]"
+                },
+                {
+                  "name": "stateMessageCount",
+                  "type": "number",
+                  "required": false,
+                  "description": "Leading messages that are state blocks; the rest is tail. Default 0."
+                }
+              ],
+              "example": "{\n  \"messages\": [\n    {\"role\": \"user\", \"content\": [{\"type\": \"text\", \"text\": \"<state>2 open questions, 4 sources read</state>\"}]},\n    {\"role\": \"user\", \"content\": [{\"type\": \"text\", \"text\": \"Compare the three vendors.\"}]}\n  ],\n  \"stateMessageCount\": 1\n}"
+            }
+          }
+        ],
+        "title": "StateModule<S>"
+      },
+      "children": []
+    },
+    "b-10-runtime-model-s-is-the-agent-s-own-t-74": {
+      "id": "b-10-runtime-model-s-is-the-agent-s-own-t-74",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "S",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the agent's own type; the kernel never inspects it. It must be JSON-serializable because it snapshots to "
+        },
+        {
+          "insert": "state.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-session-events-76": {
+      "id": "b-10-runtime-model-session-events-76",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Session Events"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-sessionevent-is-a-four-77": {
+      "id": "b-10-runtime-model-sessionevent-is-a-four-77",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "SessionEvent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is a four-member union, kernel-owned and deliberately small:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-session-event-table-78": {
+      "id": "b-10-runtime-model-session-event-table-78",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Kind",
+          "Derived from",
+          "Payload beyond the base fields"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "user_message",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "a "
+              },
+              {
+                "insert": "user",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " transcript message"
+              }
+            ],
+            [
+              {
+                "insert": "text",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (flattened), "
+              },
+              {
+                "insert": "imageCount",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "tool_call",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "each "
+              },
+              {
+                "insert": "toolCall",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " block of an "
+              },
+              {
+                "insert": "assistant",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " message"
+              }
+            ],
+            [
+              {
+                "insert": "toolCallId",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "toolName",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "input",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "tool_result",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "a "
+              },
+              {
+                "insert": "toolResult",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " message"
+              }
+            ],
+            [
+              {
+                "insert": "toolCallId",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "toolName",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "isError",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "text",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "imageCount",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "turn_end",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Pi's blocking "
+              },
+              {
+                "insert": "turn_end",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " hook"
+              }
+            ],
+            [
+              {
+                "insert": "turnIndex",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", optional "
+              },
+              {
+                "insert": "stopReason",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-10-runtime-model-every-event-carries-seq-79": {
+      "id": "b-10-runtime-model-every-event-carries-seq-79",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every event carries "
+        },
+        {
+          "insert": "seq",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (monotonic within one extension instance), "
+        },
+        {
+          "insert": "messageIndex",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "timestamp",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "custom",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "bashExecution",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "branchSummary",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "compactionSummary",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " messages produce no events: transcript furniture, not state input. "
+        },
+        {
+          "insert": "turn_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is hook-derived and cannot be reconstructed from the transcript by design: turn boundaries belong to the kernel, not the message log."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-catch-up-is-idempotent-b-80": {
+      "id": "b-10-runtime-model-catch-up-is-idempotent-b-80",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Catch-up is idempotent by construction: the extension folds every message from a single cursor to the end of the array, then advances the cursor. Re-running when nothing new landed folds nothing; catch-up before a request build is the same call, with no dedupe bookkeeping to get wrong; if the array "
+        },
+        {
+          "insert": "shrank",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " (fork / tree navigation), the cursor re-anchors rather than re-folding history the state already contains. Every extension handler is wrapped: on error it logs and continues, and the request-build hook falls back to sending the request untouched rather than failing the turn. Compaction is disabled on kernel sessions; nothing here compacts."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-windows-81": {
+      "id": "b-10-runtime-model-windows-81",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Windows"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-two-strategies-ship-tu-82": {
+      "id": "b-10-runtime-model-two-strategies-ship-tu-82",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two strategies ship: "
+        },
+        {
+          "insert": "turns",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (keep the last "
+        },
+        {
+          "insert": "maxTurns",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " turns) and "
+        },
+        {
+          "insert": "token-budget",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (walk newest → oldest, keeping turns until "
+        },
+        {
+          "insert": "maxTokens",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " would be exceeded; the newest turn always survives). The invariant that is "
+        },
+        {
+          "insert": "not",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " configurable: "
+        },
+        {
+          "insert": "cuts land only on turn boundaries",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ". A turn never closes while a "
+        },
+        {
+          "insert": "toolCall",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is unanswered, and every strategy returns a turn index, so a tool call and its result can never be split."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-defaults-are-tuning-open-83": {
+      "id": "b-10-runtime-model-defaults-are-tuning-open-83",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Defaults are tuning-open first-pass numbers, not measured optima. Images beyond the cap inside the surviving window become one-line text stubs before whole turns drop."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-window-policy-shape": {
+      "id": "b-10-runtime-model-window-policy-shape",
+      "type": "state-shape",
+      "props": {
+        "description": "Defaults come from DEFAULT_WINDOW in packages/kernel/src/state/window.ts.",
+        "example": "{\n  \"strategy\": \"token-budget\",\n  \"maxTokens\": 40000,\n  \"maxImages\": 2\n}",
+        "fields": [
+          {
+            "name": "strategy",
+            "type": "\"turns\" | \"token-budget\"",
+            "required": false,
+            "description": "Default \"turns\"."
+          },
+          {
+            "name": "maxTurns",
+            "type": "number",
+            "required": false,
+            "description": "Turns kept verbatim under \"turns\". Default 8."
+          },
+          {
+            "name": "maxTokens",
+            "type": "number",
+            "required": false,
+            "description": "Approximate token ceiling under \"token-budget\". Default 60000."
+          },
+          {
+            "name": "charsPerToken",
+            "type": "number",
+            "required": false,
+            "description": "Token estimator. Default 4."
+          },
+          {
+            "name": "imageTokens",
+            "type": "number",
+            "required": false,
+            "description": "Tokens charged per image block. Default 1600."
+          },
+          {
+            "name": "maxImages",
+            "type": "number",
+            "required": false,
+            "description": "Newest-K image cap. Default 4 when omitted. 0 stubs every image. A negative value keeps all images."
+          },
+          {
+            "name": "elisionMarker",
+            "type": "boolean",
+            "required": false,
+            "description": "Emit [turns 1–N elided] when history was cut. Default true."
+          }
+        ],
+        "name": "WindowPolicy",
+        "source": {
+          "path": "packages/kernel/src/state/types.ts",
+          "symbol": "WindowPolicy"
+        }
+      },
+      "children": []
+    },
+    "b-10-runtime-model-window-policy-precedence-84": {
+      "id": "b-10-runtime-model-window-policy-precedence-84",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Window-policy precedence is spawn option → manifest "
+        },
+        {
+          "insert": "state.window",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " → the module's own "
+        },
+        {
+          "insert": "window",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " → the kernel default."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-context-set-section-85": {
+      "id": "b-10-runtime-model-the-context-set-section-85",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "The Context Set (Section ②)"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-kernel-holds-an-id-86": {
+      "id": "b-10-runtime-model-the-kernel-holds-an-id-86",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel holds an id → entry map rendered into "
+        },
+        {
+          "insert": "one",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " kernel-authored message per request, "
+        },
+        {
+          "insert": "<context>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " … "
+        },
+        {
+          "insert": "</context>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", entries in "
+        },
+        {
+          "insert": "order",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " then insertion order, each optionally wrapped in its own XML tag. Re-adding the same id replaces the entry in place and keeps its position, so a skill can be swapped without reordering the message; removing an id drops it. When the set is empty, section ② is omitted. Nothing is pinned to history, which is the point of D82."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-kernel-authored-messages-87": {
+      "id": "b-10-runtime-model-kernel-authored-messages-87",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Kernel-Authored Messages"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-synthetic-lines-in-a-88": {
+      "id": "b-10-runtime-model-the-synthetic-lines-in-a-88",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The synthetic lines in a built request (the ② context message and whatever the ③ renderer emits around the tail) are not things the user said, but they must reach the provider as valid user turns. They travel down Pi's custom-message channel with a "
+        },
+        {
+          "insert": "kernel:",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "-prefixed marker that survives into the request snapshot, so the viewer can badge them KERNEL rather than USER (D99). The marker is part of the wire contract: "
+        },
+        {
+          "insert": "Event Protocol",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/30-event-protocol"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-three-section-assembly-89": {
+      "id": "b-10-runtime-model-three-section-assembly-89",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Three-Section Assembly"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-builder-concatenates-90": {
+      "id": "b-10-runtime-model-the-builder-concatenates-90",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The builder concatenates ② then ③ and reports boundaries as half-open "
+        },
+        {
+          "insert": "[start, end)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ranges over the returned message list: "
+        },
+        {
+          "insert": "context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (present only when the set rendered a message), "
+        },
+        {
+          "insert": "state",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (the leading "
+        },
+        {
+          "insert": "stateMessageCount",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " messages), and "
+        },
+        {
+          "insert": "tail",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (everything after). Empty sections are omitted, sections are emitted in order and never overlap, and section ① never appears in the list because the system prompt is Pi's, captured separately by the snapshot recorder. A built request's section ranges stamp straight onto its request snapshot ("
+        },
+        {
+          "insert": "Observability Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-observability-model"
+            }
+          }
+        },
+        {
+          "insert": ")."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-persistence-91": {
+      "id": "b-10-runtime-model-persistence-91",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Persistence"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-state-snapshots-to-roo-92": {
+      "id": "b-10-runtime-model-state-snapshots-to-roo-92",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "State snapshots to "
+        },
+        {
+          "insert": "<root>/.agent-kernel/state/<containerId>/<agentName>/state.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (v1 snapshot-only persistence, D88). Persistence is "
+        },
+        {
+          "insert": "default-ON",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": a spawn whose state extension is active always snapshots; spawn options ("
+        },
+        {
+          "insert": "stateRoot",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "stateSink",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") choose "
+        },
+        {
+          "insert": "where",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": ", never "
+        },
+        {
+          "insert": "whether",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": ". A pass-through agent has no state extension and therefore writes nothing at all. Nothing auto-loads a snapshot. A caller passes "
+        },
+        {
+          "insert": "priorState",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " explicitly to "
+        },
+        {
+          "insert": "seed",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (D87). Path segments are sanitized because container ids and agent names are external input."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-state-snapshot-shape": {
+      "id": "b-10-runtime-model-state-snapshot-shape",
+      "type": "state-shape",
+      "props": {
+        "example": "{\n  \"containerId\": \"5b0d1f0e-8a3c-5c1e-9f64-2f7a1c9e4d11\",\n  \"agentName\": \"research-coordinator\",\n  \"runId\": \"9c2e4b7a-1f3d-4e8b-a6c5-0d7f2e9b1a34\",\n  \"version\": 3,\n  \"updatedAt\": \"2026-09-29T14:02:11.482Z\",\n  \"state\": {\n    \"openQuestions\": [\"Which vendors ship ARM builds?\"],\n    \"sourcesRead\": 4\n  }\n}",
+        "fields": [
+          {
+            "name": "containerId",
+            "type": "string"
+          },
+          {
+            "name": "agentName",
+            "type": "string"
+          },
+          {
+            "name": "runId",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "version",
+            "type": "number",
+            "description": "1-based; increments per snapshot within one extension instance."
+          },
+          {
+            "name": "updatedAt",
+            "type": "string",
+            "description": "ISO 8601 timestamp."
+          },
+          {
+            "name": "state",
+            "type": "unknown",
+            "description": "The agent's own S; opaque to the kernel."
+          }
+        ],
+        "name": "StateSnapshot",
+        "source": {
+          "path": "packages/kernel/src/state/types.ts",
+          "symbol": "StateSnapshot"
+        }
+      },
+      "children": []
+    },
+    "b-10-runtime-model-subagents-93": {
+      "id": "b-10-runtime-model-subagents-93",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Subagents"
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-spawning-is-granted-per-94": {
+      "id": "b-10-runtime-model-spawning-is-granted-per-94",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spawning is granted per tool, not per agent (D77): a "
+        },
+        {
+          "insert": "tools.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sidecar declares a spawner tool with an explicit "
+        },
+        {
+          "insert": "spawns",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " allowlist of agent names ("
+        },
+        {
+          "insert": "[\"*\"]",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the loud general opt-in), and the kernel injects a scoped "
+        },
+        {
+          "insert": "dispatch(agentName, prompt, opts?)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " handle at session build time. There is no agent-level spawn permission flag, and the generic Pi subagent tools are disallowed for every kernel agent."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-dispatch-handle-enfo-95": {
+      "id": "b-10-runtime-model-the-dispatch-handle-enfo-95",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The dispatch handle enforces the allowlist, validates the target exists in the catalog (a wildcard spawner cannot turn a typo into a silently errored record), and auto-forwards "
+        },
+        {
+          "insert": "parentToolUseId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "trigger: \"parent-tool\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and run-context identity. These values are captured at dispatch time and passed explicitly, so a queued background spawn keeps its own parent's identity no matter when, or from whose async context, the queue drains. The tool author cannot get these wrong."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-the-subagent-manager-coo-96": {
+      "id": "b-10-runtime-model-the-subagent-manager-coo-96",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The subagent manager coordinates foreground and background agent runs inside an active parent run. Foreground dispatch awaits completion and resolves with the agent record. Background dispatch resolves immediately with a handle whose "
+        },
+        {
+          "insert": "done",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " promise always exists and resolves with the final record when the child actually completes, including queued children, which have no record promise until they start, and queued children aborted before starting. Background work enters a FIFO queue when the concurrency limit (default 4, adjustable on the kernel instance) is reached. The manager also owns abort and stop behavior, result delivery, parent-to-child Pi session link markers, and "
+        },
+        {
+          "insert": "parentToolUseId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " propagation."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-callers-can-steer-a-suba-97": {
+      "id": "b-10-runtime-model-callers-can-steer-a-suba-97",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Callers can steer a subagent before its session exists: the manager stores steering messages and flushes them once the session is created. Steering is a control action, so it is observable. Each steering message emits exactly one "
+        },
+        {
+          "insert": "run_steered",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " trace event, with "
+        },
+        {
+          "insert": "delivery: \"delivered\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for a live session or "
+        },
+        {
+          "insert": "delivery: \"queued\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for a held message; queued emissions wait for the run's trace identity and flush with it."
+        }
+      ],
+      "children": []
+    },
+    "b-10-runtime-model-subagent-sequence": {
+      "id": "b-10-runtime-model-subagent-sequence",
+      "type": "sequence",
+      "props": {
+        "src": "./assets/sequences/subagent-spawn.sequence.json",
+        "title": "Subagent spawn and steer"
+      },
+      "children": []
+    },
+    "b-10-runtime-model-subagent-execution-re-en-98": {
+      "id": "b-10-runtime-model-subagent-execution-re-en-98",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Subagent execution re-enters the same spawn path with inherited identity: the parent's "
+        },
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "parentRunId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and a "
+        },
+        {
+          "insert": "parent-tool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " trigger. Primary agents and subagents share the same runtime contracts."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,1259 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-70-harness-model",
+  "title": "Harness Model",
+  "root": "b-70-harness-model-root-59",
+  "blocks": {
+    "b-70-harness-model-root-59": {
+      "id": "b-70-harness-model-root-59",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "harness",
+          "tui",
+          "terminal-harness",
+          "app-harness",
+          "simple-research-kernel",
+          "core-kernel",
+          "catalog-precedence",
+          "host",
+          "disallowed-tools",
+          "session-binding",
+          "trace-ingest",
+          "observatory",
+          "kernel-checklist"
+        ],
+        "covers": "How agents run outside their owning apps: the harness taxonomy (app harnesses vs the terminal harness), the reference app harness, the TUI leg's boot contract and catalog precedence, host and tool-policy classification, the core kernel, TUI session tracing, and how any kernel joins the Observatory.",
+        "depends-on": [
+          "10-system-design/10-runtime-model",
+          "10-system-design/15-identity-model",
+          "10-system-design/20-observability-model",
+          "10-system-design/60-prompt-system-model"
+        ]
+      },
+      "children": [
+        "b-70-harness-model-a-kernel-is-the-unit-2",
+        "b-70-harness-model-topology-canvas",
+        "b-70-harness-model-ports-note-60",
+        "b-70-harness-model-app-harnesses-embed-the-4",
+        "b-70-harness-model-the-reference-app-harnes-5",
+        "b-70-harness-model-the-in-repo-example-is-t-6",
+        "b-70-harness-model-example-tree",
+        "b-70-harness-model-run-instructions-live-in-19",
+        "b-70-harness-model-the-terminal-harness-p-20",
+        "b-70-harness-model-a-globally-loaded-pi-ext-21",
+        "b-70-harness-model-kernel-interactive-22",
+        "b-70-harness-model-kernel-name-fixtu-24",
+        "b-70-harness-model-boot-contract-thin-spaw-26",
+        "b-70-harness-model-the-full-spawn-pipeline-27",
+        "b-70-harness-model-boot-sequence",
+        "b-70-harness-model-runtime-constraint-tha-28",
+        "b-70-harness-model-catalog-precedence-29",
+        "b-70-harness-model-code-30",
+        "b-70-harness-model-project-first-by-name-31",
+        "b-70-harness-model-classification-host-a-32",
+        "b-70-harness-model-two-manifest-fields-sem-33",
+        "b-70-harness-model-host-app-defaul-34",
+        "b-70-harness-model-disallowedtools-enfo-36",
+        "b-70-harness-model-the-core-kernel-38",
+        "b-70-harness-model-the-agent-kernel-repo-is-39",
+        "b-70-harness-model-tui-session-tracing-40",
+        "b-70-harness-model-interactive-sessions-bec-41",
+        "b-70-harness-model-tracing-outline",
+        "b-70-harness-model-joining-the-observatory-46",
+        "b-70-harness-model-checklist-lead",
+        "b-70-harness-model-checklist-table",
+        "b-70-harness-model-records-57",
+        "b-70-harness-model-operational-setup-boot-58"
+      ]
+    },
+    "b-70-harness-model-a-kernel-is-the-unit-2": {
+      "id": "b-70-harness-model-a-kernel-is-the-unit-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "kernel",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " is the unit the platform understands: manifest\n("
+        },
+        {
+          "insert": ".agent-kernel/kernel.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") + catalog of bundles + "
+        },
+        {
+          "insert": "trace.db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " + optional\nread API. A "
+        },
+        {
+          "insert": "harness",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " is how sessions of a kernel's agents actually run.\nNothing about running kernels requires any particular harness."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-topology-canvas": {
+      "id": "b-70-harness-model-topology-canvas",
+      "type": "canvas",
+      "props": {
+        "src": "./assets/canvases/harness-topology.canvas.json",
+        "title": "Harness topology"
+      },
+      "children": []
+    },
+    "b-70-harness-model-ports-note-60": {
+      "id": "b-70-harness-model-ports-note-60",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Ports are the ones the Observatory registry uses. canvas-agent defaults to :4820 in code; the registry launches it on :4822. The docs-system repo runs its own kernel service, "
+        },
+        {
+          "insert": "docs-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", on :4840."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-app-harnesses-embed-the-4": {
+      "id": "b-70-harness-model-app-harnesses-embed-the-4",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "App harnesses embed the kernel as a service inside a product (session stores,\nSSE, viewers). The terminal harness is the opposite trade: it borrows pi's\nexisting front-end: loop, streaming, tools, transcript, and only supplies\nwhat pi cannot: find the bundle, assemble the request, bind its tools."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-the-reference-app-harnes-5": {
+      "id": "b-70-harness-model-the-reference-app-harnes-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The reference app harness ("
+        },
+        {
+          "insert": "examples/simple-research-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ")"
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-the-in-repo-example-is-t-6": {
+      "id": "b-70-harness-model-the-in-repo-example-is-t-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The in-repo example is the minimal complete app harness: a runnable research host with no product workflow of its own. One research request is one root container of kind "
+        },
+        {
+          "insert": "session",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", as the "
+        },
+        {
+          "insert": "Identity Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/15-identity-model"
+            }
+          }
+        },
+        {
+          "insert": " describes. The layout below is what any app harness reduces to."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-example-tree": {
+      "id": "b-70-harness-model-example-tree",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "examples/simple-research-kernel/src/server.ts",
+            "note": "opens trace.db (WAL), writes kernel.json, mounts /kernel/* and /api/*"
+          },
+          {
+            "path": "examples/simple-research-kernel/src/simple-research-kernel-store.ts",
+            "note": "createKernel config, session containers, runs, completion checks"
+          },
+          {
+            "path": "examples/simple-research-kernel/src/agent-catalog/",
+            "note": "folder-form bundles; none ships a state sidecar"
+          },
+          {
+            "path": "examples/simple-research-kernel/src/agent-catalog/research-coordinator/",
+            "note": "spawner tools dispatch the other two; state/fixtures/ holds three preview fixtures"
+          },
+          {
+            "path": "examples/simple-research-kernel/src/agent-catalog/source-scout/"
+          },
+          {
+            "path": "examples/simple-research-kernel/src/agent-catalog/report-writer/"
+          },
+          {
+            "path": "examples/simple-research-kernel/src/agent-catalog/tool-runtime.ts",
+            "note": "app working memory and subagent dispatch for sidecars"
+          },
+          {
+            "path": "examples/simple-research-kernel/src/_components/workspaces/ResearchWorkspace.tsx",
+            "note": "KernelTraceViewer from viewer-shell"
+          },
+          {
+            "path": "examples/simple-research-kernel/src/_components/workspaces/TraceWorkspace.tsx",
+            "note": "thin binding over KernelTraceWorkspace"
+          },
+          {
+            "path": "examples/simple-research-kernel/src/_components/workspaces/AgentsWorkspace.tsx",
+            "note": "AgentCatalogViewer from viewer-ui"
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-70-harness-model-run-instructions-live-in-19": {
+      "id": "b-70-harness-model-run-instructions-live-in-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Run instructions live in "
+        },
+        {
+          "insert": "examples/simple-research-kernel/README.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Other hosts consume the same packages through their own adapter layer ("
+        },
+        {
+          "insert": "App Adapter Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/50-app-adapter-model"
+            }
+          }
+        },
+        {
+          "insert": ") rather than the kernel knowing their concepts."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-the-terminal-harness-p-20": {
+      "id": "b-70-harness-model-the-terminal-harness-p-20",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The terminal harness ("
+        },
+        {
+          "insert": "packages/tui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ")"
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-a-globally-loaded-pi-ext-21": {
+      "id": "b-70-harness-model-a-globally-loaded-pi-ext-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A globally-loaded pi extension (via the pi settings "
+        },
+        {
+          "insert": "extensions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " pointer; see\nthe pi-config repo's README for machine setup). It is passive until invoked:\nplain "
+        },
+        {
+          "insert": "pi",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is an ordinary session."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-kernel-interactive-22": {
+      "id": "b-70-harness-model-kernel-interactive-22",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": interactive table of resolvable agents (project and generic sections, per-row runnable status, Tab for description). Non-interactive contexts get a plain list."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-kernel-name-fixtu-24": {
+      "id": "b-70-harness-model-kernel-name-fixtu-24",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "/kernel <name> [--fixture <id>]",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": soft-reboots the "
+        },
+        {
+          "insert": "current",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " session as that agent: from the next turn the model receives the bundle's assembled request, and the bundle's tools are registered live. Same process, same transcript."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-boot-contract-thin-spaw-26": {
+      "id": "b-70-harness-model-boot-contract-thin-spaw-26",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Boot contract (thin spawn)"
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-the-full-spawn-pipeline-27": {
+      "id": "b-70-harness-model-the-full-spawn-pipeline-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The full spawn pipeline is db-coupled. The TUI assembles the request from the kernel's db-free exports instead, in "
+        },
+        {
+          "insert": "packages/tui/src/commands.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/tui/src/commands.ts"
+            }
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "packages/tui/src/boot.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/tui/src/boot.ts"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-boot-sequence": {
+      "id": "b-70-harness-model-boot-sequence",
+      "type": "sequence",
+      "props": {
+        "src": "./assets/sequences/tui-boot-flow.sequence.json",
+        "title": "TUI boot"
+      },
+      "children": []
+    },
+    "b-70-harness-model-runtime-constraint-tha-28": {
+      "id": "b-70-harness-model-runtime-constraint-tha-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Runtime constraint that shapes everything:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " pi executes extensions, and therefore bundle sidecars, under Node via jiti, while the kernel ecosystem is bun-first. Anything the extension's import graph or a "
+        },
+        {
+          "insert": "host:\"any\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sidecar loads must survive a Node runtime. The import-graph rules that keep them Node-clean are implementation decisions. Doctor's host-portability check proves loadability under "
+        },
+        {
+          "insert": "a",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " Node runtime. The final gate for tools sidecars is a boot through real pi."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-catalog-precedence-29": {
+      "id": "b-70-harness-model-catalog-precedence-29",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Catalog precedence"
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-code-30": {
+      "id": "b-70-harness-model-code-30",
+      "type": "code",
+      "props": {},
+      "text": [
+        {
+          "insert": "resolve(name) over [ cwd .agent-kernel/kernel.json catalogRoots…,\n                     generic catalog (agent-kernel/catalog/) ]"
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-project-first-by-name-31": {
+      "id": "b-70-harness-model-project-first-by-name-31",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Project-first, by name: a repo bundle "
+        },
+        {
+          "insert": "shadows",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " a generic one. This is the\nentire specialization mechanism: one generic "
+        },
+        {
+          "insert": "context-editor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " everywhere; a\nrepo ships its own under the same name to specialize. Never specialize via\npi skill-name collisions."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-classification-host-a-32": {
+      "id": "b-70-harness-model-classification-host-a-32",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Classification: "
+        },
+        {
+          "insert": "host",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and tool policy"
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-two-manifest-fields-sem-33": {
+      "id": "b-70-harness-model-two-manifest-fields-sem-33",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two fields of the "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " manifest, defined in "
+        },
+        {
+          "insert": "Documents and Bundles",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/10-documents-and-bundles",
+              "label": "Documents and Bundles"
+            }
+          }
+        },
+        {
+          "insert": ", govern the TUI's behavior per bundle:"
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-host-app-defaul-34": {
+      "id": "b-70-harness-model-host-app-defaul-34",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "host",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "\"app\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (default) bundles are classified from the manifest alone and never evaluated or booted here; "
+        },
+        {
+          "insert": "\"any\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " bundles load, and load failures degrade to a per-bundle reason instead of hiding the catalog."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-disallowedtools-enfo-36": {
+      "id": "b-70-harness-model-disallowedtools-enfo-36",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "disallowedTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": enforced by blocking at "
+        },
+        {
+          "insert": "tool_call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " while the agent is active (interactive sessions keep pi's built-ins, so blocking "
+        },
+        {
+          "insert": "is",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " the enforcement). Pattern: an agent whose mutations must flow through its own typed tools sidecar disallows "
+        },
+        {
+          "insert": "write",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "/"
+        },
+        {
+          "insert": "edit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and keeps reads open. "
+        },
+        {
+          "insert": "docs-writer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the reference case."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-the-core-kernel-38": {
+      "id": "b-70-harness-model-the-core-kernel-38",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The core kernel"
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-the-agent-kernel-repo-is-39": {
+      "id": "b-70-harness-model-the-agent-kernel-repo-is-39",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The agent-kernel repo is itself a kernel: its generic catalog is the bundles' home, and "
+        },
+        {
+          "insert": "packages/core-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (:4860) is its service leg: health, kernel read API, catalog routes with writes allowed, and prompt-edit sessions so generic agents are editable from the Observatory's prompt lab. The harness reads "
+        },
+        {
+          "insert": ".agent-kernel/kernel.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " but never writes it; the repo owns the manifest. When the sibling prompt-kit repo exists, its "
+        },
+        {
+          "insert": "prompt-editor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " catalog joins the registry as an unlisted root: resolvable for prompt-edit spawns, absent from the listing. Model aliases cover "
+        },
+        {
+          "insert": "prompt-editor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "context-editor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "docs-writer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Prompt-edit "
+        },
+        {
+          "insert": "runs",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " record under the prompt-kit kernel (trace ownership: prompt editing is prompt-kit's domain); catalog writes stay on the core kernel."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-tui-session-tracing-40": {
+      "id": "b-70-harness-model-tui-session-tracing-40",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "TUI session tracing"
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-interactive-sessions-bec-41": {
+      "id": "b-70-harness-model-interactive-sessions-bec-41",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Interactive sessions become kernel traces through transcript markers and a batch ingest."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-tracing-outline": {
+      "id": "b-70-harness-model-tracing-outline",
+      "type": "process-outline",
+      "props": {
+        "steps": [
+          {
+            "text": "TUI session tracing",
+            "steps": [
+              {
+                "text": "`/kernel` boot appends two markers to the pi transcript",
+                "steps": [
+                  {
+                    "text": "`agent-kernel:session-binding` carries `containerId` and `runId` for transcript recovery.",
+                    "kind": "note"
+                  },
+                  {
+                    "text": "`agent-kernel:tui-session-meta` adds `agentName`, `cwd`, `kernelId`, `targetKernelRoot`, and `origin: \"tui\"`.",
+                    "kind": "note"
+                  },
+                  {
+                    "text": "The target kernel is the cwd repo's `.agent-kernel/`, else the core kernel's.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "pi persists the session JSONL",
+                "steps": [
+                  {
+                    "text": "pi writes the file lazily. A session needs at least one model turn.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Operator runs `agent-kernel-tui-ingest`",
+                "steps": [
+                  {
+                    "text": "Scan the pi sessions dir for files with a meta marker",
+                    "steps": [
+                      {
+                        "text": "Plain pi sessions have no meta marker and are skipped.",
+                        "kind": "note"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "Upsert the container: kind `session`, `metadata.origin: \"tui\"`"
+                  },
+                  {
+                    "text": "Upsert the `pi_agent_sessions` and `agent_runs` rows",
+                    "steps": [
+                      {
+                        "text": "The run gets trigger `operator` and status `done`.",
+                        "kind": "note"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "Backfill the transcript's events into the owning kernel's `trace.db`",
+                    "trace": true,
+                    "steps": [
+                      {
+                        "text": "Event ids are deterministic, so a re-run inserts nothing new.",
+                        "kind": "note"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "Observatory shows the session with a `tui` badge",
+                "steps": [
+                  {
+                    "text": "It sits beside the same kernel's app-harness runs.",
+                    "kind": "note"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-70-harness-model-joining-the-observatory-46": {
+      "id": "b-70-harness-model-joining-the-observatory-46",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Joining the Observatory (kernel checklist)"
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-checklist-lead": {
+      "id": "b-70-harness-model-checklist-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A kernel joins the Observatory when it meets five requirements."
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-checklist-table": {
+      "id": "b-70-harness-model-checklist-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Requirement",
+          "File",
+          "Reference implementation"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "Manifest with "
+              },
+              {
+                "insert": "manifestVersion: 2",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "kernelId",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "displayName",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "kernelRoot",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "catalogRoots",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "dbPath",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "piSessionsDir",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and "
+              },
+              {
+                "insert": "readApiBaseUrl",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " when a service leg exists"
+              }
+            ],
+            [
+              {
+                "insert": ".agent-kernel/kernel.json",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "writeKernelManifest",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " in "
+              },
+              {
+                "insert": "examples/simple-research-kernel/src/server.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Catalog of folder-form bundles, each with an explicit "
+              },
+              {
+                "insert": "host",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " posture. Bundles whose mutations need guardrails add a "
+              },
+              {
+                "insert": "disallowedTools",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " policy and a typed tools sidecar"
+              }
+            ],
+            [
+              {
+                "insert": "The roots listed in "
+              },
+              {
+                "insert": "catalogRoots",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "catalog/docs-writer",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " ("
+              },
+              {
+                "insert": "host: \"any\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", disallows "
+              },
+              {
+                "insert": "write",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": "edit",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Traces in the kernel's own "
+              },
+              {
+                "insert": "trace.db",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": a harness emitter, or markers plus ingest for TUI sessions"
+              }
+            ],
+            [
+              {
+                "insert": ".agent-kernel/trace.db",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "examples/simple-research-kernel",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (emitter), "
+              },
+              {
+                "insert": "packages/tui",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with "
+              },
+              {
+                "insert": "agent-kernel-tui-ingest",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (markers)"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Optional service leg that mounts the read, catalog, and prompt-edit routes at "
+              },
+              {
+                "insert": "/kernel/*",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " plus "
+              },
+              {
+                "insert": "/health",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " on a stable port"
+              }
+            ],
+            "The harness server entry",
+            [
+              {
+                "insert": "packages/core-harness/src/server.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (:4860)"
+              }
+            ]
+          ],
+          [
+            "Registration with the observatory repo's registry sync. Core's doctor warns on drift",
+            "The observatory registry",
+            "The observatory repo"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-70-harness-model-records-57": {
+      "id": "b-70-harness-model-records-57",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Records"
+        }
+      ],
+      "children": []
+    },
+    "b-70-harness-model-operational-setup-boot-58": {
+      "id": "b-70-harness-model-operational-setup-boot-58",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Operational setup, boot commands, and troubleshooting (the how-to\ncounterpart of this doc): "
+        },
+        {
+          "insert": "packages/tui/README.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and the repo "
+        },
+        {
+          "insert": "README.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ".\nDesign rationale and as-built session records (kept as reference, not\nmaintained as documentation): "
+        },
+        {
+          "insert": "../.drafts/tui-harness.design.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and\n"
+        },
+        {
+          "insert": "../.drafts/core-kernel-observatory.design.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Machine/personal setup:\nthe pi-config repo's README. Observatory-side details: the observatory\nrepo's README and DESIGN."
+        }
+      ],
+      "children": []
+    }
+  }
+}

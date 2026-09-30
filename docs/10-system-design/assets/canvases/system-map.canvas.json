@@ -1,0 +1,373 @@
+{
+  "schemaVersion": 1,
+  "id": "system-map",
+  "title": "System map",
+  "mode": "diagram",
+  "objects": [
+    {
+      "id": "group-packages",
+      "type": "section",
+      "text": "agent-kernel packages",
+      "parentId": null,
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 1760,
+        "height": 900
+      }
+    },
+    {
+      "id": "group-prompt-kit",
+      "type": "section",
+      "text": "prompt-kit (external repo)",
+      "parentId": null,
+      "geometry": {
+        "x": 1900,
+        "y": 0,
+        "width": 460,
+        "height": 500
+      }
+    },
+    {
+      "id": "protocol",
+      "type": "rectangle",
+      "text": "protocol\nTraceEvent envelope, event types",
+      "color": "gray",
+      "parentId": "group-packages",
+      "geometry": {
+        "x": 60,
+        "y": 100,
+        "width": 320,
+        "height": 120
+      }
+    },
+    {
+      "id": "db",
+      "type": "rectangle",
+      "text": "db\nDrizzle schema, SQLite access",
+      "color": "violet",
+      "parentId": "group-packages",
+      "geometry": {
+        "x": 60,
+        "y": 380,
+        "width": 320,
+        "height": 120
+      }
+    },
+    {
+      "id": "kernel",
+      "type": "rectangle",
+      "text": "kernel\nspawn pipeline, containers, read API, catalog service",
+      "color": "blue",
+      "parentId": "group-packages",
+      "geometry": {
+        "x": 620,
+        "y": 360,
+        "width": 360,
+        "height": 150
+      }
+    },
+    {
+      "id": "core-harness",
+      "type": "rectangle",
+      "text": "core-harness :4860\ncore kernel service leg",
+      "color": "green",
+      "parentId": "group-packages",
+      "geometry": {
+        "x": 1220,
+        "y": 100,
+        "width": 320,
+        "height": 120
+      }
+    },
+    {
+      "id": "tui",
+      "type": "rectangle",
+      "text": "tui\npi extension, /kernel command",
+      "color": "green",
+      "parentId": "group-packages",
+      "geometry": {
+        "x": 1220,
+        "y": 380,
+        "width": 320,
+        "height": 120
+      }
+    },
+    {
+      "id": "viewer-core",
+      "type": "rectangle",
+      "text": "viewer-core\nAPI client, trace builder",
+      "color": "teal",
+      "parentId": "group-packages",
+      "geometry": {
+        "x": 460,
+        "y": 700,
+        "width": 320,
+        "height": 120
+      }
+    },
+    {
+      "id": "viewer-ui",
+      "type": "rectangle",
+      "text": "viewer-ui\nReact trace and catalog components",
+      "color": "teal",
+      "parentId": "group-packages",
+      "geometry": {
+        "x": 880,
+        "y": 700,
+        "width": 320,
+        "height": 120
+      }
+    },
+    {
+      "id": "viewer-shell",
+      "type": "rectangle",
+      "text": "viewer-shell\nKernelTraceWorkspace, KernelTraceViewer",
+      "color": "teal",
+      "parentId": "group-packages",
+      "geometry": {
+        "x": 1300,
+        "y": 700,
+        "width": 380,
+        "height": 120
+      }
+    },
+    {
+      "id": "prompt-kit",
+      "type": "rectangle",
+      "text": "prompt-kit\nPromptDocument model and render",
+      "color": "orange",
+      "parentId": "group-prompt-kit",
+      "geometry": {
+        "x": 1960,
+        "y": 100,
+        "width": 340,
+        "height": 120
+      }
+    },
+    {
+      "id": "prompt-kit-server",
+      "type": "rectangle",
+      "text": "prompt-kit-server\nprompt store and revisions",
+      "color": "orange",
+      "parentId": "group-prompt-kit",
+      "geometry": {
+        "x": 1960,
+        "y": 320,
+        "width": 340,
+        "height": 120
+      }
+    },
+    {
+      "id": "host-apps",
+      "type": "rectangle",
+      "text": "Host apps and harnesses\nsimple-research-kernel, canvas-agent, prompt-kit-agent",
+      "color": "green",
+      "parentId": null,
+      "geometry": {
+        "x": 1900,
+        "y": 640,
+        "width": 460,
+        "height": 150
+      }
+    },
+    {
+      "id": "trace-db",
+      "type": "rectangle",
+      "text": "trace.db\nper-kernel SQLite (WAL)",
+      "color": "violet",
+      "parentId": null,
+      "geometry": {
+        "x": 60,
+        "y": 1000,
+        "width": 320,
+        "height": 120
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "protocol-to-kernel",
+      "from": {
+        "objectId": "protocol",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "kernel",
+        "anchor": "top"
+      },
+      "label": "trace event envelope and types",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "kernel-to-db",
+      "from": {
+        "objectId": "kernel",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "db",
+        "anchor": "right"
+      },
+      "label": "container, session, and run rows; trace events",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "db-to-trace-db",
+      "from": {
+        "objectId": "db",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "trace-db",
+        "anchor": "top"
+      },
+      "label": "rows (SQL)",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "prompt-kit-to-kernel",
+      "from": {
+        "objectId": "prompt-kit",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "kernel",
+        "anchor": "right"
+      },
+      "label": "prompt documents, promptHash",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "prompt-kit-server-to-kernel",
+      "from": {
+        "objectId": "prompt-kit-server",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "kernel",
+        "anchor": "right"
+      },
+      "label": "prompt store: catalog writes, revisions",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "host-to-kernel",
+      "from": {
+        "objectId": "host-apps",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "kernel",
+        "anchor": "bottom"
+      },
+      "label": "catalog bundles, createKernel config, spawnAgent; mounts /kernel/* routes",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "core-harness-to-kernel",
+      "from": {
+        "objectId": "core-harness",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "kernel",
+        "anchor": "top"
+      },
+      "label": "generic catalog bundles; mounts /kernel/* routes",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "tui-to-kernel",
+      "from": {
+        "objectId": "tui",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "kernel",
+        "anchor": "right"
+      },
+      "label": "catalog bundles through db-free exports",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "tui-to-trace-db",
+      "from": {
+        "objectId": "tui",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "trace-db",
+        "anchor": "right"
+      },
+      "label": "markers in pi JSONL, then agent-kernel-tui-ingest",
+      "style": "dashed",
+      "arrow": "forward"
+    },
+    {
+      "id": "viewer-core-to-kernel",
+      "from": {
+        "objectId": "viewer-core",
+        "anchor": "top"
+      },
+      "to": {
+        "objectId": "kernel",
+        "anchor": "bottom"
+      },
+      "label": "/kernel/* HTTP through the host's mounted routes",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "viewer-ui-to-viewer-core",
+      "from": {
+        "objectId": "viewer-ui",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "viewer-core",
+        "anchor": "right"
+      },
+      "label": "trace model, catalog data",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "viewer-shell-to-viewer-ui",
+      "from": {
+        "objectId": "viewer-shell",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "viewer-ui",
+        "anchor": "right"
+      },
+      "label": "composes components",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "host-to-viewer-shell",
+      "from": {
+        "objectId": "host-apps",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "viewer-shell",
+        "anchor": "right"
+      },
+      "label": "mounts trace workspace, app plugins",
+      "style": "solid",
+      "arrow": "forward"
+    }
+  ],
+  "annotations": []
+}

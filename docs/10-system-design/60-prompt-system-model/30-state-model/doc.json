@@ -1,0 +1,3065 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-0e6900280aaf51eaabc3b21d1f5d9666",
+  "title": "State Model",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "state-model",
+          "three-section-request",
+          "state-sidecar",
+          "window-policy"
+        ],
+        "covers": "The agent state model decision record (D81-D99): what the model sees each request and how the kernel assembles it.",
+        "depends-on": [
+          "10-system-design/10-runtime-model",
+          "10-system-design/40-viewer-model",
+          "10-system-design/60-prompt-system-model/10-documents-and-bundles"
+        ]
+      },
+      "children": [
+        "b-30-sm-lead",
+        "b-30-sm-amendments-2026-07-27-70",
+        "b-30-sm-these-decisions-come-fro-71",
+        "b-30-sm-d81-the-state-is-the-ob-72",
+        "b-30-sm-status-decided-73",
+        "b-30-sm-decision-each-turn-the-74",
+        "b-30-sm-rationale-v1-optimizes-75",
+        "b-30-sm-d82-the-request-is-thre-76",
+        "b-30-sm-status-decided-77",
+        "b-30-sm-decision-every-provider-78",
+        "b-30-sm-system-prompt-th-79",
+        "b-30-sm-context-message-81",
+        "b-30-sm-rendered-state-t-83",
+        "b-30-sm-d27-modeled-dynamic-mate-85",
+        "b-30-sm-two-mechanics-make-this-86",
+        "b-30-sm-implementation-note-as-88",
+        "b-30-sm-request-assembly-seq",
+        "b-30-sm-d83-no-universal-state-89",
+        "b-30-sm-status-decided-90",
+        "b-30-sm-decision-the-kernel-def-91",
+        "b-30-sm-normal-agent-comes-in-92",
+        "b-30-sm-state-modes",
+        "b-30-sm-this-is-the-load-bearing-97",
+        "b-30-sm-inside-a-window-images-98",
+        "b-30-sm-implementation-note-as-99",
+        "b-30-sm-d84-the-state-ts-cont-100",
+        "b-30-sm-status-decided-101",
+        "b-30-sm-decision-an-agent-that-102",
+        "b-30-sm-the-kernel-decides-when-104",
+        "b-30-sm-render-owns-the-entire-105",
+        "b-30-sm-the-exact-sessionevent-106",
+        "b-30-sm-implementation-note-as-107",
+        "b-30-sm-d85-window-policy-is-pe-108",
+        "b-30-sm-status-decided-109",
+        "b-30-sm-decision-how-much-conve-110",
+        "b-30-sm-one-invariant-is-kernel-111",
+        "b-30-sm-d86-update-per-event-c-112",
+        "b-30-sm-status-decided-113",
+        "b-30-sm-decision-update-is-fe-114",
+        "b-30-sm-rationale-measured-on-115",
+        "b-30-sm-d86-measurements",
+        "b-30-sm-implementation-note-as-116",
+        "b-30-sm-d87-seeding-comes-from-117",
+        "b-30-sm-status-decided-118",
+        "b-30-sm-decision-seed-receive-119",
+        "b-30-sm-rationale-automatic-reh-120",
+        "b-30-sm-d88-persistence-v1-is-a-121",
+        "b-30-sm-status-decided-122",
+        "b-30-sm-decision-v1-persists-st-123",
+        "b-30-sm-the-snapshot-is-also-wha-124",
+        "b-30-sm-d89-no-kernel-shipped-s-125",
+        "b-30-sm-status-decided-126",
+        "b-30-sm-decision-the-kernel-shi-127",
+        "b-30-sm-this-is-an-explicit-reje-128",
+        "b-30-sm-d90-full-request-snapsh-129",
+        "b-30-sm-status-decided-130",
+        "b-30-sm-decision-per-turn-reque-131",
+        "b-30-sm-demoting-snapshots-to-a-132",
+        "b-30-sm-d91-resume-means-multi-133",
+        "b-30-sm-status-decided-134",
+        "b-30-sm-decision-resume-in-v1-135",
+        "b-30-sm-crash-recovery-rebuild-136",
+        "b-30-sm-d92-one-sink-shape-now-137",
+        "b-30-sm-status-decided-138",
+        "b-30-sm-decision-trace-events-139",
+        "b-30-sm-two-channels-ride-the-se-140",
+        "b-30-sm-rationale-getting-runs-141",
+        "b-30-sm-the-boundary-the-sandbox-142",
+        "b-30-sm-implementation-note-as-143",
+        "b-30-sm-d93-the-canvas-layout-e-144",
+        "b-30-sm-status-decided-145",
+        "b-30-sm-decision-the-canvas-lay-146",
+        "b-30-sm-section-split-capabili-147",
+        "b-30-sm-section-policy-full-148",
+        "b-30-sm-d94-retired-the-fold-149",
+        "b-30-sm-status-decided-150",
+        "b-30-sm-decision-the-fold-proje-151",
+        "b-30-sm-the-explainer-that-carri-152",
+        "b-30-sm-rationale-three-stores-153",
+        "b-30-sm-d95-rejected-a-univers-154",
+        "b-30-sm-status-decided-155",
+        "b-30-sm-decision-a-kernel-impos-156",
+        "b-30-sm-rationale-such-a-frame-157",
+        "b-30-sm-d96-rejected-state-as-158",
+        "b-30-sm-status-decided-159",
+        "b-30-sm-decision-modeling-state-160",
+        "b-30-sm-rationale-a-derived-cac-161",
+        "b-30-sm-d97-build-order-docs-162",
+        "b-30-sm-status-decided-163",
+        "b-30-sm-decision-the-state-mode-164",
+        "b-30-sm-docs-the-design-re-165",
+        "b-30-sm-kernel-the-seed-up-167",
+        "b-30-sm-viewer-the-three-s-169",
+        "b-30-sm-canvas-board-v1-s-171",
+        "b-30-sm-sandbox-spool-drai-173",
+        "b-30-sm-d98-the-bundle-is-four-175",
+        "b-30-sm-status-decided-176",
+        "b-30-sm-decision-an-agent-bundl-177",
+        "b-30-sm-the-bundle-mirrors-the-r-179",
+        "b-30-sm-the-rules-that-make-the-180",
+        "b-30-sm-scale-down-rule-eve-183",
+        "b-30-sm-file-first-resolution-185",
+        "b-30-sm-declarations-live-in-b-187",
+        "b-30-sm-sharing-is-the-rule-of-189",
+        "b-30-sm-a-convention-the-pilot-s-191",
+        "b-30-sm-rationale-the-four-sect-192",
+        "b-30-sm-implementation-note-as-193",
+        "b-30-sm-divider-194",
+        "b-30-sm-amendments-2026-07-28-195",
+        "b-30-sm-the-trace-viewer-was-rew-196",
+        "b-30-sm-d99-kernel-authored-req-197",
+        "b-30-sm-status-decided-198",
+        "b-30-sm-decision-the-synthetic-199",
+        "b-30-sm-the-customtype-constants-200",
+        "b-30-sm-the-same-module-owns-the-201",
+        "b-30-sm-rationale-before-this-202",
+        "b-30-sm-source-as-built-pack-203"
+      ]
+    },
+    "b-30-sm-lead": {
+      "id": "b-30-sm-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The state model owns what the model sees on each request: one state object per agent, rendered into a request of three sections. This page is its decision record, D81–D99, with rationale. The runtime contracts the decisions produce, "
+        },
+        {
+          "insert": "StateModule",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "WindowPolicy",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", are defined in "
+        },
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-amendments-2026-07-27-70": {
+      "id": "b-30-sm-amendments-2026-07-27-70",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Amendments: 2026-07-27 State Model Interview"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-these-decisions-come-fro-71": {
+      "id": "b-30-sm-these-decisions-come-fro-71",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These decisions come from the state-model design interview on 2026-07-27 and supersede earlier entries where noted. The entries below are the design record for the state model."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d81-the-state-is-the-ob-72": {
+      "id": "b-30-sm-d81-the-state-is-the-ob-72",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D81. The State Is the Observation (new)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-73": {
+      "id": "b-30-sm-status-decided-73",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-each-turn-the-74": {
+      "id": "b-30-sm-decision-each-turn-the-74",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: Each turn, the agent is dropped into the current state and asked\nfor the next step, the state is the observation, the model is the policy,\nas in a PPO setup. The consequence that orders everything after it: "
+        },
+        {
+          "insert": "the\nmessages are part of the state",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ". Conversation history is not a store that\nsits beside the state; it is one component of it, alongside whatever domain\ncomponents the agent has. There is one state object per agent, and one\nmoving piece in every request: the render of that object."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-rationale-v1-optimizes-75": {
+      "id": "b-30-sm-rationale-v1-optimizes-75",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Rationale: v1 optimizes for context control. Every request is deliberately\nconstructed and nothing accumulates, so there is no compaction step to\ndesign and no ever-growing transcript to compress. Restart stays the honesty\ntest, a state that cannot restart the work is not the state, and the\ninterface falls out of getting the representation right."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d82-the-request-is-thre-76": {
+      "id": "b-30-sm-d82-the-request-is-thre-76",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D82. The Request Is Three Sections (revises D27)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-77": {
+      "id": "b-30-sm-status-decided-77",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-every-provider-78": {
+      "id": "b-30-sm-decision-every-provider-78",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: Every provider request the kernel builds has exactly three\nsections, and the kernel builds all three:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-system-prompt-th-79": {
+      "id": "b-30-sm-system-prompt-th-79",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "① "
+        },
+        {
+          "insert": "system prompt",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ", the agent's instructions in XML tags; effectively fixed for the session (frozen at Pi session creation, per D72)."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-context-message-81": {
+      "id": "b-30-sm-context-message-81",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "② "
+        },
+        {
+          "insert": "context message",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ", reference material that should be visible on every request: capabilities, skills, style guides, reference sheets. Rebuilt each request from a kernel-held set (id → content), never accumulated in the transcript."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-rendered-state-t-83": {
+      "id": "b-30-sm-rendered-state-t-83",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "③ "
+        },
+        {
+          "insert": "rendered state",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ", the working picture plus however much recent conversation the renderer chooses to emit. Re-rendered every request by "
+        },
+        {
+          "insert": "render(state)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d27-modeled-dynamic-mate-85": {
+      "id": "b-30-sm-d27-modeled-dynamic-mate-85",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "D27 modeled dynamic material as one \"runtime input packet\" and accepted a\ndeliberately blurry boundary between context, conversation history, and the\ncurrent turn. That boundary is now drawn: reference material is ②,\neverything that moves is ③, and the conversation lives inside ③ because it is\npart of the state (D81)."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-two-mechanics-make-this-86": {
+      "id": "b-30-sm-two-mechanics-make-this-86",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two mechanics make this honest. ② is rebuilt, not pinned: adding a skill\nmid-run adds an entry, losing one removes it, and nothing stale can linger\nbecause nothing is attached to history. ③ may contain real messages ,\nconceptually the recent conversation is state being rendered, but the\nrenderer emits it as genuine user/assistant/tool messages, because providers\nrequire real structure for tool-call pairing and models reason better over\nreal turns. The in-flight turn is always real messages."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-implementation-note-as-88": {
+      "id": "b-30-sm-implementation-note-as-88",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Implementation note (as built): the rebuilt-② mechanic is scoped to sessions where the state extension is active. There, an agent's "
+        },
+        {
+          "insert": "context.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " result becomes the context-set entry "
+        },
+        {
+          "insert": "agent-context:<name>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the sequence below assembles every request. Pass-through agents (D83) keep the legacy path: context is injected once as an "
+        },
+        {
+          "insert": "agent-context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " custom message and pinned in the transcript, guarded by agent name. That path is current behavior, not the target."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-request-assembly-seq": {
+      "id": "b-30-sm-request-assembly-seq",
+      "type": "sequence",
+      "props": {
+        "src": "./assets/sequences/request-assembly.sequence.json",
+        "title": "Per-request three-section assembly"
+      },
+      "children": []
+    },
+    "b-30-sm-d83-no-universal-state-89": {
+      "id": "b-30-sm-d83-no-universal-state-89",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D83. No Universal State Schema; the Base Agent Is a Normal Agent (new)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-90": {
+      "id": "b-30-sm-status-decided-90",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-the-kernel-def-91": {
+      "id": "b-30-sm-decision-the-kernel-def-91",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: The kernel defines no state schema. An agent with no "
+        },
+        {
+          "insert": "state.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is\na completely normal agent: its state is its messages, no state block, no XML\nceremony, nothing imposed. A rich agent extends the same object with its own\ndomain shape, which the kernel never looks inside."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-normal-agent-comes-in-92": {
+      "id": "b-30-sm-normal-agent-comes-in-92",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "\"Normal agent\" comes in two flavors, pass-through and base module, and a rich agent adds its own "
+        },
+        {
+          "insert": "state.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The mode follows from opt-in configuration (D85), never a kernel default:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-state-modes": {
+      "id": "b-30-sm-state-modes",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Mode",
+          "Registered",
+          "Rendered"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "Pass-through",
+                "attributes": {
+                  "bold": true
+                }
+              },
+              {
+                "insert": ": no "
+              },
+              {
+                "insert": "state.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", no "
+              },
+              {
+                "insert": "state.window",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Nothing. The session behaves byte-identically to one run before the state layer existed.",
+            "Pi's own transcript: unbounded history, no window, no elision marker."
+          ],
+          [
+            [
+              {
+                "insert": "Base module",
+                "attributes": {
+                  "bold": true
+                }
+              },
+              {
+                "insert": ": "
+              },
+              {
+                "insert": "state.window",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", no "
+              },
+              {
+                "insert": "state.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The state extension with the kernel's bookkeeping-only base module.",
+            "A rolling window of real messages, with one elision marker where history was cut."
+          ],
+          [
+            [
+              {
+                "insert": "Rich",
+                "attributes": {
+                  "bold": true
+                }
+              },
+              {
+                "insert": ": "
+              },
+              {
+                "insert": "state.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", with or without "
+              },
+              {
+                "insert": "state.window",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The state extension with the agent's own module.",
+            [
+              {
+                "insert": "Whatever the agent's "
+              },
+              {
+                "insert": "render",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " returns: state block lines plus the conversation tail."
+              }
+            ]
+          ]
+        ],
+        "title": "State modes"
+      },
+      "children": []
+    },
+    "b-30-sm-this-is-the-load-bearing-97": {
+      "id": "b-30-sm-this-is-the-load-bearing-97",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This is the load-bearing piece of the model. The schema-free base case is\nwhat lets one kernel serve a plain conversational agent and a board editor\nwith the same contract and no special cases, the difference is which\ncomponents the agent's state has, not which code path runs."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-inside-a-window-images-98": {
+      "id": "b-30-sm-inside-a-window-images-98",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Inside a window, images past a newest-K cap degrade to one-line stubs before\nwhole turns drop. There is no compaction step anywhere, because nothing\naccumulates to compact, and an agent that opts into no window is not\ncompacted either, it is simply left as it is today."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-implementation-note-as-99": {
+      "id": "b-30-sm-implementation-note-as-99",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Implementation note (as built): "
+        },
+        {
+          "insert": "stateExtensionEnabled",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the gate, true for a "
+        },
+        {
+          "insert": "state.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sidecar or a "
+        },
+        {
+          "insert": "state.window",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " manifest block. With neither, the extension is not registered at all, which makes the pass-through guarantee mechanical rather than a promise."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d84-the-state-ts-cont-100": {
+      "id": "b-30-sm-d84-the-state-ts-cont-100",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D84. The "
+        },
+        {
+          "insert": "state.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " Contract: seed / update / render (new; extends D76)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-101": {
+      "id": "b-30-sm-status-decided-101",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-an-agent-that-102": {
+      "id": "b-30-sm-decision-an-agent-that-102",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: An agent that wants more than the base behavior ships a "
+        },
+        {
+          "insert": "state.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sidecar in the agent directory, attached by filename convention like "
+        },
+        {
+          "insert": "context.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "tools.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", exporting three functions: "
+        },
+        {
+          "insert": "seed",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "update",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "render",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The "
+        },
+        {
+          "insert": "StateModule",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " contract and its signatures live in "
+        },
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-the-kernel-decides-when-104": {
+      "id": "b-30-sm-the-kernel-decides-when-104",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel decides "
+        },
+        {
+          "insert": "when",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " these run; the agent decides "
+        },
+        {
+          "insert": "what",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " they mean. "
+        },
+        {
+          "insert": "S",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "\nis the agent's own type and the kernel never inspects it. One requirement\nholds over it: "
+        },
+        {
+          "insert": "S",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " must be JSON-serializable, because it snapshots to\n"
+        },
+        {
+          "insert": "state.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (D88)."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-render-owns-the-entire-105": {
+      "id": "b-30-sm-render-owns-the-entire-105",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "render",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " owns the entire request body after ① and ②, the state block and\nwhatever recent conversation it chooses to emit as real messages. There is\nno kernel-side renderer competing with it for that region, and no kernel\nopinion about what a state block looks like."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-the-exact-sessionevent-106": {
+      "id": "b-30-sm-the-exact-sessionevent-106",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The exact "
+        },
+        {
+          "insert": "SessionEvent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " shape "
+        },
+        {
+          "insert": "update",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " receives is deliberately left to the\nkernel build stage."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-implementation-note-as-107": {
+      "id": "b-30-sm-implementation-note-as-107",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Implementation note (as built): "
+        },
+        {
+          "insert": "render",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " returns either a bare\n"
+        },
+        {
+          "insert": "AgentMessage[]",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", every message counts as conversation tail, or\n"
+        },
+        {
+          "insert": "{ messages, stateMessageCount }",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", where the leading "
+        },
+        {
+          "insert": "stateMessageCount",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "\nmessages are the state block(s) and the rest is the tail. That count is how\nthe renderer declares the split "
+        },
+        {
+          "insert": "within",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " section ③, which is what the\nthree-section builder turns into "
+        },
+        {
+          "insert": "state",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "tail",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " boundaries and the viewer\nrenders structurally (D90). The kernel still has no opinion about what a\nstate block contains, only about where the renderer says it ends."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d85-window-policy-is-pe-108": {
+      "id": "b-30-sm-d85-window-policy-is-pe-108",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D85. Window Policy Is Per-Agent Configuration (new)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-109": {
+      "id": "b-30-sm-status-decided-109",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-how-much-conve-110": {
+      "id": "b-30-sm-decision-how-much-conve-110",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: How much conversation renders is per-agent configuration, not a\nkernel rule. The kernel ships sizing strategies, turn count, token budget,\nmore as they are needed, and each agent's config picks and tunes one.\nDefault sizes per strategy are decided at the kernel build stage."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-one-invariant-is-kernel-111": {
+      "id": "b-30-sm-one-invariant-is-kernel-111",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "One invariant is kernel-owned and not configurable: "
+        },
+        {
+          "insert": "cuts land only on turn\nboundaries",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ". An assistant "
+        },
+        {
+          "insert": "toolCall",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and its "
+        },
+        {
+          "insert": "toolResult",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are never split,\nbecause providers reject orphaned halves."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d86-update-per-event-c-112": {
+      "id": "b-30-sm-d86-update-per-event-c-112",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D86. Update Per Event, Catch-Up in "
+        },
+        {
+          "insert": "context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", Render Per Request (new)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-113": {
+      "id": "b-30-sm-status-decided-113",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-update-is-fe-114": {
+      "id": "b-30-sm-decision-update-is-fe-114",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: "
+        },
+        {
+          "insert": "update",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is fed one event at a time, in order, as the session\nadvances, user message, tool call, tool result, turn boundary, driven by\nPi's blocking hooks. "
+        },
+        {
+          "insert": "render",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " runs once per provider request, inside the\n"
+        },
+        {
+          "insert": "context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " hook. Before rendering, "
+        },
+        {
+          "insert": "context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " applies any events "
+        },
+        {
+          "insert": "update",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " has\nnot yet seen (catch-up) and only then renders; when everything is current\nthis costs one comparison."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-rationale-measured-on-115": {
+      "id": "b-30-sm-rationale-measured-on-115",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Rationale: measured on "
+        },
+        {
+          "insert": "@earendil-works/pi-*@0.82.1",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the message and turn hooks block the loop in order, and "
+        },
+        {
+          "insert": "context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the only hook that can rewrite the outgoing message array, non-destructively, affecting exactly one request and never feeding forward. Per-event update keeps the state current without a batch step. The catch-up line is what makes a retry, or the first request of a new prompt, unable to render stale state."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d86-measurements": {
+      "id": "b-30-sm-d86-measurements",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The measurements live in "
+        },
+        {
+          "insert": "spikes/pi-hook-blocking/RESULTS.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Two facts from them carry the design. The "
+        },
+        {
+          "insert": "context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " hook's result lands in a per-request copy (Pi hands handlers a "
+        },
+        {
+          "insert": "structuredClone",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and uses the result for exactly one request), so state can never live in the message array: it lives in kernel storage and is rendered in. And "
+        },
+        {
+          "insert": "await session.prompt()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " resolves only after every lifecycle handler settles (0.82.1 also ships an explicit "
+        },
+        {
+          "insert": "agent_settled",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " hook), so end-of-run is a real barrier."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-implementation-note-as-116": {
+      "id": "b-30-sm-implementation-note-as-116",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Implementation note (as built): there is no per-"
+        },
+        {
+          "insert": "tool_call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " hook. The pumps in the D82 request-assembly sequence derive user-message, tool-call, and tool-result events from the session message array. Only the turn boundary comes from a hook, because the transcript cannot reconstruct one. Every pump folds from one cursor to the array's end, so catch-up is idempotent by construction rather than by dedupe bookkeeping."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d87-seeding-comes-from-117": {
+      "id": "b-30-sm-d87-seeding-comes-from-117",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D87. Seeding Comes From SpawnContext; Prior State Only When Passed (new)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-118": {
+      "id": "b-30-sm-status-decided-118",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-seed-receive-119": {
+      "id": "b-30-sm-decision-seed-receive-119",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: "
+        },
+        {
+          "insert": "seed",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " receives the same "
+        },
+        {
+          "insert": "SpawnContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " the context loaders receive\ntoday, session data, agent config, cwd, plus, optionally, a prior run's\nfinal state passed in explicitly by the caller. The kernel never auto-loads a\nprevious state file."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-rationale-automatic-reh-120": {
+      "id": "b-30-sm-rationale-automatic-reh-120",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Rationale: automatic rehydration would make a spawn's starting state a\nfunction of whatever happened to be on disk, which is precisely the kind of\ninvisible input the trace cannot explain. Continuity is a caller decision and\nshould be visible as one."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d88-persistence-v1-is-a-121": {
+      "id": "b-30-sm-d88-persistence-v1-is-a-121",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D88. Persistence v1 Is a "
+        },
+        {
+          "insert": "state.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " Snapshot (new)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-122": {
+      "id": "b-30-sm-status-decided-122",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-v1-persists-st-123": {
+      "id": "b-30-sm-decision-v1-persists-st-123",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: v1 persists state as a snapshot only, "
+        },
+        {
+          "insert": "state.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", written after\neach update batch under "
+        },
+        {
+          "insert": ".agent-kernel/state/<container>/<agent>/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", through\nthe emission sink seam (D92). No action log and no artifact byte-store yet."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-the-snapshot-is-also-wha-124": {
+      "id": "b-30-sm-the-snapshot-is-also-wha-124",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The snapshot is also what enforces the JSON-serializable requirement on "
+        },
+        {
+          "insert": "S",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "\nfrom day one, and what makes state inspectable as an ordinary file while the\nmodel is being piloted."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d89-no-kernel-shipped-s-125": {
+      "id": "b-30-sm-d89-no-kernel-shipped-s-125",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D89. No Kernel-Shipped State Tools (new)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-126": {
+      "id": "b-30-sm-status-decided-126",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-the-kernel-shi-127": {
+      "id": "b-30-sm-decision-the-kernel-shi-127",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: The kernel ships no state-mutation tools. An agent that wants a\nnotes channel, a scratchpad, or an explicit memory write declares its own\ntool in "
+        },
+        {
+          "insert": "tools.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and handles the resulting event in "
+        },
+        {
+          "insert": "update",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " like any other\nevent."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-this-is-an-explicit-reje-128": {
+      "id": "b-30-sm-this-is-an-explicit-reje-128",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This is an explicit rejection of the kernel-provided "
+        },
+        {
+          "insert": "remember",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "-style tool\nconsidered during the interview. Such a tool would put a second writer on\nstate the kernel is not allowed to look inside, and would add a capability to\nevery agent's tool surface that most agents do not want. "
+        },
+        {
+          "insert": "update",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is already\nthe single writer; keeping it the only one is what makes state transitions\nexplainable from the event stream."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d90-full-request-snapsh-129": {
+      "id": "b-30-sm-d90-full-request-snapsh-129",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D90. Full Request Snapshots Stay and Gain Section Tags (new)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-130": {
+      "id": "b-30-sm-status-decided-130",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-per-turn-reque-131": {
+      "id": "b-30-sm-decision-per-turn-reque-131",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: Per-turn request snapshots keep capturing the full outgoing window into content-addressed trace blobs. The builder also tags message ranges with three section kinds: "
+        },
+        {
+          "insert": "context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for ②, and "
+        },
+        {
+          "insert": "state",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "tail",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for ③, which splits into the rendered state block and the conversation tail ("
+        },
+        {
+          "insert": "packages/kernel/src/state/types.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). The system prompt ① sits outside the message list and carries no tag. The viewer uses the tags to render the exact context window a turn ran on, the turn renderer."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-demoting-snapshots-to-a-132": {
+      "id": "b-30-sm-demoting-snapshots-to-a-132",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Demoting snapshots to a hash receipt, store the hash, drop the bytes, was\nconsidered and rejected. The point of the pilot is being able to read the\nwindow the model actually saw; a receipt only proves that two windows\ndiffered, at exactly the moment the question is "
+        },
+        {
+          "insert": "how",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d91-resume-means-multi-133": {
+      "id": "b-30-sm-d91-resume-means-multi-133",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D91. Resume Means Multi-Prompt Continuity, Not Crash Recovery (new)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-134": {
+      "id": "b-30-sm-status-decided-134",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-resume-in-v1-135": {
+      "id": "b-30-sm-decision-resume-in-v1-135",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: \"Resume\" in v1 means a long-running session taking message after\nmessage: state lives in the extension across prompts and "
+        },
+        {
+          "insert": "update",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " keeps\nfolding it forward. This is inherent in the model rather than a feature."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-crash-recovery-rebuild-136": {
+      "id": "b-30-sm-crash-recovery-rebuild-136",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Crash recovery, rebuilding a live agent from persisted state after process\ndeath, is explicitly out of scope for v1. "
+        },
+        {
+          "insert": "state.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (D88) is written for\ninspection and transfer, not as a resume image."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d92-one-sink-shape-now-137": {
+      "id": "b-30-sm-d92-one-sink-shape-now-137",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D92. One Sink Shape Now, Remote Sink at the Sandbox Stage (extends D74, D75)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-138": {
+      "id": "b-30-sm-status-decided-138",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided. The remote sink is not yet built."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-trace-events-139": {
+      "id": "b-30-sm-decision-trace-events-139",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: Trace events, request snapshots, and state writes all emit through\nthe same "
+        },
+        {
+          "insert": "sink shape",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "submit()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "/"
+        },
+        {
+          "insert": "flush()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " behind a serialized promise\ntail, the pattern the kernel already had in "
+        },
+        {
+          "insert": "TraceWriterSink",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". In v1 the\nbinding is local: "
+        },
+        {
+          "insert": "trace.db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " plus "
+        },
+        {
+          "insert": "state.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The sandbox stage adds the\nremote binding, spool file → drain loop → POST, as a sink swap, with no\nconditional paths in the emitter and the same durability semantics in both\ntopologies."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-two-channels-ride-the-se-140": {
+      "id": "b-30-sm-two-channels-ride-the-se-140",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two channels ride the seams: the state channel is acked and deduped on the\nstate version; the observability channel is droppable under backpressure. Ack\nand backpressure specifics are decided at the sandbox stage."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-rationale-getting-runs-141": {
+      "id": "b-30-sm-rationale-getting-runs-141",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Rationale: getting runs, traces, and state out of a sandbox is designed with\nv1 and built at stage 5 (D97). Designing it later is what produces a fork\nbetween local and sandbox emission; building it later against a seam that\nalready exists does not."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-the-boundary-the-sandbox-142": {
+      "id": "b-30-sm-the-boundary-the-sandbox-142",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The boundary the sandbox stage draws is a lifetime split, not a format\nchange: "
+        },
+        {
+          "insert": "trace.db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the durable record and must not share the sandbox's\nfate, while Pi's session JSONL and the app's session directories are\nrun-local and presumed lost with the machine. In a sandbox the kernel writes\nonly a run-local directory and the trace database lives with the receiver;\non a single machine the two collapse back into one "
+        },
+        {
+          "insert": ".agent-kernel/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " folder ,\na deployment concern, not a code fork. The remote binding's emit step is a\nlocal spool-file append, never a network call, so it cannot block the agent;\nthe drain loop reads forward from a committed cursor and advances it only on\nsuccess."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-implementation-note-as-143": {
+      "id": "b-30-sm-implementation-note-as-143",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Implementation note (as built): this is two structurally\nidentical seams, not one interface, "
+        },
+        {
+          "insert": "TraceWriterSink",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (trace events, request\nsnapshots) and "
+        },
+        {
+          "insert": "StateSink",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (state snapshots), each "
+        },
+        {
+          "insert": "submit()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "/"
+        },
+        {
+          "insert": "flush()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with\na serialized tail, each swappable independently. That satisfies what the\ndecision was for: transfer-out is a binding change on both seams, with no\nconditional paths in the emitter or the state extension. Whether the two\ncollapse into one interface is open, and is a sandbox-stage call, it only\nmatters once a single remote transport carries both channels."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d93-the-canvas-layout-e-144": {
+      "id": "b-30-sm-d93-the-canvas-layout-e-144",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D93. The Canvas Layout-Editor Is the v1 Pilot (new)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-145": {
+      "id": "b-30-sm-status-decided-145",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-the-canvas-lay-146": {
+      "id": "b-30-sm-decision-the-canvas-lay-146",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: The canvas layout-editor is the pilot agent for the state model.\nThe core code lives in the kernel; the pilot only supplies its own "
+        },
+        {
+          "insert": "state.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-section-split-capabili-147": {
+      "id": "b-30-sm-section-split-capabili-147",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Section split: "
+        },
+        {
+          "insert": "capabilities",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "style_guide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the exemplar /\ncontact-sheet images stay in section ② as reference material. The\n"
+        },
+        {
+          "insert": "board_state",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "editor_state",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "user_requests",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " spawn loaders retire as\nloaders and become state, seeded from the same "
+        },
+        {
+          "insert": "sessionData",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " they read today."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-section-policy-full-148": {
+      "id": "b-30-sm-section-policy-full-148",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Section ③ policy: "
+        },
+        {
+          "insert": "full board every turn",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " (so it is never stale),\n"
+        },
+        {
+          "insert": "close-ups on demand",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " through the "
+        },
+        {
+          "insert": "look",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tool, "
+        },
+        {
+          "insert": "diff always visible",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ".\nState tracks the work "
+        },
+        {
+          "insert": "around",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " the canvas document, scope, applied ops,\nlints, views, the request queue, and never holds a copy of the document,\nwhich stays authoritative where it lives and is re-derived into the board\nblock each request. Close-up policy and image caps are decided at the canvas\nbuild stage."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d94-retired-the-fold-149": {
+      "id": "b-30-sm-d94-retired-the-fold-149",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D94. Retired: the Fold / Projection Vocabulary and the Three-Store Model (retires the fold/projection explainer's model)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-150": {
+      "id": "b-30-sm-status-decided-150",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-the-fold-proje-151": {
+      "id": "b-30-sm-decision-the-fold-proje-151",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: The fold/projection vocabulary and the three-store framing, a\nstate document, the diffs not yet folded into it, and the message history,\ncompiled together per request, are retired. \"Fold\" is "
+        },
+        {
+          "insert": "update",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; \"project\"\nis "
+        },
+        {
+          "insert": "render",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; the three stores collapse into one state object whose\ncomponents include the messages (D81)."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-the-explainer-that-carri-152": {
+      "id": "b-30-sm-the-explainer-that-carri-152",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The explainer that carried the fold/projection model is retired with it. The\nmeasured Pi 0.82.1 hook behavior that still underpins the wiring survives in\n"
+        },
+        {
+          "insert": "spikes/pi-hook-blocking/RESULTS.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and is summarized in D86."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-rationale-three-stores-153": {
+      "id": "b-30-sm-rationale-three-stores-153",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Rationale: three stores meant three places a fact could live and sync rules\nbetween them. The unfolded-diff store existed only because folding was\nassumed too expensive to run on the critical path; the 0.82.1 measurements\nremoved that assumption, and with it the store."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d95-rejected-a-univers-154": {
+      "id": "b-30-sm-d95-rejected-a-univers-154",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D95. Rejected: a Universal State Frame (new)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-155": {
+      "id": "b-30-sm-status-decided-155",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-a-kernel-impos-156": {
+      "id": "b-30-sm-decision-a-kernel-impos-156",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: A kernel-imposed universal state frame, every agent's state\ncarrying the same top-level fields, sketched during the interview as\nfocus / actions / decisions, was considered and rejected. The kernel defines\nno fields."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-rationale-such-a-frame-157": {
+      "id": "b-30-sm-rationale-such-a-frame-157",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Rationale: such a frame only fits agents whose work happens to decompose that\nway. A board editor's state is a board; a plain agent's state is its messages.\nA universal frame forces both into vocabulary that describes neither, and\nmakes the kernel responsible for the meaning of state it cannot interpret.\nD83 is the positive form of this decision."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d96-rejected-state-as-158": {
+      "id": "b-30-sm-d96-rejected-state-as-158",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D96. Rejected: State as a Transcript-Derived Cache (new)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-159": {
+      "id": "b-30-sm-status-decided-159",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-modeling-state-160": {
+      "id": "b-30-sm-decision-modeling-state-160",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: Modeling state as a derived cache over an append-only transcript ,\nthe transcript remaining the source of truth, state being a recomputable\ncompression of it, was considered and rejected. The state object is the\nsource of truth, and the messages are one of its components (D81)."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-rationale-a-derived-cac-161": {
+      "id": "b-30-sm-rationale-a-derived-cac-161",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Rationale: a derived cache has to answer what happens when it disagrees with\nits source, and the answer is always \"rebuild it\", which brings replay,\ninvalidation, and versioning along behind it. It also inverts what the model\nis for: a board's current geometry is not a compression of the conversation\nthat produced it, and domain state that no message contains would have no\nhome at all."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d97-build-order-docs-162": {
+      "id": "b-30-sm-d97-build-order-docs-162",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D97. Build Order: Docs, Kernel, Viewer, Canvas, Sandbox (new)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-163": {
+      "id": "b-30-sm-status-decided-163",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided. Stage 5 (sandbox) is not yet built."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-the-state-mode-164": {
+      "id": "b-30-sm-decision-the-state-mode-164",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: The state model ships in five stages, in this order:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-docs-the-design-re-165": {
+      "id": "b-30-sm-docs-the-design-re-165",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Docs",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": the design record, iterated until the state representation is right. Sign-off gates everything after it."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-kernel-the-seed-up-167": {
+      "id": "b-30-sm-kernel-the-seed-up-167",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Kernel",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": the seed/update/render contract, the three-section builder, window policies, snapshot section tags, state through the sink seam. Proves base agents behave like normal agents."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-viewer-the-three-s-169": {
+      "id": "b-30-sm-viewer-the-three-s-169",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Viewer",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": the three-section turn view. Proves every window is visible while piloting."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-canvas-board-v1-s-171": {
+      "id": "b-30-sm-canvas-board-v1-s-171",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Canvas",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": board v1 "
+        },
+        {
+          "insert": "state.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; the three picture loaders retire. Proves the rich case on a real agent."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-sandbox-spool-drai-173": {
+      "id": "b-30-sm-sandbox-spool-drai-173",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Sandbox",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": spool/drain/remote sink and the acked state channel, built and verified working rather than only designed. Not yet built: "
+        },
+        {
+          "insert": "state/store.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " has only the sink seam a remote binding would fill."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d98-the-bundle-is-four-175": {
+      "id": "b-30-sm-d98-the-bundle-is-four-175",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D98. The Bundle Is Four Sections, Mirroring the Request (extends D5, D76)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-176": {
+      "id": "b-30-sm-status-decided-176",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-an-agent-bundl-177": {
+      "id": "b-30-sm-decision-an-agent-bundl-177",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: An agent bundle is "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " plus four sections, prompt, context, tools, state, and each section has two legal shapes: a single file, or a folder with an "
+        },
+        {
+          "insert": "index.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " entry point. "
+        },
+        {
+          "insert": "Documents and Bundles",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/10-documents-and-bundles"
+            }
+          }
+        },
+        {
+          "insert": " draws the tree."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-the-bundle-mirrors-the-r-179": {
+      "id": "b-30-sm-the-bundle-mirrors-the-r-179",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The bundle mirrors the request (D82): read the tree top to bottom and you\nread the request left to right. Everything that defines "
+        },
+        {
+          "insert": "one",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " agent is one\nvertical slice narrowed by runtime role, rather than horizontal repo layers\nwhere all loaders live together, all styles live together, and nothing is\nattributable to the agent it serves."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-the-rules-that-make-the-180": {
+      "id": "b-30-sm-the-rules-that-make-the-180",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The rules that make the tree load-bearing rather than cosmetic:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-scale-down-rule-eve-183": {
+      "id": "b-30-sm-scale-down-rule-eve-183",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Scale-down rule.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Every folder collapses back to a single file, and the file form stays permanently legal, "
+        },
+        {
+          "insert": "state.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " alone is not a legacy shape. A base agent is "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " plus a prompt; the "
+        },
+        {
+          "insert": "absence",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " of the other sections is the statement that it is a plain agent (D83)."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-file-first-resolution-185": {
+      "id": "b-30-sm-file-first-resolution-185",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "File-first resolution.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " When both forms exist the file wins "
+        },
+        {
+          "insert": "silently",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ", which lets a migration leave a one-line re-export shim at the old path. The losing path is recorded so "
+        },
+        {
+          "insert": "doctor --catalog",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " can report it. A prompt missing in "
+        },
+        {
+          "insert": "both",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " forms is a boot error naming both paths."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-declarations-live-in-b-187": {
+      "id": "b-30-sm-declarations-live-in-b-187",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Declarations live in bundles; loader implementations stay app-registered.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The vertical slice owns what "
+        },
+        {
+          "insert": "this",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " agent's context contains, not the machinery that loads it, the D25/D40 boundary is unchanged by the tree. That includes spawn-rendered artifacts: a contact sheet that exists only at runtime lives in the bundle as the "
+        },
+        {
+          "insert": "recipe",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " that produces and attaches it."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-sharing-is-the-rule-of-189": {
+      "id": "b-30-sm-sharing-is-the-rule-of-189",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Sharing is the rule of two.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " An asset lives inside one agent's bundle until a second agent needs it; then the "
+        },
+        {
+          "insert": "bytes",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " promote to "
+        },
+        {
+          "insert": "catalog/_shared/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", while each consumer still declares it in its own context section. Library "
+        },
+        {
+          "insert": "code",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " stays in "
+        },
+        {
+          "insert": "src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The test: does this feed a section of "
+        },
+        {
+          "insert": "this",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " agent's request, or is it machinery any agent could run?"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-a-convention-the-pilot-s-191": {
+      "id": "b-30-sm-a-convention-the-pilot-s-191",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A convention the pilot set and rich bundles follow: tools, update rules, and\nrender blocks pair by name, "
+        },
+        {
+          "insert": "tools/apply-operation.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " defines an action,\n"
+        },
+        {
+          "insert": "state/rules/operations.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " defines what that action makes true, and\n"
+        },
+        {
+          "insert": "state/render/ops.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " defines how that truth is shown. One concern, three\nfiles, same name."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-rationale-the-four-sect-192": {
+      "id": "b-30-sm-rationale-the-four-sect-192",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Rationale: the four sections were already the runtime's real decomposition ,\nD82 named them in the request, D84 gave three of them a contract, but the\nbundle still expressed them as four flat files, which caps an agent at\nhowever much fits in one file per section. A rich agent's context inventory,\nper-event update rules, and per-block renderers each want their own files;\nwithout folders they either sprawl into one unreadable module or leak\nsideways into shared repo layers where they stop being attributable to an\nagent. Folders make the slice hold at any size, and the file-first rule means\nnothing about the simple case changes."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-implementation-note-as-193": {
+      "id": "b-30-sm-implementation-note-as-193",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Implementation note (as built): resolution lives in "
+        },
+        {
+          "insert": "agent-registry/registry/bundle-layout.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "AgentDefinition",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " gained "
+        },
+        {
+          "insert": "bundleLayout",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (resolved form + shadowed path per section) and "
+        },
+        {
+          "insert": "renderedPromptFile",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "agent-registry/prompt-snapshot.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and the "
+        },
+        {
+          "insert": "agent-kernel-render-prompts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " bin generate the markdown render through prompt-kit's "
+        },
+        {
+          "insert": "renderXmlMarkdown",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the same renderer that builds the system prompt, with a "
+        },
+        {
+          "insert": "--check",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " mode for CI. "
+        },
+        {
+          "insert": "runCatalogDoctor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "doctor-cli --catalog [--strict]",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " audit layouts. Every bundle in both repos is folder-form. The canvas layout-editor, the exemplar in its own repo, matches the tree."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-divider-194": {
+      "id": "b-30-sm-divider-194",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-30-sm-amendments-2026-07-28-195": {
+      "id": "b-30-sm-amendments-2026-07-28-195",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Amendments: 2026-07-28 Viewer Overhaul"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-the-trace-viewer-was-rew-196": {
+      "id": "b-30-sm-the-trace-viewer-was-rew-196",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The trace viewer was reworked across roughly twenty review rounds with Ford. Almost all of it is UX and belongs to the viewer's design record: the layout standard, the rejected alternatives, and the review outcomes live in the "
+        },
+        {
+          "insert": "Viewer Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/40-viewer-model"
+            }
+          }
+        },
+        {
+          "insert": ". Only the one decision that crossed into the kernel and the protocol is recorded here."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-d99-kernel-authored-req-197": {
+      "id": "b-30-sm-d99-kernel-authored-req-197",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "D99. Kernel-Authored Request Lines Are Wire-Marked (new; extends D82, D90)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-status-decided-198": {
+      "id": "b-30-sm-status-decided-198",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: decided."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-decision-the-synthetic-199": {
+      "id": "b-30-sm-decision-the-synthetic-199",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision: The synthetic messages the three-section builder puts into a request\n, the rebuilt ② context message and whatever section ③'s renderer emits around\nthe conversation tail, are authored as Pi "
+        },
+        {
+          "insert": "custom messages",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "role:\n\"custom\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with a "
+        },
+        {
+          "insert": "kernel:",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "-prefixed "
+        },
+        {
+          "insert": "customType",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", carrying "
+        },
+        {
+          "insert": "display: false",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ".\nPi's "
+        },
+        {
+          "insert": "convertToLlm",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " converts them to ordinary user messages with the same\ncontent blocks on the way to the provider, so they are provider-valid on the\nwire while remaining distinguishable everywhere else."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-the-customtype-constants-200": {
+      "id": "b-30-sm-the-customtype-constants-200",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The customType constants live in "
+        },
+        {
+          "insert": "@agent-kernel/protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "\n("
+        },
+        {
+          "insert": "kernel-messages.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), not in the kernel, because the marker is "
+        },
+        {
+          "insert": "wire-\nvisible",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": it survives into the sanitized message blobs a request snapshot\nreferences, and the viewer reads it back to badge those lines KERNEL instead\nof USER. Two constants are defined, "
+        },
+        {
+          "insert": "kernel:context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for section ② and\n"
+        },
+        {
+          "insert": "kernel:state",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for section ③, plus the prefix test "
+        },
+        {
+          "insert": "isKernelAuthoredMessage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ",\nwhich deliberately ignores custom messages an app extension authored."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-the-same-module-owns-the-201": {
+      "id": "b-30-sm-the-same-module-owns-the-201",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The same module owns the "
+        },
+        {
+          "insert": "image-elision envelope",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ". When the window replaces\nan old image block with a text placeholder (D85), the replacement is plain\ntext with no structural marker of its own, so producer and consumer must share\nthe exact envelope: "
+        },
+        {
+          "insert": "imageElisionMarkerText(description)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " builds it and\n"
+        },
+        {
+          "insert": "isImageElisionMarker(value)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " recognizes it. The description is deliberately\nopaque, so adding an image MIME type or a byte-size unit does not require a\nviewer release."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-rationale-before-this-202": {
+      "id": "b-30-sm-rationale-before-this-202",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Rationale: before this, the only way for a reader to tell a kernel-authored\nline from something the user said was position, \"it fell inside the snapshot's\nstate range\". Position is the right rule for "
+        },
+        {
+          "insert": "authorship of a section",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " (D90's\nsection tags), but it is the wrong rule for "
+        },
+        {
+          "insert": "authorship of a message",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": ": a\nprovider that transports an attached-render message as "
+        },
+        {
+          "insert": "role: \"user\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " makes a\nkernel line indistinguishable from a user turn the moment it moves. A\nwire-visible marker makes the answer intrinsic to the message and survives\nevery hop the message takes. Putting it in the protocol package rather than\nthe kernel is what keeps producer and consumer from drifting: the viewer never\nre-derives the rule, it imports it."
+        }
+      ],
+      "children": []
+    },
+    "b-30-sm-source-as-built-pack-203": {
+      "id": "b-30-sm-source-as-built-pack-203",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Source: as-built: "
+        },
+        {
+          "insert": "packages/protocol/src/kernel-messages.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ",\n"
+        },
+        {
+          "insert": "packages/kernel/src/state/kernel-messages.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and viewer-ui's\n"
+        },
+        {
+          "insert": "snapshot-message-view.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " / "
+        },
+        {
+          "insert": "turn/turn-block-content.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". UX context:\ndetail-view-options.html §6 (the deferred \"badge the state render's\nattachments correctly\" row, now closed at the producer)."
+        }
+      ],
+      "children": []
+    }
+  }
+}

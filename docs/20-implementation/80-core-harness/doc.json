@@ -1,0 +1,1559 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-fcf04ad507c23decd530eca452bed138",
+  "title": "Core Harness Package",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/core-harness/src/",
+        "concepts": [
+          "core-harness",
+          "core-kernel",
+          "kernel-manifest",
+          "model-aliases",
+          "prompt-edit",
+          "prompt-edit-trace-kernel",
+          "shared-tools",
+          "elysia-server"
+        ],
+        "covers": "Implementation area page for @agent-kernel/core-harness: source layout, configuration sources, and structural decisions.",
+        "depends-on": [
+          "10-system-design/70-harness-model",
+          "10-system-design/50-app-adapter-model"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-80-ch-role",
+        "b-80-ch-governed",
+        "b-80-ch-source-lead",
+        "b-80-ch-source-tree",
+        "b-80-ch-routes",
+        "b-80-ch-config-heading",
+        "b-80-ch-config-lead",
+        "b-80-ch-config-table",
+        "b-80-ch-divider",
+        "b-80-ch-decisions",
+        "b-80-ch-d1-h",
+        "b-80-ch-d1-decision",
+        "b-80-ch-d1-why",
+        "b-80-ch-d1-applies",
+        "b-80-ch-d2-h",
+        "b-80-ch-d2-decision",
+        "b-80-ch-d2-why",
+        "b-80-ch-d2-applies",
+        "b-80-ch-d3-h",
+        "b-80-ch-d3-decision",
+        "b-80-ch-d3-why",
+        "b-80-ch-d3-applies",
+        "b-80-ch-d4-h",
+        "b-80-ch-d4-decision",
+        "b-80-ch-d4-why",
+        "b-80-ch-d4-applies",
+        "b-80-ch-d5-h",
+        "b-80-ch-d5-decision",
+        "b-80-ch-d5-why",
+        "b-80-ch-d5-applies",
+        "b-80-ch-d6-h",
+        "b-80-ch-d6-decision",
+        "b-80-ch-d6-why",
+        "b-80-ch-d6-applies",
+        "b-80-ch-d7-h",
+        "b-80-ch-d7-decision",
+        "b-80-ch-d7-why",
+        "b-80-ch-d7-applies"
+      ]
+    },
+    "b-80-ch-role": {
+      "id": "b-80-ch-role",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@agent-kernel/core-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " boots this repo's own kernel and serves it over HTTP on port 4860. It reads the repo's kernel manifest, assembles catalog roots and model aliases, calls "
+        },
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and mounts the kernel APIs, in "
+        },
+        {
+          "insert": "packages/core-harness/src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-governed": {
+      "id": "b-80-ch-governed",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Governed by: "
+        },
+        {
+          "insert": "Harness Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-harness-model",
+              "label": "Harness Model"
+            }
+          }
+        },
+        {
+          "insert": " (the core kernel: manifest ownership, the unlisted prompt-editor root, prompt-edit trace ownership) and "
+        },
+        {
+          "insert": "App Adapter Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/50-app-adapter-model",
+              "label": "App Adapter Model"
+            }
+          }
+        },
+        {
+          "insert": " (host boot order and the adapter config slots)."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-source-lead": {
+      "id": "b-80-ch-source-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The package has three source files and no tests:"
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-source-tree": {
+      "id": "b-80-ch-source-tree",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "packages/core-harness/src/kernel.ts",
+            "note": "bootCoreKernel: manifest, roots, aliases"
+          },
+          {
+            "path": "packages/core-harness/src/server.ts",
+            "note": "Elysia app: /kernel/*, /health, shutdown"
+          },
+          {
+            "path": "packages/core-harness/src/prompt-edit.ts",
+            "note": "shared tools hook, prompt-kit trace kernel"
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-80-ch-routes": {
+      "id": "b-80-ch-routes",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "server.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " mounts "
+        },
+        {
+          "insert": "createKernelTraceReadApi",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "createKernelCatalogApi",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (with the prompt-edit session routes) under "
+        },
+        {
+          "insert": "/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", plus "
+        },
+        {
+          "insert": "/health",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", which runs "
+        },
+        {
+          "insert": "select 1",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " against the trace database and returns the kernel id. "
+        },
+        {
+          "insert": "Read API",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/50-read-api",
+              "label": "Read API"
+            }
+          }
+        },
+        {
+          "insert": " owns the route contracts."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-config-heading": {
+      "id": "b-80-ch-config-heading",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Configuration"
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-config-lead": {
+      "id": "b-80-ch-config-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "For each setting, a "
+        },
+        {
+          "insert": "bootCoreKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " option wins over the environment variable, which wins over the default. The port has no boot option; "
+        },
+        {
+          "insert": "server.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " reads it. The manifest supplies identity and paths. A missing manifest logs an error and boots on the defaults."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-config-table": {
+      "id": "b-80-ch-config-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Setting",
+          "Source",
+          "Default"
+        ],
+        "rows": [
+          [
+            "Port",
+            [
+              {
+                "insert": "CORE_HARNESS_PORT",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", then "
+              },
+              {
+                "insert": "PORT",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "4860",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " ("
+              },
+              {
+                "insert": "DEFAULT_PORT",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "), bound to "
+              },
+              {
+                "insert": "127.0.0.1",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "prompt-editor",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " model alias"
+              }
+            ],
+            [
+              {
+                "insert": "CORE_HARNESS_PROMPT_EDITOR_MODEL",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "codex-lb/gpt-5.6-sol",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "context-editor",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " model alias"
+              }
+            ],
+            [
+              {
+                "insert": "CORE_HARNESS_CONTEXT_EDITOR_MODEL",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "the "
+              },
+              {
+                "insert": "prompt-editor",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " model"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "docs-writer",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " model alias"
+              }
+            ],
+            [
+              {
+                "insert": "CORE_HARNESS_DOCS_WRITER_MODEL",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "the "
+              },
+              {
+                "insert": "prompt-editor",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " model"
+              }
+            ]
+          ],
+          [
+            "pi agent directory",
+            [
+              {
+                "insert": "CORE_HARNESS_PI_AGENT_DIR",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "<repo>/.pi-agent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Kernel id",
+            [
+              {
+                "insert": "manifest "
+              },
+              {
+                "insert": "kernelId",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "agent-kernel",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Catalog roots",
+            [
+              {
+                "insert": "manifest "
+              },
+              {
+                "insert": "catalogRoots",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "<repo>/catalog",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Trace database",
+            [
+              {
+                "insert": "manifest "
+              },
+              {
+                "insert": "dbPath",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", relative to the kernel root"
+              }
+            ],
+            [
+              {
+                "insert": ".agent-kernel/trace.db",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "pi sessions",
+            [
+              {
+                "insert": "manifest "
+              },
+              {
+                "insert": "piSessionsDir",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "<kernel root>/pi-sessions",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-80-ch-divider": {
+      "id": "b-80-ch-divider",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-80-ch-decisions": {
+      "id": "b-80-ch-decisions",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d1-h": {
+      "id": "b-80-ch-d1-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "The manifest is read-only input"
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d1-decision": {
+      "id": "b-80-ch-d1-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "bootCoreKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " reads "
+        },
+        {
+          "insert": ".agent-kernel/kernel.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " through "
+        },
+        {
+          "insert": "readKernelManifest",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and never calls "
+        },
+        {
+          "insert": "writeKernelManifest",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". A missing manifest logs an error and boots on the defaults. A "
+        },
+        {
+          "insert": "kernelId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " other than "
+        },
+        {
+          "insert": "agent-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " logs a warning, and the manifest's id wins."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d1-why": {
+      "id": "b-80-ch-d1-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The repo owns the manifest as its own authoring surface. The app harnesses write theirs at boot; a boot here that did the same would replace the repo's authored roots and paths with computed ones."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d1-applies": {
+      "id": "b-80-ch-d1-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/core-harness/src/kernel.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "prompt-edit.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", whose trace kernel also leaves the prompt-kit manifest alone."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d2-h": {
+      "id": "b-80-ch-d2-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "The prompt-editor root is conditional and unlisted"
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d2-decision": {
+      "id": "b-80-ch-d2-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "kernel.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " looks for "
+        },
+        {
+          "insert": "PROMPT_EDITOR_CATALOG_DIR",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " at "
+        },
+        {
+          "insert": "../prompt-kit/packages/prompt-kit-agent/catalog",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". When it exists, it joins "
+        },
+        {
+          "insert": "catalog.roots",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as "
+        },
+        {
+          "insert": "{ path, listed: false }",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". When it is absent, boot logs a warning and continues. A missing browseable root throws instead."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d2-why": {
+      "id": "b-80-ch-d2-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " A standalone checkout without the sibling prompt-kit repo must still boot; only prompt-edit sessions lose their agent. The unlisted flag keeps the shared bundle spawnable without adding it to this kernel's catalog listing, the same shape as canvas-agent's "
+        },
+        {
+          "insert": "KERNEL_CATALOG_ROOTS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d2-applies": {
+      "id": "b-80-ch-d2-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "kernel.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and any future root borrowed from a sibling repo."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d3-h": {
+      "id": "b-80-ch-d3-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "One model alias per generic bundle"
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d3-decision": {
+      "id": "b-80-ch-d3-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " receives "
+        },
+        {
+          "insert": "models.aliases",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for "
+        },
+        {
+          "insert": "prompt-editor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "context-editor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "docs-writer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Each resolves through the configuration order above; "
+        },
+        {
+          "insert": "context-editor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "docs-writer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " default to the "
+        },
+        {
+          "insert": "prompt-editor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " model."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d3-why": {
+      "id": "b-80-ch-d3-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Bundles declare an alias as their "
+        },
+        {
+          "insert": "model",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "catalog/docs-writer/agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " declares "
+        },
+        {
+          "insert": "docs-writer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), so retargeting a bundle is an environment change, not a manifest edit. An alias missing from the map passes through "
+        },
+        {
+          "insert": "resolveSpawnConfig",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " unchanged and reaches the provider as a literal model id."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d3-applies": {
+      "id": "b-80-ch-d3-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "kernel.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". A new "
+        },
+        {
+          "insert": "catalog/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " bundle that declares a new alias adds an alias entry and a "
+        },
+        {
+          "insert": "CORE_HARNESS_<NAME>_MODEL",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " variable here."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d4-h": {
+      "id": "b-80-ch-d4-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Single-operator limits: one background agent, writes on"
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d4-decision": {
+      "id": "b-80-ch-d4-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Both kernels this package boots set "
+        },
+        {
+          "insert": "concurrency: { maxBackgroundAgents: 1 }",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The catalog service, the catalog API mount, and the prompt-edit session service all pass "
+        },
+        {
+          "insert": "allowWrites: true",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d4-why": {
+      "id": "b-80-ch-d4-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " This is a single-operator development harness. Writes let the Observatory's prompt lab edit the generic bundles, and the prompt-edit launch queue already assumes one operator (next entries)."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d4-applies": {
+      "id": "b-80-ch-d4-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "kernel.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "server.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "prompt-edit.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Raising either limit for a multi-user host means replacing the launch queue first."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d5-h": {
+      "id": "b-80-ch-d5-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "A second kernel records prompt-edit runs"
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d5-decision": {
+      "id": "b-80-ch-d5-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "server.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " calls "
+        },
+        {
+          "insert": "bootPromptEditTraceKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", which boots "
+        },
+        {
+          "insert": "prompt-kit-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " over "
+        },
+        {
+          "insert": "prompt-kit-agent/.agent-kernel/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (its "
+        },
+        {
+          "insert": "trace.db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "pi-sessions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") with the prompt-editor catalog as its only root. "
+        },
+        {
+          "insert": "createCorePromptEditSessions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " spawns through that kernel and keeps registry reads and catalog writes on the core kernel, where the target bundles live. Without the sibling repo the boot returns "
+        },
+        {
+          "insert": "null",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and prompt-editor runs record under the core kernel."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d5-why": {
+      "id": "b-80-ch-d5-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Prompt-edit traces belong to the prompt-kit kernel; the Harness Model owns that ownership rule. The split mirrors canvas-agent's "
+        },
+        {
+          "insert": "bootPromptEditTraceKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d5-applies": {
+      "id": "b-80-ch-d5-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "prompt-edit.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "server.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d6-h": {
+      "id": "b-80-ch-d6-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Prompt-edit tools bind through a shared FIFO"
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d6-decision": {
+      "id": "b-80-ch-d6-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "promptEditSharedTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the "
+        },
+        {
+          "insert": "sharedTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " hook on both kernels. For a "
+        },
+        {
+          "insert": "PROMPT_EDITOR_AGENT_NAME",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " spawn it shifts one queued launch off a module-level array and returns that launch's tools; every other agent gets none."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d6-why": {
+      "id": "b-80-ch-d6-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The session service owns the edit queue and staged proposals; the kernel owns spawning. The FIFO bridges a launch's per-session tools to the per-spawn hook, the same seam as the prompt-kit and canvas harnesses. It pairs launches with spawns by order alone, so it holds only while launches are serialized. A multi-user host replaces it with keyed binding."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d6-applies": {
+      "id": "b-80-ch-d6-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "prompt-edit.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and any future agent that needs per-session tools in this harness."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d7-h": {
+      "id": "b-80-ch-d7-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Loopback server under the /kernel prefix"
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d7-decision": {
+      "id": "b-80-ch-d7-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "server.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " listens on "
+        },
+        {
+          "insert": "127.0.0.1",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and mounts both APIs with "
+        },
+        {
+          "insert": "prefix: \"/kernel\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d7-why": {
+      "id": "b-80-ch-d7-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The Observatory's kernel proxy forwards "
+        },
+        {
+          "insert": "/projects/:id/kernel/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to "
+        },
+        {
+          "insert": "${readApiBaseUrl}/kernel/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the repo manifest sets "
+        },
+        {
+          "insert": "readApiBaseUrl",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to "
+        },
+        {
+          "insert": "http://127.0.0.1:4860",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-80-ch-d7-applies": {
+      "id": "b-80-ch-d7-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "server.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The port default and the manifest's "
+        },
+        {
+          "insert": "readApiBaseUrl",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " change together."
+        }
+      ],
+      "children": []
+    }
+  }
+}

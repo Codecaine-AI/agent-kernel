@@ -1,0 +1,1654 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-84bda35d3b9c0225ca15f896ad94db13",
+  "title": "TUI Package",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/tui/src/",
+        "concepts": [
+          "tui",
+          "pi-extension",
+          "catalog-layers",
+          "thin-spawn",
+          "disallowed-tools",
+          "session-binding",
+          "node-runtime"
+        ],
+        "covers": "Implementation area page for @agent-kernel/tui: source layout and structural decisions.",
+        "depends-on": [
+          "10-system-design/70-harness-model"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-85-tui-role",
+        "b-85-tui-governed",
+        "b-85-tui-source-lead",
+        "b-85-tui-source-tree",
+        "b-85-tui-divider",
+        "b-85-tui-decisions",
+        "b-85-tui-d1-h",
+        "b-85-tui-d1-decision",
+        "b-85-tui-d1-why",
+        "b-85-tui-d1-applies",
+        "b-85-tui-d2-h",
+        "b-85-tui-d2-decision",
+        "b-85-tui-d2-why",
+        "b-85-tui-d2-applies",
+        "b-85-tui-d3-h",
+        "b-85-tui-d3-decision",
+        "b-85-tui-d3-why",
+        "b-85-tui-d3-applies",
+        "b-85-tui-d4-h",
+        "b-85-tui-d4-decision",
+        "b-85-tui-d4-why",
+        "b-85-tui-d4-applies",
+        "b-85-tui-d5-h",
+        "b-85-tui-d5-decision",
+        "b-85-tui-d5-why",
+        "b-85-tui-d5-applies",
+        "b-85-tui-d6-h",
+        "b-85-tui-d6-decision",
+        "b-85-tui-d6-why",
+        "b-85-tui-d6-applies",
+        "b-85-tui-d7-h",
+        "b-85-tui-d7-decision",
+        "b-85-tui-d7-why",
+        "b-85-tui-d7-applies",
+        "b-85-tui-d8-h",
+        "b-85-tui-d8-decision",
+        "b-85-tui-d8-why",
+        "b-85-tui-d8-applies"
+      ]
+    },
+    "b-85-tui-role": {
+      "id": "b-85-tui-role",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@agent-kernel/tui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the terminal harness: a pi extension that registers "
+        },
+        {
+          "insert": "/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", resolves agent bundles across catalog layers, boots one into the live session, and marks the transcript for later ingest, in "
+        },
+        {
+          "insert": "packages/tui/src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-governed": {
+      "id": "b-85-tui-governed",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Governed by: "
+        },
+        {
+          "insert": "Harness Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-harness-model",
+              "label": "Harness Model"
+            }
+          }
+        },
+        {
+          "insert": " (the terminal harness: "
+        },
+        {
+          "insert": "/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the thin-spawn boot sequence, catalog precedence, host and tool-policy classification, TUI session tracing)."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-source-lead": {
+      "id": "b-85-tui-source-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Source lives in "
+        },
+        {
+          "insert": "packages/tui/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; per-module tests are omitted:"
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-source-tree": {
+      "id": "b-85-tui-source-tree",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "packages/tui/src/extension.ts",
+            "note": "entry \"./extension\"; registers /kernel"
+          },
+          {
+            "path": "packages/tui/src/index.ts",
+            "note": "entry \".\"; re-exports the modules below"
+          },
+          {
+            "path": "packages/tui/src/commands.ts",
+            "note": "/kernel, picker, boot, tool_call policy"
+          },
+          {
+            "path": "packages/tui/src/catalog.ts",
+            "note": "layered resolution, host classification"
+          },
+          {
+            "path": "packages/tui/src/boot.ts",
+            "note": "thin spawn: assembles the system prompt"
+          },
+          {
+            "path": "packages/tui/src/tools.ts",
+            "note": "binds tools sidecar; blocks spawner tools"
+          },
+          {
+            "path": "packages/tui/src/session-binding.ts",
+            "note": "JSONL identity markers, target kernel"
+          },
+          {
+            "path": "packages/tui/src/docs-writer-tools.test.ts",
+            "note": "tests the docs-writer tools sidecar"
+          },
+          {
+            "path": "packages/tui/scripts/dry-boot.ts",
+            "note": "prints an assembled prompt without pi"
+          },
+          {
+            "path": "packages/tui/test-fixtures/catalog/",
+            "note": "state-echo bundle for tests"
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-85-tui-divider": {
+      "id": "b-85-tui-divider",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-85-tui-decisions": {
+      "id": "b-85-tui-decisions",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d1-h": {
+      "id": "b-85-tui-d1-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Kernel imports are db-free subpaths"
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d1-decision": {
+      "id": "b-85-tui-d1-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The extension imports only "
+        },
+        {
+          "insert": "@agent-kernel/kernel/agent-registry/registry",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "/context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "/state",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", never the package barrel or the "
+        },
+        {
+          "insert": "agent-registry",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " barrel. "
+        },
+        {
+          "insert": "session-binding.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " keeps "
+        },
+        {
+          "insert": "SESSION_BINDING_CUSTOM_TYPE",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as a string literal that must match the kernel's "
+        },
+        {
+          "insert": "DEFAULT_SESSION_BINDING_CUSTOM_TYPE",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d1-why": {
+      "id": "b-85-tui-d1-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The "
+        },
+        {
+          "insert": "agent-registry",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " barrel re-exports "
+        },
+        {
+          "insert": "register-prompt-revisions.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", whose "
+        },
+        {
+          "insert": "@agent-kernel/db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " import evaluates "
+        },
+        {
+          "insert": "bun:sqlite",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " at load, and pi's Node runtime cannot load it. Copying one constant costs less than pulling the barrel. "
+        },
+        {
+          "insert": "App Adapters",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/70-app-adapters",
+              "label": "App Adapters"
+            }
+          }
+        },
+        {
+          "insert": " records the same rule for "
+        },
+        {
+          "insert": "host:\"any\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sidecars."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d1-applies": {
+      "id": "b-85-tui-d1-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Every non-test file under "
+        },
+        {
+          "insert": "packages/tui/src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". A change to the binding marker type changes both constants."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d2-h": {
+      "id": "b-85-tui-d2-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Node-only runtime; Bun stays in tests and scripts"
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d2-decision": {
+      "id": "b-85-tui-d2-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Non-test files under "
+        },
+        {
+          "insert": "src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " use "
+        },
+        {
+          "insert": "node:*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " modules and no "
+        },
+        {
+          "insert": "Bun.*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "bun:*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or "
+        },
+        {
+          "insert": "import.meta.dir",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "catalog.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " finds its own directory from "
+        },
+        {
+          "insert": "import.meta.url",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", falls back to "
+        },
+        {
+          "insert": "__dirname",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and reports a warning when both are missing. Tests ("
+        },
+        {
+          "insert": "bun:test",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and "
+        },
+        {
+          "insert": "scripts/dry-boot.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "Bun.argv",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") run under Bun, outside the extension's import graph."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d2-why": {
+      "id": "b-85-tui-d2-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " pi loads the extension under Node through jiti, whose CJS transform may shim or drop "
+        },
+        {
+          "insert": "import.meta.url",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". A Bun API in the import graph passes "
+        },
+        {
+          "insert": "bun test",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and fails only at a real pi boot."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d2-applies": {
+      "id": "b-85-tui-d2-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Non-test files under "
+        },
+        {
+          "insert": "packages/tui/src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", including future ones."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d3-h": {
+      "id": "b-85-tui-d3-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "boot.ts mirrors two spawn-pipeline recipes"
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d3-decision": {
+      "id": "b-85-tui-d3-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "boot.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " rebuilds prompt variable substitution (from "
+        },
+        {
+          "insert": "spawn-pipeline/system-prompt-resolver/resolve-system-prompt.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and the state render (from "
+        },
+        {
+          "insert": "buildStatePreview",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "catalog-service.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") out of exported primitives instead of importing the spawn pipeline. It degrades instead of failing: an unresolved placeholder, which the original resolver throws on, a failed context resolver, and a failed state render each become a warning in the boot notice."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d3-why": {
+      "id": "b-85-tui-d3-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The spawn pipeline imports the database, so it cannot load under Node. An interactive session should still start with a partial prompt rather than refuse to boot."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d3-applies": {
+      "id": "b-85-tui-d3-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "boot.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". A change to either original recipe in "
+        },
+        {
+          "insert": "packages/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is mirrored here."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d4-h": {
+      "id": "b-85-tui-d4-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "One registry per catalog layer"
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d4-decision": {
+      "id": "b-85-tui-d4-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "loadCatalog",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " builds one registry for the project layer (the cwd-walk "
+        },
+        {
+          "insert": "kernel.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "catalogRoots",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and one for the generic layer ("
+        },
+        {
+          "insert": "catalog/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", located from the package's own path). Resolution walks the layers in order, and a loadable bundle in any layer wins over an app-hosted or failed bundle of the same name in an earlier one. Inside a layer, "
+        },
+        {
+          "insert": "buildLayer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " classifies "
+        },
+        {
+          "insert": "host",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from the manifest JSON before any sidecar is evaluated, then excludes failing "
+        },
+        {
+          "insert": "host:\"any\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " bundles and rebuilds until the registry builds."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d4-why": {
+      "id": "b-85-tui-d4-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "buildRegistry",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " rejects same-name manifests within one call and fails all-or-nothing. A single registry over both layers would turn every deliberate shadow into a collision and one broken bundle into an empty catalog."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d4-applies": {
+      "id": "b-85-tui-d4-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "catalog.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and any future catalog layer."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d5-h": {
+      "id": "b-85-tui-d5-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Tool policy is enforced at tool_call"
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d5-decision": {
+      "id": "b-85-tui-d5-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "registerAgentCommands",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " registers one "
+        },
+        {
+          "insert": "before_agent_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " handler and one "
+        },
+        {
+          "insert": "tool_call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " handler at extension load. Both read closure state that each boot replaces: the cached system prompt and the active manifest's "
+        },
+        {
+          "insert": "disallowedTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", which the "
+        },
+        {
+          "insert": "tool_call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " handler blocks with a visible reason. "
+        },
+        {
+          "insert": "bindBundleTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "tools.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " adds a "
+        },
+        {
+          "insert": "tool_call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " handler per bind that blocks the bundle's spawner tools. Tools registered by an earlier boot stay registered for the session."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d5-why": {
+      "id": "b-85-tui-d5-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Interactive pi sessions keep their built-in tools because the spawn pipeline's tool scoping never runs, so blocking the call is the only enforcement point. Spawner tools need the spawn pipeline's dispatch handle, which a standalone session does not have."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d5-applies": {
+      "id": "b-85-tui-d5-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "commands.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "tools.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any future manifest tool policy."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d6-h": {
+      "id": "b-85-tui-d6-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Session identity travels as transcript markers"
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d6-decision": {
+      "id": "b-85-tui-d6-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Each boot appends two custom entries through "
+        },
+        {
+          "insert": "pi.appendEntry",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "agent-kernel:session-binding",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "{ containerId, runId }",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and "
+        },
+        {
+          "insert": "agent-kernel:tui-session-meta",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (agent, catalog source, cwd, kernel id, target kernel root, "
+        },
+        {
+          "insert": "origin: \"tui\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). Both ids are fresh "
+        },
+        {
+          "insert": "randomUUID()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " values. "
+        },
+        {
+          "insert": "resolveTargetKernelRoot",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " picks the cwd-walk "
+        },
+        {
+          "insert": ".agent-kernel/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", else this repo's own. The extension writes no database rows."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d6-why": {
+      "id": "b-85-tui-d6-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The binding entry is the one the spawn pipeline writes, so the transcript mapper needs no TUI branch. The extension cannot open the "
+        },
+        {
+          "insert": "bun:sqlite",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " trace database under Node, so identity rides in the transcript until "
+        },
+        {
+          "insert": "agent-kernel-tui-ingest",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " reads it; "
+        },
+        {
+          "insert": "Transcript Recovery",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/20-kernel/50-transcript-recovery",
+              "label": "Transcript Recovery"
+            }
+          }
+        },
+        {
+          "insert": " covers that ingest."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d6-applies": {
+      "id": "b-85-tui-d6-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "session-binding.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "commands.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d7-h": {
+      "id": "b-85-tui-d7-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "The docs-writer sidecar is tested here"
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d7-decision": {
+      "id": "b-85-tui-d7-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "docs-writer-tools.test.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " registers "
+        },
+        {
+          "insert": "registerDocsTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from "
+        },
+        {
+          "insert": "catalog/docs-writer/tools/runtime.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on a mock pi and exercises its four tools: "
+        },
+        {
+          "insert": "docs_tree",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "docs_read",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "docs_write",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "docs_check",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The tools stay in the bundle. This package's "
+        },
+        {
+          "insert": "package.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " declares the test's "
+        },
+        {
+          "insert": "@codecaine-ai/docs-cli",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "@codecaine-ai/docs-model",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " imports as "
+        },
+        {
+          "insert": "workspace:*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " devDependencies, the same form every other cross-repo dependency in the Core meta-workspace uses. "
+        },
+        {
+          "insert": "runtime.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " imports the same two packages and declares nothing: "
+        },
+        {
+          "insert": "catalog/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " has no "
+        },
+        {
+          "insert": "package.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so they resolve from the Core root's hoisted "
+        },
+        {
+          "insert": "node_modules",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d7-why": {
+      "id": "b-85-tui-d7-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "catalog/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is not a workspace member, and the root "
+        },
+        {
+          "insert": "test:packages",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " script scans "
+        },
+        {
+          "insert": "packages/tui/src",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " but not "
+        },
+        {
+          "insert": "catalog/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The bundle is "
+        },
+        {
+          "insert": "host:\"any\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the TUI is where it runs."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d7-applies": {
+      "id": "b-85-tui-d7-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/tui/src/docs-writer-tools.test.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "catalog/docs-writer/tools/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d8-h": {
+      "id": "b-85-tui-d8-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "A one-call ./extension entry"
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d8-decision": {
+      "id": "b-85-tui-d8-decision",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "package.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " exports "
+        },
+        {
+          "insert": ".",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "index.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and "
+        },
+        {
+          "insert": "./extension",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "extension.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). The extension's default export takes pi's "
+        },
+        {
+          "insert": "ExtensionAPI",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and only calls "
+        },
+        {
+          "insert": "registerAgentCommands",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". pi loads it by file path from the "
+        },
+        {
+          "insert": "extensions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " array in the pi-config repo's global "
+        },
+        {
+          "insert": "settings.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d8-why": {
+      "id": "b-85-tui-d8-why",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " pi needs one module whose default export registers the extension. Keeping that module to one call puts every testable piece behind the "
+        },
+        {
+          "insert": ".",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " entry. App Adapters' harness-packaging entry records why the TUI is a pi extension at all."
+        }
+      ],
+      "children": []
+    },
+    "b-85-tui-d8-applies": {
+      "id": "b-85-tui-d8-applies",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/tui/package.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "extension.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "index.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,1542 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-c39f7a05d2619737f84c3563d9ef7dd8",
+  "title": "Documents and Bundles",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "prompt-kit",
+          "agent-bundle",
+          "agent-manifest",
+          "prompt-document",
+          "context-resolver",
+          "private-tools",
+          "spawner-tools",
+          "variants"
+        ],
+        "covers": "The prompt-kit/kernel split, bundle layout, manifest and PromptDocument shapes, variables, context, tools, and variants.",
+        "depends-on": [
+          "00-foundation/30-boundaries",
+          "10-system-design/10-runtime-model"
+        ]
+      },
+      "children": [
+        "b-10-dab-lead",
+        "b-10-dab-the-split-prompt-kit-an-5",
+        "b-10-dab-the-prompt-system-is-not-6",
+        "b-10-dab-the-agent-bundle-10",
+        "b-10-dab-an-agent-is-a-directory-11",
+        "b-10-dab-bundle-tree",
+        "b-10-dab-the-manifest-is-data-va-13",
+        "b-10-dab-manifest-shape",
+        "b-10-dab-there-is-no-authored-ag-14",
+        "b-10-dab-prompt-documents-15",
+        "b-10-dab-the-canonical-authored-p-16",
+        "b-10-dab-the-document-model-is-a-17",
+        "b-10-dab-prompt-document-shape",
+        "b-10-dab-the-default-renderer-out-24",
+        "b-10-dab-body-shape-25",
+        "b-10-dab-the-rendered-system-prom-26",
+        "b-10-dab-xml-27",
+        "b-10-dab-sections-are-omitted-whe-28",
+        "b-10-dab-taxonomy-29",
+        "b-10-dab-two-broad-archetypes-s-30",
+        "b-10-dab-three-terms-with-distinc-31",
+        "b-10-dab-variables-37",
+        "b-10-dab-runtime-variables-are-de-38",
+        "b-10-dab-context-44",
+        "b-10-dab-context-ts-owns-dynami-45",
+        "b-10-dab-the-contract-around-load-46",
+        "b-10-dab-context-ts-supports-a-47",
+        "b-10-dab-context-is-structured-fi-48",
+        "b-10-dab-loader-helpers-may-carry-49",
+        "b-10-dab-context-sections-are-opt-50",
+        "b-10-dab-problems-surface-through-51",
+        "b-10-dab-under-the-state-model-t-52",
+        "b-10-dab-tools-53",
+        "b-10-dab-the-manifest-declares-sh-54",
+        "b-10-dab-private-tool-definitions-55",
+        "b-10-dab-spawner-tools-56",
+        "b-10-dab-spawning-is-granted-per-57",
+        "b-10-dab-agent-platforms-default-58",
+        "b-10-dab-variants-and-run-overrid-59",
+        "b-10-dab-durable-agent-definition-60",
+        "b-10-dab-run-invocations-casually-61",
+        "b-10-dab-variants-represent-diffe-62"
+      ]
+    },
+    "b-10-dab-lead": {
+      "id": "b-10-dab-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An agent is defined by data: an "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " manifest plus four sections, with the prompt stored as a typed document rather than code. This page covers the split between prompt-kit and the kernel, the bundle layout, the manifest and prompt document shapes, and what the manifest declares: variables, context, tools, and variants."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-the-split-prompt-kit-an-5": {
+      "id": "b-10-dab-the-split-prompt-kit-an-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Split: Prompt-Kit and the Kernel"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-the-prompt-system-is-not-6": {
+      "id": "b-10-dab-the-prompt-system-is-not-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The prompt system is not a second kernel runtime. It is a typed authoring and rendering layer split across two repos. "
+        },
+        {
+          "insert": "@codecaine-ai/prompt-kit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is generic and knows nothing about Pi, agents, tools, subagents, traces, context loaders, or app sessions. The kernel owns the runtime-facing agent model. The dependency runs one way: the kernel depends on prompt-kit, never the reverse, and kernel-specific prompt helpers exist only when they depend on kernel concepts."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-the-agent-bundle-10": {
+      "id": "b-10-dab-the-agent-bundle-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Agent Bundle"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-an-agent-is-a-directory-11": {
+      "id": "b-10-dab-an-agent-is-a-directory-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An agent is a directory: an "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " manifest plus four sections, prompt, context, tools, and state, mirroring the request the model receives. ①, ②, and ③ mark the request section each part feeds. Each section is a single file or a folder with an entry point, and when both exist the file wins. "
+        },
+        {
+          "insert": "D98 in "
+        },
+        {
+          "insert": "State Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/30-state-model"
+            }
+          }
+        },
+        {
+          "insert": " records the decision and its rules."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-bundle-tree": {
+      "id": "b-10-dab-bundle-tree",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "catalog/<agent>/agent.json",
+            "note": "manifest; shape below"
+          },
+          {
+            "path": "catalog/<agent>/annotations.json",
+            "note": "reviewer annotations on prompt nodes"
+          },
+          {
+            "path": "catalog/<agent>/prompt.json",
+            "note": "① source of truth, file form (wins)"
+          },
+          {
+            "path": "catalog/<agent>/prompt.rendered.md",
+            "note": "generated system prompt; never hand-edited"
+          },
+          {
+            "path": "catalog/<agent>/prompt/prompt.json",
+            "note": "① source of truth, folder form"
+          },
+          {
+            "path": "catalog/<agent>/prompt/system.md",
+            "note": "generated render; discovery never reads it"
+          },
+          {
+            "path": "catalog/<agent>/context.ts",
+            "note": "② file form (wins)"
+          },
+          {
+            "path": "catalog/<agent>/context/index.ts",
+            "note": "② entry point: the standing-context inventory"
+          },
+          {
+            "path": "catalog/<agent>/context/fixtures/<id>.json",
+            "note": "preview-only; spawn never reads it"
+          },
+          {
+            "path": "catalog/<agent>/tools.ts",
+            "note": "private tools, file form (wins)"
+          },
+          {
+            "path": "catalog/<agent>/tools/index.ts",
+            "note": "entry point: the defineTools factory"
+          },
+          {
+            "path": "catalog/<agent>/tools/runtime.ts",
+            "note": "folder internal; invisible to discovery"
+          },
+          {
+            "path": "catalog/<agent>/state.ts",
+            "note": "③ file form (wins)"
+          },
+          {
+            "path": "catalog/<agent>/state/index.ts",
+            "note": "③ entry point: seed, update, render"
+          },
+          {
+            "path": "catalog/<agent>/state/fixtures/<id>.json",
+            "note": "preview-only; spawn never reads it"
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-10-dab-the-manifest-is-data-va-13": {
+      "id": "b-10-dab-the-manifest-is-data-va-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The manifest is data. The registry validates every "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " against the "
+        },
+        {
+          "insert": "agent-kernel/agent-v1",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " schema at boot, and an unknown field fails validation. "
+        },
+        {
+          "insert": "defineAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the typed generator and validator for these files. Code sidecars attach by filename convention; frontmatter and a separate "
+        },
+        {
+          "insert": "config.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are not part of the model. The "
+        },
+        {
+          "insert": "state.window",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " block takes a "
+        },
+        {
+          "insert": "WindowPolicy",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", defined in "
+        },
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-manifest-shape": {
+      "id": "b-10-dab-manifest-shape",
+      "type": "state-shape",
+      "props": {
+        "description": "The agent.json manifest.",
+        "example": "{\n  \"$schema\": \"agent-kernel/agent-v1\",\n  \"name\": \"source-scout\",\n  \"description\": \"Investigates one focused angle, reads local evidence, and writes a durable research note.\",\n  \"model\": \"research-default\",\n  \"host\": \"any\",\n  \"thinking\": \"low\",\n  \"extensions\": false,\n  \"variables\": {\n    \"focus\": {\n      \"default\": \"\",\n      \"description\": \"Focus assigned by the coordinator.\"\n    },\n    \"researchMemoryDir\": {\n      \"default\": \"research-memory\",\n      \"description\": \"Directory inside the active research session where scout reports are stored.\"\n    }\n  },\n  \"variants\": {\n    \"deep\": {\n      \"thinking\": \"high\",\n      \"maxTurns\": 40,\n      \"displayLabel\": \"Source scout (deep)\"\n    }\n  },\n  \"state\": {\n    \"window\": {\n      \"strategy\": \"turns\",\n      \"maxTurns\": 8\n    }\n  }\n}",
+        "fields": [
+          {
+            "name": "$schema",
+            "type": "\"agent-kernel/agent-v1\"",
+            "required": false
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "description": "Non-empty. Renames are file edits; manifest hot-reload rejects them."
+          },
+          {
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "name": "model",
+            "type": "string",
+            "description": "Non-empty."
+          },
+          {
+            "name": "host",
+            "type": "\"app\" | \"any\"",
+            "required": false
+          },
+          {
+            "name": "thinking",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "maxTurns",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "coreTools",
+            "type": "string[]",
+            "required": false
+          },
+          {
+            "name": "toolProfiles",
+            "type": "string[]",
+            "required": false
+          },
+          {
+            "name": "disallowedTools",
+            "type": "string[]",
+            "required": false
+          },
+          {
+            "name": "extensions",
+            "type": "boolean | string[]",
+            "required": false
+          },
+          {
+            "name": "runInBackground",
+            "type": "boolean",
+            "required": false
+          },
+          {
+            "name": "variables",
+            "type": "Record<string, VariableDeclaration>",
+            "required": false,
+            "description": "Keyed by variable name. A variable is optional unless it sets required: true. An optional variable with no caller value and no default renders as an empty string.",
+            "fields": [
+              {
+                "name": "default",
+                "type": "unknown",
+                "required": false,
+                "description": "Value used when the caller provides none. A default satisfies required: true."
+              },
+              {
+                "name": "optional",
+                "type": "boolean",
+                "required": false,
+                "description": "Documentation flag with no runtime effect, because a variable is optional unless required is true. Boot validation rejects optional: true together with required: true."
+              },
+              {
+                "name": "required",
+                "type": "boolean",
+                "required": false,
+                "description": "true: the spawn fails with AgentVariableError code MISSING_REQUIRED_VARIABLES when the resolved value is undefined or null, which means no caller value and no default."
+              },
+              {
+                "name": "description",
+                "type": "string",
+                "required": false
+              }
+            ]
+          },
+          {
+            "name": "variants",
+            "type": "Record<string, Variant>",
+            "required": false,
+            "description": "Keyed by variant name. The schema is closed: a variant cannot set prompt, context, tools, variables, or spawn declarations.",
+            "fields": [
+              {
+                "name": "model",
+                "type": "string",
+                "required": false
+              },
+              {
+                "name": "thinking",
+                "type": "string",
+                "required": false
+              },
+              {
+                "name": "maxTurns",
+                "type": "number",
+                "required": false
+              },
+              {
+                "name": "runInBackground",
+                "type": "boolean",
+                "required": false
+              },
+              {
+                "name": "displayLabel",
+                "type": "string",
+                "required": false
+              }
+            ]
+          },
+          {
+            "name": "state",
+            "type": "object",
+            "required": false,
+            "fields": [
+              {
+                "name": "window",
+                "type": "WindowPolicy",
+                "required": false,
+                "description": "Per-agent window policy (D85). Its presence activates the state extension, with or without a state.ts."
+              }
+            ]
+          }
+        ],
+        "name": "AgentManifest",
+        "source": {
+          "path": "packages/kernel/src/agent-definition/agent-manifest-schema.ts",
+          "symbol": "agentManifestJsonSchema"
+        }
+      },
+      "children": []
+    },
+    "b-10-dab-there-is-no-authored-ag-14": {
+      "id": "b-10-dab-there-is-no-authored-ag-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "There is no authored "
+        },
+        {
+          "insert": "agent.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", ever. System prompt, dynamic context, tools, and user turn have different lifetimes; tool implementations are executable sidecars, not prompt text; and a visible authored markdown file implies it is safe to edit by hand when the document is the source of truth. The agent viewer is the inspection surface: it renders the composed typed agent, manifest, rendered prompt, tool metadata, context contract, resolved variables, validation state, rather than an editable artifact."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-prompt-documents-15": {
+      "id": "b-10-dab-prompt-documents-15",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Prompt Documents"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-the-canonical-authored-p-16": {
+      "id": "b-10-dab-the-canonical-authored-p-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The canonical authored prompt artifact is the serialized "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " JSON ("
+        },
+        {
+          "insert": "prompt.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), not TypeScript code. Structural editing must persist, and edited documents cannot round-trip into hand-authored code. Scripts, generators, and tests that construct prompts use two plain constructors: "
+        },
+        {
+          "insert": "definePrompt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for the document and "
+        },
+        {
+          "insert": "createNode",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for a typed node ("
+        },
+        {
+          "insert": "src/document/nodes/create-node.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). The registry loads the committed document. "
+        },
+        {
+          "insert": "validatePrompt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with the agent's declared variables performs, at boot and in the editor, the checks the type system used to perform."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-the-document-model-is-a-17": {
+      "id": "b-10-dab-the-document-model-is-a-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The document model is a small recursive AST, not string templating."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-prompt-document-shape": {
+      "id": "b-10-dab-prompt-document-shape",
+      "type": "state-shape",
+      "props": {
+        "description": "The serialized prompt.json document.",
+        "example": "{\n  \"kind\": \"prompt\",\n  \"schemaVersion\": \"prompt-kit/v1\",\n  \"id\": \"sourceScoutPrompt\",\n  \"title\": \"Source Scout\",\n  \"archetype\": \"workflow\",\n  \"nodes\": [\n    {\n      \"type\": \"section\",\n      \"id\": \"node-section-1\",\n      \"tag\": \"purpose\",\n      \"children\": [\n        {\n          \"type\": \"paragraph\",\n          \"id\": \"node-paragraph-1\",\n          \"content\": [\n            \"You are a focused source scout working inside the Simple Research Kernel.\"\n          ]\n        }\n      ]\n    },\n    {\n      \"type\": \"section\",\n      \"id\": \"node-section-2\",\n      \"tag\": \"workflow\",\n      \"children\": [\n        {\n          \"type\": \"orderedList\",\n          \"id\": \"node-ordered-list-1\",\n          \"items\": [\n            {\n              \"type\": \"listItem\",\n              \"id\": \"node-list-item-1\",\n              \"content\": [\n                \"Read context.\"\n              ]\n            },\n            {\n              \"type\": \"listItem\",\n              \"id\": \"node-list-item-2\",\n              \"content\": [\n                \"Investigate \",\n                {\n                  \"type\": \"variable\",\n                  \"name\": \"focus\"\n                },\n                \" with available local evidence.\"\n              ]\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "\"prompt\""
+          },
+          {
+            "name": "schemaVersion",
+            "type": "\"prompt-kit/v1\"",
+            "description": "The migration hook."
+          },
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "archetype",
+            "type": "\"singleOutput\" | \"workflow\" | string",
+            "required": false,
+            "description": "Broad execution family; see Taxonomy."
+          },
+          {
+            "name": "nodes",
+            "type": "PromptBlockNode[]",
+            "description": "Array order is the only ordering. Nodes carry no before, after, or priority hints.",
+            "fields": [
+              {
+                "name": "type",
+                "type": "\"section\" | \"paragraph\" | \"bulletList\" | \"orderedList\" | \"field\" | \"codeBlock\" | \"example\" | \"raw\" | \"contextUsage\""
+              },
+              {
+                "name": "id",
+                "type": "string",
+                "required": false,
+                "description": "Stable, and separate from the rendered XML tag. Supports replacement, insertion, diffing, and viewer selection."
+              },
+              {
+                "name": "tag",
+                "type": "string",
+                "required": false,
+                "description": "section only: the rendered XML tag."
+              },
+              {
+                "name": "children",
+                "type": "PromptBlockNode[]",
+                "required": false,
+                "description": "section and example: nested blocks."
+              },
+              {
+                "name": "content",
+                "type": "PromptInline[]",
+                "required": false,
+                "description": "Plain strings, { type: \"variable\", name } nodes, and { type: \"reference\", kind, name } nodes. Never raw {{placeholder}} strings."
+              },
+              {
+                "name": "items",
+                "type": "ListItemNode[]",
+                "required": false,
+                "description": "bulletList and orderedList. Each item holds content plus optional children, so a bullet can nest lists, paragraphs, or examples."
+              },
+              {
+                "name": "contextId",
+                "type": "string",
+                "required": false,
+                "description": "contextUsage only: the context block these instructions cover."
+              }
+            ]
+          },
+          {
+            "name": "metadata",
+            "type": "Record<string, unknown>",
+            "required": false
+          }
+        ],
+        "name": "PromptDocument",
+        "source": {
+          "path": "prompt-kit/packages/prompt-kit/src/document/nodes/types.ts",
+          "symbol": "PromptDocument"
+        }
+      },
+      "children": []
+    },
+    "b-10-dab-the-default-renderer-out-24": {
+      "id": "b-10-dab-the-default-renderer-out-24",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The default renderer outputs XML-tagged Markdown: readable prose with clear parseable boundaries. Renderers own output formatting, indentation, blank lines, bullet markers, numbering, fences, XML spacing, so the structure and its rendered representation stay separate, and other renderers can target other formats from the same tree."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-body-shape-25": {
+      "id": "b-10-dab-body-shape-25",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Body shape"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-the-rendered-system-prom-26": {
+      "id": "b-10-dab-the-rendered-system-prom-26",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The rendered system prompt uses Markdown with semantic XML tags. The standard section vocabulary:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-xml-27": {
+      "id": "b-10-dab-xml-27",
+      "type": "code",
+      "props": {
+        "language": "xml"
+      },
+      "text": [
+        {
+          "insert": "<purpose> … </purpose>\n<rules> … </rules>\n<key_knowledge> … </key_knowledge>\n<goal> … </goal>\n<background> … </background>\n<workflow>\n    <inputs> … </inputs>\n    <steps> … </steps>          <!-- or <phases> for agent-loop execution -->\n    <global_constraints> … </global_constraints>\n</workflow>\n<tool_policy> … </tool_policy>\n<state_protocol> … </state_protocol>\n<output_format> … </output_format>\n<success_criteria> … </success_criteria>\n<reminders> … </reminders>"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-sections-are-omitted-whe-28": {
+      "id": "b-10-dab-sections-are-omitted-whe-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Sections are omitted when they do not earn their token cost. The design principle is \"typed spine, flexible sections\": archetypes define the expected shape, common primitives handle repeated structure, and escape hatches allow custom XML sections when a prompt genuinely needs something unusual. Validation catches broken references and malformed sections; it does not force every prompt into the same maximum template."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-taxonomy-29": {
+      "id": "b-10-dab-taxonomy-29",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Taxonomy"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-two-broad-archetypes-s-30": {
+      "id": "b-10-dab-two-broad-archetypes-s-30",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two broad archetypes: "
+        },
+        {
+          "insert": "singleOutput",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "workflow",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "Steps",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " describe internal reasoning inside one completion; "
+        },
+        {
+          "insert": "phases",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " describe external execution across tools, state, turns, and subagents, which keeps the taxonomy close to the kernel's runtime reality, where every run executes an agent definition but some definitions are simple enough to behave like a single task."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-three-terms-with-distinc-31": {
+      "id": "b-10-dab-three-terms-with-distinc-31",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two terms with distinct meanings: an "
+        },
+        {
+          "insert": "archetype",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " is a broad execution/structure family, stored in the document's "
+        },
+        {
+          "insert": "archetype",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " field; an "
+        },
+        {
+          "insert": "example",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " is a concrete prompt in an actual app. Concrete coordinator or scout prompts are examples, never archetypes. Prompt-kit ships no templates. Extraction, evaluation, classification, critique/revise, and summarization are prompt patterns, not archetypes."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-variables-37": {
+      "id": "b-10-dab-variables-37",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Variables"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-runtime-variables-are-de-38": {
+      "id": "b-10-dab-runtime-variables-are-de-38",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Runtime variables are declared in the manifest, because they are part of the agent's runtime contract. A variable is optional unless its declaration sets "
+        },
+        {
+          "insert": "required: true",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The "
+        },
+        {
+          "insert": "variables",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " field of the manifest shape gives the rule. The prompt references variables through typed variable nodes. Registry boot fails when a prompt references an undeclared variable, or when a declaration sets both "
+        },
+        {
+          "insert": "required: true",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "optional: true",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". A spawn fails with "
+        },
+        {
+          "insert": "MISSING_REQUIRED_VARIABLES",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " when a required variable has neither a caller-provided value nor a default. An optional variable with no value renders as an empty string. Caller variables with undeclared names pass through to the resolved set."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-context-44": {
+      "id": "b-10-dab-context-44",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Context"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-context-ts-owns-dynami-45": {
+      "id": "b-10-dab-context-ts-owns-dynami-45",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "context.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " owns dynamic context shape, loader declarations, and context rendering. The prompt owns instructions for how to "
+        },
+        {
+          "insert": "use",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " the injected context, it may reference a context block by id/tag with usage rules, but it never redeclares the schema "
+        },
+        {
+          "insert": "context.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " already declares. Double-counting makes traces noisy and lets copies drift."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-the-contract-around-load-46": {
+      "id": "b-10-dab-the-contract-around-load-46",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The contract around loaders:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-context-ts-supports-a-47": {
+      "id": "b-10-dab-context-ts-supports-a-47",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "context.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " supports a runtime-bound factory pattern, like "
+        },
+        {
+          "insert": "tools.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so app-owned services, paths, and loader catalogs inject cleanly while the bound result still matches the kernel's resolver contract."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-context-is-structured-fi-48": {
+      "id": "b-10-dab-context-is-structured-fi-48",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Context is structured-first with a raw-string escape hatch: typed helper builders sit on top of generic loader declarations, and the kernel operates on the generic form."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-loader-helpers-may-carry-49": {
+      "id": "b-10-dab-loader-helpers-may-carry-49",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Loader declarations are small. The kernel ships five kinds ("
+        },
+        {
+          "insert": "file",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "directory",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "skill",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "command",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "text",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), and an app can register custom kinds. Declarations carry no rendering policy. The sidecar's "
+        },
+        {
+          "insert": "assemble",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " function decides how loaded content renders."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-context-sections-are-opt-50": {
+      "id": "b-10-dab-context-sections-are-opt-50",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Context sections are optional by default. Each loader reports a status of "
+        },
+        {
+          "insert": "ok",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "empty",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or "
+        },
+        {
+          "insert": "error",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "packages/kernel/src/context/types.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). A sidecar declares "
+        },
+        {
+          "insert": "defineContext({ loaders, assemble })",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "assemble",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " receives every status and decides what to render. Unlike variables, external data sources are often legitimately empty."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-problems-surface-through-51": {
+      "id": "b-10-dab-problems-surface-through-51",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Problems surface through both boot validation and runtime trace events. Boot validation eagerly checks what is knowable before a run: catalog shape, duplicate section ids, malformed configs, package-relative resources. Session-relative files, app state, database-backed context, and working memory are checked at runtime. Each loader result is traced with its status, and "
+        },
+        {
+          "insert": "assemble",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " decides whether an empty or failed input matters."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-under-the-state-model-t-52": {
+      "id": "b-10-dab-under-the-state-model-t-52",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Under the state model, the boundary between reference material and working state is drawn, not blurry: "
+        },
+        {
+          "insert": "context.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " declares section ②, reference material visible on every request, and no longer holds working state, working memory, or conversation slices, which are section ③, owned by the state sidecar (D81–D84, "
+        },
+        {
+          "insert": "State Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/30-state-model"
+            }
+          }
+        },
+        {
+          "insert": ")."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-tools-53": {
+      "id": "b-10-dab-tools-53",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Tools"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-the-manifest-declares-sh-54": {
+      "id": "b-10-dab-the-manifest-declares-sh-54",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The manifest declares access to tools that exist outside the agent: core runtime tools, shared app tools, and provider or MCP tools. "
+        },
+        {
+          "insert": "coreTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " lists allowed tool names. "
+        },
+        {
+          "insert": "toolProfiles",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " names profiles that the registry expands into tool names from its configured profile map. "
+        },
+        {
+          "insert": "disallowedTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " removes names. "
+        },
+        {
+          "insert": "extensions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is "
+        },
+        {
+          "insert": "true",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "false",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or a list of extension names to keep. "
+        },
+        {
+          "insert": "tools.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " defines private tools that belong to the agent. A tool defined there is part of the agent's capability surface and is never repeated in an allowlist. Shared access is permission and configuration. Private tools are implementation plus declaration."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-private-tool-definitions-55": {
+      "id": "b-10-dab-private-tool-definitions-55",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Private tool definitions stay directly compatible with Pi's "
+        },
+        {
+          "insert": "registerTool(...)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " shape, so registration is boring and reliable. A "
+        },
+        {
+          "insert": "tools.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sidecar exports "
+        },
+        {
+          "insert": "defineTools((pi, runtime) => { ... })",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", a runtime-bound factory that calls "
+        },
+        {
+          "insert": "pi.registerTool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for each tool ("
+        },
+        {
+          "insert": "packages/kernel/src/agent-definition/index.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). App services inject through "
+        },
+        {
+          "insert": "runtime",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " while the result stays ordinary Pi tool definitions. Tool metadata does not need to be statically inspectable without a runtime; validation binds a real or stub runtime when the registry or viewer needs metadata."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-spawner-tools-56": {
+      "id": "b-10-dab-spawner-tools-56",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Spawner tools"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-spawning-is-granted-per-57": {
+      "id": "b-10-dab-spawning-is-granted-per-57",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spawning is granted per tool, not per agent; there is no manifest-level "
+        },
+        {
+          "insert": "canSpawnSubagent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " boolean. A tool that dispatches subagents is declared with "
+        },
+        {
+          "insert": "defineSpawnerTool({ ..., spawns: [agent names] })",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "tools.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; the kernel injects a scoped "
+        },
+        {
+          "insert": "dispatch",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " handle at session build time that enforces the declared allowlist and auto-forwards "
+        },
+        {
+          "insert": "parentToolUseId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "trigger: \"parent-tool\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and run-context identity."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-agent-platforms-default-58": {
+      "id": "b-10-dab-agent-platforms-default-58",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Agent platforms default to \"everything can spawn general subagents\"; this kernel does not. A permission boolean says an agent may spawn, but not what, through which tool, or with what identity plumbing. Spawner declarations are harvested at registry boot, every non-"
+        },
+        {
+          "insert": "\"*\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " target must exist in the catalog or boot fails, and the harvested map rides on the runtime config. A deliberately general spawner remains possible via "
+        },
+        {
+          "insert": "spawns: [\"*\"]",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", but it is a loud opt-in visible in the declaration, the harvest, and the trace. Spawner calls are distinguishable in traces: "
+        },
+        {
+          "insert": "tool_call_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " / "
+        },
+        {
+          "insert": "tool_call_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " eventData gains optional "
+        },
+        {
+          "insert": "toolKind: \"spawner\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " + "
+        },
+        {
+          "insert": "spawns",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", additive optional fields on the existing payloads, no new event types, no envelope change, so viewers can render agent dispatch differently from ordinary tools."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-variants-and-run-overrid-59": {
+      "id": "b-10-dab-variants-and-run-overrid-59",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Variants and Run Overrides"
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-durable-agent-definition-60": {
+      "id": "b-10-dab-durable-agent-definition-60",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Durable agent definitions own relatively stable configuration: name, description, model and settings, prompt source, variable schema, context assembler, private tool registrations, spawn declarations, turn limits, background behavior. Run invocations own dynamic values: caller-provided variables, the current message or assignment, session identity and paths, runtime inputs, parent/subagent linkage."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-run-invocations-casually-61": {
+      "id": "b-10-dab-run-invocations-casually-61",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Run invocations casually override only the dynamic inputs. Prompt structure, tool access, variable schema, context shape, spawn declarations, model, thinking level, max turns, and background behavior are configuration and cost/control semantics, differing values are an explicit variant or an administrative override, not ordinary run input."
+        }
+      ],
+      "children": []
+    },
+    "b-10-dab-variants-represent-diffe-62": {
+      "id": "b-10-dab-variants-represent-diffe-62",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Variants represent different configurations of the same prompt, context, and tool identity: split testing, cost and performance tuning, phase-specific operational settings. The manifest's "
+        },
+        {
+          "insert": "variants",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " field lists what a variant may set. If behavior diverges materially, that is a distinct agent, not a variant. Prompt A/B testing is out of scope for the core variant model; if it matters later it is separate experiment tooling or explicit temporary agents."
+        }
+      ],
+      "children": []
+    }
+  }
+}

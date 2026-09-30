@@ -1,0 +1,207 @@
+{
+  "version": 1,
+  "id": "tui-boot",
+  "title": "TUI boot",
+  "participants": [
+    {
+      "id": "p1",
+      "name": "user",
+      "kind": "actor",
+      "label": "User"
+    },
+    {
+      "id": "p2",
+      "name": "ext",
+      "kind": "participant",
+      "label": "tui extension"
+    },
+    {
+      "id": "p3",
+      "name": "catalog",
+      "kind": "participant",
+      "label": "catalog resolve"
+    },
+    {
+      "id": "p4",
+      "name": "kernel",
+      "kind": "participant",
+      "label": "kernel db-free exports"
+    },
+    {
+      "id": "p5",
+      "name": "pi",
+      "kind": "participant",
+      "label": "pi session"
+    }
+  ],
+  "items": [
+    {
+      "kind": "message",
+      "id": "m1",
+      "from": "p1",
+      "to": "p2",
+      "line": "sync",
+      "text": "/kernel name [--fixture id]"
+    },
+    {
+      "kind": "message",
+      "id": "m2",
+      "from": "p2",
+      "to": "p3",
+      "line": "sync",
+      "text": "resolveAgentDetailed(name, cwd)"
+    },
+    {
+      "kind": "message",
+      "id": "m3",
+      "from": "p3",
+      "to": "p4",
+      "line": "sync",
+      "text": "buildRegistry over project catalogRoots, then the generic catalog"
+    },
+    {
+      "kind": "message",
+      "id": "m4",
+      "from": "p3",
+      "to": "p2",
+      "line": "return",
+      "text": "bootable bundle, or app-hosted, unavailable, not-found"
+    },
+    {
+      "kind": "fragment",
+      "id": "f1",
+      "op": "alt",
+      "operands": [
+        {
+          "guard": "bundle is bootable",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m5",
+              "from": "p2",
+              "to": "p4",
+              "line": "sync",
+              "text": "bootAgent: substitute prompt variables for section 1"
+            },
+            {
+              "kind": "message",
+              "id": "m6",
+              "from": "p2",
+              "to": "p4",
+              "line": "sync",
+              "text": "buildContext for section 2"
+            },
+            {
+              "kind": "message",
+              "id": "m7",
+              "from": "p2",
+              "to": "p4",
+              "line": "sync",
+              "text": "state seed or fixture, then render, for section 3"
+            },
+            {
+              "kind": "message",
+              "id": "m8",
+              "from": "p2",
+              "to": "p5",
+              "line": "sync",
+              "text": "bindBundleTools: register the bundle's tools"
+            },
+            {
+              "kind": "message",
+              "id": "m9",
+              "from": "p2",
+              "to": "p5",
+              "line": "sync",
+              "text": "appendEntry session-binding and tui-session-meta markers"
+            },
+            {
+              "kind": "message",
+              "id": "m10",
+              "from": "p2",
+              "to": "p1",
+              "line": "return",
+              "text": "booted notice"
+            }
+          ]
+        },
+        {
+          "items": [
+            {
+              "kind": "message",
+              "id": "m11",
+              "from": "p2",
+              "to": "p1",
+              "line": "return",
+              "text": "notify reason, no boot"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "fragment",
+      "id": "f2",
+      "op": "loop",
+      "operands": [
+        {
+          "guard": "every turn",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m12",
+              "from": "p5",
+              "to": "p2",
+              "line": "sync",
+              "text": "before_agent_start"
+            },
+            {
+              "kind": "message",
+              "id": "m13",
+              "from": "p2",
+              "to": "p5",
+              "line": "return",
+              "text": "systemPrompt: cached sections 1 + 2 + 3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "fragment",
+      "id": "f3",
+      "op": "opt",
+      "operands": [
+        {
+          "guard": "tool name is in disallowedTools",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m14",
+              "from": "p5",
+              "to": "p2",
+              "line": "sync",
+              "text": "tool_call"
+            },
+            {
+              "kind": "message",
+              "id": "m15",
+              "from": "p2",
+              "to": "p5",
+              "line": "return",
+              "text": "block with reason"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "note",
+      "id": "n1",
+      "anchor": "p2",
+      "side": "over",
+      "text": "Per-turn re-render of section 3 is a marked seam, not built"
+    }
+  ],
+  "style": {}
+}

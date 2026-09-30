@@ -1,0 +1,1330 @@
+{
+  "schemaVersion": 1,
+  "id": "30-authoring-00-overview",
+  "title": "Agent Authoring",
+  "root": "b-00-overview-root-38",
+  "blocks": {
+    "b-00-overview-root-38": {
+      "id": "b-00-overview-root-38",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "examples/simple-research-kernel/src/agent-catalog/, packages/kernel/src/agent-registry/",
+        "concepts": [
+          "agent-authoring",
+          "agent-bundle",
+          "agent-json",
+          "prompt",
+          "context-sidecar",
+          "tools-sidecar",
+          "state-sidecar",
+          "bundle-layout"
+        ],
+        "covers": "Task-facing guidance for choosing and editing the files in an Agent Kernel bundle: the agent.json manifest, prompt, context, tools, state, validation, and canonical examples.",
+        "depends-on": [
+          "10-system-design/60-prompt-system-model",
+          "10-system-design/10-runtime-model"
+        ]
+      },
+      "children": [
+        "b-00-overview-start-with-the-kind-of-c-2",
+        "b-00-overview-this-tier-is-a-declared-3",
+        "b-00-overview-divider-4",
+        "b-00-overview-route-the-change-5",
+        "b-00-overview-route-table",
+        "b-00-overview-for-generated-snapshots-7",
+        "b-00-overview-bundle-anatomy-8",
+        "b-00-overview-an-agent-bundle-is-one-d-9",
+        "b-00-overview-the-layout-follows-d98-i-11",
+        "b-00-overview-agent-json-owns-the-du-12",
+        "b-00-overview-host-declares-where-th-13",
+        "b-00-overview-disallowedtools-is-enf-14",
+        "b-00-overview-there-is-no-authored-ag-15",
+        "b-00-overview-the-four-sections-16",
+        "b-00-overview-sections-table",
+        "b-00-overview-the-canonical-prompt-ord-18",
+        "b-00-overview-every-prompt-variable-mu-19",
+        "b-00-overview-section-contains-stand-20",
+        "b-00-overview-non-negotiables-21",
+        "b-00-overview-author-agent-json-and-22",
+        "b-00-overview-treat-prompt-json-or-23",
+        "b-00-overview-put-dynamic-reference-lo-24",
+        "b-00-overview-treat-viewer-pages-rend-25",
+        "b-00-overview-canonical-examples-28",
+        "b-00-overview-the-simple-research-kern-29",
+        "b-00-overview-research-coordinator-30",
+        "b-00-overview-source-scout-exa-31",
+        "b-00-overview-synthesis-writer-32",
+        "b-00-overview-use-these-bundles-for-la-33",
+        "b-00-overview-docs-writer-example",
+        "b-00-overview-context-editor-example",
+        "b-00-overview-examples-usage",
+        "b-00-overview-design-references-34",
+        "b-00-overview-runtime-model-10-sy-35",
+        "b-00-overview-observability-model-36",
+        "b-00-overview-kernel-area-page-20-37"
+      ]
+    },
+    "b-00-overview-start-with-the-kind-of-c-2": {
+      "id": "b-00-overview-start-with-the-kind-of-c-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Start with the kind of change, then edit the smallest bundle section that owns it."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-this-tier-is-a-declared-3": {
+      "id": "b-00-overview-this-tier-is-a-declared-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This tier is a declared "
+        },
+        {
+          "insert": "guides extension",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": task-facing how-to material for bundle authors. It is non-normative: authority over behavior and contracts stays with "
+        },
+        {
+          "insert": "10-system-design",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design",
+              "label": "10-system-design"
+            }
+          }
+        },
+        {
+          "insert": ", and authority over code structure stays with "
+        },
+        {
+          "insert": "20-implementation",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation",
+              "label": "20-implementation"
+            }
+          }
+        },
+        {
+          "insert": ". Where this tier and those layers disagree, the layers win and this tier has a bug."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-4": {
+      "id": "b-00-overview-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-route-the-change-5": {
+      "id": "b-00-overview-route-the-change-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Route the Change"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-route-table": {
+      "id": "b-00-overview-route-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Change",
+          "Touch"
+        ],
+        "rows": [
+          [
+            "Create an agent",
+            [
+              {
+                "insert": "Add "
+              },
+              {
+                "insert": "agent.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and one prompt form. Add "
+              },
+              {
+                "insert": "context",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "tools",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", or "
+              },
+              {
+                "insert": "state",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " only when the agent needs them."
+              }
+            ]
+          ],
+          [
+            "Change identity, model settings, variables, variants, shared/core tool access, or window configuration",
+            [
+              {
+                "insert": "Edit "
+              },
+              {
+                "insert": "agent.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". Update prompt variable nodes when a declaration changes."
+              }
+            ]
+          ],
+          [
+            "Change stable model behavior",
+            [
+              {
+                "insert": "Edit "
+              },
+              {
+                "insert": "prompt.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " or "
+              },
+              {
+                "insert": "prompt/prompt.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", then regenerate its Markdown snapshot. Use the prompt-kit repo, "
+              },
+              {
+                "insert": "docs/30-prompt-structure/",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", for prompt design."
+              }
+            ]
+          ],
+          [
+            "Change runtime material",
+            [
+              {
+                "insert": "Edit "
+              },
+              {
+                "insert": "the context sidecar",
+                "attributes": {
+                  "link": "30-authoring/10-context-sidecar"
+                }
+              },
+              {
+                "insert": " for standing reference material; edit "
+              },
+              {
+                "insert": "the state sidecar",
+                "attributes": {
+                  "link": "30-authoring/20-state-sidecar"
+                }
+              },
+              {
+                "insert": " for the live working picture and conversation window."
+              }
+            ]
+          ],
+          [
+            "Change the action surface",
+            [
+              {
+                "insert": "Edit "
+              },
+              {
+                "insert": "the tools sidecar",
+                "attributes": {
+                  "link": "30-authoring/30-tools-sidecar"
+                }
+              },
+              {
+                "insert": " for private tools or "
+              },
+              {
+                "insert": "agent.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " for shared/core tool access."
+              }
+            ]
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-00-overview-for-generated-snapshots-7": {
+      "id": "b-00-overview-for-generated-snapshots-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "For generated snapshots, boot checks, catalog doctor, or viewer expectations, use "
+        },
+        {
+          "insert": "Validation and Inspection",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "30-authoring/40-validation",
+              "label": "Validation and Inspection"
+            }
+          }
+        },
+        {
+          "insert": ". Changes to the registry, request builder, traces, or viewer are implementation work rather than bundle authoring; follow the "
+        },
+        {
+          "insert": "kernel implementation overview",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/20-kernel",
+              "label": "kernel implementation overview"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-bundle-anatomy-8": {
+      "id": "b-00-overview-bundle-anatomy-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Bundle Anatomy"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-an-agent-bundle-is-one-d-9": {
+      "id": "b-00-overview-an-agent-bundle-is-one-d-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An agent bundle is one directory containing "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " plus four runtime sections: prompt, context, tools, and state. Prompt is required. Context, tools, and state are optional. The bundle file tree, with the role of every file, lives in "
+        },
+        {
+          "insert": "Documents and Bundles",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/10-documents-and-bundles",
+              "label": "Documents and Bundles"
+            }
+          }
+        },
+        {
+          "insert": ". To start a new bundle, copy the folder of the closest canonical example below and delete the sections the agent does not need."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-layout-follows-d98-i-11": {
+      "id": "b-00-overview-the-layout-follows-d98-i-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The layout follows decision D98 in "
+        },
+        {
+          "insert": "State Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/30-state-model",
+              "label": "State Model"
+            }
+          }
+        },
+        {
+          "insert": ". Each section may stay as one file or expand into a folder whose listed entry point is the only discovered file. Resolution is file first, folder second. If both forms exist, the file wins and catalog doctor reports the shadowed folder. Folder internals, such as "
+        },
+        {
+          "insert": "tools/runtime.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "docs-writer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", remain private to the section. Fixture folders are preview data: the spawn pipeline never reads them."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-agent-json-owns-the-du-12": {
+      "id": "b-00-overview-agent-json-owns-the-du-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " owns the durable manifest. Its fields, defaults, and nested "
+        },
+        {
+          "insert": "variables",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "variants",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "state.window",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " shapes are defined by the manifest state shape in "
+        },
+        {
+          "insert": "Documents and Bundles",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/10-documents-and-bundles",
+              "label": "Documents and Bundles"
+            }
+          }
+        },
+        {
+          "insert": ". Add only the fields the agent needs: unknown keys fail validation at every level ("
+        },
+        {
+          "insert": "packages/kernel/src/agent-definition/agent-manifest-schema.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/agent-definition/agent-manifest-schema.ts"
+            }
+          }
+        },
+        {
+          "insert": "). Section sidecars attach by filename convention rather than explicit imports."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-host-declares-where-th-13": {
+      "id": "b-00-overview-host-declares-where-th-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "host",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " declares where the agent may run. "
+        },
+        {
+          "insert": "\"app\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (the default when the field is absent) means the bundle runs only inside its owning app harness: its sidecars may import app services, and standalone harnesses (the pi TUI, sub-agent spawns outside the app) classify it from the manifest without evaluating those sidecars. "
+        },
+        {
+          "insert": "\"any\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " means the bundle is standalone-safe: every sidecar must load under plain Node with no app runtime; catalog doctor's host portability check ("
+        },
+        {
+          "insert": "agent-kernel-doctor --catalog",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") verifies this. Declare "
+        },
+        {
+          "insert": "\"any\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " only when it is true; the declaration is trusted, not probed."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-disallowedtools-is-enf-14": {
+      "id": "b-00-overview-disallowedtools-is-enf-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "disallowedTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is enforced in every runtime: the spawn pipeline applies it\nas the session tool disallowlist, and the pi TUI blocks the listed built-ins\nat "
+        },
+        {
+          "insert": "tool_call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " while the agent is active (interactive sessions keep their\nbuilt-in tools, so blocking is the enforcement). Use it to force an agent's\nmutations through its own typed tools sidecar while leaving reads open: e.g.\n"
+        },
+        {
+          "insert": "docs-writer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " disallows "
+        },
+        {
+          "insert": "write",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "edit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and writes docs only through its\nvalidated "
+        },
+        {
+          "insert": "docs_write",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tool."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-there-is-no-authored-ag-15": {
+      "id": "b-00-overview-there-is-no-authored-ag-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "There is no authored "
+        },
+        {
+          "insert": "agent.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " entry point in the current bundle contract. Older guidance that assigns manifest or composition responsibilities to "
+        },
+        {
+          "insert": "agent.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is obsolete; those responsibilities belong to "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and the convention-discovered sections. The "
+        },
+        {
+          "insert": "runtime model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model",
+              "label": "runtime model"
+            }
+          }
+        },
+        {
+          "insert": " is authoritative for discovery and normalization."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-four-sections-16": {
+      "id": "b-00-overview-the-four-sections-16",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Four Sections"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-sections-table": {
+      "id": "b-00-overview-sections-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Section",
+          "Authoring responsibility",
+          "Request boundary"
+        ],
+        "rows": [
+          [
+            "Prompt",
+            [
+              {
+                "insert": "Stable behavior expressed as a PromptKit "
+              },
+              {
+                "insert": "PromptDocument",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " in JSON."
+              }
+            ],
+            "① system prompt"
+          ],
+          [
+            "Context",
+            "Load and assemble standing reference material that should remain visible.",
+            "② rebuilt context message"
+          ],
+          [
+            "Tools",
+            "Declare private executable actions and bind their runtime services.",
+            "Provider tool schemas and execution"
+          ],
+          [
+            "State",
+            "Seed, update, and render the moving work picture plus the chosen conversation tail.",
+            "③ rendered state"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-00-overview-the-canonical-prompt-ord-18": {
+      "id": "b-00-overview-the-canonical-prompt-ord-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The canonical prompt order is "
+        },
+        {
+          "insert": "purpose",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", optional "
+        },
+        {
+          "insert": "goal",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "state_structure",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "workflow",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", optional "
+        },
+        {
+          "insert": "error_handling",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", optional "
+        },
+        {
+          "insert": "success_criteria",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", then "
+        },
+        {
+          "insert": "rules",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " last. Do not add a tools section, context-inventory section, or reminders section. Tool guidance belongs in context ②, executable schemas belong to the tool layer, and the full prompt-structure treatment belongs in the prompt-kit repo, "
+        },
+        {
+          "insert": "docs/30-prompt-structure/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-every-prompt-variable-mu-19": {
+      "id": "b-00-overview-every-prompt-variable-mu-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every prompt variable must be declared in "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; every declaration must match actual prompt usage. Keep PromptKit generic: kernel runtime configuration, context loading, private tool implementation, and state transitions stay outside the prompt document."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-section-contains-stand-20": {
+      "id": "b-00-overview-section-contains-stand-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Section ② contains standing reference material. Anything that moves during the run belongs to section ③, including the conversation tail. For the complete state contract and three-section request assembly, use the "
+        },
+        {
+          "insert": "runtime model's state section",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model",
+              "label": "runtime model's state section"
+            }
+          }
+        },
+        {
+          "insert": " rather than duplicating those internals here."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-non-negotiables-21": {
+      "id": "b-00-overview-non-negotiables-21",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Non-Negotiables"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-author-agent-json-and-22": {
+      "id": "b-00-overview-author-agent-json-and-22",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Author "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and PromptKit JSON; do not create "
+        },
+        {
+          "insert": "agent.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "prompt.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or an authored "
+        },
+        {
+          "insert": "agent.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as bundle sources."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-treat-prompt-json-or-23": {
+      "id": "b-00-overview-treat-prompt-json-or-23",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Treat "
+        },
+        {
+          "insert": "prompt.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "prompt/prompt.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as the prompt source of truth. Regenerate the adjacent Markdown snapshot; never hand-edit it."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-put-dynamic-reference-lo-24": {
+      "id": "b-00-overview-put-dynamic-reference-lo-24",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Put dynamic reference loading in context, private actions in tools, and live working state in state. Do not move those runtime concerns into PromptKit."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-treat-viewer-pages-rend-25": {
+      "id": "b-00-overview-treat-viewer-pages-rend-25",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Treat viewer pages, rendered prompts, combined request views, and traces as derived inspection surfaces, not authored bundle files."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-canonical-examples-28": {
+      "id": "b-00-overview-canonical-examples-28",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Canonical Examples"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-simple-research-kern-29": {
+      "id": "b-00-overview-the-simple-research-kern-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The Simple Research Kernel catalog contains the current folder-form examples:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-research-coordinator-30": {
+      "id": "b-00-overview-research-coordinator-30",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Research coordinator",
+          "attributes": {
+            "link": "../../examples/simple-research-kernel/src/agent-catalog/research-coordinator/"
+          }
+        },
+        {
+          "insert": ": manifest, prompt, context, private tools, variants, and coordinator actions. It ships three "
+        },
+        {
+          "insert": "state/fixtures/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " files and no state sidecar, so the catalog previews each fixture as the pretty-printed fallback."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-source-scout-exa-31": {
+      "id": "b-00-overview-source-scout-exa-31",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Source scout",
+          "attributes": {
+            "link": "../../examples/simple-research-kernel/src/agent-catalog/source-scout/"
+          }
+        },
+        {
+          "insert": ": focused variables, context loading, and a private report-writing tool."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-synthesis-writer-32": {
+      "id": "b-00-overview-synthesis-writer-32",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Report writer",
+          "attributes": {
+            "link": "../../examples/simple-research-kernel/src/agent-catalog/report-writer/"
+          }
+        },
+        {
+          "insert": ": a smaller specialist bundle using the same section boundaries."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-use-these-bundles-for-la-33": {
+      "id": "b-00-overview-use-these-bundles-for-la-33",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The repo's own "
+        },
+        {
+          "insert": "catalog/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " holds two richer folder-form bundles:"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-docs-writer-example": {
+      "id": "b-00-overview-docs-writer-example",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Docs writer",
+          "attributes": {
+            "link": "../../catalog/docs-writer/"
+          }
+        },
+        {
+          "insert": ": context, state with a "
+        },
+        {
+          "insert": "state/fixtures/default.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " fixture, and private tools ("
+        },
+        {
+          "insert": "docs_tree",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "docs_read",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "docs_write",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "docs_check",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") implemented in the folder internal "
+        },
+        {
+          "insert": "tools/runtime.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". It declares "
+        },
+        {
+          "insert": "host: \"any\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and disallows "
+        },
+        {
+          "insert": "write",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "edit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-context-editor-example": {
+      "id": "b-00-overview-context-editor-example",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Context editor",
+          "attributes": {
+            "link": "../../catalog/context-editor/"
+          }
+        },
+        {
+          "insert": ": context built from "
+        },
+        {
+          "insert": "file",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " loaders, and state with two fixtures ("
+        },
+        {
+          "insert": "default.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "mid-session.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ")."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-examples-usage": {
+      "id": "b-00-overview-examples-usage",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use these bundles for layout and runtime-boundary examples. Use the prompt-kit repo, "
+        },
+        {
+          "insert": "docs/30-prompt-structure/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", for canonical prompt structure."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-design-references-34": {
+      "id": "b-00-overview-design-references-34",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Design References"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-runtime-model-10-sy-35": {
+      "id": "b-00-overview-runtime-model-10-sy-35",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model",
+              "label": "Runtime Model"
+            }
+          }
+        },
+        {
+          "insert": ": bundle discovery and boot validation, context assembly, the full state contract, and three-section request assembly."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-observability-model-36": {
+      "id": "b-00-overview-observability-model-36",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Observability Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-observability-model",
+              "label": "Observability Model"
+            }
+          }
+        },
+        {
+          "insert": ": request snapshots: section tags and the exact request captured for inspection."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-kernel-area-page-20-37": {
+      "id": "b-00-overview-kernel-area-page-20-37",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Kernel area page",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/20-kernel",
+              "label": "Kernel area page"
+            }
+          }
+        },
+        {
+          "insert": ": the structural decisions behind the bundle layout (D98 file-or-folder resolution, committed prompt renders, sidecar harvest)."
+        }
+      ],
+      "children": []
+    }
+  }
+}

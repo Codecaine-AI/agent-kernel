@@ -1,0 +1,633 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-20-kernel-50-transcript-recovery",
+  "title": "Transcript Recovery",
+  "root": "b-50-transcript-recovery-root-13",
+  "blocks": {
+    "b-50-transcript-recovery-root-13": {
+      "id": "b-50-transcript-recovery-root-13",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/transcript-recovery/",
+        "concepts": [
+          "transcript-recovery",
+          "backfill",
+          "emitter-parity",
+          "deterministic-ids"
+        ],
+        "covers": "Structural decisions in transcript recovery: co-location with the emitter for id parity, and the recovery-tool (not daemon) posture.",
+        "depends-on": [
+          "20-implementation/20-kernel",
+          "10-system-design/20-observability-model"
+        ]
+      },
+      "children": [
+        "b-50-transcript-recovery-packages-kernel-src-tra-2",
+        "b-50-transcript-recovery-divider-3",
+        "b-50-tr-backfill-heading",
+        "b-50-tr-backfill-lead",
+        "b-50-tr-backfill-sequence",
+        "b-50-tr-tui-heading",
+        "b-50-tr-tui-lead",
+        "b-50-tr-tui-outline",
+        "b-50-transcript-recovery-decisions-4",
+        "b-50-transcript-recovery-recovery-lives-inside-th-5",
+        "b-50-transcript-recovery-decision-the-backfi-6",
+        "b-50-transcript-recovery-why-the-two-emissio-7",
+        "b-50-transcript-recovery-applies-to-package-8",
+        "b-50-transcript-recovery-a-recovery-tool-not-a-d-9",
+        "b-50-transcript-recovery-decision-recovery-i-10",
+        "b-50-transcript-recovery-accept-container-id",
+        "b-50-transcript-recovery-why-the-primary-tra-11",
+        "b-50-transcript-recovery-applies-to-package-12"
+      ]
+    },
+    "b-50-transcript-recovery-packages-kernel-src-tra-2": {
+      "id": "b-50-transcript-recovery-packages-kernel-src-tra-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "packages/kernel/src/transcript-recovery/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " re-derives trace rows from Pi JSONL transcripts: "
+        },
+        {
+          "insert": "runBackfill",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the "
+        },
+        {
+          "insert": "EventMapper",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "runTuiIngest",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and two CLI bins, "
+        },
+        {
+          "insert": "agent-kernel-backfill",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "agent-kernel-tui-ingest",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The behavior (what backfill is for, session-binding stamping, idempotent inserts against live emission) is design: "
+        },
+        {
+          "insert": "Observability Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-observability-model",
+              "label": "Observability Model"
+            }
+          }
+        },
+        {
+          "insert": " § Event Sources."
+        }
+      ],
+      "children": []
+    },
+    "b-50-transcript-recovery-divider-3": {
+      "id": "b-50-transcript-recovery-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-50-tr-backfill-heading": {
+      "id": "b-50-tr-backfill-heading",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Backfill"
+        }
+      ],
+      "children": []
+    },
+    "b-50-tr-backfill-lead": {
+      "id": "b-50-tr-backfill-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A backfill run reads each file whole, maps it through a fresh "
+        },
+        {
+          "insert": "EventMapper",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and inserts the result in batches. Source: "
+        },
+        {
+          "insert": "backfill.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "reader.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "mapper.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Events still pending at the end of a file never saw a binding marker; the run drops them and adds a warning."
+        }
+      ],
+      "children": []
+    },
+    "b-50-tr-backfill-sequence": {
+      "id": "b-50-tr-backfill-sequence",
+      "type": "sequence",
+      "props": {
+        "src": "./assets/sequences/backfill.sequence.json",
+        "title": "Backfill a JSONL directory"
+      },
+      "children": []
+    },
+    "b-50-tr-tui-heading": {
+      "id": "b-50-tr-tui-heading",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "TUI Ingest"
+        }
+      ],
+      "children": []
+    },
+    "b-50-tr-tui-lead": {
+      "id": "b-50-tr-tui-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "runTuiIngest",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " imports "
+        },
+        {
+          "insert": "/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "-booted Pi TUI sessions into the kernel db that owns them. It creates the identity rows first, then reuses the backfill. Source: "
+        },
+        {
+          "insert": "tui-ingest.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "tui-ingest-cli.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-50-tr-tui-outline": {
+      "id": "b-50-tr-tui-outline",
+      "type": "process-outline",
+      "props": {
+        "steps": [
+          {
+            "text": "`agent-kernel-tui-ingest` runs `runTuiIngest` over `~/.pi/agent/sessions`",
+            "steps": [
+              {
+                "text": "`--sessions-dir` overrides the directory.",
+                "kind": "note"
+              },
+              {
+                "text": "Read each `.jsonl` file and pair its markers",
+                "steps": [
+                  {
+                    "text": "Match each `agent-kernel:tui-session-meta` to an `agent-kernel:session-binding` by `containerId`"
+                  },
+                  {
+                    "text": "A file with no meta marker is a plain Pi session and is skipped silently.",
+                    "kind": "note"
+                  },
+                  {
+                    "text": "A meta with no matching binding or no `targetKernelRoot` is skipped with a warning.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Group the file's boots by `targetKernelRoot`"
+              },
+              {
+                "text": "Resolve the owning kernel db from `<root>/kernel.json`",
+                "steps": [
+                  {
+                    "text": "`dbPath` defaults to `<root>/trace.db`. A relative path resolves against the root.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Log the target and stop when `--dry-run` is set"
+              },
+              {
+                "text": "Open the db and ensure the schema",
+                "steps": [
+                  {
+                    "text": "One handle per db serves every file that targets it.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "For each boot, upsert the identity rows backfill does not create",
+                "steps": [
+                  {
+                    "text": "`upsertContainer` with kind `session` and appKey `[\"tui-session\", containerId]`"
+                  },
+                  {
+                    "text": "`upsertPiAgentSession` keyed by the Pi session uuid"
+                  },
+                  {
+                    "text": "`upsertAgentRun` with trigger `operator` when the marker carries a UUID `runId`"
+                  }
+                ]
+              },
+              {
+                "text": "Run `runBackfill` over the file into the same db",
+                "steps": [
+                  {
+                    "text": "The backfill sequence above runs unchanged, bound by the `agent-kernel:session-binding` marker.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Return `TuiIngestSummary` with upsert counts and inserted and skipped events"
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-50-transcript-recovery-decisions-4": {
+      "id": "b-50-transcript-recovery-decisions-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-50-transcript-recovery-recovery-lives-inside-th-5": {
+      "id": "b-50-transcript-recovery-recovery-lives-inside-th-5",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Recovery lives inside the kernel package, beside the emitter"
+        }
+      ],
+      "children": []
+    },
+    "b-50-transcript-recovery-decision-the-backfi-6": {
+      "id": "b-50-transcript-recovery-decision-the-backfi-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The backfill mapper is a kernel module, co-located with the in-process emitter it must stay in parity with; both derive ids and usage through "
+        },
+        {
+          "insert": "@agent-kernel/protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the emitter's id-parity test imports "
+        },
+        {
+          "insert": "EventMapper",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " directly from "
+        },
+        {
+          "insert": "../transcript-recovery",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as an intra-package drift guard."
+        }
+      ],
+      "children": []
+    },
+    "b-50-transcript-recovery-why-the-two-emissio-7": {
+      "id": "b-50-transcript-recovery-why-the-two-emissio-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The two emission paths must produce identical event ids or idempotent inserts stop deduplicating. A separate recovery package was rejected: it turns the parity requirement into a cross-repo contract that can drift between releases; co-location makes divergence a failing test in the same build."
+        }
+      ],
+      "children": []
+    },
+    "b-50-transcript-recovery-applies-to-package-8": {
+      "id": "b-50-transcript-recovery-applies-to-package-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/kernel/src/transcript-recovery/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "packages/kernel/src/emitter/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": any change to either path's id derivation or event mapping must keep the parity test passing, and new emission paths join the same package under the same guard."
+        }
+      ],
+      "children": []
+    },
+    "b-50-transcript-recovery-a-recovery-tool-not-a-d-9": {
+      "id": "b-50-transcript-recovery-a-recovery-tool-not-a-d-9",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "A recovery tool, not a daemon"
+        }
+      ],
+      "children": []
+    },
+    "b-50-transcript-recovery-decision-recovery-i-10": {
+      "id": "b-50-transcript-recovery-decision-recovery-i-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Recovery is an invoked operation: "
+        },
+        {
+          "insert": "runBackfill(options)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " over a JSONL directory or file list (also accepting an already-open db handle for embedding), plus the CLIs. There is no directory watcher loop, cursor snapshot, or health port. Backfill itself creates no identity rows; "
+        },
+        {
+          "insert": "runTuiIngest",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " upserts them before it backfills, as outlined above."
+        }
+      ],
+      "children": []
+    },
+    "b-50-transcript-recovery-accept-container-id": {
+      "id": "b-50-transcript-recovery-accept-container-id",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "By default the mapper binds events only to UUID-shaped container ids. "
+        },
+        {
+          "insert": "runBackfill",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " takes an "
+        },
+        {
+          "insert": "acceptContainerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " predicate to change that, and "
+        },
+        {
+          "insert": "agent-kernel-backfill --any-container-id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " accepts every id."
+        }
+      ],
+      "children": []
+    },
+    "b-50-transcript-recovery-why-the-primary-tra-11": {
+      "id": "b-50-transcript-recovery-why-the-primary-tra-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The primary trace path is the in-process emitter; a watcher daemon duplicated it badly and needed its own lifecycle. A tool that reads the durable JSONL on demand covers disaster rebuild and import without a second always-on writer."
+        }
+      ],
+      "children": []
+    },
+    "b-50-transcript-recovery-applies-to-package-12": {
+      "id": "b-50-transcript-recovery-applies-to-package-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/kernel/src/transcript-recovery/backfill.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "backfill-cli.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "mapper.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "reader.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "tui-ingest.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "tui-ingest-cli.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": future recovery features extend the invoked-tool surface rather than reintroducing a watcher."
+        }
+      ],
+      "children": []
+    }
+  }
+}

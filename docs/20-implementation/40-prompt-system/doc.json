@@ -1,0 +1,1593 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-40-prompt-system",
+  "title": "Prompt System",
+  "root": "b-40-prompt-system-root-37",
+  "blocks": {
+    "b-40-prompt-system-root-37": {
+      "id": "b-40-prompt-system-root-37",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/agent-definition/, packages/kernel/src/agent-registry/, packages/kernel/src/state/, packages/kernel/src/transcript-recovery/, packages/kernel/src/prompt-edit-session/, packages/kernel/src/catalog-service.ts",
+        "concepts": [
+          "prompt-system",
+          "prompt-kit",
+          "bundle-layout",
+          "agent-manifest",
+          "state-extension",
+          "kernel-messages",
+          "transcript-recovery"
+        ],
+        "covers": "Structural decisions for the prompt-system code: the prompt-kit repo split, bundle layout resolution, manifest schema ownership, the state module, kernel-message constants, and transcript recovery placement.",
+        "depends-on": [
+          "10-system-design/60-prompt-system-model"
+        ]
+      },
+      "children": [
+        "b-40-prompt-system-the-prompt-system-s-code-2",
+        "b-40-prompt-system-governed-by-10-system-3",
+        "b-40-prompt-system-divider-4",
+        "b-40-prompt-system-decisions-5",
+        "b-40-prompt-system-prompt-kit-is-a-sibling-6",
+        "b-40-prompt-system-decision-the-generi-7",
+        "b-40-prompt-system-why-the-original-pl-8",
+        "b-40-prompt-system-applies-to-any-new-9",
+        "b-40-prompt-system-prompt-writes-shared-store-38",
+        "b-40-prompt-system-decision-shared-store-39",
+        "b-40-prompt-system-why-shared-store-40",
+        "b-40-prompt-system-applies-shared-store-41",
+        "b-40-prompt-system-bundle-sections-resolve-10",
+        "b-40-prompt-system-decision-bundle-res-11",
+        "b-40-prompt-system-why-the-rejected-al-12",
+        "b-40-prompt-system-applies-to-any-new-13",
+        "b-40-prompt-system-manifest-and-sidecar-con-14",
+        "b-40-prompt-system-decision-packages-15",
+        "b-40-prompt-system-why-the-alternative-16",
+        "b-40-prompt-system-applies-to-any-new-17",
+        "b-40-prompt-system-the-state-model-is-one-k-18",
+        "b-40-prompt-system-decision-everything-19",
+        "b-40-prompt-system-why-the-rejected-sh-20",
+        "b-40-prompt-system-applies-to-new-wind-21",
+        "b-40-prompt-system-wire-visible-constants-l-22",
+        "b-40-prompt-system-decision-the-kerne-23",
+        "b-40-prompt-system-why-the-markers-sur-24",
+        "b-40-prompt-system-applies-to-any-new-25",
+        "b-40-prompt-system-transcript-recovery-is-i-26",
+        "b-40-prompt-system-decision-re-derivin-27",
+        "b-40-prompt-system-why-the-standalone-28",
+        "b-40-prompt-system-applies-to-any-new-29",
+        "b-40-prompt-system-divider-30",
+        "b-40-prompt-system-roster-31",
+        "b-40-prompt-system-roster-lead-47",
+        "b-40-prompt-system-roster-table-48"
+      ]
+    },
+    "b-40-prompt-system-the-prompt-system-s-code-2": {
+      "id": "b-40-prompt-system-the-prompt-system-s-code-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The prompt system's code in this repo: manifest and sidecar contracts in\n"
+        },
+        {
+          "insert": "packages/kernel/src/agent-definition/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", bundle discovery and prompt\nsnapshots in "
+        },
+        {
+          "insert": "packages/kernel/src/agent-registry/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the state extension in\n"
+        },
+        {
+          "insert": "packages/kernel/src/state/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and transcript recovery in\n"
+        },
+        {
+          "insert": "packages/kernel/src/transcript-recovery/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The generic prompt document\nmodel lives outside this repo (first entry below)."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-governed-by-10-system-3": {
+      "id": "b-40-prompt-system-governed-by-10-system-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Governed by: "
+        },
+        {
+          "insert": "Prompt System Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-divider-4": {
+      "id": "b-40-prompt-system-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-40-prompt-system-decisions-5": {
+      "id": "b-40-prompt-system-decisions-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-prompt-kit-is-a-sibling-6": {
+      "id": "b-40-prompt-system-prompt-kit-is-a-sibling-6",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Prompt-kit is a sibling repo, not a kernel package"
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-decision-the-generi-7": {
+      "id": "b-40-prompt-system-decision-the-generi-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The generic prompt document model (AST, canonicalization and\nhashing, renderers, transforms, validation) lives in\n"
+        },
+        {
+          "insert": "@codecaine-ai/prompt-kit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", in the Core workspace's "
+        },
+        {
+          "insert": "prompt-kit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " repo\n("
+        },
+        {
+          "insert": "prompt-kit/packages/prompt-kit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). The kernel consumes it and its companion "
+        },
+        {
+          "insert": "@codecaine-ai/prompt-kit-server",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as workspace dependencies. The edit-op compiler lives in "
+        },
+        {
+          "insert": "@codecaine-ai/prompt-kit/authoring",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and is shared with the Prompt MCP. "
+        },
+        {
+          "insert": "prompt-edit-session/compile-ops.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " re-exports it. Kernel-specific prompt helpers exist only in the kernel, and\nonly when they truly depend on kernel concepts."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-why-the-original-pl-8": {
+      "id": "b-40-prompt-system-why-the-original-pl-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The original plan kept prompt-kit at "
+        },
+        {
+          "insert": "packages/prompt-kit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " inside\nthis repo. That coupled a generic, reusable prompt standard to kernel\nreleases and kernel tooling; the peer repo lets other harnesses consume it\nwithout pulling the kernel workspace. The dependency direction is the design\ninvariant either way: kernel → prompt-kit, never the reverse."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-applies-to-any-new-9": {
+      "id": "b-40-prompt-system-applies-to-any-new-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Any new prompt AST node, renderer, transform, or edit operation:\nit goes to the "
+        },
+        {
+          "insert": "prompt-kit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " repo, not "
+        },
+        {
+          "insert": "packages/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Any new kernel code\nimporting prompt-kit does so through the package export, never a relative\npath."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-prompt-writes-shared-store-38": {
+      "id": "b-40-prompt-system-prompt-writes-shared-store-38",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Prompt writes go through the shared prompt store"
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-decision-shared-store-39": {
+      "id": "b-40-prompt-system-decision-shared-store-39",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "savePrompt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "catalog-service.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " writes through "
+        },
+        {
+          "insert": "createPromptStore",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from "
+        },
+        {
+          "insert": "@codecaine-ai/prompt-kit-server",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the same store the Prompt MCP uses. The kernel and the MCP share one per-file lock, one journal, and one "
+        },
+        {
+          "insert": "expectedHash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " compare-and-swap base. When disk-sync finds an MCP edit through the store journal ("
+        },
+        {
+          "insert": "readLatestPromptChange",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), it records the revision with source "
+        },
+        {
+          "insert": "prompt-kit-mcp",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-why-shared-store-40": {
+      "id": "b-40-prompt-system-why-shared-store-40",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Two writers with separate locks could interleave on one "
+        },
+        {
+          "insert": "prompt.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and lose an edit. One store gives one conflict rule, a 409 with "
+        },
+        {
+          "insert": "{ currentHash }",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for whichever writer is stale, and one revision history that includes MCP edits."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-applies-shared-store-41": {
+      "id": "b-40-prompt-system-applies-shared-store-41",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Any new code path that writes "
+        },
+        {
+          "insert": "prompt.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". It calls the shared store and never writes the file directly."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-bundle-sections-resolve-10": {
+      "id": "b-40-prompt-system-bundle-sections-resolve-10",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Bundle sections resolve by filename convention, file-first"
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-decision-bundle-res-11": {
+      "id": "b-40-prompt-system-decision-bundle-res-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Bundle resolution is one module:\n"
+        },
+        {
+          "insert": "agent-registry/registry/bundle-layout.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Every section follows the\n"
+        },
+        {
+          "insert": "<kind>.ts | <kind>/index.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " rule ("
+        },
+        {
+          "insert": "prompt.json | prompt/prompt.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for\nthe prompt); the file form is tried first and wins silently when both exist,\nwith the shadowed path recorded for "
+        },
+        {
+          "insert": "doctor --catalog",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "index.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is a\nfolder's only entry point; everything else in a section folder is invisible\nto discovery."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-why-the-rejected-al-12": {
+      "id": "b-40-prompt-system-why-the-rejected-al-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The rejected alternative was pointing at section files from\n"
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Path fields would make the manifest a build config instead of\ndata, and every migration would need a manifest edit; the convention keeps\nmanifests schema-validated data and makes re-export shims safe mid-move."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-applies-to-any-new-13": {
+      "id": "b-40-prompt-system-applies-to-any-new-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Any new bundle section or sidecar kind: extend\n"
+        },
+        {
+          "insert": "bundle-layout.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and follow the same two legal shapes. No other code may\nprobe bundle directories directly."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-manifest-and-sidecar-con-14": {
+      "id": "b-40-prompt-system-manifest-and-sidecar-con-14",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Manifest and sidecar contracts live in "
+        },
+        {
+          "insert": "agent-definition/",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-decision-packages-15": {
+      "id": "b-40-prompt-system-decision-packages-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/kernel/src/agent-definition/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " owns the\n"
+        },
+        {
+          "insert": "agent-kernel/agent-v1",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " JSON Schema ("
+        },
+        {
+          "insert": "agent-manifest-schema.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), the\n"
+        },
+        {
+          "insert": "defineAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " generator/validator, and "
+        },
+        {
+          "insert": "defineSpawnerTool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The registry\nvalidates every "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " against this one schema; no other module\ndefines manifest fields."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-why-the-alternative-16": {
+      "id": "b-40-prompt-system-why-the-alternative-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The alternative, letting the registry, spawn pipeline, and viewer\neach carry their own notion of manifest fields, is how the retired\nfrontmatter model drifted. One schema module means a new manifest field is\nadded exactly once and every consumer sees it through the parsed\n"
+        },
+        {
+          "insert": "ParsedAgent.config",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-applies-to-any-new-17": {
+      "id": "b-40-prompt-system-applies-to-any-new-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Any new manifest field, sidecar declaration shape, or\nvariable-schema rule: schema first, in "
+        },
+        {
+          "insert": "agent-definition/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", then consumers."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-the-state-model-is-one-k-18": {
+      "id": "b-40-prompt-system-the-state-model-is-one-k-18",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "The state model is one kernel module behind one gate"
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-decision-everything-19": {
+      "id": "b-40-prompt-system-decision-everything-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Everything the state model ships (the extension, the\nthree-section builder, window policies, the context set, the snapshot store,\nand the kernel-side message helpers) lives in "
+        },
+        {
+          "insert": "packages/kernel/src/state/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ".\nRegistration is gated on "
+        },
+        {
+          "insert": "stateExtensionEnabled",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (a "
+        },
+        {
+          "insert": "state.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sidecar or a\n"
+        },
+        {
+          "insert": "state.window",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " manifest block); with neither, nothing is registered."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-why-the-rejected-sh-20": {
+      "id": "b-40-prompt-system-why-the-rejected-sh-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The rejected shape was always registering the extension with no-op\nbehavior for plain agents. Mechanical absence is what makes the pass-through\nguarantee (design D83) auditable: a byte-identical legacy session cannot be\npromised by a code path that still runs."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-applies-to-new-wind-21": {
+      "id": "b-40-prompt-system-applies-to-new-wind-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " New window strategies, event pumps, render plumbing, and\nsection-builder changes: all under "
+        },
+        {
+          "insert": "src/state/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", behind the same gate."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-wire-visible-constants-l-22": {
+      "id": "b-40-prompt-system-wire-visible-constants-l-22",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Wire-visible constants live in "
+        },
+        {
+          "insert": "@agent-kernel/protocol",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-decision-the-kerne-23": {
+      "id": "b-40-prompt-system-decision-the-kerne-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The "
+        },
+        {
+          "insert": "kernel:context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " / "
+        },
+        {
+          "insert": "kernel:state",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " customType constants,\n"
+        },
+        {
+          "insert": "isKernelAuthoredMessage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the image-elision envelope are defined in\n"
+        },
+        {
+          "insert": "packages/protocol/src/kernel-messages.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The kernel and the viewer both\nimport them; neither defines its own copy."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-why-the-markers-sur-24": {
+      "id": "b-40-prompt-system-why-the-markers-sur-24",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The markers survive into snapshot blobs the viewer reads back, so\ndefining them in the kernel would leave the viewer re-deriving the rule:\nthe producer/consumer drift design D99 exists to prevent."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-applies-to-any-new-25": {
+      "id": "b-40-prompt-system-applies-to-any-new-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Any new kernel-authored message marker, elision envelope, or\nwire-visible constant shared between emitter and reader."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-transcript-recovery-is-i-26": {
+      "id": "b-40-prompt-system-transcript-recovery-is-i-26",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Transcript recovery is in-kernel, not a package"
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-decision-re-derivin-27": {
+      "id": "b-40-prompt-system-decision-re-derivin-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Re-deriving trace rows from Pi JSONL transcripts lives at\n"
+        },
+        {
+          "insert": "packages/kernel/src/transcript-recovery/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (bins "
+        },
+        {
+          "insert": "agent-kernel-backfill",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ",\n"
+        },
+        {
+          "insert": "agent-kernel-tui-ingest",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). There is no separate tailer/recovery package."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-why-the-standalone-28": {
+      "id": "b-40-prompt-system-why-the-standalone-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The standalone tailer package was dissolved (design D80): once\nin-process emission became primary, a separate package's only effect was\nletting the recovery mapper and the live emitter version-skew. Co-location\nkeeps their id-parity guarantee an intra-package test."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-applies-to-any-new-29": {
+      "id": "b-40-prompt-system-applies-to-any-new-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Any new backfill, import, or transcript-derivation mapper."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-divider-30": {
+      "id": "b-40-prompt-system-divider-30",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-40-prompt-system-roster-31": {
+      "id": "b-40-prompt-system-roster-31",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Roster"
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-roster-lead-47": {
+      "id": "b-40-prompt-system-roster-lead-47",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Paths are relative to "
+        },
+        {
+          "insert": "packages/kernel/src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The catalog, annotation, and prompt-edit-session HTTP routes are listed in "
+        },
+        {
+          "insert": "Read API",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/50-read-api"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-40-prompt-system-roster-table-48": {
+      "id": "b-40-prompt-system-roster-table-48",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Module",
+          "Path",
+          "Owns",
+          "Entry points and bins"
+        ],
+        "rows": [
+          [
+            "Agent definition",
+            [
+              {
+                "insert": "agent-definition/",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "The "
+              },
+              {
+                "insert": "agent-kernel/agent-v1",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " manifest schema, "
+              },
+              {
+                "insert": "defineAgent",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "defineSpawnerTool",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "agent-manifest-schema.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " ("
+              },
+              {
+                "insert": "validateAgentManifestShape",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "), "
+              },
+              {
+                "insert": "index.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Agent registry",
+            [
+              {
+                "insert": "agent-registry/",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Bundle layout resolution, the registry, rendered prompt snapshots, prompt revision registration",
+            [
+              {
+                "insert": "registry/bundle-layout.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "registry/registry.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "prompt-snapshot.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "register-prompt-revisions.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "State",
+            [
+              {
+                "insert": "state/",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "State extension, three-section builder, window policies, context set, "
+              },
+              {
+                "insert": "state.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " snapshot store"
+              }
+            ],
+            [
+              {
+                "insert": "extension.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " ("
+              },
+              {
+                "insert": "createStateExtension",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "stateExtensionEnabled",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "), "
+              },
+              {
+                "insert": "builder.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "window.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "context-set.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "store.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Catalog service",
+            [
+              {
+                "insert": "catalog-service.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "catalog-api.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The validated prompt and manifest write path behind the editor",
+            [
+              {
+                "insert": "createKernelCatalogService",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " ("
+              },
+              {
+                "insert": "savePrompt",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "saveManifest",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "), "
+              },
+              {
+                "insert": "createKernelCatalogApi",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Prompt edit session",
+            [
+              {
+                "insert": "prompt-edit-session/",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "prompt-edit-session-api.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The annotation-driven proposal flow and its HTTP layer",
+            [
+              {
+                "insert": "createPromptEditSessionService",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "createKernelPromptEditSessionApi",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "compile-ops.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Annotations",
+            [
+              {
+                "insert": "catalog-annotations-api.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "agent-registry/annotation-sidecar.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Bundle "
+              },
+              {
+                "insert": "annotations.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and its HTTP routes"
+              }
+            ],
+            [
+              {
+                "insert": "createKernelCatalogAnnotationsApi",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "readAnnotationsSidecar",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Fixtures",
+            [
+              {
+                "insert": "context-fixtures.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "agent-registry/registry/state-fixtures.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Preview-only context and state fixtures. Spawning never reads them.",
+            [
+              {
+                "insert": "discoverContextFixtures",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "discoverStateFixtures",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Prompt render CLI",
+            [
+              {
+                "insert": "render-prompts-cli.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Regenerates rendered prompt markdown",
+            [
+              {
+                "insert": "bin "
+              },
+              {
+                "insert": "agent-kernel-render-prompts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " ("
+              },
+              {
+                "insert": "--check",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " for CI)"
+              }
+            ]
+          ],
+          [
+            "Catalog doctor",
+            [
+              {
+                "insert": "doctor.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "doctor-cli.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Bundle layout audit, including shadowed paths",
+            [
+              {
+                "insert": "runCatalogDoctor",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "; bin "
+              },
+              {
+                "insert": "agent-kernel-doctor --catalog [--strict]",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Transcript recovery",
+            [
+              {
+                "insert": "transcript-recovery/",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "JSONL backfill and ingest mappers",
+            [
+              {
+                "insert": "bins "
+              },
+              {
+                "insert": "agent-kernel-backfill",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "agent-kernel-tui-ingest",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ]
+        ],
+        "title": "Prompt-system modules"
+      },
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "id": "host-boot",
+  "title": "Host boot",
+  "participants": [
+    {
+      "id": "p1",
+      "name": "host",
+      "kind": "participant",
+      "label": "Host server"
+    },
+    {
+      "id": "p2",
+      "name": "db",
+      "kind": "participant",
+      "label": "@agent-kernel/db"
+    },
+    {
+      "id": "p3",
+      "name": "kernel",
+      "kind": "participant",
+      "label": "Kernel instance"
+    },
+    {
+      "id": "p4",
+      "name": "http",
+      "kind": "participant",
+      "label": "HTTP app"
+    }
+  ],
+  "items": [
+    {
+      "kind": "fragment",
+      "id": "f1",
+      "op": "opt",
+      "operands": [
+        {
+          "guard": "repo-owned manifest (core-harness)",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m1",
+              "from": "p1",
+              "to": "p2",
+              "line": "sync",
+              "text": "readKernelManifest(rootDir)"
+            },
+            {
+              "kind": "message",
+              "id": "m2",
+              "from": "p2",
+              "to": "p1",
+              "line": "return",
+              "text": "manifest or undefined"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "message",
+      "id": "m3",
+      "from": "p1",
+      "to": "p2",
+      "line": "sync",
+      "text": "openKernelDatabase({ path })"
+    },
+    {
+      "kind": "message",
+      "id": "m4",
+      "from": "p2",
+      "to": "p1",
+      "line": "return",
+      "text": "database handle"
+    },
+    {
+      "kind": "message",
+      "id": "m5",
+      "from": "p1",
+      "to": "p2",
+      "line": "sync",
+      "text": "ensureKernelObservabilitySchema(db)"
+    },
+    {
+      "kind": "fragment",
+      "id": "f2",
+      "op": "opt",
+      "operands": [
+        {
+          "guard": "host-owned manifest (simple-research, canvas-agent)",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m6",
+              "from": "p1",
+              "to": "p2",
+              "line": "sync",
+              "text": "writeKernelManifest(root, manifest)"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "message",
+      "id": "m7",
+      "from": "p1",
+      "to": "p3",
+      "line": "sync",
+      "text": "createKernel(config)"
+    },
+    {
+      "kind": "message",
+      "id": "m8",
+      "from": "p3",
+      "to": "p1",
+      "line": "return",
+      "text": "kernel"
+    },
+    {
+      "kind": "fragment",
+      "id": "f3",
+      "op": "opt",
+      "operands": [
+        {
+          "guard": "fail boot on a bad catalog (core-harness)",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m9",
+              "from": "p1",
+              "to": "p3",
+              "line": "sync",
+              "text": "kernel.registry()"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "message",
+      "id": "m10",
+      "from": "p1",
+      "to": "p4",
+      "line": "sync",
+      "text": "use(createKernelTraceReadApi(kernel.readApiService))"
+    },
+    {
+      "kind": "message",
+      "id": "m11",
+      "from": "p1",
+      "to": "p4",
+      "line": "sync",
+      "text": "use(createKernelCatalogApi(kernel.catalogApiService({ allowWrites })))"
+    },
+    {
+      "kind": "message",
+      "id": "m12",
+      "from": "p1",
+      "to": "p4",
+      "line": "sync",
+      "text": "listen({ hostname, port })"
+    }
+  ],
+  "style": {}
+}

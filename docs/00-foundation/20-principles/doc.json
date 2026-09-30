@@ -1,0 +1,331 @@
+{
+  "schemaVersion": 1,
+  "id": "00-foundation-20-principles",
+  "title": "Principles",
+  "root": "b-20-principles-root-22",
+  "blocks": {
+    "b-20-principles-root-22": {
+      "id": "b-20-principles-root-22",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "principles",
+          "portability",
+          "explicit-linkage",
+          "adapters",
+          "observability",
+          "workspace-packages",
+          "model-routing",
+          "token-cost"
+        ],
+        "covers": "Foundational principles for preserving portability across runtime, protocol, storage, transcript recovery, read API, and viewer packages.",
+        "depends-on": [
+          "00-foundation/30-boundaries",
+          "10-system-design/20-observability-model"
+        ]
+      },
+      "children": [
+        "b-20-principles-these-are-the-rules-that-2",
+        "b-20-principles-divider-3",
+        "b-20-principles-runtime-is-generic-work-4",
+        "b-20-principles-the-kernel-may-know-how-5",
+        "b-20-principles-apps-may-attach-those-me-6",
+        "b-20-principles-observability-is-a-core-7",
+        "b-20-principles-the-protocol-database-s-8",
+        "b-20-principles-for-token-hungry-systems-9",
+        "b-20-principles-any-model-per-agent-10",
+        "b-20-principles-agents-are-declarative-d-11",
+        "b-20-principles-the-kernel-keeps-model-c-12",
+        "b-20-principles-relationships-are-emitte-13",
+        "b-20-principles-when-a-parent-relationsh-14",
+        "b-20-principles-timestamps-order-events-15",
+        "b-20-principles-app-identity-is-generic-16",
+        "b-20-principles-host-correlation-happens-17",
+        "b-20-principles-adapters-are-allowed-to-18",
+        "b-20-principles-the-kernel-stays-neutral-19",
+        "b-20-principles-packages-are-the-unit-of-20",
+        "b-20-principles-the-package-boundary-mat-21"
+      ]
+    },
+    "b-20-principles-these-are-the-rules-that-2": {
+      "id": "b-20-principles-these-are-the-rules-that-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These are the rules that keep the kernel, which grew out of Spectre, a sound foundation for token-hungry vertical harnesses. The kernel is "
+        },
+        {
+          "insert": "opinionated about engineering discipline",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " (observability, control, and model routing) and "
+        },
+        {
+          "insert": "neutral about your vertical's workflow semantics",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-divider-3": {
+      "id": "b-20-principles-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-20-principles-runtime-is-generic-work-4": {
+      "id": "b-20-principles-runtime-is-generic-work-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Runtime Is Generic, Workflow Is App-Side"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-the-kernel-may-know-how-5": {
+      "id": "b-20-principles-the-kernel-may-know-how-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel may know how to spawn an agent, resolve context, emit lifecycle events, store trace rows, and render a run tree. It must not know what a Spectre spec, plan, checkpoint, build task, or docs phase means."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-apps-may-attach-those-me-6": {
+      "id": "b-20-principles-apps-may-attach-those-me-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Apps may attach those meanings through opaque labels, metadata, registered loaders, registered tools, and viewer plugins."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-observability-is-a-core-7": {
+      "id": "b-20-principles-observability-is-a-core-7",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Observability Is A Core Contract"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-the-protocol-database-s-8": {
+      "id": "b-20-principles-the-protocol-database-s-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The protocol, database schema, transcript recovery, read API, and viewer packages are one platform surface. A kernel feature is not complete until its behavior can be stored, read, and viewed."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-for-token-hungry-systems-9": {
+      "id": "b-20-principles-for-token-hungry-systems-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "For token-hungry systems this is how spend stays accountable: if work cannot be attributed and inspected, it cannot be budgeted or improved. Observability is the feedback loop that lets a vertical route tokens effectively instead of burning them blindly."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-any-model-per-agent-10": {
+      "id": "b-20-principles-any-model-per-agent-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Any Model, Per Agent"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-agents-are-declarative-d-11": {
+      "id": "b-20-principles-agents-are-declarative-d-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Agents are declarative definitions, not hardcoded to a single model. A vertical must be free to route each agent to the model that earns its tokens: cheap models for fan-out and routine work, strong models for the hard steps."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-the-kernel-keeps-model-c-12": {
+      "id": "b-20-principles-the-kernel-keeps-model-c-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel keeps model choice on the agent definition and the spawn path, not baked into runtime assumptions, so a harness can mix providers and capability tiers within a single pipeline and measure each one's cost-effectiveness through the same trace surface."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-relationships-are-emitte-13": {
+      "id": "b-20-principles-relationships-are-emitte-13",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Relationships Are Emitted, Not Reconstructed"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-when-a-parent-relationsh-14": {
+      "id": "b-20-principles-when-a-parent-relationsh-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "When a parent relationship is known at emit time, the event or row carries an explicit ID. Containers, phases, parent runs, and parent tool calls are linkage fields, not timestamp guesses."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-timestamps-order-events-15": {
+      "id": "b-20-principles-timestamps-order-events-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Timestamps order events. They do not prove parentage."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-app-identity-is-generic-16": {
+      "id": "b-20-principles-app-identity-is-generic-16",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "App Identity Is Generic"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-host-correlation-happens-17": {
+      "id": "b-20-principles-host-correlation-happens-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Host correlation happens through containers, not through any app's own session identity. There is no separate app-session concept in the kernel, and nothing in the kernel may imply one host app's database structure. The container mechanics (kinds, keys, derived ids, linkage invariants) are design contracts in the "
+        },
+        {
+          "insert": "Identity Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/15-identity-model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-adapters-are-allowed-to-18": {
+      "id": "b-20-principles-adapters-are-allowed-to-18",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Adapters Are Allowed To Be Specific"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-the-kernel-stays-neutral-19": {
+      "id": "b-20-principles-the-kernel-stays-neutral-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel stays neutral; adapters are where specificity belongs. Everything a host app wires into the kernel (identity mapping, custom loaders, injected services, mounted APIs, viewer plugins) lives in an explicit adapter layer small enough to audit. The contract is the "
+        },
+        {
+          "insert": "App Adapter Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/50-app-adapter-model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-packages-are-the-unit-of-20": {
+      "id": "b-20-principles-packages-are-the-unit-of-20",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Packages Are The Unit Of Portability"
+        }
+      ],
+      "children": []
+    },
+    "b-20-principles-the-package-boundary-mat-21": {
+      "id": "b-20-principles-the-package-boundary-mat-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The package boundary matters more than the repository boundary. A package under "
+        },
+        {
+          "insert": "packages/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " must be portable before it is useful to split into a separate repo."
+        }
+      ],
+      "children": []
+    }
+  }
+}

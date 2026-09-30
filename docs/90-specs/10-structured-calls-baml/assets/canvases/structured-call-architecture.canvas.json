@@ -1,0 +1,329 @@
+{
+  "schemaVersion": 1,
+  "id": "structured-call-architecture",
+  "title": "Where kernel.call plugs in",
+  "mode": "diagram",
+  "objects": [
+    {
+      "id": "group-harness",
+      "type": "section",
+      "text": "Harness",
+      "parentId": null,
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 760,
+        "height": 560
+      }
+    },
+    {
+      "id": "group-kernel",
+      "type": "section",
+      "text": "Kernel",
+      "parentId": null,
+      "geometry": {
+        "x": 900,
+        "y": 0,
+        "width": 900,
+        "height": 680
+      }
+    },
+    {
+      "id": "group-baml",
+      "type": "section",
+      "text": "BAML runtime",
+      "parentId": null,
+      "geometry": {
+        "x": 1900,
+        "y": 0,
+        "width": 700,
+        "height": 440
+      }
+    },
+    {
+      "id": "call-sites",
+      "type": "rectangle",
+      "text": "Call sites\nworker-summarizer today, four more like it",
+      "color": "green",
+      "parentId": "group-harness",
+      "geometry": {
+        "x": 60,
+        "y": 100,
+        "width": 280,
+        "height": 120
+      }
+    },
+    {
+      "id": "baml-src",
+      "type": "rectangle",
+      "text": "baml_src/\nfunctions, clients",
+      "color": "green",
+      "parentId": "group-harness",
+      "geometry": {
+        "x": 400,
+        "y": 100,
+        "width": 280,
+        "height": 120
+      }
+    },
+    {
+      "id": "baml-client",
+      "type": "rectangle",
+      "text": "baml_client/\ngenerated, committed",
+      "color": "green",
+      "parentId": "group-harness",
+      "geometry": {
+        "x": 400,
+        "y": 300,
+        "width": 280,
+        "height": 120
+      }
+    },
+    {
+      "id": "kernel-call",
+      "type": "rectangle",
+      "text": "kernel.call",
+      "color": "blue",
+      "parentId": "group-kernel",
+      "geometry": {
+        "x": 960,
+        "y": 100,
+        "width": 280,
+        "height": 100
+      }
+    },
+    {
+      "id": "spawn-agent",
+      "type": "rectangle",
+      "text": "spawnAgent",
+      "color": "gray",
+      "parentId": "group-kernel",
+      "geometry": {
+        "x": 1400,
+        "y": 100,
+        "width": 280,
+        "height": 100
+      }
+    },
+    {
+      "id": "identity-emitter",
+      "type": "rectangle",
+      "text": "Identity + emitter",
+      "color": "blue",
+      "parentId": "group-kernel",
+      "geometry": {
+        "x": 960,
+        "y": 360,
+        "width": 280,
+        "height": 100
+      }
+    },
+    {
+      "id": "models",
+      "type": "rectangle",
+      "text": "models.aliases and models.prices",
+      "color": "blue",
+      "parentId": "group-kernel",
+      "geometry": {
+        "x": 1400,
+        "y": 360,
+        "width": 300,
+        "height": 110
+      }
+    },
+    {
+      "id": "client-registry",
+      "type": "rectangle",
+      "text": "ClientRegistry",
+      "color": "violet",
+      "parentId": "group-baml",
+      "geometry": {
+        "x": 1960,
+        "y": 120,
+        "width": 240,
+        "height": 100
+      }
+    },
+    {
+      "id": "collector",
+      "type": "rectangle",
+      "text": "Collector",
+      "color": "violet",
+      "parentId": "group-baml",
+      "geometry": {
+        "x": 2300,
+        "y": 120,
+        "width": 240,
+        "height": 100
+      }
+    },
+    {
+      "id": "provider",
+      "type": "rectangle",
+      "text": "Provider: codex-lb\nOpenAI Responses proxy",
+      "color": "orange",
+      "parentId": null,
+      "geometry": {
+        "x": 2750,
+        "y": 120,
+        "width": 420,
+        "height": 120
+      }
+    },
+    {
+      "id": "trace-db",
+      "type": "rectangle",
+      "text": "Trace DB\npi_agent_sessions (kind), agent_runs, turns, blobs",
+      "color": "violet",
+      "parentId": null,
+      "geometry": {
+        "x": 1900,
+        "y": 620,
+        "width": 700,
+        "height": 140
+      }
+    },
+    {
+      "id": "viewer",
+      "type": "rectangle",
+      "text": "Viewer",
+      "color": "teal",
+      "parentId": null,
+      "geometry": {
+        "x": 2750,
+        "y": 640,
+        "width": 350,
+        "height": 100
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "call-sites-to-kernel-call",
+      "from": {
+        "objectId": "call-sites",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "kernel-call",
+        "anchor": "left"
+      },
+      "label": "fnName, input, identity opts",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "baml-client-to-kernel-call",
+      "from": {
+        "objectId": "baml-client",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "kernel-call",
+        "anchor": "left"
+      },
+      "label": "injected via createKernel({ functions })",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "kernel-call-to-models",
+      "from": {
+        "objectId": "kernel-call",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "models",
+        "anchor": "top"
+      },
+      "label": "resolve alias to model",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "kernel-call-to-registry",
+      "from": {
+        "objectId": "kernel-call",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "client-registry",
+        "anchor": "left"
+      },
+      "label": "resolved model + credential from Pi's store",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "kernel-call-to-collector",
+      "from": {
+        "objectId": "kernel-call",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "collector",
+        "anchor": "left"
+      },
+      "label": "invoke client[fnName] with collector",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "registry-to-provider",
+      "from": {
+        "objectId": "client-registry",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "provider",
+        "anchor": "left"
+      },
+      "label": "HTTP request; retries and fallbacks",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "collector-to-emitter",
+      "from": {
+        "objectId": "collector",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "identity-emitter",
+        "anchor": "top"
+      },
+      "label": "usage, timing, raw request and response",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "emitter-to-trace-db",
+      "from": {
+        "objectId": "identity-emitter",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "trace-db",
+        "anchor": "top"
+      },
+      "label": "baml_call_start/end, pi_turn_start/end, pi_request_snapshot",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "trace-db-to-viewer",
+      "from": {
+        "objectId": "trace-db",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "viewer",
+        "anchor": "left"
+      },
+      "label": "call nests under its parent run",
+      "style": "solid",
+      "arrow": "forward"
+    }
+  ],
+  "annotations": []
+}

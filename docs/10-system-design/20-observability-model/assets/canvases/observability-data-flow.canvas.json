@@ -1,0 +1,357 @@
+{
+  "schemaVersion": 1,
+  "id": "observability-data-flow",
+  "title": "Observability data flow",
+  "mode": "diagram",
+  "objects": [
+    {
+      "id": "sec-live",
+      "type": "section",
+      "text": "Live emission (in process)",
+      "parentId": null,
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 780,
+        "height": 620
+      }
+    },
+    {
+      "id": "sec-storage",
+      "type": "section",
+      "text": "Storage",
+      "parentId": null,
+      "geometry": {
+        "x": 880,
+        "y": 0,
+        "width": 560,
+        "height": 620
+      }
+    },
+    {
+      "id": "sec-read",
+      "type": "section",
+      "text": "Read path",
+      "parentId": null,
+      "geometry": {
+        "x": 1540,
+        "y": 0,
+        "width": 540,
+        "height": 620
+      }
+    },
+    {
+      "id": "sec-recovery",
+      "type": "section",
+      "text": "Transcript recovery",
+      "parentId": null,
+      "geometry": {
+        "x": 0,
+        "y": 720,
+        "width": 1440,
+        "height": 380
+      }
+    },
+    {
+      "id": "snapshot-recorder",
+      "type": "rectangle",
+      "text": "Request-snapshot recorder\none per spawned run",
+      "color": "blue",
+      "parentId": "sec-live",
+      "geometry": {
+        "x": 60,
+        "y": 90,
+        "width": 320,
+        "height": 120
+      }
+    },
+    {
+      "id": "kernel-emitter",
+      "type": "rectangle",
+      "text": "Kernel emitter\nPi extension on every spawned session",
+      "color": "blue",
+      "parentId": "sec-live",
+      "geometry": {
+        "x": 60,
+        "y": 270,
+        "width": 320,
+        "height": 120
+      }
+    },
+    {
+      "id": "app-events",
+      "type": "rectangle",
+      "text": "App code\ncreateAppEvent",
+      "color": "green",
+      "parentId": "sec-live",
+      "geometry": {
+        "x": 60,
+        "y": 450,
+        "width": 320,
+        "height": 120
+      }
+    },
+    {
+      "id": "trace-writer",
+      "type": "rectangle",
+      "text": "Trace writer\nserialized submit; flush before reads",
+      "color": "blue",
+      "parentId": "sec-live",
+      "geometry": {
+        "x": 440,
+        "y": 330,
+        "width": 300,
+        "height": 120
+      }
+    },
+    {
+      "id": "trace-db",
+      "type": "rectangle",
+      "text": "trace.db (SQLite, WAL)\ncontainers · pi_agent_sessions · agent_runs\ntrace_events · trace_blobs · prompt_revisions",
+      "color": "violet",
+      "parentId": "sec-storage",
+      "geometry": {
+        "x": 920,
+        "y": 80,
+        "width": 480,
+        "height": 440
+      }
+    },
+    {
+      "id": "read-api",
+      "type": "rectangle",
+      "text": "Read API\n/kernel routes over the read service",
+      "color": "teal",
+      "parentId": "sec-read",
+      "geometry": {
+        "x": 1580,
+        "y": 120,
+        "width": 460,
+        "height": 120
+      }
+    },
+    {
+      "id": "viewer",
+      "type": "rectangle",
+      "text": "Viewer",
+      "color": "teal",
+      "parentId": "sec-read",
+      "geometry": {
+        "x": 1580,
+        "y": 400,
+        "width": 460,
+        "height": 120
+      }
+    },
+    {
+      "id": "pi-jsonl",
+      "type": "rectangle",
+      "text": "Pi JSONL transcript\nwritten by Pi, with the session-binding marker",
+      "color": "orange",
+      "parentId": "sec-recovery",
+      "geometry": {
+        "x": 60,
+        "y": 800,
+        "width": 340,
+        "height": 130
+      }
+    },
+    {
+      "id": "backfill",
+      "type": "rectangle",
+      "text": "Backfill\ntranscript-recovery mapper",
+      "color": "gray",
+      "parentId": "sec-recovery",
+      "geometry": {
+        "x": 980,
+        "y": 800,
+        "width": 340,
+        "height": 130
+      }
+    },
+    {
+      "id": "tui-ingest",
+      "type": "rectangle",
+      "text": "tui-ingest CLI",
+      "color": "gray",
+      "parentId": "sec-recovery",
+      "geometry": {
+        "x": 520,
+        "y": 960,
+        "width": 320,
+        "height": 110
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "recorder-to-db",
+      "from": {
+        "objectId": "snapshot-recorder",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "trace-db",
+        "anchor": "left"
+      },
+      "label": "trace_blobs upsert: system prompt, messages, images, tool roster",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "recorder-to-writer",
+      "from": {
+        "objectId": "snapshot-recorder",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "trace-writer",
+        "anchor": "top"
+      },
+      "label": "pi_request_snapshot event",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "emitter-to-writer",
+      "from": {
+        "objectId": "kernel-emitter",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "trace-writer",
+        "anchor": "left"
+      },
+      "label": "messages, tool calls, pi_agent_*, pi_turn_* with deterministic ids",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "app-to-writer",
+      "from": {
+        "objectId": "app-events",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "trace-writer",
+        "anchor": "left"
+      },
+      "label": "app:* event via kernel.traceWriter.submit",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "writer-to-db",
+      "from": {
+        "objectId": "trace-writer",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "trace-db",
+        "anchor": "left"
+      },
+      "label": "trace_events insert (INSERT OR IGNORE)",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "jsonl-to-backfill",
+      "from": {
+        "objectId": "pi-jsonl",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "backfill",
+        "anchor": "left"
+      },
+      "label": "JSONL entries; the binding marker supplies containerId and runId",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "jsonl-to-ingest",
+      "from": {
+        "objectId": "pi-jsonl",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "tui-ingest",
+        "anchor": "left"
+      },
+      "label": "tui-session-meta marker",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "ingest-to-backfill",
+      "from": {
+        "objectId": "tui-ingest",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "backfill",
+        "anchor": "bottom"
+      },
+      "label": "runs backfill per file",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "ingest-to-db",
+      "from": {
+        "objectId": "tui-ingest",
+        "anchor": "top"
+      },
+      "to": {
+        "objectId": "trace-db",
+        "anchor": "bottom"
+      },
+      "label": "upsert container, Pi session, and run rows",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "backfill-to-db",
+      "from": {
+        "objectId": "backfill",
+        "anchor": "top"
+      },
+      "to": {
+        "objectId": "trace-db",
+        "anchor": "bottom"
+      },
+      "label": "trace_events insert with the live ids (INSERT OR IGNORE)",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "db-to-read-api",
+      "from": {
+        "objectId": "trace-db",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "read-api",
+        "anchor": "left"
+      },
+      "label": "trace rows and blobs, after the writer flushes",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "read-api-to-viewer",
+      "from": {
+        "objectId": "read-api",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "viewer",
+        "anchor": "top"
+      },
+      "label": "HTTP JSON: container trace, turn context; raw blob bytes",
+      "style": "solid",
+      "arrow": "forward"
+    }
+  ],
+  "annotations": []
+}

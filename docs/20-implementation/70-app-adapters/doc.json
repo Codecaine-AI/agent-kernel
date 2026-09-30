@@ -1,0 +1,1295 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-70-app-adapters",
+  "title": "App Adapters",
+  "root": "b-70-app-adapters-root-35",
+  "blocks": {
+    "b-70-app-adapters-root-35": {
+      "id": "b-70-app-adapters-root-35",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "app-adapter",
+          "package-boundaries",
+          "adapter-surface",
+          "tool-sidecars",
+          "custom-loaders",
+          "host-portability",
+          "harness-packaging"
+        ],
+        "covers": "Structural decisions for adapter and harness code: the package dependency direction, the adapter surface shape, tool and loader placement, sidecar import discipline, and harness packaging.",
+        "depends-on": [
+          "10-system-design/50-app-adapter-model",
+          "10-system-design/70-harness-model",
+          "00-foundation/30-boundaries"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-70-app-adapters-adapter-code-lives-in-ho-2",
+        "b-70-app-adapters-behavior-what-an-adapt-3",
+        "b-70-app-adapters-divider-4",
+        "b-70-app-adapters-decisions-5",
+        "b-70-app-adapters-dependency-direction-6",
+        "b-70-app-adapters-decision-the-packag-7",
+        "b-70-app-adapters-why-the-alternative-8",
+        "b-70-app-adapters-applies-to-package-9",
+        "b-70-app-adapters-adapter-surface-shape-10",
+        "b-70-app-adapters-decision-a-new-host-11",
+        "b-70-app-adapters-why-that-spectre-tr-12",
+        "b-70-app-adapters-applies-to-every-fu-13",
+        "b-70-app-adapters-tool-placement-14",
+        "b-70-app-adapters-decision-tools-for-15",
+        "b-70-app-adapters-why-colocated-sidec-16",
+        "b-70-app-adapters-applies-to-host-app-17",
+        "b-70-app-adapters-loader-placement-18",
+        "b-70-app-adapters-decision-a-loader-t-19",
+        "b-70-app-adapters-why-app-aware-loade-20",
+        "b-70-app-adapters-applies-to-host-app-21",
+        "b-70-app-adapters-sidecar-import-disciplin-22",
+        "b-70-app-adapters-decision-the-tui-ex-23",
+        "b-70-app-adapters-why-pi-runs-extensi-24",
+        "b-70-app-adapters-applies-to-package-25",
+        "b-70-app-adapters-harness-packaging-26",
+        "b-70-app-adapters-decision-the-termin-27",
+        "b-70-app-adapters-why-folding-either-28",
+        "b-70-app-adapters-applies-to-package-29",
+        "b-70-app-adapters-roster-30",
+        "b-70-app-adapters-harness-roster-table",
+        "b-70-app-adapters-harness-area-pages",
+        "b-70-app-adapters-core-harness-boot-note"
+      ]
+    },
+    "b-70-app-adapters-adapter-code-lives-in-ho-2": {
+      "id": "b-70-app-adapters-adapter-code-lives-in-ho-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Adapter code lives in host apps, not in this repo. In-repo reference shapes: "
+        },
+        {
+          "insert": "examples/simple-research-kernel/src",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (app harness), "
+        },
+        {
+          "insert": "packages/tui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (terminal harness), "
+        },
+        {
+          "insert": "packages/core-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (this repo's own service leg). The boundary gate is "
+        },
+        {
+          "insert": "scripts/check-package-boundaries.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-behavior-what-an-adapt-3": {
+      "id": "b-70-app-adapters-behavior-what-an-adapt-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Behavior (what an adapter provides, container mapping, events, recovery, read API, viewer, model access) is governed by the "
+        },
+        {
+          "insert": "App Adapter Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/50-app-adapter-model",
+              "label": "App Adapter Model"
+            }
+          }
+        },
+        {
+          "insert": "; harness taxonomy and runtime constraints by the "
+        },
+        {
+          "insert": "Harness Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-harness-model",
+              "label": "Harness Model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-divider-4": {
+      "id": "b-70-app-adapters-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-70-app-adapters-decisions-5": {
+      "id": "b-70-app-adapters-decisions-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-dependency-direction-6": {
+      "id": "b-70-app-adapters-dependency-direction-6",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Dependency direction"
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-decision-the-packag-7": {
+      "id": "b-70-app-adapters-decision-the-packag-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Kernel packages stay app-neutral. App code imports "
+        },
+        {
+          "insert": "@agent-kernel/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " exports; kernel packages never import app code, reference app paths, or carry app loader/tool names. "
+        },
+        {
+          "insert": "scripts/check-package-boundaries.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " enforces part of this rule: it scans "
+        },
+        {
+          "insert": "packages/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for forbidden app-specific strings ("
+        },
+        {
+          "insert": "@spectre/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "apps/backend",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "apps/frontend",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "apps/data-backend",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "apps/tailer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "SessionStateManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "checkpoint-slice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": ".spectre",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and fails on any match. It does not check the import graph between packages. A host app should mirror the check with its own forbidden strings."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-why-the-alternative-8": {
+      "id": "b-70-app-adapters-why-the-alternative-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The alternative (kernel-side hooks or registries that know app concepts) is how the original extraction site got entangled. A one-way graph keeps every kernel package portable to the next host without edits."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-applies-to-package-9": {
+      "id": "b-70-app-adapters-applies-to-package-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "scripts/check-package-boundaries.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and all host-app adapter code, including apps not yet written."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-adapter-surface-shape-10": {
+      "id": "b-70-app-adapters-adapter-surface-shape-10",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Adapter surface shape"
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-decision-a-new-host-11": {
+      "id": "b-70-app-adapters-decision-a-new-host-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " A new host app builds a small adapter surface with app-owned names (a kernel-instance module ("
+        },
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from one config object), a container-mapping seam, and an agent catalog directory) importing kernel package exports directly. It never copies Spectre's "
+        },
+        {
+          "insert": "apps/backend/src/agent-kernel/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tree."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-why-that-spectre-tr-12": {
+      "id": "b-70-app-adapters-why-that-spectre-tr-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " That Spectre tree is the extraction site: adapter code plus transitional re-export shims preserving old import paths, not kernel source. Copying it would propagate compatibility debt into a clean app. "
+        },
+        {
+          "insert": "examples/simple-research-kernel/src",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (server + store + agent-catalog) is the shape to copy instead."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-applies-to-every-fu-13": {
+      "id": "b-70-app-adapters-applies-to-every-fu-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " every future host app; "
+        },
+        {
+          "insert": "examples/simple-research-kernel/src",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as the reference."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-tool-placement-14": {
+      "id": "b-70-app-adapters-tool-placement-14",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Tool placement"
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-decision-tools-for-15": {
+      "id": "b-70-app-adapters-decision-tools-for-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Tools for one agent live in that bundle's tools sidecar beside its manifest; tools shared across agents come from the "
+        },
+        {
+          "insert": "sharedTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " config slot; app capabilities reach sidecars only through the config "
+        },
+        {
+          "insert": "toolRuntime",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-why-colocated-sidec-16": {
+      "id": "b-70-app-adapters-why-colocated-sidec-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Colocated sidecars keep implementation, prompt, and manifest together, and the registry harvests tool names at boot so allowlists stay automatic. The rejected alternative (a central app tool registry) separates a tool from the one agent that uses it and hides the allowlist wiring."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-applies-to-host-app-17": {
+      "id": "b-70-app-adapters-applies-to-host-app-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " host-app agent catalogs, "
+        },
+        {
+          "insert": "catalog/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "examples/simple-research-kernel/src/agent-catalog/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-loader-placement-18": {
+      "id": "b-70-app-adapters-loader-placement-18",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Loader placement"
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-decision-a-loader-t-19": {
+      "id": "b-70-app-adapters-decision-a-loader-t-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " A loader that reads app tables, app artifacts, or product workflow state lives in the host app and enters through the "
+        },
+        {
+          "insert": "loaders",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " config slot. The kernel's own loader catalog stays generic."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-why-app-aware-loade-20": {
+      "id": "b-70-app-adapters-why-app-aware-loade-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " App-aware loaders inside the kernel package would put app knowledge on the wrong side of the dependency direction. The slot keeps the extension point without the entanglement."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-applies-to-host-app-21": {
+      "id": "b-70-app-adapters-applies-to-host-app-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " host-app adapters (Spectre's "
+        },
+        {
+          "insert": "checkpoint-slice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the example's working-memory loader), "
+        },
+        {
+          "insert": "packages/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "'s loader catalog."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-sidecar-import-disciplin-22": {
+      "id": "b-70-app-adapters-sidecar-import-disciplin-22",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Sidecar import discipline (host portability)"
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-decision-the-tui-ex-23": {
+      "id": "b-70-app-adapters-decision-the-tui-ex-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The TUI extension's import graph and every "
+        },
+        {
+          "insert": "host:\"any\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sidecar import deep, dependency-light kernel subpaths (e.g. "
+        },
+        {
+          "insert": "@agent-kernel/kernel/agent-registry/registry",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") (never package barrels) and use no bun-only APIs ("
+        },
+        {
+          "insert": "bun:sqlite",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "Bun.*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "import.meta.dir",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ")."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-why-pi-runs-extensi-24": {
+      "id": "b-70-app-adapters-why-pi-runs-extensi-24",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " pi runs extensions and sidecars under Node via jiti. Barrel imports have broken real boots: the agent-registry barrel reaches "
+        },
+        {
+          "insert": "@agent-kernel/db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and therefore "
+        },
+        {
+          "insert": "bun:sqlite",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and a barrel pulling an incompatible typebox flavor at module load killed the extension. The rejected alternative (importing barrels and shimming the runtime) hides the breakage until a pi boot."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-applies-to-package-25": {
+      "id": "b-70-app-adapters-applies-to-package-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/tui/src",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "catalog/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sidecars, and any repo catalog shipping "
+        },
+        {
+          "insert": "host:\"any\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " bundles."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-harness-packaging-26": {
+      "id": "b-70-app-adapters-harness-packaging-26",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Harness packaging"
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-decision-the-termin-27": {
+      "id": "b-70-app-adapters-decision-the-termin-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The terminal harness is a pi extension at "
+        },
+        {
+          "insert": "packages/tui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (exporting "
+        },
+        {
+          "insert": "./extension",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "); this repo's service leg is "
+        },
+        {
+          "insert": "packages/core-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; app harnesses live in their owning repos, not here."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-why-folding-either-28": {
+      "id": "b-70-app-adapters-why-folding-either-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Folding either leg into "
+        },
+        {
+          "insert": "@agent-kernel/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " would drag pi-TUI or Elysia dependencies into the portable runtime package. The rejected alternative (a bespoke terminal front-end) duplicates the loop, streaming, and tools pi already provides."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-applies-to-package-29": {
+      "id": "b-70-app-adapters-applies-to-package-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to:",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/tui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "packages/core-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any future harness leg added to this repo."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-roster-30": {
+      "id": "b-70-app-adapters-roster-30",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Harness roster"
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-harness-roster-table": {
+      "id": "b-70-app-adapters-harness-roster-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Name",
+          "Location",
+          "Runtime",
+          "Mounts",
+          "In-repo?"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "simple-research-kernel",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "examples/simple-research-kernel",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Bun Elysia API ("
+              },
+              {
+                "insert": "src/server.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ") + Vite React frontend"
+              }
+            ],
+            [
+              {
+                "insert": "Read API, catalog API (writes on); "
+              },
+              {
+                "insert": "KernelTraceWorkspace",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "KernelTraceViewer",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "AgentCatalogViewer",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Yes"
+          ],
+          [
+            [
+              {
+                "insert": "@agent-kernel/core-harness",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "packages/core-harness",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Bun Elysia server ("
+              },
+              {
+                "insert": "src/server.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            "Read API, catalog API (writes on, prompt-edit session routes); no viewer",
+            "Yes"
+          ],
+          [
+            [
+              {
+                "insert": "@agent-kernel/tui",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "packages/tui",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "pi extension ("
+              },
+              {
+                "insert": "./extension",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "), run by pi under Node via jiti"
+              }
+            ],
+            [
+              {
+                "insert": "/kernel",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " command (list and boot); no HTTP routes, no viewer"
+              }
+            ],
+            "Yes"
+          ],
+          [
+            [
+              {
+                "insert": "canvas-agent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "packages/canvas-agent",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " in the canvas repo"
+              }
+            ],
+            "Bun Elysia service + Vite viewer",
+            [
+              {
+                "insert": "Read API, catalog API; "
+              },
+              {
+                "insert": "KernelTraceWorkspace",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", the shared style system, a "
+              },
+              {
+                "insert": "DetailBlockProvider",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "No"
+          ],
+          [
+            [
+              {
+                "insert": "prompt-kit-agent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "packages/prompt-kit-agent",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " in the prompt-kit repo"
+              }
+            ],
+            "Bun Elysia server",
+            [
+              {
+                "insert": "Read API and catalog API under "
+              },
+              {
+                "insert": "/kernel",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (writes on, prompt-edit session routes); no viewer"
+              }
+            ],
+            "No"
+          ],
+          [
+            "Spectre",
+            [
+              {
+                "insert": "apps/backend/src/agent-kernel/*",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " in the Spectre repo"
+              }
+            ],
+            "Bun Elysia backend; consumes the packages through its kernel submodule workspace",
+            [
+              {
+                "insert": "KernelTraceViewer",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " on the frontend trace page"
+              }
+            ],
+            "No"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-70-app-adapters-harness-area-pages": {
+      "id": "b-70-app-adapters-harness-area-pages",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The two in-repo harness packages have their own area pages: "
+        },
+        {
+          "insert": "Core Harness Package",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/80-core-harness",
+              "label": "Core Harness Package"
+            }
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "TUI Package",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/85-tui",
+              "label": "TUI Package"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-70-app-adapters-core-harness-boot-note": {
+      "id": "b-70-app-adapters-core-harness-boot-note",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "core-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " boots from "
+        },
+        {
+          "insert": "src/kernel.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": it reads "
+        },
+        {
+          "insert": ".agent-kernel/kernel.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (it never writes it) and calls "
+        },
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with the model aliases "
+        },
+        {
+          "insert": "prompt-editor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "context-editor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "docs-writer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    }
+  }
+}

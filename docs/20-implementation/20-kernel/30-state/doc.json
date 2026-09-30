@@ -1,0 +1,943 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-239f9f9b5216407ff5c46aadd433383e",
+  "title": "State",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/state/",
+        "concepts": [
+          "state-layer",
+          "state-extension",
+          "context-set",
+          "state-sink",
+          "state-persistence"
+        ],
+        "covers": "Structural decisions in the state layer: the activation predicate, the context set, sink resolution (D88), the sink seam (D92), and fail-open hooks.",
+        "depends-on": [
+          "20-implementation/20-kernel",
+          "10-system-design/10-runtime-model",
+          "10-system-design/60-prompt-system-model/30-state-model"
+        ]
+      },
+      "children": [
+        "b-30-st-role",
+        "b-30-st-gov",
+        "b-30-st-div",
+        "b-30-st-layout",
+        "b-30-st-tree-lead",
+        "b-30-st-tree",
+        "b-30-st-decisions",
+        "b-30-st-gate",
+        "b-30-st-gate-d",
+        "b-30-st-gate-w",
+        "b-30-st-gate-a",
+        "b-30-st-ctxset",
+        "b-30-st-ctxset-d",
+        "b-30-st-ctxset-w",
+        "b-30-st-ctxset-a",
+        "b-30-st-d88",
+        "b-30-st-d88-d",
+        "b-30-st-d88-w",
+        "b-30-st-d88-a",
+        "b-30-st-d92",
+        "b-30-st-d92-d",
+        "b-30-st-d92-w",
+        "b-30-st-d92-a",
+        "b-30-st-failopen",
+        "b-30-st-failopen-d",
+        "b-30-st-failopen-w",
+        "b-30-st-failopen-a"
+      ]
+    },
+    "b-30-st-role": {
+      "id": "b-30-st-role",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "packages/kernel/src/state/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " implements the state layer: the "
+        },
+        {
+          "insert": "StateModule",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " contract types, session events, window strategies, the context set behind section ②, the three-section builder, the Pi extension that wires them to hooks, and the "
+        },
+        {
+          "insert": "state.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sink. The spawn pipeline creates the extension when a spawn activates state."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-gov": {
+      "id": "b-30-st-gov",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Governed by: "
+        },
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model",
+              "label": "Runtime Model"
+            }
+          }
+        },
+        {
+          "insert": " § State Model (activation, the contract, windows, the context set, persistence) and the state decision records (D81 to D92) in "
+        },
+        {
+          "insert": "State Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/30-state-model",
+              "label": "State Model"
+            }
+          }
+        },
+        {
+          "insert": ". Authoring a "
+        },
+        {
+          "insert": "state.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is covered in "
+        },
+        {
+          "insert": "State Sidecar",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "30-authoring/20-state-sidecar",
+              "label": "State Sidecar"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-div": {
+      "id": "b-30-st-div",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-30-st-layout": {
+      "id": "b-30-st-layout",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Layout"
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-tree-lead": {
+      "id": "b-30-st-tree-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Test files omitted. "
+        },
+        {
+          "insert": "window.test.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " holds the property test for pair-safe cuts."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-tree": {
+      "id": "b-30-st-tree",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "packages/kernel/src/state/types.ts",
+            "note": "StateModule, SessionEvent, WindowPolicy, StateSink"
+          },
+          {
+            "path": "packages/kernel/src/state/extension.ts",
+            "note": "createStateExtension, stateExtensionEnabled"
+          },
+          {
+            "path": "packages/kernel/src/state/base.ts",
+            "note": "base module when a window has no state.ts"
+          },
+          {
+            "path": "packages/kernel/src/state/window.ts",
+            "note": "turns and token-budget strategies, pair-safe cuts"
+          },
+          {
+            "path": "packages/kernel/src/state/context-set.ts",
+            "note": "id-keyed L2 set, rendered as one message"
+          },
+          {
+            "path": "packages/kernel/src/state/builder.ts",
+            "note": "assembles sections 2 and 3, reports bounds"
+          },
+          {
+            "path": "packages/kernel/src/state/kernel-messages.ts",
+            "note": "kernel:-marked custom messages"
+          },
+          {
+            "path": "packages/kernel/src/state/store.ts",
+            "note": "file and memory sinks, resolveStateSink"
+          },
+          {
+            "path": "packages/kernel/src/state/index.ts",
+            "note": "barrel"
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-30-st-decisions": {
+      "id": "b-30-st-decisions",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-gate": {
+      "id": "b-30-st-gate",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "One predicate gates the whole state layer"
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-gate-d": {
+      "id": "b-30-st-gate-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "stateExtensionEnabled",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "extension.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " returns true only when the bundle ships a state module or a window policy applies (the spawn's "
+        },
+        {
+          "insert": "window",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " option, else the manifest's "
+        },
+        {
+          "insert": "state.window",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). "
+        },
+        {
+          "insert": "spawn-agent.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " calls it once per spawn. When it returns false the pipeline creates no extension, no sink, and no context set, and the request snapshot recorder stays on the transcript path."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-gate-w": {
+      "id": "b-30-st-gate-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "The pass-through guarantee (D83) holds only if no state code runs for an agent that did not ask for it. One predicate at one call site makes that checkable."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-gate-a": {
+      "id": "b-30-st-gate-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "extension.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the state wiring in "
+        },
+        {
+          "insert": "spawn-pipeline/spawn-agent.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and every future state feature: it hangs off the extension handle and never reaches a pass-through spawn."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-ctxset": {
+      "id": "b-30-st-ctxset",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Built agent context becomes a context-set entry when state is active"
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-ctxset-d": {
+      "id": "b-30-st-ctxset-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "With a state extension, "
+        },
+        {
+          "insert": "spawn-agent.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " adds the built agent context to "
+        },
+        {
+          "insert": "stateExtension.contextSet",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " under the id "
+        },
+        {
+          "insert": "agent-context:<agent>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " instead of injecting it into the transcript. The "
+        },
+        {
+          "insert": "context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " hook renders the set into one message on every request."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-ctxset-w": {
+      "id": "b-30-st-ctxset-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Section ② is rebuilt per request, never pinned to history (D82). A transcript message would stay in history and could go stale."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-ctxset-a": {
+      "id": "b-30-st-ctxset-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "context-set.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "builder.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the context branch in "
+        },
+        {
+          "insert": "spawn-pipeline/spawn-agent.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any future section ② source: it adds, replaces, or removes a context-set entry by id."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-d88": {
+      "id": "b-30-st-d88",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "The spawn picks where state persists, never whether (D88)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-d88-d": {
+      "id": "b-30-st-d88-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "resolveStateSink",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "store.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the only place a spawn's sink is chosen: an explicit "
+        },
+        {
+          "insert": "stateSink",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " wins, then a file sink at "
+        },
+        {
+          "insert": "stateRoot",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", then a file sink at the spawn's working directory. The file sink writes "
+        },
+        {
+          "insert": "<root>/.agent-kernel/state/<containerId>/<agentName>/state.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", with both ids reduced to safe path segments. The extension submits a snapshot at each "
+        },
+        {
+          "insert": "turn_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and at "
+        },
+        {
+          "insert": "agent_settled",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Nothing loads a snapshot automatically; "
+        },
+        {
+          "insert": "readStateSnapshot",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the opt-in source for "
+        },
+        {
+          "insert": "priorState",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-d88-w": {
+      "id": "b-30-st-d88-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Persistence is default-on for every state-active spawn, so one resolver keeps the rule in one place. Sanitizing the ids keeps external input from escaping the state tree."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-d88-a": {
+      "id": "b-30-st-d88-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "store.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the "
+        },
+        {
+          "insert": "stateRoot",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " field of "
+        },
+        {
+          "insert": "CreateKernelConfig",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "KernelSpawnOptions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any future persistence option: it chooses a location or a sink, never an on/off switch."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-d92": {
+      "id": "b-30-st-d92",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "State persistence goes through the sink seam (D92)"
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-d92-d": {
+      "id": "b-30-st-d92-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "The state extension writes snapshots through a "
+        },
+        {
+          "insert": "StateSink",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with the same "
+        },
+        {
+          "insert": "submit()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " / "
+        },
+        {
+          "insert": "flush()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " shape and serialized-tail pattern as the trace writer's sink. The file sink is the default implementation, "
+        },
+        {
+          "insert": "createMemoryStateSink",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " serves tests, and spawn options swap the sink, never the extension."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-d92-w": {
+      "id": "b-30-st-d92-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "The sandbox stage needs a remote sink without touching extension code. The rejected alternative (the extension writing files directly) welds persistence location into the state layer."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-d92-a": {
+      "id": "b-30-st-d92-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "store.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "types.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "StateSink",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), and any future sink (remote, test, in-memory)."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-failopen": {
+      "id": "b-30-st-failopen",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Extension hooks fail open"
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-failopen-d": {
+      "id": "b-30-st-failopen-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Every hook handler in "
+        },
+        {
+          "insert": "extension.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " catches its own error and logs it. A failing "
+        },
+        {
+          "insert": "context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " hook returns nothing, so Pi sends the unmodified request. "
+        },
+        {
+          "insert": "StateSink.submit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is synchronous and never throws into the agent loop; the file sink serializes the snapshot eagerly and logs a failed write."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-failopen-w": {
+      "id": "b-30-st-failopen-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Agent state code is author-written and runs inside every request. A bug there must degrade one request to pass-through, not end the run."
+        }
+      ],
+      "children": []
+    },
+    "b-30-st-failopen-a": {
+      "id": "b-30-st-failopen-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "extension.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "store.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and every future hook or sink: it catches, logs, and passes through."
+        }
+      ],
+      "children": []
+    }
+  }
+}

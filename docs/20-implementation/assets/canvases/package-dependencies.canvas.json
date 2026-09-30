@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "id": "package-dependencies",
+  "title": "Package dependency direction",
+  "mode": "diagram",
+  "objects": [
+    {
+      "id": "group-runtime",
+      "type": "section",
+      "text": "Runtime packages",
+      "parentId": null,
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 620,
+        "height": 640
+      }
+    },
+    {
+      "id": "group-external",
+      "type": "section",
+      "text": "External: prompt-kit repo",
+      "parentId": null,
+      "geometry": {
+        "x": 700,
+        "y": 180,
+        "width": 340,
+        "height": 460
+      }
+    },
+    {
+      "id": "group-viewer",
+      "type": "section",
+      "text": "Viewer packages",
+      "parentId": null,
+      "geometry": {
+        "x": 1120,
+        "y": 0,
+        "width": 340,
+        "height": 640
+      }
+    },
+    {
+      "id": "core-harness",
+      "type": "rectangle",
+      "text": "core-harness",
+      "color": "blue",
+      "parentId": "group-runtime",
+      "geometry": {
+        "x": 40,
+        "y": 100,
+        "width": 240,
+        "height": 90
+      }
+    },
+    {
+      "id": "tui",
+      "type": "rectangle",
+      "text": "tui",
+      "color": "blue",
+      "parentId": "group-runtime",
+      "geometry": {
+        "x": 340,
+        "y": 100,
+        "width": 240,
+        "height": 90
+      }
+    },
+    {
+      "id": "kernel",
+      "type": "rectangle",
+      "text": "kernel",
+      "color": "blue",
+      "parentId": "group-runtime",
+      "geometry": {
+        "x": 340,
+        "y": 300,
+        "width": 240,
+        "height": 90
+      }
+    },
+    {
+      "id": "db",
+      "type": "rectangle",
+      "text": "db",
+      "color": "blue",
+      "parentId": "group-runtime",
+      "geometry": {
+        "x": 40,
+        "y": 500,
+        "width": 240,
+        "height": 90
+      }
+    },
+    {
+      "id": "prompt-kit-server",
+      "type": "rectangle",
+      "text": "prompt-kit-server",
+      "color": "orange",
+      "parentId": "group-external",
+      "geometry": {
+        "x": 750,
+        "y": 280,
+        "width": 240,
+        "height": 90
+      }
+    },
+    {
+      "id": "prompt-kit",
+      "type": "rectangle",
+      "text": "prompt-kit",
+      "color": "orange",
+      "parentId": "group-external",
+      "geometry": {
+        "x": 750,
+        "y": 500,
+        "width": 240,
+        "height": 90
+      }
+    },
+    {
+      "id": "viewer-shell",
+      "type": "rectangle",
+      "text": "viewer-shell",
+      "color": "teal",
+      "parentId": "group-viewer",
+      "geometry": {
+        "x": 1170,
+        "y": 100,
+        "width": 240,
+        "height": 90
+      }
+    },
+    {
+      "id": "viewer-ui",
+      "type": "rectangle",
+      "text": "viewer-ui",
+      "color": "teal",
+      "parentId": "group-viewer",
+      "geometry": {
+        "x": 1170,
+        "y": 300,
+        "width": 240,
+        "height": 90
+      }
+    },
+    {
+      "id": "viewer-core",
+      "type": "rectangle",
+      "text": "viewer-core",
+      "color": "teal",
+      "parentId": "group-viewer",
+      "geometry": {
+        "x": 1170,
+        "y": 500,
+        "width": 240,
+        "height": 90
+      }
+    },
+    {
+      "id": "protocol",
+      "type": "rectangle",
+      "text": "protocol\nno workspace dependencies",
+      "color": "violet",
+      "parentId": null,
+      "geometry": {
+        "x": 600,
+        "y": 760,
+        "width": 280,
+        "height": 100
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "core-harness-to-kernel",
+      "from": {
+        "objectId": "core-harness",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "kernel",
+        "anchor": "left"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "core-harness-to-db",
+      "from": {
+        "objectId": "core-harness",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "db",
+        "anchor": "top"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "tui-to-kernel",
+      "from": {
+        "objectId": "tui",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "kernel",
+        "anchor": "top"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "kernel-to-db",
+      "from": {
+        "objectId": "kernel",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "db",
+        "anchor": "right"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "kernel-to-prompt-kit-server",
+      "from": {
+        "objectId": "kernel",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "prompt-kit-server",
+        "anchor": "left"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "kernel-to-prompt-kit",
+      "from": {
+        "objectId": "kernel",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "prompt-kit",
+        "anchor": "left"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "kernel-to-protocol",
+      "from": {
+        "objectId": "kernel",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "protocol",
+        "anchor": "top"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "db-to-protocol",
+      "from": {
+        "objectId": "db",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "protocol",
+        "anchor": "left"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "viewer-shell-to-viewer-ui",
+      "from": {
+        "objectId": "viewer-shell",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "viewer-ui",
+        "anchor": "top"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "viewer-shell-to-viewer-core",
+      "from": {
+        "objectId": "viewer-shell",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "viewer-core",
+        "anchor": "right"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "viewer-ui-to-viewer-core",
+      "from": {
+        "objectId": "viewer-ui",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "viewer-core",
+        "anchor": "top"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "viewer-ui-to-prompt-kit",
+      "from": {
+        "objectId": "viewer-ui",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "prompt-kit",
+        "anchor": "right"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "viewer-ui-to-protocol",
+      "from": {
+        "objectId": "viewer-ui",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "protocol",
+        "anchor": "top"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "viewer-core-to-prompt-kit",
+      "from": {
+        "objectId": "viewer-core",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "prompt-kit",
+        "anchor": "right"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "viewer-core-to-protocol",
+      "from": {
+        "objectId": "viewer-core",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "protocol",
+        "anchor": "right"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    }
+  ],
+  "annotations": []
+}

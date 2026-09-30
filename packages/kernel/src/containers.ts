@@ -2,7 +2,7 @@
  * Container identity — deterministic, idempotent container derivation.
  *
  * Containers are the kernel's single grouping primitive (see
- * docs/10-system-design/15-identity-model.md). Identity is derived, never
+ * docs/10-system-design/15-identity-model/). Identity is derived, never
  * minted: the same (kernelId, kind, key) always yields the same container id,
  * so host apps never hash or persist their own grouping ids.
  *

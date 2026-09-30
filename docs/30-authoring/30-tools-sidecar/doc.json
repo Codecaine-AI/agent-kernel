@@ -1,0 +1,807 @@
+{
+  "schemaVersion": 1,
+  "id": "30-authoring-30-tools-sidecar",
+  "title": "Author a Tools Sidecar",
+  "root": "b-30-tools-sidecar-root-25",
+  "blocks": {
+    "b-30-tools-sidecar-root-25": {
+      "id": "b-30-tools-sidecar-root-25",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/agent-definition/index.ts, packages/kernel/src/agent-registry/registry/registry.ts, packages/kernel/src/index.ts",
+        "concepts": [
+          "agent-authoring",
+          "tools-sidecar",
+          "coreTools",
+          "private-tools",
+          "defineTools",
+          "runtime-injection",
+          "tool-registration"
+        ],
+        "covers": "How to author an agent tool surface: allow shared core tools in agent.json, register private tools in a sidecar, and bind app services through runtime injection.",
+        "depends-on": [
+          "30-authoring",
+          "30-authoring/10-context-sidecar",
+          "10-system-design/10-runtime-model",
+          "10-system-design/60-prompt-system-model"
+        ]
+      },
+      "children": [
+        "b-30-tools-sidecar-list-shared-tools-in-ag-2",
+        "b-30-tools-sidecar-divider-3",
+        "b-30-tools-sidecar-1-allow-shared-tools-in-4",
+        "b-30-tools-sidecar-use-coretools-for-tool-5",
+        "b-30-tools-sidecar-json-6",
+        "b-30-tools-sidecar-coretools-is-an-allowl-7",
+        "b-30-tools-sidecar-2-register-private-tool-8",
+        "b-30-tools-sidecar-use-either-tools-ts-or-9",
+        "b-30-tools-sidecar-define-bundle-private-re-10",
+        "b-30-tools-sidecar-ts-11",
+        "b-30-tools-sidecar-surface",
+        "b-30-tools-sidecar-private-names-are-harves-12",
+        "b-30-tools-sidecar-spawner-tools",
+        "b-30-tools-sidecar-3-bind-app-services-at-13",
+        "b-30-tools-sidecar-keep-app-owned-clients-14",
+        "b-30-tools-sidecar-registry-boot-invokes-th-15",
+        "b-30-tools-sidecar-boot-vs-spawn",
+        "b-30-tools-sidecar-the-binding-and-harvesti-16",
+        "b-30-tools-sidecar-4-keep-guidance-and-beh-17",
+        "b-30-tools-sidecar-do-not-create-a-tools-se-18",
+        "b-30-tools-sidecar-authoring-check-19",
+        "b-30-tools-sidecar-shared-tool-names-appear-20",
+        "b-30-tools-sidecar-private-tool-names-are-s-21",
+        "b-30-tools-sidecar-private-names-are-not-du-22",
+        "b-30-tools-sidecar-registration-succeeds-wi-23",
+        "b-30-tools-sidecar-app-services-enter-throu-24"
+      ]
+    },
+    "b-30-tools-sidecar-list-shared-tools-in-ag-2": {
+      "id": "b-30-tools-sidecar-list-shared-tools-in-ag-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "List shared tools in "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Add a tools sidecar only for tools implemented by this agent bundle."
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-divider-3": {
+      "id": "b-30-tools-sidecar-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-30-tools-sidecar-1-allow-shared-tools-in-4": {
+      "id": "b-30-tools-sidecar-1-allow-shared-tools-in-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "1. Allow Shared Tools in "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-use-coretools-for-tool-5": {
+      "id": "b-30-tools-sidecar-use-coretools-for-tool-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use "
+        },
+        {
+          "insert": "coreTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for tool implementations supplied by the kernel or host application:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-json-6": {
+      "id": "b-30-tools-sidecar-json-6",
+      "type": "code",
+      "props": {
+        "language": "json"
+      },
+      "text": [
+        {
+          "insert": "{\n  \"$schema\": \"agent-kernel/agent-v1\",\n  \"name\": \"report-writer\",\n  \"description\": \"Writes a report from supplied evidence.\",\n  \"model\": \"default\",\n  \"coreTools\": [\"read\", \"write\"]\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-coretools-is-an-allowl-7": {
+      "id": "b-30-tools-sidecar-coretools-is-an-allowl-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "coreTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is an allowlist, not an implementation site. The registry combines it with configured tool profiles and harvested private tool names to produce the runtime tool allowlist."
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-2-register-private-tool-8": {
+      "id": "b-30-tools-sidecar-2-register-private-tool-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "2. Register Private Tools in the Sidecar"
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-use-either-tools-ts-or-9": {
+      "id": "b-30-tools-sidecar-use-either-tools-ts-or-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use either "
+        },
+        {
+          "insert": "tools.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "tools/index.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". If both exist, "
+        },
+        {
+          "insert": "tools.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " wins and the folder is reported as shadowed. Export the registration function as the default export or named "
+        },
+        {
+          "insert": "tools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " export."
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-define-bundle-private-re-10": {
+      "id": "b-30-tools-sidecar-define-bundle-private-re-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Define bundle-private registrations with "
+        },
+        {
+          "insert": "defineTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ":"
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-ts-11": {
+      "id": "b-30-tools-sidecar-ts-11",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "import { defineTools } from \"@agent-kernel/kernel/agent-definition\";\nimport { Type } from \"@earendil-works/pi-ai\";\n\ninterface ReportRuntime {\n  writeReport(content: string): Promise<string>;\n}\n\nexport const tools = defineTools<ReportRuntime>((pi, runtime) => {\n  pi.registerTool({\n    name: \"write_report\",\n    label: \"Write report\",\n    description: \"Persist the final Markdown report.\",\n    parameters: Type.Object({ content: Type.String() }),\n    execute: async (_toolCallId, { content }) => {\n      if (!runtime) throw new Error(\"Report runtime is required.\");\n      const path = await runtime.writeReport(content);\n      return {\n        content: [{ type: \"text\", text: `Wrote ${path}` }],\n        details: { path },\n      };\n    },\n  });\n});\n\nexport default tools;"
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-surface": {
+      "id": "b-30-tools-sidecar-surface",
+      "type": "interaction-surface",
+      "props": {
+        "operations": [
+          {
+            "name": "defineTools<R>",
+            "kind": "action",
+            "description": "Typing helper: returns the register function unchanged. Export it as the default export, the named tools export, or both.",
+            "params": [
+              {
+                "name": "register",
+                "type": "(pi: ExtensionAPI, runtime?: R) => void | Promise<void>",
+                "required": true,
+                "description": "Runs once at registry boot with a stub pi and runtime undefined, then once per spawn with the session's pi and the createKernel toolRuntime."
+              }
+            ],
+            "returns": "the same register function"
+          },
+          {
+            "name": "pi.registerTool",
+            "kind": "action",
+            "description": "Registers one private tool. The name joins the agent's tool allowlist at boot.",
+            "params": [
+              {
+                "name": "tool",
+                "type": "ToolDefinition",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "name",
+                    "type": "string",
+                    "required": true,
+                    "description": "Stable and unique within the agent."
+                  },
+                  {
+                    "name": "label",
+                    "type": "string",
+                    "required": true,
+                    "description": "UI label."
+                  },
+                  {
+                    "name": "description",
+                    "type": "string",
+                    "required": true,
+                    "description": "Model-facing description."
+                  },
+                  {
+                    "name": "parameters",
+                    "type": "TSchema",
+                    "required": true,
+                    "description": "TypeBox schema. Boot serializes it to plain JSON for the lab's Tools view."
+                  },
+                  {
+                    "name": "execute",
+                    "type": "(toolCallId, params, signal, onUpdate, ctx) => Promise<AgentToolResult>",
+                    "required": true,
+                    "description": "Never runs at boot. Returns { content, details }."
+                  },
+                  {
+                    "name": "promptSnippet",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "executionMode",
+                    "type": "\"sequential\" | \"parallel\"",
+                    "required": false
+                  }
+                ]
+              }
+            ],
+            "returns": "void"
+          },
+          {
+            "name": "defineSpawnerTool",
+            "kind": "action",
+            "description": "Compiles a spawner declaration into a tool for pi.registerTool. Throws on an empty spawns list or a wildcard mixed with names. Its execute runs only inside kernel-spawned sessions.",
+            "params": [
+              {
+                "name": "decl",
+                "type": "SpawnerToolDeclaration",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "name",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "label",
+                    "type": "string",
+                    "required": false,
+                    "description": "Defaults to name."
+                  },
+                  {
+                    "name": "description",
+                    "type": "string",
+                    "required": false,
+                    "description": "Defaults to Dispatch subagents (<spawns>)."
+                  },
+                  {
+                    "name": "parameters",
+                    "type": "TSchema",
+                    "required": true
+                  },
+                  {
+                    "name": "spawns",
+                    "type": "string[]",
+                    "required": true,
+                    "description": "Agent names this tool may dispatch, or exactly [\"*\"] for any catalog agent. Boot fails when a named target is not in the catalog."
+                  },
+                  {
+                    "name": "executionMode",
+                    "type": "\"sequential\" | \"parallel\"",
+                    "required": false,
+                    "description": "Defaults to sequential."
+                  },
+                  {
+                    "name": "execute",
+                    "type": "(toolCallId, params, ctx) => Promise<AgentToolResult>",
+                    "required": true,
+                    "fields": [
+                      {
+                        "name": "ctx.dispatch",
+                        "type": "SpawnerDispatch",
+                        "required": true
+                      },
+                      {
+                        "name": "ctx.toolRuntime",
+                        "type": "R",
+                        "required": false,
+                        "description": "The createKernel toolRuntime."
+                      },
+                      {
+                        "name": "ctx.signal",
+                        "type": "AbortSignal",
+                        "required": false
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "returns": "SpawnerToolDefinition"
+          },
+          {
+            "name": "ctx.dispatch",
+            "kind": "action",
+            "description": "Rejects agents outside spawns or outside the catalog. Forwards parentToolUseId, trigger parent-tool, and the parent's run identity automatically.",
+            "params": [
+              {
+                "name": "agentName",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "prompt",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "opts",
+                "type": "object",
+                "required": false,
+                "fields": [
+                  {
+                    "name": "background",
+                    "type": "boolean",
+                    "required": false,
+                    "description": "Queue on the background lane and resolve at once with a handle whose done promise yields the final record."
+                  },
+                  {
+                    "name": "description",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "displayLabel",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "variables",
+                    "type": "Record<string, unknown>",
+                    "required": false
+                  },
+                  {
+                    "name": "workingDir",
+                    "type": "string",
+                    "required": false,
+                    "description": "Defaults to the parent session's cwd."
+                  }
+                ]
+              }
+            ],
+            "returns": "Promise<AgentRecord>, or Promise<SpawnerBackgroundHandle> when background is true"
+          }
+        ],
+        "title": "Tools Sidecar Surface"
+      },
+      "children": []
+    },
+    "b-30-tools-sidecar-private-names-are-harves-12": {
+      "id": "b-30-tools-sidecar-private-names-are-harves-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Do not repeat private tool names in "
+        },
+        {
+          "insert": "coreTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": registry boot adds them to the agent's tool access. When the host supplies no tools preview, the lab's Tools view shows the harvested declarations ("
+        },
+        {
+          "insert": "packages/kernel/src/agent-registry/registry/harvest-private-tool-names.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/agent-registry/registry/harvest-private-tool-names.ts"
+            }
+          }
+        },
+        {
+          "insert": ")."
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-spawner-tools": {
+      "id": "b-30-tools-sidecar-spawner-tools",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "For a private tool that dispatches other agents, build it with "
+        },
+        {
+          "insert": "defineSpawnerTool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and register the result with "
+        },
+        {
+          "insert": "pi.registerTool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Name the exact agents in "
+        },
+        {
+          "insert": "spawns",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; use "
+        },
+        {
+          "insert": "[\"*\"]",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " only for a deliberately general spawner. "
+        },
+        {
+          "insert": "examples/simple-research-kernel/src/agent-catalog/research-coordinator/tools/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " registers three spawners."
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-3-bind-app-services-at-13": {
+      "id": "b-30-tools-sidecar-3-bind-app-services-at-13",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "3. Bind App Services at Runtime"
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-keep-app-owned-clients-14": {
+      "id": "b-30-tools-sidecar-keep-app-owned-clients-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Keep app-owned clients, stores, and filesystem services out of the bundle. Type the runtime argument to the smallest interface the tool needs, then provide its implementation through the kernel's "
+        },
+        {
+          "insert": "toolRuntime",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " configuration."
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-registry-boot-invokes-th-15": {
+      "id": "b-30-tools-sidecar-registry-boot-invokes-th-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The register function runs at registry boot and again at every spawn. Registration must succeed with "
+        },
+        {
+          "insert": "runtime",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " undefined and register the same declarations both times. Check for the runtime inside "
+        },
+        {
+          "insert": "execute",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", never in the register callback itself."
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-boot-vs-spawn": {
+      "id": "b-30-tools-sidecar-boot-vs-spawn",
+      "type": "sequence",
+      "props": {
+        "src": "./assets/sequences/tools-boot-vs-spawn.sequence.json",
+        "title": "Tools sidecar at registry boot and at spawn"
+      },
+      "children": []
+    },
+    "b-30-tools-sidecar-the-binding-and-harvesti-16": {
+      "id": "b-30-tools-sidecar-the-binding-and-harvesti-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The binding and harvesting path is documented in the "
+        },
+        {
+          "insert": "runtime model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model",
+              "label": "runtime model"
+            }
+          }
+        },
+        {
+          "insert": ", with the boot-time harvest decision on the "
+        },
+        {
+          "insert": "kernel area page",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/20-kernel",
+              "label": "kernel area page"
+            }
+          }
+        },
+        {
+          "insert": ". The bundle contract and file-or-folder rule are decision D98 in "
+        },
+        {
+          "insert": "State Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/30-state-model",
+              "label": "State Model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-4-keep-guidance-and-beh-17": {
+      "id": "b-30-tools-sidecar-4-keep-guidance-and-beh-17",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "4. Keep Guidance and Behavior Separate"
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-do-not-create-a-tools-se-18": {
+      "id": "b-30-tools-sidecar-do-not-create-a-tools-se-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Do not create a tools section in the agent prompt. Put standing guidance about when or how to use tools in context section ②; keep tool names, descriptions, parameter schemas, and executable handlers in the tool layer. For prompt design, see the prompt-kit repo, "
+        },
+        {
+          "insert": "docs/30-prompt-structure/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-authoring-check-19": {
+      "id": "b-30-tools-sidecar-authoring-check-19",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Authoring Check"
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-shared-tool-names-appear-20": {
+      "id": "b-30-tools-sidecar-shared-tool-names-appear-20",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Shared tool names appear in "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "coreTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or an intentional tool profile."
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-private-tool-names-are-s-21": {
+      "id": "b-30-tools-sidecar-private-tool-names-are-s-21",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Private tool names are stable, unique registrations in one legal D98 sidecar shape."
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-private-names-are-not-du-22": {
+      "id": "b-30-tools-sidecar-private-names-are-not-du-22",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Private names are not duplicated in "
+        },
+        {
+          "insert": "coreTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-registration-succeeds-wi-23": {
+      "id": "b-30-tools-sidecar-registration-succeeds-wi-23",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Registration succeeds with "
+        },
+        {
+          "insert": "runtime === undefined",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; execution checks for what it needs."
+        }
+      ],
+      "children": []
+    },
+    "b-30-tools-sidecar-app-services-enter-throu-24": {
+      "id": "b-30-tools-sidecar-app-services-enter-throu-24",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "App services enter through runtime injection rather than bundle imports."
+        }
+      ],
+      "children": []
+    }
+  }
+}

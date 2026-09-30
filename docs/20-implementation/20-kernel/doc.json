@@ -1,0 +1,1247 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-20-kernel-00-overview",
+  "title": "Kernel Package",
+  "root": "b-00-overview-root-30",
+  "blocks": {
+    "b-00-overview-root-30": {
+      "id": "b-00-overview-root-30",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/",
+        "concepts": [
+          "kernel-package",
+          "create-kernel",
+          "prompt-snapshot",
+          "config-not-adapters",
+          "module-roster"
+        ],
+        "covers": "Implementation area page for @agent-kernel/kernel: role, source pointer, governing design pages, structural decisions about how the kernel package is organized, and the module roster.",
+        "depends-on": [
+          "10-system-design/10-runtime-model",
+          "10-system-design/20-observability-model"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-agent-kernel-kernel-o-2",
+        "b-00-overview-source-packages-kernel-3",
+        "b-00-overview-governed-by-10-runtime-4",
+        "b-00-overview-divider-5",
+        "b-00-overview-children",
+        "b-00-overview-child-10",
+        "b-00-overview-child-20",
+        "b-00-overview-child-30",
+        "b-00-overview-child-40",
+        "b-00-overview-child-50",
+        "b-00-overview-decisions-6",
+        "b-00-overview-rendered-prompt-markdown-11",
+        "b-00-overview-decision-the-markdo-12",
+        "b-00-overview-why-pr-diffs-show-t-13",
+        "b-00-overview-applies-to-package-14",
+        "b-00-overview-createkernel-takes-con-15",
+        "b-00-overview-decision-the-kernel-16",
+        "b-00-overview-why-adapter-bundles-17",
+        "b-00-overview-applies-to-package-18",
+        "b-00-overview-modules-27",
+        "b-00-overview-src-tree-lead",
+        "b-00-overview-src-tree",
+        "b-00-overview-one-line-each-behavior-28",
+        "b-00-overview-module-table"
+      ]
+    },
+    "b-00-overview-agent-kernel-kernel-o-2": {
+      "id": "b-00-overview-agent-kernel-kernel-o-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@agent-kernel/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " owns the reusable runtime pieces: spawn, registry, context, state, subagents, emission, recovery, doctor, read routes. It does not own app workflow semantics."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-source-packages-kernel-3": {
+      "id": "b-00-overview-source-packages-kernel-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Source: "
+        },
+        {
+          "insert": "packages/kernel/src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-governed-by-10-runtime-4": {
+      "id": "b-00-overview-governed-by-10-runtime-4",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Governed by: "
+        },
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model",
+              "label": "Runtime Model"
+            }
+          }
+        },
+        {
+          "insert": " (what a run is and how it executes) and "
+        },
+        {
+          "insert": "Observability Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-observability-model",
+              "label": "Observability Model"
+            }
+          }
+        },
+        {
+          "insert": " (what the kernel records and serves)."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-5": {
+      "id": "b-00-overview-divider-5",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-children": {
+      "id": "b-00-overview-children",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Children"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-child-10": {
+      "id": "b-00-overview-child-10",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spawn Pipeline",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/20-kernel/10-spawn-pipeline",
+              "label": "Spawn Pipeline"
+            }
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "spawn-pipeline/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; run trace emission, tool scoping, resume, turn limits, and request snapshot capture."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-child-20": {
+      "id": "b-00-overview-child-20",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Agent Registry",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/20-kernel/20-agent-registry",
+              "label": "Agent Registry"
+            }
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "agent-registry/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; bundle layout (D98), sidecar harvest, boot error aggregation, fixtures, and annotations."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-child-30": {
+      "id": "b-00-overview-child-30",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "State",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/20-kernel/30-state",
+              "label": "State"
+            }
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "state/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; extension gating, the context set, state persistence (D88, D92), and fail-open hooks."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-child-40": {
+      "id": "b-00-overview-child-40",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Subagents",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/20-kernel/40-subagents",
+              "label": "Subagents"
+            }
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "subagents/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; per-tool spawn grants (D77) and the "
+        },
+        {
+          "insert": "AgentManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " spawn adapter."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-child-50": {
+      "id": "b-00-overview-child-50",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "Transcript Recovery",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/20-kernel/50-transcript-recovery",
+              "label": "Transcript Recovery"
+            }
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "transcript-recovery/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; JSONL backfill, TUI ingest, and emitter id parity."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decisions-6": {
+      "id": "b-00-overview-decisions-6",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-rendered-prompt-markdown-11": {
+      "id": "b-00-overview-rendered-prompt-markdown-11",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Rendered prompt markdown is a committed generated artifact with one byte format"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-the-markdo-12": {
+      "id": "b-00-overview-decision-the-markdo-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "The markdown render of a prompt ("
+        },
+        {
+          "insert": "prompt.rendered.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in file form, "
+        },
+        {
+          "insert": "prompt/system.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in folder form) is generated, committed, enforced by a snapshot test, and never hand-edited or parsed by the registry. The registry snapshot test and "
+        },
+        {
+          "insert": "render-prompts-cli.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " write it through "
+        },
+        {
+          "insert": "agent-registry/prompt-snapshot.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The catalog save route writes it through the prompt-kit-server store ("
+        },
+        {
+          "insert": "createPromptStore().save()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "catalog-service.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and passes the kernel's "
+        },
+        {
+          "insert": "RENDERED_SNAPSHOT_HEADER",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The store joins header and body the same way, so all three writers emit identical bytes."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-why-pr-diffs-show-t-13": {
+      "id": "b-00-overview-why-pr-diffs-show-t-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " PR diffs show the behavioral contract in the format the model receives. The rejected alternatives (render-on-demand with no reviewable diff, or hand-maintained markdown that drifts from the canonical "
+        },
+        {
+          "insert": "prompt.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") both break the \"prompt.json is the source of truth\" invariant."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-applies-to-package-14": {
+      "id": "b-00-overview-applies-to-package-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/kernel/src/agent-registry/prompt-snapshot.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "render-prompts-cli.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the catalog prompt-save path in "
+        },
+        {
+          "insert": "catalog-service.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any future code that writes a prompt render."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-createkernel-takes-con-15": {
+      "id": "b-00-overview-createkernel-takes-con-15",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " takes config data, not an adapter bundle"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-the-kernel-16": {
+      "id": "b-00-overview-decision-the-kernel-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The kernel's entry point is one config object, "
+        },
+        {
+          "insert": "CreateKernelConfig",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; "
+        },
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model",
+              "label": "Runtime Model"
+            }
+          }
+        },
+        {
+          "insert": " defines its fields. Injected functions exist only for genuinely app-shaped slots ("
+        },
+        {
+          "insert": "appContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "loaders",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "sharedTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "createSessionBinding",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "logger",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). Every other field is data, such as catalog roots, the db handle, model aliases and prices, and tool profiles. The public surface has no adapter bundle."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-why-adapter-bundles-17": {
+      "id": "b-00-overview-why-adapter-bundles-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Adapter bundles made every host reimplement kernel plumbing and let hosts mislabel identity. Data config keeps the kernel assembling its own pipeline. New config additions must be data unless the slot is genuinely app-shaped. The bar is \"the kernel cannot know this\", not \"a function is convenient\"."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-applies-to-package-18": {
+      "id": "b-00-overview-applies-to-package-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/kernel/src/index.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "CreateKernelConfig",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and the other config types), "
+        },
+        {
+          "insert": "spawn-pipeline/config/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (which holds only "
+        },
+        {
+          "insert": "turn-limits.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), and every future config field."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-modules-27": {
+      "id": "b-00-overview-modules-27",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Modules"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-src-tree-lead": {
+      "id": "b-00-overview-src-tree-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Top level of "
+        },
+        {
+          "insert": "packages/kernel/src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", test files omitted. Notes mark the package entry and the four CLI bins."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-src-tree": {
+      "id": "b-00-overview-src-tree",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "packages/kernel/src/agent-definition/"
+          },
+          {
+            "path": "packages/kernel/src/agent-registry/"
+          },
+          {
+            "path": "packages/kernel/src/context/"
+          },
+          {
+            "path": "packages/kernel/src/emitter/"
+          },
+          {
+            "path": "packages/kernel/src/events/"
+          },
+          {
+            "path": "packages/kernel/src/prompt-edit-session/"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/"
+          },
+          {
+            "path": "packages/kernel/src/state/"
+          },
+          {
+            "path": "packages/kernel/src/subagents/"
+          },
+          {
+            "path": "packages/kernel/src/transcript-recovery/",
+            "note": "bins: agent-kernel-backfill, -tui-ingest"
+          },
+          {
+            "path": "packages/kernel/src/catalog-annotations-api.ts"
+          },
+          {
+            "path": "packages/kernel/src/catalog-annotations.ts"
+          },
+          {
+            "path": "packages/kernel/src/catalog-api.ts"
+          },
+          {
+            "path": "packages/kernel/src/catalog-service.ts"
+          },
+          {
+            "path": "packages/kernel/src/containers.ts"
+          },
+          {
+            "path": "packages/kernel/src/context-fixtures.ts"
+          },
+          {
+            "path": "packages/kernel/src/doctor-cli.ts",
+            "note": "bin: agent-kernel-doctor"
+          },
+          {
+            "path": "packages/kernel/src/doctor.ts"
+          },
+          {
+            "path": "packages/kernel/src/index.ts",
+            "note": "package entry \".\""
+          },
+          {
+            "path": "packages/kernel/src/prompt-edit-session-api.ts"
+          },
+          {
+            "path": "packages/kernel/src/read-api.ts"
+          },
+          {
+            "path": "packages/kernel/src/read-service.ts"
+          },
+          {
+            "path": "packages/kernel/src/render-prompts-cli.ts",
+            "note": "bin: agent-kernel-render-prompts"
+          },
+          {
+            "path": "packages/kernel/src/run-context.ts"
+          },
+          {
+            "path": "packages/kernel/src/spawn-config.ts"
+          },
+          {
+            "path": "packages/kernel/src/trace-writer.ts"
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-00-overview-one-line-each-behavior-28": {
+      "id": "b-00-overview-one-line-each-behavior-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "One line each; behavior lives in the design pages above."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-module-table": {
+      "id": "b-00-overview-module-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Module",
+          "Role"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "index.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " + "
+              },
+              {
+                "insert": "spawn-config.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "createKernel",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", config types, variant + model-alias resolution"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "agent-definition/",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "manifest types, JSON Schema check, "
+              },
+              {
+                "insert": "defineAgent",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "/"
+              },
+              {
+                "insert": "defineContext",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "/"
+              },
+              {
+                "insert": "defineTools",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "/"
+              },
+              {
+                "insert": "defineState",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " helpers (validators for tooling; bundles no longer import "
+              },
+              {
+                "insert": "defineAgent",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "agent-registry/",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "bundle discovery and validation, prompt snapshots and revisions, annotation sidecar, state fixtures; see the Agent Registry page"
+          ],
+          [
+            [
+              {
+                "insert": "containers.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "deterministic container identity and upsert"
+          ],
+          [
+            [
+              {
+                "insert": "context/",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "resolver contracts, loader catalog, accumulation guard"
+          ],
+          [
+            [
+              {
+                "insert": "context-fixtures.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "discovers "
+              },
+              {
+                "insert": "context/fixtures/*.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " for catalog previews; see the Agent Registry page"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "state/",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "StateModule",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " contract, extension, windows, context set, builder, "
+              },
+              {
+                "insert": "state.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " sink; see the State page"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "spawn-pipeline/",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "the spawn sequence ("
+              },
+              {
+                "insert": "spawn-agent.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ") and one subfolder per stage; see the Spawn Pipeline page"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "emitter/",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "in-process mapping of live Pi events to protocol events"
+          ],
+          [
+            [
+              {
+                "insert": "subagents/",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "AgentManager",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", spawner-tool binding; see the Subagents page"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "transcript-recovery/",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "JSONL backfill and CLI, plus "
+              },
+              {
+                "insert": "tui-ingest.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and its CLI; see the Transcript Recovery page"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "events/",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "run-context.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "lifecycle emitter helpers, async-local run identity"
+          ],
+          [
+            [
+              {
+                "insert": "doctor.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " + "
+              },
+              {
+                "insert": "doctor-cli.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "trace-invariant checker and catalog bundle-layout check ("
+              },
+              {
+                "insert": "--catalog <root>",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "--strict",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "read-api.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "read-service.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "catalog-api.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "route factories and default read service; see the Read API page"
+          ],
+          [
+            [
+              {
+                "insert": "catalog-service.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "KernelCatalogService",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": agent listing and detail, prompt saves through the prompt-kit-server store, manifest saves, revisions, fixture previews"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "catalog-annotations.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "catalog-annotations-api.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "annotation operations on the catalog service and their routes"
+          ],
+          [
+            [
+              {
+                "insert": "prompt-edit-session/",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "prompt-edit-session-api.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "prompt-editor agent sessions, the accept/reject/undo review flow, and their routes"
+          ],
+          [
+            [
+              {
+                "insert": "render-prompts-cli.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "agent-kernel-render-prompts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": regenerates or checks committed prompt renders"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "trace-writer.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "default DB trace sink"
+          ]
+        ]
+      },
+      "children": []
+    }
+  }
+}

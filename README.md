@@ -50,7 +50,7 @@
 - A host application (the harness) consumes the kernel through a thin adapter.
 - The harness owns workflow sessions, phase semantics, domain tools, app-specific loaders, app DB tables, and custom viewer panels.
 - The kernel owns spawning, context assembly, observability storage, trace reading, and viewer primitives.
-- The identity model behind all of this (containers, sessions, runs, turns, linkage invariants) is documented in [docs/10-system-design/15-identity-model.md](docs/10-system-design/15-identity-model.md); the overhaul plan that produced it lives in [docs/.drafts/agent-kernel-overhaul.plan.md](docs/.drafts/agent-kernel-overhaul.plan.md).
+- The identity model behind all of this (containers, sessions, runs, turns, linkage invariants) is documented in [docs/10-system-design/15-identity-model/](docs/10-system-design/15-identity-model/); the overhaul plan that produced it lives in [docs/.drafts/agent-kernel-overhaul.plan.md](docs/.drafts/agent-kernel-overhaul.plan.md).
 
 ## Setup
 

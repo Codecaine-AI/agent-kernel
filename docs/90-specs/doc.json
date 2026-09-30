@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "id": "new-features-00-overview",
+  "title": "Specs",
+  "root": "b-00-overview-root-7",
+  "blocks": {
+    "b-00-overview-root-7": {
+      "id": "b-00-overview-root-7",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "specs",
+          "proposals"
+        ],
+        "covers": "Index of specs for proposed kernel features: motivation, proposed shape, alternatives, phasing, and open questions. Non-normative.",
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-design-notes-for-kernel-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-child-nodes-4",
+        "b-00-overview-10-structured-calls-bam-5",
+        "b-00-overview-structured-calls-a-sing-6"
+      ]
+    },
+    "b-00-overview-design-notes-for-kernel-2": {
+      "id": "b-00-overview-design-notes-for-kernel-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Specs for kernel capabilities that are proposed but not built. This tier is non-normative: a spec records the motivating problem, a proposed shape, the alternatives weighed, and what is still open. It never describes current behavior. When a feature ships, its contracts move into "
+        },
+        {
+          "insert": "10-system-design/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "20-implementation/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the spec shrinks to a pointer at them. Working notes that are not yet specs stay in "
+        },
+        {
+          "insert": ".drafts/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-child-nodes-4": {
+      "id": "b-00-overview-child-nodes-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Child Nodes"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-10-structured-calls-bam-5": {
+      "id": "b-00-overview-10-structured-calls-bam-5",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Structured Calls (BAML)",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-structured-calls-baml",
+              "label": "Structured Calls (BAML)"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-structured-calls-a-sing-6": {
+      "id": "b-00-overview-structured-calls-a-sing-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Structured calls: a proposed single-shot, typed LLM primitive, built on BAML, that sits beside agents in the kernel. Motivated by the \"worker finishes, a second agent extracts a summary object\" pattern."
+        }
+      ],
+      "children": []
+    }
+  }
+}

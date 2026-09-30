@@ -1,0 +1,589 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-10-protocol",
+  "title": "Protocol Package",
+  "root": "b-10-protocol-root-19",
+  "blocks": {
+    "b-10-protocol-root-19": {
+      "id": "b-10-protocol-root-19",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/protocol/src/",
+        "concepts": [
+          "protocol",
+          "contract-package",
+          "deterministic-ids",
+          "factory-convention",
+          "kernel-messages"
+        ],
+        "covers": "Implementation area page for @agent-kernel/protocol: role, source pointer, governing design pages, and structural decisions about what lives in the contract package.",
+        "depends-on": [
+          "10-system-design/30-event-protocol"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-10-protocol-agent-kernel-protocol-2",
+        "b-10-protocol-governed-by-30-event-p-4",
+        "b-10-protocol-source-packages-protoc-3",
+        "b-10-protocol-source-tree",
+        "b-10-protocol-divider-5",
+        "b-10-protocol-decisions-6",
+        "b-10-protocol-event-id-derivation-is-a-7",
+        "b-10-protocol-decision-determinis-8",
+        "b-10-protocol-why-idempotent-inse-9",
+        "b-10-protocol-applies-to-package-10",
+        "b-10-protocol-factories-take-identity-11",
+        "b-10-protocol-decision-every-even-12",
+        "b-10-protocol-why-identity-thread-13",
+        "b-10-protocol-applies-to-package-14",
+        "b-10-protocol-wire-visible-constants-l-15",
+        "b-10-protocol-decision-the-kernel-16",
+        "b-10-protocol-why-the-marker-surv-17",
+        "b-10-protocol-applies-to-package-18"
+      ]
+    },
+    "b-10-protocol-agent-kernel-protocol-2": {
+      "id": "b-10-protocol-agent-kernel-protocol-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@agent-kernel/protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the shared contract package: the "
+        },
+        {
+          "insert": "TraceEvent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " envelope, event catalog and payload types, factories, deterministic ids, usage extraction, and kernel-authored message markers. Runtime emitters, DB actions, transcript-recovery mapping, the read API, viewer DTOs, and apps all type against it."
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-governed-by-30-event-p-4": {
+      "id": "b-10-protocol-governed-by-30-event-p-4",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Governed by: "
+        },
+        {
+          "insert": "Event Protocol",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/30-event-protocol",
+              "label": "Event Protocol"
+            }
+          }
+        },
+        {
+          "insert": " (the contract itself: envelope, families, levels, open strings) and "
+        },
+        {
+          "insert": "Observability Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-observability-model",
+              "label": "Observability Model"
+            }
+          }
+        },
+        {
+          "insert": " (what the events record)."
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-source-packages-protoc-3": {
+      "id": "b-10-protocol-source-packages-protoc-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Source lives in "
+        },
+        {
+          "insert": "packages/protocol/src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", test files omitted:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-source-tree": {
+      "id": "b-10-protocol-source-tree",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "packages/protocol/src/index.ts",
+            "note": "the package's only export, \".\""
+          },
+          {
+            "path": "packages/protocol/src/envelope.ts",
+            "note": "TraceEvent envelope and TraceSource"
+          },
+          {
+            "path": "packages/protocol/src/types.ts",
+            "note": "event catalog, payload types, trace levels"
+          },
+          {
+            "path": "packages/protocol/src/factories.ts",
+            "note": "event factories, ids-first signature"
+          },
+          {
+            "path": "packages/protocol/src/ids.ts",
+            "note": "deterministic event ids"
+          },
+          {
+            "path": "packages/protocol/src/usage.ts",
+            "note": "TurnUsage from Pi message usage"
+          },
+          {
+            "path": "packages/protocol/src/kernel-messages.ts",
+            "note": "kernel-authored and image-elision markers"
+          },
+          {
+            "path": "packages/protocol/src/sha256.ts",
+            "note": "internal SHA-256 for ids.ts; not re-exported"
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-10-protocol-divider-5": {
+      "id": "b-10-protocol-divider-5",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-protocol-decisions-6": {
+      "id": "b-10-protocol-decisions-6",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-event-id-derivation-is-a-7": {
+      "id": "b-10-protocol-event-id-derivation-is-a-7",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Event-id derivation is a protocol export, not emitter-local"
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-decision-determinis-8": {
+      "id": "b-10-protocol-decision-determinis-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Deterministic event ids live in this package. "
+        },
+        {
+          "insert": "deterministicEventId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " turns a seed string into a UUID-shaped id, and "
+        },
+        {
+          "insert": "piEntryEventId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "liveFallbackEventId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " build their seeds and call it. Every emission path (the kernel's in-process emitter, the transcript-recovery mapper, and any future path) derives ids through these functions."
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-why-idempotent-inse-9": {
+      "id": "b-10-protocol-why-idempotent-inse-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Idempotent inserts only dedupe if all paths derive identical ids from the same inputs; per-path id generation (or random ids) was rejected because it makes live emission and backfill double-write the same session."
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-applies-to-package-10": {
+      "id": "b-10-protocol-applies-to-package-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/protocol/src/ids.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and every current or future event producer."
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-factories-take-identity-11": {
+      "id": "b-10-protocol-factories-take-identity-11",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Factories take identity first, as one "
+        },
+        {
+          "insert": "ids",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " parameter"
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-decision-every-even-12": {
+      "id": "b-10-protocol-decision-every-even-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Every event factory follows one signature convention: a "
+        },
+        {
+          "insert": "TraceEventIds",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " object first ("
+        },
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " required; "
+        },
+        {
+          "insert": "runId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "/"
+        },
+        {
+          "insert": "userId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "/"
+        },
+        {
+          "insert": "agentId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "/"
+        },
+        {
+          "insert": "piSessionUuid",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " optional), then the event's semantic arguments, then an optional "
+        },
+        {
+          "insert": "opts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " object for span linkage and extras. Run lifecycle factories require "
+        },
+        {
+          "insert": "runId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on "
+        },
+        {
+          "insert": "ids",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-why-identity-thread-13": {
+      "id": "b-10-protocol-why-identity-thread-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Identity threaded as loose positional arguments is how envelopes get mislabeled; one required parameter shape makes a missing "
+        },
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " a type error. Applies-to is the point: new factories must keep the shape."
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-applies-to-package-14": {
+      "id": "b-10-protocol-applies-to-package-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/protocol/src/factories.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and every factory added to it."
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-wire-visible-constants-l-15": {
+      "id": "b-10-protocol-wire-visible-constants-l-15",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Wire-visible constants live here, not in the kernel"
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-decision-the-kernel-16": {
+      "id": "b-10-protocol-decision-the-kernel-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The kernel-authored message markers ("
+        },
+        {
+          "insert": "kernel:context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "kernel:state",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and "
+        },
+        {
+          "insert": "isKernelAuthoredMessage()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are protocol exports, even though only the kernel's state layer writes them. The image-elision marker follows the same rule: "
+        },
+        {
+          "insert": "IMAGE_ELISION_MARKER_PREFIX",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "imageElisionMarkerText()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "isImageElisionMarker()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " define the text the kernel writes in place of an old image block, and the viewer detects it with the same helper."
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-why-the-marker-surv-17": {
+      "id": "b-10-protocol-why-the-marker-surv-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The marker survives into request snapshots and is read back by the viewer (D99). It is part of the wire contract, and putting it in the kernel package would force viewer code to depend on the runtime. The rejected alternative was a kernel-local constant mirrored by hand in viewer code."
+        }
+      ],
+      "children": []
+    },
+    "b-10-protocol-applies-to-package-18": {
+      "id": "b-10-protocol-applies-to-package-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/protocol/src/kernel-messages.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any future marker or constant that both a writer and a reader must agree on."
+        }
+      ],
+      "children": []
+    }
+  }
+}

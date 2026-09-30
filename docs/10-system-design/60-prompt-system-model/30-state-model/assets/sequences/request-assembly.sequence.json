@@ -1,0 +1,233 @@
+{
+  "version": 1,
+  "id": "request-assembly",
+  "title": "Per-request three-section assembly",
+  "participants": [
+    {
+      "id": "p1",
+      "name": "pi",
+      "kind": "participant",
+      "label": "Pi agent loop"
+    },
+    {
+      "id": "p2",
+      "name": "ext",
+      "kind": "participant",
+      "label": "State extension"
+    },
+    {
+      "id": "p3",
+      "name": "module",
+      "kind": "participant",
+      "label": "State module"
+    },
+    {
+      "id": "p4",
+      "name": "contextset",
+      "kind": "participant",
+      "label": "Context set"
+    },
+    {
+      "id": "p5",
+      "name": "builder",
+      "kind": "participant",
+      "label": "Request builder"
+    },
+    {
+      "id": "p6",
+      "name": "sink",
+      "kind": "participant",
+      "label": "State sink"
+    },
+    {
+      "id": "p7",
+      "name": "recorder",
+      "kind": "participant",
+      "label": "Snapshot recorder"
+    }
+  ],
+  "items": [
+    {
+      "kind": "note",
+      "id": "n1",
+      "anchor": "p1",
+      "side": "over",
+      "text": "① system prompt is Pi's own; the builder never touches it"
+    },
+    {
+      "kind": "fragment",
+      "id": "f1",
+      "op": "loop",
+      "operands": [
+        {
+          "guard": "message_end, tool_result, turn_end (blocking hooks)",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m1",
+              "from": "p1",
+              "to": "p2",
+              "line": "sync",
+              "text": "hook fires"
+            },
+            {
+              "kind": "note",
+              "id": "n2",
+              "anchor": "p2",
+              "side": "over",
+              "text": "pump derives events from messages past the cursor"
+            },
+            {
+              "kind": "message",
+              "id": "m2",
+              "from": "p2",
+              "to": "p3",
+              "line": "sync",
+              "text": "update(state, event), once per event"
+            },
+            {
+              "kind": "message",
+              "id": "m3",
+              "from": "p3",
+              "to": "p2",
+              "line": "return",
+              "text": "next state"
+            },
+            {
+              "kind": "fragment",
+              "id": "f2",
+              "op": "opt",
+              "operands": [
+                {
+                  "guard": "turn_end",
+                  "items": [
+                    {
+                      "kind": "message",
+                      "id": "m4",
+                      "from": "p2",
+                      "to": "p3",
+                      "line": "sync",
+                      "text": "update(state, turn_end)"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m5",
+                      "from": "p2",
+                      "to": "p6",
+                      "line": "async",
+                      "text": "submit state.json snapshot"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "message",
+      "id": "m6",
+      "from": "p1",
+      "to": "p2",
+      "line": "sync",
+      "text": "context(messages), before every provider request"
+    },
+    {
+      "kind": "message",
+      "id": "m7",
+      "from": "p2",
+      "to": "p3",
+      "line": "sync",
+      "text": "catch-up: update for any unseen event"
+    },
+    {
+      "kind": "message",
+      "id": "m8",
+      "from": "p2",
+      "to": "p4",
+      "line": "sync",
+      "text": "render()"
+    },
+    {
+      "kind": "message",
+      "id": "m9",
+      "from": "p4",
+      "to": "p2",
+      "line": "return",
+      "text": "② kernel:context message, or null when empty"
+    },
+    {
+      "kind": "message",
+      "id": "m10",
+      "from": "p2",
+      "to": "p3",
+      "line": "sync",
+      "text": "render(state, ctx)"
+    },
+    {
+      "kind": "message",
+      "id": "m11",
+      "from": "p3",
+      "to": "p2",
+      "line": "return",
+      "text": "③ kernel:state lines + conversation tail"
+    },
+    {
+      "kind": "message",
+      "id": "m12",
+      "from": "p2",
+      "to": "p5",
+      "line": "sync",
+      "text": "buildRequest(contextMessage, rendered)"
+    },
+    {
+      "kind": "message",
+      "id": "m13",
+      "from": "p5",
+      "to": "p2",
+      "line": "return",
+      "text": "messages + sections: context | state | tail"
+    },
+    {
+      "kind": "message",
+      "id": "m14",
+      "from": "p2",
+      "to": "p7",
+      "line": "sync",
+      "text": "recordBuiltRequest(messages, sections)"
+    },
+    {
+      "kind": "note",
+      "id": "n3",
+      "anchor": "p7",
+      "side": "over",
+      "text": "request snapshot carries the section tags"
+    },
+    {
+      "kind": "message",
+      "id": "m15",
+      "from": "p2",
+      "to": "p1",
+      "line": "return",
+      "text": "{ messages } for this request only"
+    },
+    {
+      "kind": "message",
+      "id": "m16",
+      "from": "p1",
+      "to": "p2",
+      "line": "sync",
+      "text": "agent_settled"
+    },
+    {
+      "kind": "message",
+      "id": "m17",
+      "from": "p2",
+      "to": "p6",
+      "line": "async",
+      "text": "submit final snapshot"
+    }
+  ],
+  "style": {}
+}

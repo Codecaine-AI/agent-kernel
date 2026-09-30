@@ -1,0 +1,2462 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-20-observability-model",
+  "title": "Observability Model",
+  "root": "b-20-observability-model-root-50",
+  "blocks": {
+    "b-20-observability-model-root-50": {
+      "id": "b-20-observability-model-root-50",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/db/src/schema/, packages/db/src/actions/read-api.ts, packages/kernel/src/emitter/, packages/kernel/src/spawn-pipeline/streaming/request-snapshot.ts, packages/kernel/src/read-api.ts, packages/kernel/src/doctor.ts",
+        "concepts": [
+          "observability",
+          "containers",
+          "pi-agent-sessions",
+          "agent-runs",
+          "trace-events",
+          "prompt-revisions",
+          "trace-blobs",
+          "request-snapshots",
+          "explicit-linkage",
+          "usage-rollups",
+          "kernel-emitter",
+          "backfill",
+          "sqlite",
+          "read-api",
+          "catalog-api",
+          "trace-doctor"
+        ],
+        "covers": "Observability model for containers, Pi agent sessions, agent runs, trace events, prompt revisions, trace blobs and request snapshots, storage, usage rollups, explicit linkage rules, transcript backfill, the read surface, and the trace doctor.",
+        "depends-on": [
+          "00-foundation/20-principles",
+          "10-system-design/15-identity-model",
+          "10-system-design/30-event-protocol"
+        ]
+      },
+      "children": [
+        "b-20-observability-model-the-kernel-observability-2",
+        "b-20-observability-model-divider-3",
+        "b-20-observability-model-core-records-4",
+        "b-20-observability-model-core-records-table",
+        "b-20-observability-model-storage-6",
+        "b-20-observability-model-storage-is-one-local-sql-7",
+        "b-20-observability-model-state-snapshots",
+        "b-20-observability-model-a-postgres-mirror-of-the-8",
+        "b-20-observability-model-identity-layers-9",
+        "b-20-observability-model-identity-is-container-fi-10",
+        "b-20-observability-model-containerid-is-the-sin-11",
+        "b-20-observability-model-runid-identifies-a-ker-12",
+        "b-20-observability-model-pisessionid-links-even-13",
+        "b-20-observability-model-kernelid-identifies-on-14",
+        "b-20-observability-model-linkage-rule-15",
+        "b-20-observability-model-if-a-relationship-is-kno-16",
+        "b-20-observability-model-linkage-table",
+        "b-20-observability-model-the-viewer-may-use-times-24",
+        "b-20-observability-model-event-sources-25",
+        "b-20-observability-model-the-primary-emission-pat-26",
+        "b-20-observability-model-data-flow-canvas",
+        "b-20-observability-model-pi-s-jsonl-transcript-re-27",
+        "b-20-observability-model-kernel-side-and-app-side-28",
+        "b-20-observability-model-usage-rollups-29",
+        "b-20-observability-model-every-pi-turn-end-carr-30",
+        "b-20-observability-model-request-snapshots-31",
+        "b-20-observability-model-a-request-snapshot-is-th-32",
+        "b-20-observability-model-there-are-two-capture-pa-33",
+        "b-20-observability-model-snapshot-capture-sequence",
+        "b-20-observability-model-the-system-prompt-is-rea-36",
+        "b-20-observability-model-snapshot-data-shape",
+        "b-20-observability-model-blobs-each-captured-37",
+        "b-20-observability-model-tool-roster-tools-c-38",
+        "b-20-observability-model-section-tags-secti-39",
+        "b-20-observability-model-read-surface-41",
+        "b-20-observability-model-the-read-api-is-the-stab-42",
+        "b-20-observability-model-trace-routes-are-contain-43",
+        "b-20-observability-model-trace-read-routes",
+        "b-20-observability-model-beside-the-trace-routes-46",
+        "b-20-observability-model-route-paths-are-exported-47",
+        "b-20-observability-model-trace-doctor-48",
+        "b-20-observability-model-runtracedoctor-and-th-49"
+      ]
+    },
+    "b-20-observability-model-the-kernel-observability-2": {
+      "id": "b-20-observability-model-the-kernel-observability-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel observability model answers a simple question: what work ran, where did it belong, who spawned it, what did it cost, and what happened inside it?"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-divider-3": {
+      "id": "b-20-observability-model-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-20-observability-model-core-records-4": {
+      "id": "b-20-observability-model-core-records-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Core Records"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-core-records-table": {
+      "id": "b-20-observability-model-core-records-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Record",
+          "Storage",
+          "Identity",
+          "Key fields",
+          "Meaning"
+        ],
+        "rows": [
+          [
+            "Kernel manifest",
+            [
+              {
+                "insert": ".agent-kernel/kernel.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " file"
+              }
+            ],
+            [
+              {
+                "insert": "kernelId",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "manifestVersion",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (harnesses write 2; version 1 stays readable), display name, Pi sessions directory, "
+              },
+              {
+                "insert": "kernelRoot",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "dbPath",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "catalogRoots",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", optional "
+              },
+              {
+                "insert": "viewerBaseUrl",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": "readApiBaseUrl",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Describes one kernel. Each kernel has its own SQLite database, so there is no shared registration table."
+          ],
+          [
+            "Container",
+            [
+              {
+                "insert": "containers",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": UUIDv5 of "
+              },
+              {
+                "insert": "(kernelId, kind, key)",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "kind",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "app_key",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "label",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "status",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "parent_container_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "phase",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "phase_vocabulary",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "working_dir",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "metadata",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", usage rollups"
+              }
+            ],
+            "The single grouping primitive."
+          ],
+          [
+            "Pi agent session",
+            [
+              {
+                "insert": "pi_agent_sessions",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": the Pi session UUID"
+              }
+            ],
+            [
+              {
+                "insert": "container_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "parent_session_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "parent_tool_use_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "agent_name",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "model",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "prompt_hash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "status",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", input and output token rollups"
+              }
+            ],
+            [
+              {
+                "insert": "Pi SDK conversation identity for one agent session and the durable link to JSONL-sourced events. "
+              },
+              {
+                "insert": "prompt_hash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " freezes the prompt revision at session creation."
+              }
+            ]
+          ],
+          [
+            "Agent run",
+            [
+              {
+                "insert": "agent_runs",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": random UUID minted at spawn"
+              }
+            ],
+            [
+              {
+                "insert": "pi_session_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "container_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "parent_run_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "parent_tool_use_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "trigger",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "inbound_event_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "outbound_event_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "phase",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "status",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", usage rollups"
+              }
+            ],
+            "One processing loop inside a Pi session: message in, response out."
+          ],
+          [
+            "Trace event",
+            [
+              {
+                "insert": "trace_events",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "event_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": deterministic for Pi-derived events"
+              }
+            ],
+            [
+              {
+                "insert": "container_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "run_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "pi_session_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "type",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "source",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "trace_level",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "event_data",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "span_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "parent_event_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "timestamp",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Time-ordered event row for prompts, context, messages, tools, lifecycle, containers, phases, warnings, and errors."
+          ],
+          [
+            "Prompt revision",
+            [
+              {
+                "insert": "prompt_revisions",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "hash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": "
+              },
+              {
+                "insert": "pk1-<sha256>",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " of the canonical document"
+              }
+            ],
+            [
+              {
+                "insert": "agent_name",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "document",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "rendered_text",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "source",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Content-addressed snapshot of one "
+              },
+              {
+                "insert": "prompt.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". "
+              },
+              {
+                "insert": "source",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " is "
+              },
+              {
+                "insert": "registry-boot",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "lab-save",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "disk-sync",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "prompt-kit-mcp",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "migration",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", or "
+              },
+              {
+                "insert": "agent-run",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". Sessions point at revisions through "
+              },
+              {
+                "insert": "prompt_hash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ]
+          ],
+          [
+            "Trace blob",
+            [
+              {
+                "insert": "trace_blobs",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "hash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": "
+              },
+              {
+                "insert": "b1-<sha256hex>",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " of the raw bytes"
+              }
+            ],
+            [
+              {
+                "insert": "kind",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " ("
+              },
+              {
+                "insert": "text",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "message",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "image",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "tools",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "), "
+              },
+              {
+                "insert": "mime_type",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "byte_length",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "data",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Immutable payload referenced by hash from request snapshots, so large payloads are stored once and never inlined into the event stream."
+          ]
+        ],
+        "title": "Core records"
+      },
+      "children": []
+    },
+    "b-20-observability-model-storage-6": {
+      "id": "b-20-observability-model-storage-6",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Storage"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-storage-is-one-local-sql-7": {
+      "id": "b-20-observability-model-storage-is-one-local-sql-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Storage is one local SQLite database per kernel (standard path "
+        },
+        {
+          "insert": "<root>/.agent-kernel/trace.db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), opened in WAL mode so viewer reads never block the kernel writer. The schema is created idempotently on kernel start; there is no migration tooling. Container ids are derived, never minted: the same "
+        },
+        {
+          "insert": "(kernelId, kind, key)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " inputs always resolve to the same row, so apps map their domain work units to containers through kind vocabulary without the kernel learning app workflow semantics. Trace-event inserts are idempotent by event id ("
+        },
+        {
+          "insert": "INSERT OR IGNORE",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), which is what lets the in-process emitter and a later JSONL backfill of the same session coexist without duplicates."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-state-snapshots": {
+      "id": "b-20-observability-model-state-snapshots",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Agent state snapshots are not stored in the database. An agent with an active state extension writes "
+        },
+        {
+          "insert": "<stateRoot>/.agent-kernel/state/<containerId>/<agentName>/state.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on disk; "
+        },
+        {
+          "insert": "stateRoot",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " defaults to the spawn's working directory."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-a-postgres-mirror-of-the-8": {
+      "id": "b-20-observability-model-a-postgres-mirror-of-the-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "SQLite is the only runtime store. A Postgres mirror of the schema exists with the same column names, row shapes, constraints, and indexes, and no code path reads or writes through it."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-identity-layers-9": {
+      "id": "b-20-observability-model-identity-layers-9",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Identity Layers"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-identity-is-container-fi-10": {
+      "id": "b-20-observability-model-identity-is-container-fi-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Identity is container-first; see "
+        },
+        {
+          "insert": "Identity Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/15-identity-model"
+            }
+          }
+        },
+        {
+          "insert": " for the full nesting and invariants."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-containerid-is-the-sin-11": {
+      "id": "b-20-observability-model-containerid-is-the-sin-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the single required grouping identity on every event. There is no separate app-session identity: an app session is a container of "
+        },
+        {
+          "insert": "kind: \"session\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and host correlation happens through container kind + app key. "
+        },
+        {
+          "insert": "kernel.container({ kind, key })",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " derives the same id for the same inputs every time, so apps never mint or persist their own grouping ids."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-runid-identifies-a-ker-12": {
+      "id": "b-20-observability-model-runid-identifies-a-ker-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "runId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " identifies a kernel-created run and lives on the envelope. The in-process emitter knows it at emit time, so it is emitted, not reconstructed."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-pisessionid-links-even-13": {
+      "id": "b-20-observability-model-pisessionid-links-even-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "piSessionId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " links events to the Pi session row. Live emission resolves it directly; backfill resolves the JSONL transport session id at write time."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-kernelid-identifies-on-14": {
+      "id": "b-20-observability-model-kernelid-identifies-on-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "kernelId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " identifies one kernel. It namespaces container derivation and appears in the local kernel manifest."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-linkage-rule-15": {
+      "id": "b-20-observability-model-linkage-rule-15",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Linkage Rule"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-if-a-relationship-is-kno-16": {
+      "id": "b-20-observability-model-if-a-relationship-is-kno-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "If a relationship is known at emit time, the writer stamps it explicitly:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-linkage-table": {
+      "id": "b-20-observability-model-linkage-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Relationship",
+          "Field",
+          "Carried on",
+          "When stamped"
+        ],
+        "rows": [
+          [
+            "Event to container",
+            [
+              {
+                "insert": "containerId",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Event envelope; "
+              },
+              {
+                "insert": "trace_events.container_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "At emit, from the factory "
+              },
+              {
+                "insert": "ids",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " argument. Every event carries it."
+              }
+            ]
+          ],
+          [
+            "Event to run",
+            [
+              {
+                "insert": "runId",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Event envelope; "
+              },
+              {
+                "insert": "trace_events.run_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "At emit, for events inside a known run"
+          ],
+          [
+            "Event to Pi session",
+            [
+              {
+                "insert": "piSessionUuid",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", stored as "
+              },
+              {
+                "insert": "pi_session_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Event envelope (transport-only); "
+              },
+              {
+                "insert": "trace_events.pi_session_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "At write time. Live emission knows the UUID; backfill reads it from JSONL line 1."
+          ],
+          [
+            "Run to container and Pi session",
+            [
+              {
+                "insert": "container_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "pi_session_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "agent_runs",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "When the spawn pipeline creates the session and run rows, before the first turn"
+          ],
+          [
+            "Run to its cause",
+            [
+              {
+                "insert": "trigger",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": "
+              },
+              {
+                "insert": "operator",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "parent-tool",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "steer",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "resume",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", or "
+              },
+              {
+                "insert": "system",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "agent_runs",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "At run creation. Defaults to "
+              },
+              {
+                "insert": "parent-tool",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " when a parent tool use id is set, otherwise "
+              },
+              {
+                "insert": "operator",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ]
+          ],
+          [
+            "Run to inbound message",
+            [
+              {
+                "insert": "inbound_event_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "agent_runs",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "When the emitter sees the run's first "
+              },
+              {
+                "insert": "user_message",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Run to outbound message",
+            [
+              {
+                "insert": "outbound_event_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "agent_runs",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "At run close: the run's last "
+              },
+              {
+                "insert": "assistant_message",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " event"
+              }
+            ]
+          ],
+          [
+            "Run to app phase",
+            [
+              {
+                "insert": "phase",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "agent_runs",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "pi_agent_sessions",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "At run creation, when the spawn passes a phase"
+          ],
+          [
+            "Subagent to spawning tool call",
+            [
+              {
+                "insert": "parent_tool_use_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "agent_runs",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "pi_agent_sessions",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "At subagent spawn"
+          ],
+          [
+            "Nested run to parent run",
+            [
+              {
+                "insert": "parent_run_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "agent_runs",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "At spawn, when the parent run is known"
+          ],
+          [
+            "Child session to parent session",
+            [
+              {
+                "insert": "parent_session_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "pi_agent_sessions",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "At child session creation"
+          ]
+        ],
+        "title": "Linkage fields"
+      },
+      "children": []
+    },
+    "b-20-observability-model-the-viewer-may-use-times-24": {
+      "id": "b-20-observability-model-the-viewer-may-use-times-24",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The viewer may use timestamps for ordering, but not for structural parentage when an explicit ID is available."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-event-sources-25": {
+      "id": "b-20-observability-model-event-sources-25",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Event Sources"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-the-primary-emission-pat-26": {
+      "id": "b-20-observability-model-the-primary-emission-pat-26",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Trace rows reach "
+        },
+        {
+          "insert": "trace.db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on two paths. Live emission runs in process: the kernel emitter is a Pi extension the spawn pipeline attaches to every session it creates, so it has full identity at emit time. Backfill reads Pi's JSONL transcript after the fact. Both derive event ids from the same helpers ("
+        },
+        {
+          "insert": "Event Protocol",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/30-event-protocol"
+            }
+          }
+        },
+        {
+          "insert": "), so running both inserts each event once."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-data-flow-canvas": {
+      "id": "b-20-observability-model-data-flow-canvas",
+      "type": "canvas",
+      "props": {
+        "src": "./assets/canvases/observability-data-flow.canvas.json",
+        "title": "Observability data flow"
+      },
+      "children": []
+    },
+    "b-20-observability-model-pi-s-jsonl-transcript-re-27": {
+      "id": "b-20-observability-model-pi-s-jsonl-transcript-re-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Pi's JSONL transcript is the durable raw record, and backfill is a tool over it, not a daemon. It rebuilds after loss or corruption, imports sessions that ran outside the kernel, and re-derives rows after mapping changes. JSONL carries only Pi's own session id, so the mapper holds events until it reads the session-binding marker the spawn pipeline writes, then stamps "
+        },
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "runId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and releases them. A Pi TUI session booted with "
+        },
+        {
+          "insert": "/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " also writes an "
+        },
+        {
+          "insert": "agent-kernel:tui-session-meta",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " marker. The "
+        },
+        {
+          "insert": "agent-kernel-tui-ingest",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " CLI upserts the rows each marker names, then runs the same backfill. The backfill summary reports mapped, inserted, and skipped counts."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-kernel-side-and-app-side-28": {
+      "id": "b-20-observability-model-kernel-side-and-app-side-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernel-side and app-side events flow through the same trace writer. The viewer treats everything as one trace stream; source is used for display and debugging, not for splitting the mental model."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-usage-rollups-29": {
+      "id": "b-20-observability-model-usage-rollups-29",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Usage Rollups"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-every-pi-turn-end-carr-30": {
+      "id": "b-20-observability-model-every-pi-turn-end-carr-30",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every "
+        },
+        {
+          "insert": "pi_turn_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " carries "
+        },
+        {
+          "insert": "TurnUsage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (input/output/cache tokens, the model that actually served the turn, and a cost estimate from the kernel-config price table when present). The write path folds usage upward: turn → run → session → container, as denormalized rollup columns on each row. "
+        },
+        {
+          "insert": "agent_run_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " also carries the run's rolled-up usage in its payload."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-request-snapshots-31": {
+      "id": "b-20-observability-model-request-snapshots-31",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Request Snapshots"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-a-request-snapshot-is-th-32": {
+      "id": "b-20-observability-model-a-request-snapshot-is-th-32",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A request snapshot is the exact context window one turn ran on, captured into content-addressed trace blobs and referenced by a "
+        },
+        {
+          "insert": "pi_request_snapshot",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " trace event. It is what makes \"what did the model actually see?\" answerable after the fact (D90, "
+        },
+        {
+          "insert": "State Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/30-state-model"
+            }
+          }
+        },
+        {
+          "insert": "). Capture is on by default and disableable per kernel or per spawn; snapshots share the emitter's envelope identity, so they land in the run's trace beside its turn events. Capture never breaks a turn: it is synchronous at the capture point, defers hashing and writes behind a serialized tail, and every failure is caught and logged."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-there-are-two-capture-pa-33": {
+      "id": "b-20-observability-model-there-are-two-capture-pa-33",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Capture takes one of two paths, fixed per run when the spawn creates the recorder. A spawn with a state extension uses built-request capture from its first turn, because Pi fires "
+        },
+        {
+          "insert": "turn_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " before the "
+        },
+        {
+          "insert": "context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " hook the builder runs in. Any other spawn captures the transcript at each "
+        },
+        {
+          "insert": "turn_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", filtered by Pi's own sent-to-model selection."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-snapshot-capture-sequence": {
+      "id": "b-20-observability-model-snapshot-capture-sequence",
+      "type": "sequence",
+      "props": {
+        "src": "./assets/sequences/request-snapshot-capture.sequence.json",
+        "title": "Request snapshot capture"
+      },
+      "children": []
+    },
+    "b-20-observability-model-the-system-prompt-is-rea-36": {
+      "id": "b-20-observability-model-the-system-prompt-is-rea-36",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Each "
+        },
+        {
+          "insert": "pi_request_snapshot",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " payload references every captured part by blob hash:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-snapshot-data-shape": {
+      "id": "b-20-observability-model-snapshot-data-shape",
+      "type": "state-shape",
+      "props": {
+        "description": "Payload of one pi_request_snapshot event: the exact request one provider call went out with, by blob reference.",
+        "example": "{\n  \"turn_number\": 2,\n  \"system_prompt_blob_hash\": \"b1-be18b85f77fc024db379acf19e8a1ce62307ab7bb1bca395389ecfc2dafaf741\",\n  \"prompt_hash\": \"pk1-cf07194ee232eb531e15f690000d19846dea69cf05504782658afcfacb9228a2\",\n  \"message_count\": 5,\n  \"message_refs\": [\n    {\n      \"blob_hash\": \"b1-e4223ed20d7ea5740a326e2b268ca6db91d041cf5194f577e393a8ba3b85d8e9\",\n      \"role\": \"custom\",\n      \"index\": 0,\n      \"text_chars\": 1840,\n      \"image_count\": 0,\n      \"tool_call_count\": 0\n    },\n    {\n      \"blob_hash\": \"b1-ca0df2c95aa144c1d0ff2ff3c8f967fdc1de9ef0c4120b3726416701b519d619\",\n      \"role\": \"custom\",\n      \"index\": 1,\n      \"text_chars\": 312,\n      \"image_count\": 0,\n      \"tool_call_count\": 0\n    },\n    {\n      \"blob_hash\": \"b1-29c1b289e7522195b362e44f54e05470b69ad20540ab60a18a05e5bf6951f13d\",\n      \"role\": \"user\",\n      \"index\": 2,\n      \"text_chars\": 96,\n      \"image_count\": 1,\n      \"tool_call_count\": 0\n    },\n    {\n      \"blob_hash\": \"b1-153812ae5fea0b73a011bf28bd7cea93644437c3fe3260b7b2d7e1e2f9f46bde\",\n      \"role\": \"assistant\",\n      \"index\": 3,\n      \"text_chars\": 210,\n      \"image_count\": 0,\n      \"tool_call_count\": 1\n    },\n    {\n      \"blob_hash\": \"b1-2396a1256ac4b1c6849c931ddb8018bdd984bb2383be21bb819a33b95d8d603f\",\n      \"role\": \"toolResult\",\n      \"index\": 4,\n      \"text_chars\": 2048,\n      \"image_count\": 0,\n      \"tool_call_count\": 0\n    }\n  ],\n  \"total_text_chars\": 4506,\n  \"total_image_count\": 1,\n  \"sections\": [\n    {\n      \"kind\": \"context\",\n      \"start\": 0,\n      \"end\": 1\n    },\n    {\n      \"kind\": \"state\",\n      \"start\": 1,\n      \"end\": 2\n    },\n    {\n      \"kind\": \"tail\",\n      \"start\": 2,\n      \"end\": 5\n    }\n  ],\n  \"tools_blob_hash\": \"b1-f9d35d43770d39092a663e665e82ae1d84a9e0da3d0d10c407acada6a40cd281\",\n  \"tool_count\": 4\n}",
+        "fields": [
+          {
+            "name": "turn_number",
+            "type": "number",
+            "description": "0-based. Resets on agent_start and counts captured requests. Read it as the nth captured request, not as a key into pi_turn_start: a provider retry on the builder path adds a snapshot."
+          },
+          {
+            "name": "system_prompt_blob_hash",
+            "type": "string | null",
+            "description": "text/plain blob read off the session on both paths. The system prompt is section 1 and never appears in message_refs. Null when the session has no system prompt string."
+          },
+          {
+            "name": "prompt_hash",
+            "type": "string | null",
+            "description": "pk1- revision of the resolved agent prompt; null when the prompt source is not content-addressed."
+          },
+          {
+            "name": "message_count",
+            "type": "number"
+          },
+          {
+            "name": "message_refs",
+            "type": "PiRequestSnapshotMessageRef[]",
+            "description": "In request order.",
+            "fields": [
+              {
+                "name": "blob_hash",
+                "type": "string",
+                "description": "message blob holding the sanitized message JSON."
+              },
+              {
+                "name": "role",
+                "type": "string",
+                "description": "user, assistant, toolResult, custom, or another Pi role. Kernel-authored lines are custom."
+              },
+              {
+                "name": "index",
+                "type": "number",
+                "description": "Position in the request message array."
+              },
+              {
+                "name": "text_chars",
+                "type": "number"
+              },
+              {
+                "name": "image_count",
+                "type": "number"
+              },
+              {
+                "name": "tool_call_count",
+                "type": "number"
+              }
+            ]
+          },
+          {
+            "name": "total_text_chars",
+            "type": "number"
+          },
+          {
+            "name": "total_image_count",
+            "type": "number"
+          },
+          {
+            "name": "sections",
+            "type": "PiRequestSnapshotSection[]",
+            "required": false,
+            "description": "Built-request capture only. Half-open [start, end) ranges over message_refs, emitted in order, never overlapping, with empty sections omitted.",
+            "fields": [
+              {
+                "name": "kind",
+                "type": "\"context\" | \"state\" | \"tail\""
+              },
+              {
+                "name": "start",
+                "type": "number"
+              },
+              {
+                "name": "end",
+                "type": "number",
+                "description": "Exclusive."
+              }
+            ]
+          },
+          {
+            "name": "tools_blob_hash",
+            "type": "string",
+            "required": false,
+            "description": "tools blob holding the PiRequestSnapshotTool[] roster in provider-visible order; identical rosters share one blob. Absent when the roster was not captured, which never means the agent had no tools."
+          },
+          {
+            "name": "tool_count",
+            "type": "number",
+            "required": false,
+            "description": "Present exactly when tools_blob_hash is. A captured empty roster is 0."
+          }
+        ],
+        "name": "PiRequestSnapshotData",
+        "source": {
+          "path": "packages/protocol/src/types.ts",
+          "symbol": "PiRequestSnapshotData"
+        }
+      },
+      "children": []
+    },
+    "b-20-observability-model-blobs-each-captured-37": {
+      "id": "b-20-observability-model-blobs-each-captured-37",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Blobs.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The recorder sanitizes each message before hashing: inline base64 image data moves into its own "
+        },
+        {
+          "insert": "image",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " blob, and the message keeps "
+        },
+        {
+          "insert": "{type: \"image\", blob_hash, mimeType, byte_length}",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Per snapshot it writes one text blob for the system prompt, one JSON blob per message, one blob per image, and one tools blob when the roster was captured. Each recorder skips hashes it already wrote, so a prefix-stable transcript costs only its new tail on repeat turns."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-tool-roster-tools-c-38": {
+      "id": "b-20-observability-model-tool-roster-tools-c-38",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Tool roster.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Tools can change call to call, so the roster is captured per request: what the agent could do on turn 7 is not necessarily what it could do on turn 0. The recorder reads it off the session in provider-visible order, on both paths, and passes descriptions and parameter schemas through verbatim. An active name with no registry entry is recorded as "
+        },
+        {
+          "insert": "{ name }",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " alone. A roster-capture failure leaves the roster uncaptured, and the snapshot is still recorded."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-section-tags-secti-39": {
+      "id": "b-20-observability-model-section-tags-secti-39",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Section tags.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " A missing "
+        },
+        {
+          "insert": "sections",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " means untagged: transcript-captured turns and every snapshot written before section tags existed. Readers render an untagged request flat, and the whole downstream chain follows that rule, the viewer included ("
+        },
+        {
+          "insert": "Viewer Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/40-viewer-model"
+            }
+          }
+        },
+        {
+          "insert": ")."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-read-surface-41": {
+      "id": "b-20-observability-model-read-surface-41",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Read Surface"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-the-read-api-is-the-stab-42": {
+      "id": "b-20-observability-model-the-read-api-is-the-stab-42",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The read API is the stable route surface between kernel trace storage and viewer-core. The kernel ships a route factory, "
+        },
+        {
+          "insert": "createKernelTraceReadApi",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", that apps mount inside their own HTTP service (default prefix "
+        },
+        {
+          "insert": "/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") over a read-service contract. The kernel instance provides the default service over the local trace db and flushes pending trace writes before each read. Apps with custom auth, tenancy, or payload shapes supply their own service behind the same routes. Every route answers 500 with "
+        },
+        {
+          "insert": "{ error }",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " when the service throws."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-trace-routes-are-contain-43": {
+      "id": "b-20-observability-model-trace-routes-are-contain-43",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Trace routes are container-first:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-trace-read-routes": {
+      "id": "b-20-observability-model-trace-read-routes",
+      "type": "interaction-surface",
+      "props": {
+        "operations": [
+          {
+            "name": "GET /kernel/containers/:containerId/trace",
+            "kind": "query",
+            "description": "Calls the required getContainerTrace. Returns one container subtree: the root, its descendant containers, their Pi sessions and runs, and their events. Answers 404 when the service finds no container.",
+            "params": [
+              {
+                "name": "containerId",
+                "type": "string"
+              },
+              {
+                "name": "after",
+                "type": "string",
+                "description": "ISO 8601 timestamp. Only events strictly later are returned; container, session, and run rows always come back in full.",
+                "required": false
+              },
+              {
+                "name": "limit",
+                "type": "number",
+                "description": "Event row cap. Default 5000, clamped to 1 through 10000. The route options defaultLimit and maxLimit change both.",
+                "required": false
+              }
+            ],
+            "returns": "KernelContainerTraceDetail",
+            "returnShape": {
+              "fields": [
+                {
+                  "name": "session",
+                  "type": "KernelSessionMetaPayload",
+                  "description": "The root container presented as a trace session."
+                },
+                {
+                  "name": "container",
+                  "type": "KernelContainerSummaryPayload",
+                  "description": "The root container, with usage rollups."
+                },
+                {
+                  "name": "containers",
+                  "type": "KernelContainerSummaryPayload[]",
+                  "description": "The root and every descendant."
+                },
+                {
+                  "name": "pi_sessions",
+                  "type": "KernelPiSessionPayload[]",
+                  "description": "Includes a per-session eventCount."
+                },
+                {
+                  "name": "agent_runs",
+                  "type": "KernelAgentRunPayload[]"
+                },
+                {
+                  "name": "events",
+                  "type": "KernelTraceEventPayload[]",
+                  "description": "Envelope fields, with piSessionId in place of piSessionUuid, in timestamp order."
+                }
+              ],
+              "example": "{\n  \"session\": {\n    \"id\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n    \"containerId\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n    \"kind\": \"session\",\n    \"label\": \"Docs refresh\",\n    \"topic\": \"Docs refresh\",\n    \"status\": \"running\",\n    \"createdAt\": \"2026-09-29T14:02:55.010Z\",\n    \"updatedAt\": \"2026-09-29T14:03:12.481Z\"\n  },\n  \"container\": {\n    \"id\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n    \"kind\": \"session\",\n    \"status\": \"running\",\n    \"usageInputTokens\": 18240,\n    \"usageOutputTokens\": 1310\n  },\n  \"containers\": [\n    {\n      \"id\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n      \"kind\": \"session\"\n    }\n  ],\n  \"pi_sessions\": [\n    {\n      \"id\": \"0199a1b2-7c3d-7e4f-8a5b-6c7d8e9f0a1b\",\n      \"agentName\": \"docs-writer\",\n      \"promptHash\": \"pk1-cf07194ee232eb531e15f690000d19846dea69cf05504782658afcfacb9228a2\",\n      \"eventCount\": 42\n    }\n  ],\n  \"agent_runs\": [\n    {\n      \"id\": \"e2a4c6d8-1f3b-4c5d-9e7f-8a0b1c2d3e4f\",\n      \"piSessionId\": \"0199a1b2-7c3d-7e4f-8a5b-6c7d8e9f0a1b\",\n      \"trigger\": \"operator\",\n      \"status\": \"running\"\n    }\n  ],\n  \"events\": [\n    {\n      \"eventId\": \"9c4e1a7b-2d3f-4a8e-b150-6f2d8c9e0a14\",\n      \"type\": \"tool_call_start\",\n      \"runId\": \"e2a4c6d8-1f3b-4c5d-9e7f-8a0b1c2d3e4f\",\n      \"piSessionId\": \"0199a1b2-7c3d-7e4f-8a5b-6c7d8e9f0a1b\",\n      \"traceLevel\": 1,\n      \"timestamp\": \"2026-09-29T14:03:12.481Z\"\n    }\n  ]\n}"
+            }
+          },
+          {
+            "name": "GET /kernel/trace-sessions",
+            "kind": "query",
+            "description": "Calls the optional listSessionContainers; answers 404 when the service omits it. Lists containers of kind \"session\", most recent activity first. The default service scopes the list to its kernel, ignores after, and caps limit at 500.",
+            "params": [
+              {
+                "name": "limit",
+                "type": "number",
+                "description": "Parsed like the trace route before the service applies its own cap.",
+                "required": false
+              }
+            ],
+            "returns": "KernelSessionContainerList",
+            "returnShape": {
+              "fields": [
+                {
+                  "name": "trace_sessions",
+                  "type": "KernelSessionContainerSummary[]",
+                  "fields": [
+                    {
+                      "name": "id",
+                      "type": "string",
+                      "description": "The container id."
+                    },
+                    {
+                      "name": "kind",
+                      "type": "string"
+                    },
+                    {
+                      "name": "label",
+                      "type": "string",
+                      "description": "Falls back to the container id."
+                    },
+                    {
+                      "name": "topic",
+                      "type": "string | null",
+                      "description": "metadata.topic, else the label."
+                    },
+                    {
+                      "name": "status",
+                      "type": "string"
+                    },
+                    {
+                      "name": "phase",
+                      "type": "string | null"
+                    },
+                    {
+                      "name": "updatedAt",
+                      "type": "string | null",
+                      "description": "Latest event time, else the container's end, start, or creation time."
+                    },
+                    {
+                      "name": "piSessionCount",
+                      "type": "number"
+                    },
+                    {
+                      "name": "eventCount",
+                      "type": "number"
+                    },
+                    {
+                      "name": "latestEventAt",
+                      "type": "string | null"
+                    },
+                    {
+                      "name": "metadata",
+                      "type": "object"
+                    }
+                  ]
+                }
+              ],
+              "example": "{\n  \"trace_sessions\": [\n    {\n      \"id\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n      \"containerId\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n      \"kind\": \"session\",\n      \"label\": \"Docs refresh\",\n      \"topic\": \"Docs refresh\",\n      \"status\": \"running\",\n      \"phase\": null,\n      \"createdAt\": \"2026-09-29T14:02:55.010Z\",\n      \"updatedAt\": \"2026-09-29T14:03:12.481Z\",\n      \"piSessionCount\": 2,\n      \"eventCount\": 42,\n      \"latestEventAt\": \"2026-09-29T14:03:12.481Z\",\n      \"metadata\": {\n        \"topic\": \"Docs refresh\"\n      }\n    }\n  ]\n}"
+            }
+          },
+          {
+            "name": "GET /kernel/trace-sessions/:id",
+            "kind": "query",
+            "description": "Container-backed alias. A trace session is a container of kind \"session\", so the route makes the same getContainerTrace call with the same query, return shape, and 404.",
+            "params": [
+              {
+                "name": "id",
+                "type": "string",
+                "description": "The session container id."
+              },
+              {
+                "name": "after",
+                "type": "string",
+                "description": "ISO 8601 timestamp. Only events strictly later are returned; container, session, and run rows always come back in full.",
+                "required": false
+              },
+              {
+                "name": "limit",
+                "type": "number",
+                "description": "Event row cap. Default 5000, clamped to 1 through 10000. The route options defaultLimit and maxLimit change both.",
+                "required": false
+              }
+            ],
+            "returns": "KernelContainerTraceDetail"
+          },
+          {
+            "name": "GET /kernel/runs/:runId/turns/:turnNumber/context",
+            "kind": "query",
+            "description": "Calls the optional getRunTurnContext and resolves the latest pi_request_snapshot for the turn into readable content. Answers 404 when the service omits the method, when turnNumber is not a non-negative integer, or when the run has no snapshot for that turn. A missing or unparseable message blob becomes a missing_blob placeholder plus a warning, not a failed request. A named tools blob that cannot be resolved omits tools and adds a warning, because a partial roster is worse than none.",
+            "params": [
+              {
+                "name": "runId",
+                "type": "string"
+              },
+              {
+                "name": "turnNumber",
+                "type": "integer",
+                "description": "Matches the snapshot's turn_number."
+              }
+            ],
+            "returns": "KernelRunTurnContext",
+            "returnShape": {
+              "fields": [
+                {
+                  "name": "run_id",
+                  "type": "string"
+                },
+                {
+                  "name": "turn_number",
+                  "type": "number"
+                },
+                {
+                  "name": "prompt_hash",
+                  "type": "string | null"
+                },
+                {
+                  "name": "system_prompt",
+                  "type": "string | null",
+                  "description": "Decoded system-prompt blob; null when the snapshot named none or the blob is missing."
+                },
+                {
+                  "name": "message_count",
+                  "type": "number"
+                },
+                {
+                  "name": "messages",
+                  "type": "unknown[]",
+                  "description": "Sanitized message JSON in request order. Image blocks stay by reference; fetch bytes from the blob route."
+                },
+                {
+                  "name": "refs",
+                  "type": "PiRequestSnapshotMessageRef[]"
+                },
+                {
+                  "name": "totals",
+                  "type": "object",
+                  "fields": [
+                    {
+                      "name": "text_chars",
+                      "type": "number"
+                    },
+                    {
+                      "name": "image_count",
+                      "type": "number"
+                    }
+                  ]
+                },
+                {
+                  "name": "sections",
+                  "type": "PiRequestSnapshotSection[]",
+                  "description": "Absent on untagged snapshots.",
+                  "required": false
+                },
+                {
+                  "name": "tools",
+                  "type": "PiRequestSnapshotTool[]",
+                  "description": "Absent when the roster was not captured or could not be resolved.",
+                  "required": false
+                },
+                {
+                  "name": "warnings",
+                  "type": "string[]",
+                  "description": "Present only when blob resolution was partial.",
+                  "required": false
+                }
+              ],
+              "example": "{\n  \"run_id\": \"e2a4c6d8-1f3b-4c5d-9e7f-8a0b1c2d3e4f\",\n  \"turn_number\": 0,\n  \"prompt_hash\": \"pk1-cf07194ee232eb531e15f690000d19846dea69cf05504782658afcfacb9228a2\",\n  \"system_prompt\": \"You are the docs-writer agent. ...\",\n  \"message_count\": 2,\n  \"messages\": [\n    {\n      \"role\": \"custom\",\n      \"customType\": \"kernel:context\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"...\"\n        }\n      ]\n    },\n    {\n      \"missing_blob\": \"b1-9dc02223da426384268a0b489b28b008464099491967f6f0597853e939953ea0\"\n    }\n  ],\n  \"refs\": [\n    {\n      \"blob_hash\": \"b1-e4223ed20d7ea5740a326e2b268ca6db91d041cf5194f577e393a8ba3b85d8e9\",\n      \"role\": \"custom\",\n      \"index\": 0,\n      \"text_chars\": 1840,\n      \"image_count\": 0,\n      \"tool_call_count\": 0\n    },\n    {\n      \"blob_hash\": \"b1-9dc02223da426384268a0b489b28b008464099491967f6f0597853e939953ea0\",\n      \"role\": \"user\",\n      \"index\": 1,\n      \"text_chars\": 96,\n      \"image_count\": 0,\n      \"tool_call_count\": 0\n    }\n  ],\n  \"totals\": {\n    \"text_chars\": 1936,\n    \"image_count\": 0\n  },\n  \"sections\": [\n    {\n      \"kind\": \"context\",\n      \"start\": 0,\n      \"end\": 1\n    },\n    {\n      \"kind\": \"tail\",\n      \"start\": 1,\n      \"end\": 2\n    }\n  ],\n  \"tools\": [\n    {\n      \"name\": \"read_doc\",\n      \"description\": \"Read one doc bundle.\",\n      \"parameters\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"path\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    }\n  ],\n  \"warnings\": [\n    \"missing message blob b1-9dc02223da426384268a0b489b28b008464099491967f6f0597853e939953ea0 (index 1)\"\n  ]\n}"
+            }
+          },
+          {
+            "name": "GET /kernel/blobs/:hash",
+            "kind": "query",
+            "description": "Calls the optional getBlob. Answers 404 when the service omits it, when hash is not b1- plus 64 lowercase hex characters, or when no blob matches. The viewer renders images through this route instead of inlining base64.",
+            "params": [
+              {
+                "name": "hash",
+                "type": "string"
+              }
+            ],
+            "returns": "Raw bytes with content-type set to the blob's MIME type and an immutable one-year cache-control header"
+          }
+        ],
+        "title": "Trace read routes"
+      },
+      "children": []
+    },
+    "b-20-observability-model-beside-the-trace-routes-46": {
+      "id": "b-20-observability-model-beside-the-trace-routes-46",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Beside the trace routes, the kernel serves the catalog API over the agent registry and prompt revisions: registry listing, per-agent manifest, prompt document and rendered text, prompt and manifest saves, revision history, and per-revision run analytics joined through "
+        },
+        {
+          "insert": "pi_agent_sessions.prompt_hash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The prompt side of this surface, including saves through the shared prompt-kit store, is governed by "
+        },
+        {
+          "insert": "Editing and Revisions",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/20-editing-and-revisions"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-route-paths-are-exported-47": {
+      "id": "b-20-observability-model-route-paths-are-exported-47",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Route paths are exported constants from viewer-core, including the container-first cross-kernel observer paths ("
+        },
+        {
+          "insert": "/kernels",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "/kernels/:kernelId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", per-container trace) reserved for an observer plane."
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-trace-doctor-48": {
+      "id": "b-20-observability-model-trace-doctor-48",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Trace Doctor"
+        }
+      ],
+      "children": []
+    },
+    "b-20-observability-model-runtracedoctor-and-th-49": {
+      "id": "b-20-observability-model-runtracedoctor-and-th-49",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "runTraceDoctor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (and the CLI: "
+        },
+        {
+          "insert": "bun run packages/kernel/src/doctor-cli.ts <db-path>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") checks one kernel database against eight linkage and usage invariants: container references, run/session resolution, parent linkage, terminal statuses, tool-call pairing, tree acyclicity, run-id resolution, and usage-rollup consistency. The invariant list lives in "
+        },
+        {
+          "insert": "Identity Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/15-identity-model"
+            }
+          }
+        },
+        {
+          "insert": ". The kernel instance exposes the same check as "
+        },
+        {
+          "insert": "kernel.doctor()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    }
+  }
+}

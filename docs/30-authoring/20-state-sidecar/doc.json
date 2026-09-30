@@ -1,0 +1,692 @@
+{
+  "schemaVersion": 1,
+  "id": "30-authoring-20-state-sidecar",
+  "title": "State Sidecar",
+  "root": "b-20-state-sidecar-root-24",
+  "blocks": {
+    "b-20-state-sidecar-root-24": {
+      "id": "b-20-state-sidecar-root-24",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/state/, packages/kernel/src/agent-definition/index.ts, packages/kernel/src/agent-registry/registry/state-fixtures.ts",
+        "concepts": [
+          "agent-authoring",
+          "state-sidecar",
+          "define-state",
+          "state-fixture",
+          "window-policy",
+          "rendered-state"
+        ],
+        "covers": "How to author an agent state sidecar: choosing a file shape, implementing defineState, configuring the conversation window, and adding preview fixtures.",
+        "depends-on": [
+          "30-authoring",
+          "10-system-design/10-runtime-model",
+          "10-system-design/60-prompt-system-model"
+        ]
+      },
+      "children": [
+        "b-20-state-sidecar-add-or-change-the-state-2",
+        "b-20-state-sidecar-an-agent-that-needs-only-3",
+        "b-20-state-sidecar-divider-4",
+        "b-20-state-sidecar-implement-definestate-5",
+        "b-20-state-sidecar-export-state-or-a-defa-6",
+        "b-20-state-sidecar-ts-7",
+        "b-20-state-sidecar-replace-the-placeholder-8",
+        "b-20-state-sidecar-seed-builds-the-initia-9",
+        "b-20-state-sidecar-update-returns-the-nex-10",
+        "b-20-state-sidecar-render-emits-section-11",
+        "b-20-state-sidecar-keep-s-json-serializab-12",
+        "b-20-state-sidecar-window-over-ctx-message-13",
+        "b-20-state-sidecar-configure-the-window-15",
+        "b-20-state-sidecar-put-the-durable-per-agen-16",
+        "b-20-state-sidecar-use-token-budget-wit-18",
+        "b-20-state-sidecar-add-preview-fixtures-19",
+        "b-20-state-sidecar-put-json-envelopes-in-s-20",
+        "b-20-state-sidecar-fixture-shape",
+        "b-20-state-sidecar-the-envelope-is-label-22",
+        "b-20-state-sidecar-open-the-agent-lab-s-sta-23"
+      ]
+    },
+    "b-20-state-sidecar-add-or-change-the-state-2": {
+      "id": "b-20-state-sidecar-add-or-change-the-state-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Add or change the state sidecar when the agent needs a live working picture in section ③ of each provider request. Use "
+        },
+        {
+          "insert": "state.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for a small sidecar or "
+        },
+        {
+          "insert": "state/index.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " when the implementation needs supporting modules. Both forms are permanent; when both entry points exist, the file form wins."
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-an-agent-that-needs-only-3": {
+      "id": "b-20-state-sidecar-an-agent-that-needs-only-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An agent that needs only a rolling conversation window can omit the sidecar and configure "
+        },
+        {
+          "insert": "state.window",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; window config alone enables the state extension. Omit both the sidecar and window config for pass-through behavior. The rationale and rejected alternatives are D81–D99 in the "
+        },
+        {
+          "insert": "State Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/30-state-model",
+              "label": "State Model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-divider-4": {
+      "id": "b-20-state-sidecar-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-20-state-sidecar-implement-definestate-5": {
+      "id": "b-20-state-sidecar-implement-definestate-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Implement "
+        },
+        {
+          "insert": "defineState",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-export-state-or-a-defa-6": {
+      "id": "b-20-state-sidecar-export-state-or-a-defa-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Export "
+        },
+        {
+          "insert": "state",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or a default value created with "
+        },
+        {
+          "insert": "defineState",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ":"
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-ts-7": {
+      "id": "b-20-state-sidecar-ts-7",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "import { defineState } from \"@agent-kernel/kernel/agent-definition\";\nimport { kernelStateMessage, renderRollingWindow } from \"@agent-kernel/kernel/state\";\n\ninterface WorkState {\n  objective: string;\n  eventsSeen: number;\n}\n\nexport const state = defineState<WorkState>({\n  seed(ctx, prior) {\n    return prior ?? { objective: String(ctx.variables.objective ?? \"\"), eventsSeen: 0 };\n  },\n  update(current, event) {\n    return { ...current, eventsSeen: event.seq + 1 };\n  },\n  render(current, ctx) {\n    const tail = renderRollingWindow(ctx);\n    return {\n      messages: [\n        kernelStateMessage(`<state events-seen=\"${current.eventsSeen}\" />`),\n        ...tail.messages,\n      ],\n      stateMessageCount: 1 + (tail.stateMessageCount ?? 0),\n    };\n  },\n});"
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-replace-the-placeholder-8": {
+      "id": "b-20-state-sidecar-replace-the-placeholder-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Replace the placeholder "
+        },
+        {
+          "insert": "update",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "render",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " behavior with the agent's domain rules. The "
+        },
+        {
+          "insert": "StateModule",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " contract, with the "
+        },
+        {
+          "insert": "seed",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "update",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "render",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " signatures, event shapes, render output rules, persistence, and the activation gate, lives in the "
+        },
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model"
+            }
+          }
+        },
+        {
+          "insert": ". While you write the three functions:"
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-seed-builds-the-initia-9": {
+      "id": "b-20-state-sidecar-seed-builds-the-initia-9",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pass "
+        },
+        {
+          "insert": "priorState",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on the spawn to resume from a saved state. The kernel never loads prior state on its own."
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-update-returns-the-nex-10": {
+      "id": "b-20-state-sidecar-update-returns-the-nex-10",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Keep "
+        },
+        {
+          "insert": "update",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as the single writer of "
+        },
+        {
+          "insert": "S",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", including changes requested through private tools."
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-render-emits-section-11": {
+      "id": "b-20-state-sidecar-render-emits-section-11",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "When "
+        },
+        {
+          "insert": "render",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " prepends state messages to the tail, return "
+        },
+        {
+          "insert": "stateMessageCount",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with the number of leading state messages, as the example does."
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-keep-s-json-serializab-12": {
+      "id": "b-20-state-sidecar-keep-s-json-serializab-12",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Keep "
+        },
+        {
+          "insert": "S",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " JSON-serializable. The kernel treats it as opaque and snapshots it to "
+        },
+        {
+          "insert": "state.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-window-over-ctx-message-13": {
+      "id": "b-20-state-sidecar-window-over-ctx-message-13",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Window over "
+        },
+        {
+          "insert": "ctx.messages",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; do not duplicate the transcript inside "
+        },
+        {
+          "insert": "S",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-configure-the-window-15": {
+      "id": "b-20-state-sidecar-configure-the-window-15",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Configure the Window"
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-put-the-durable-per-agen-16": {
+      "id": "b-20-state-sidecar-put-the-durable-per-agen-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Put the durable per-agent policy in "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " under "
+        },
+        {
+          "insert": "state.window",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Its fields and defaults are the "
+        },
+        {
+          "insert": "WindowPolicy",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " defined in the Runtime Model."
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-use-token-budget-wit-18": {
+      "id": "b-20-state-sidecar-use-token-budget-wit-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use "
+        },
+        {
+          "insert": "\"token-budget\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with "
+        },
+        {
+          "insert": "maxTokens",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " when a turn count is the wrong bound. A spawn's "
+        },
+        {
+          "insert": "window",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " option wins over "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", which wins over the state module's optional "
+        },
+        {
+          "insert": "window",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", which wins over "
+        },
+        {
+          "insert": "DEFAULT_WINDOW",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "packages/kernel/src/state/window.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/state/window.ts"
+            }
+          }
+        },
+        {
+          "insert": ")."
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-add-preview-fixtures-19": {
+      "id": "b-20-state-sidecar-add-preview-fixtures-19",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Add Preview Fixtures"
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-put-json-envelopes-in-s-20": {
+      "id": "b-20-state-sidecar-put-json-envelopes-in-s-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Put JSON envelopes in "
+        },
+        {
+          "insert": "state/fixtures/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and name each file for a materially different render state, such as "
+        },
+        {
+          "insert": "empty-queue.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "stale-base.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "default.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " gets no special treatment: fixtures sort by id, and the lab selects the first one."
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-fixture-shape": {
+      "id": "b-20-state-sidecar-fixture-shape",
+      "type": "state-shape",
+      "props": {
+        "example": "{\n  \"label\": \"Stale base\",\n  \"variables\": { \"objective\": \"Reconcile the branch\" },\n  \"state\": {\n    \"objective\": \"Reconcile the branch\",\n    \"eventsSeen\": 4\n  }\n}",
+        "fields": [
+          {
+            "name": "label",
+            "type": "string",
+            "required": false,
+            "description": "Picker label. Defaults to the fixture id, the file name without .json."
+          },
+          {
+            "name": "variables",
+            "type": "object",
+            "required": false,
+            "description": "Overlays the manifest variable defaults for the preview SpawnContext. A non-object value skips the file."
+          },
+          {
+            "name": "state",
+            "type": "S | null",
+            "required": false,
+            "description": "Passed straight to render, bypassing seed. Omit it to preview the output of seed. null is a legal value."
+          }
+        ],
+        "name": "State fixture envelope",
+        "source": {
+          "path": "packages/kernel/src/agent-registry/registry/state-fixtures.ts",
+          "symbol": "discoverStateFixtures"
+        }
+      },
+      "children": []
+    },
+    "b-20-state-sidecar-the-envelope-is-label-22": {
+      "id": "b-20-state-sidecar-the-envelope-is-label-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "When the bundle has no state module or "
+        },
+        {
+          "insert": "render",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " throws, the preview pretty-prints the fixture's state instead. Files that fail to parse or have the wrong shape are skipped silently. Fixtures feed previews and tests only; the spawn pipeline never reads them."
+        }
+      ],
+      "children": []
+    },
+    "b-20-state-sidecar-open-the-agent-lab-s-sta-23": {
+      "id": "b-20-state-sidecar-open-the-agent-lab-s-sta-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Open the agent lab's State view after changing "
+        },
+        {
+          "insert": "seed",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "render",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", variables, or a fixture. The State view appears only when the bundle has discoverable fixtures. For a real bundle, see "
+        },
+        {
+          "insert": "catalog/docs-writer/state/fixtures/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    }
+  }
+}

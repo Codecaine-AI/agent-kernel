@@ -1,0 +1,758 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-60-viewer-40-workspace-shell",
+  "title": "Workspace and Shell",
+  "root": "b-40-workspace-shell-root-13",
+  "blocks": {
+    "b-40-workspace-shell-root-13": {
+      "id": "b-40-workspace-shell-root-13",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/viewer-shell/src/",
+        "concepts": [
+          "viewer-shell",
+          "trace-workspace",
+          "kernel-trace-viewer",
+          "app-seam",
+          "style-system",
+          "style-rail",
+          "css-variables"
+        ],
+        "covers": "Viewer shell structure: where the workspace, trace viewer, and style system live, and the seam decisions — data-plus-slots app seam, named extension seams, per-app style config, CSS-variable emission.",
+        "depends-on": [
+          "20-implementation/60-viewer"
+        ]
+      },
+      "children": [
+        "b-40-workspace-shell-agent-kernel-viewer-sh-2",
+        "b-40-workspace-shell-governed-by-10-system-3",
+        "b-40-workspace-shell-divider-4",
+        "b-40-workspace-shell-composition-seams-5",
+        "b-40-workspace-shell-decision-the-worksp-6",
+        "b-40-workspace-shell-decision-hosts-exte-7",
+        "b-40-workspace-shell-decision-the-drill-8",
+        "b-40-workspace-shell-style-system-seams-9",
+        "b-40-workspace-shell-decision-the-style-10",
+        "b-40-workspace-shell-decision-the-per-ap-11",
+        "b-40-workspace-shell-style-system-config-shape",
+        "b-40-workspace-shell-decision-everything-12"
+      ]
+    },
+    "b-40-workspace-shell-agent-kernel-viewer-sh-2": {
+      "id": "b-40-workspace-shell-agent-kernel-viewer-sh-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@agent-kernel/viewer-shell",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is what a host app mounts: "
+        },
+        {
+          "insert": "KernelTraceWorkspace",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "src/workspace/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), "
+        },
+        {
+          "insert": "KernelTraceViewer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "src/KernelTraceViewer.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), and the shared style system ("
+        },
+        {
+          "insert": "src/style/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). The style exports include "
+        },
+        {
+          "insert": "StyleSettingsPanel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "StyleSettingsRail",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "StyleOverlay",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the rail-state helpers; the workspace also exports "
+        },
+        {
+          "insert": "defaultTraceStatusClass",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and the "
+        },
+        {
+          "insert": "TraceWorkspace*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " types ("
+        },
+        {
+          "insert": "TraceWorkspaceRow",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "TraceWorkspaceDetail",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "TraceWorkspaceLabels",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "TraceWorkspaceUsageData",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). The package exports no agent or prompt-lab UI. A host that shows the agent catalog mounts "
+        },
+        {
+          "insert": "AgentCatalogViewer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from "
+        },
+        {
+          "insert": "@agent-kernel/viewer-ui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " directly, as the example's "
+        },
+        {
+          "insert": "AgentsWorkspace.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " does."
+        }
+      ],
+      "children": []
+    },
+    "b-40-workspace-shell-governed-by-10-system-3": {
+      "id": "b-40-workspace-shell-governed-by-10-system-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Governed by: "
+        },
+        {
+          "insert": "Viewer Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/40-viewer-model"
+            }
+          }
+        },
+        {
+          "insert": ". The workspace modes, the drill-in instrument, the style-system behavior, and the host seams ("
+        },
+        {
+          "insert": "KernelTraceWorkspace",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "KernelTraceViewer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " props, "
+        },
+        {
+          "insert": "KernelViewerPlugins",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "DetailBlockProvider",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") live there. This page records where the code sits and why."
+        }
+      ],
+      "children": []
+    },
+    "b-40-workspace-shell-divider-4": {
+      "id": "b-40-workspace-shell-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-40-workspace-shell-composition-seams-5": {
+      "id": "b-40-workspace-shell-composition-seams-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Composition seams"
+        }
+      ],
+      "children": []
+    },
+    "b-40-workspace-shell-decision-the-worksp-6": {
+      "id": "b-40-workspace-shell-decision-the-worksp-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": The workspace's app seam is pure data plus slots, as the Viewer Model's prop contract defines it. Row → app-object matching, deletion rules, and fetching stay in the host. "
+        },
+        {
+          "insert": "statusClass",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " defaults to "
+        },
+        {
+          "insert": "defaultTraceStatusClass",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "workspace/KernelTraceWorkspace.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), the union of both shipped hosts' status vocabularies.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": The rejected alternative, hosts forking the workspace or the workspace calling back into host data layers, is how each app grows its own drifting copy. Data-and-slots keeps one workspace serving every host.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "src/workspace/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any future workspace surface, which must take data and expose slots rather than reach into a host."
+        }
+      ],
+      "children": []
+    },
+    "b-40-workspace-shell-decision-hosts-exte-7": {
+      "id": "b-40-workspace-shell-decision-hosts-exte-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Hosts extend the trace viewer only through the named seams the Viewer Model defines. "
+        },
+        {
+          "insert": "src/KernelTraceViewer.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " declares them as props; the shell adds no host-specific prop.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": A host that needs more control composes "
+        },
+        {
+          "insert": "viewer-ui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " directly. Widening the shell per host request, the rejected alternative, would make it every host's union.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "src/KernelTraceViewer.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " props, and every seam added later, which must be data or a named slot."
+        }
+      ],
+      "children": []
+    },
+    "b-40-workspace-shell-decision-the-drill-8": {
+      "id": "b-40-workspace-shell-decision-the-drill-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": The drill-in split defaults to 40/60 tree/detail. Dragging the divider clamps the tree column to 25–65% of the width ("
+        },
+        {
+          "insert": "KernelTraceViewer.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ").\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Reading happens on the detail side, so it gets the majority by default; an even split, the rejected default, starves the surface the panel exists to serve.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "src/KernelTraceViewer.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-40-workspace-shell-style-system-seams-9": {
+      "id": "b-40-workspace-shell-style-system-seams-9",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Style system seams"
+        }
+      ],
+      "children": []
+    },
+    "b-40-workspace-shell-decision-the-style-10": {
+      "id": "b-40-workspace-shell-decision-the-style-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": The style system lives in "
+        },
+        {
+          "insert": "viewer-shell/src/style/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": one rail shared by every host, extracted from the example app.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": The rejected status quo was a rail fork per app; every host composing the viewer packages now runs the same one.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "src/style/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (settings, rail panel, overlay, rail state, "
+        },
+        {
+          "insert": "style-system.css",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), and any new user-facing style control, which joins the rail rather than a host."
+        }
+      ],
+      "children": []
+    },
+    "b-40-workspace-shell-decision-the-per-ap-11": {
+      "id": "b-40-workspace-shell-decision-the-per-ap-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": The per-app seam is "
+        },
+        {
+          "insert": "StyleSystemConfig",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (below). Every load/save/merge/emission entry point takes a config.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Two hosts on different Tailwind majors cannot share one token format, and two apps must never bleed into each other's storage; a single global config, the rejected alternative, would do both.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "src/style/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and every future entry point that reads or writes style state, which must take the config rather than assume one."
+        }
+      ],
+      "children": []
+    },
+    "b-40-workspace-shell-style-system-config-shape": {
+      "id": "b-40-workspace-shell-style-system-config-shape",
+      "type": "state-shape",
+      "props": {
+        "description": "One per host app. The example app's instance is RESEARCH_STYLE_CONFIG in examples/simple-research-kernel/src/lib/style-settings.ts.",
+        "example": "{\"settingsStorageKey\":\"simpleResearchStyleSettings.v1\",\"railCollapsedStorageKey\":\"simpleResearchStyleRailCollapsed\",\"railWidthStorageKey\":\"simpleResearchStyleRailWidth\",\"defaultTheme\":\"light\",\"neutralTokenFormat\":\"triplet\"}",
+        "fields": [
+          {
+            "name": "settingsStorageKey",
+            "type": "string",
+            "description": "localStorage key for the settings blob. Keep it stable across releases."
+          },
+          {
+            "name": "railCollapsedStorageKey",
+            "type": "string",
+            "description": "localStorage key for the rail's collapsed state."
+          },
+          {
+            "name": "railWidthStorageKey",
+            "type": "string",
+            "description": "localStorage key for the rail width."
+          },
+          {
+            "name": "defaultTheme",
+            "type": "\"light\" | \"dark\"",
+            "description": "Theme for a fresh install, or for a settings blob saved before themes existed."
+          },
+          {
+            "name": "neutralTokenFormat",
+            "type": "\"triplet\" | \"hex\"",
+            "description": "Format of the shared-name neutrals (--background, --foreground, …). triplet serves Tailwind v3 rgb(var(--x)/<alpha>); hex serves Tailwind v4 @theme inline. Viewer-only tokens (status-*, trace-*, agentprism-*) are always emitted as RGB triplets."
+          },
+          {
+            "name": "sections",
+            "type": "(\"colors\" | \"effects\" | \"trace\" | \"layout\")[]",
+            "required": false,
+            "description": "Rail tabs to show; omitted shows all. The first entry is the fallback tab. Leaving out \"layout\" also stops the --research-* layout variables."
+          }
+        ],
+        "name": "StyleSystemConfig",
+        "source": {
+          "path": "packages/viewer-shell/src/style/style-settings.ts",
+          "symbol": "StyleSystemConfig"
+        }
+      },
+      "children": []
+    },
+    "b-40-workspace-shell-decision-everything-12": {
+      "id": "b-40-workspace-shell-decision-everything-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Everything the style system produces is emitted as CSS variables that viewer classes consume with baked fallbacks. Layout geometry is an example-app knob: the style system emits "
+        },
+        {
+          "insert": "--research-layout-padding",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "--research-workspace-height",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "--research-workspace-min-height",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "--research-header-height",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " only when the config shows the LAYOUT rail section, and "
+        },
+        {
+          "insert": "examples/simple-research-kernel/src/styles.css",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " declares their defaults. "
+        },
+        {
+          "insert": "KernelTraceWorkspace",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " reads the workspace height, min-height, and header-height variables with fallbacks.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": A host that mounts nothing still gets the default look. Requiring host wiring, the rejected alternative, makes the default experience a setup task.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "src/style/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "src/workspace/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any new themable value."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,465 @@
+{
+  "schemaVersion": 1,
+  "id": "00-foundation-10-purpose",
+  "title": "Purpose",
+  "root": "b-10-purpose-root-31",
+  "blocks": {
+    "b-10-purpose-root-31": {
+      "id": "b-10-purpose-root-31",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "purpose",
+          "runtime",
+          "observability",
+          "viewer",
+          "reusable-platform",
+          "vertical-harness",
+          "token-cost",
+          "model-routing"
+        ],
+        "covers": "The purpose of the Pi Agent Kernel as a portable agent runtime plus observability foundation."
+      },
+      "children": [
+        "b-10-purpose-the-kernel-exists-so-age-2",
+        "b-10-purpose-divider-3",
+        "b-10-purpose-the-stakes-4",
+        "b-10-purpose-the-kernel-is-designed-f-5",
+        "b-10-purpose-this-is-why-observabilit-6",
+        "b-10-purpose-divider-7",
+        "b-10-purpose-problem-8",
+        "b-10-purpose-agent-applications-tend-9",
+        "b-10-purpose-spawning-agents-from-dec-10",
+        "b-10-purpose-assembling-context-consi-11",
+        "b-10-purpose-enforcing-tool-and-files-12",
+        "b-10-purpose-running-foreground-and-b-13",
+        "b-10-purpose-capturing-pi-sdk-session-14",
+        "b-10-purpose-storing-runs-and-trace-e-15",
+        "b-10-purpose-reading-traces-back-thro-16",
+        "b-10-purpose-rendering-trace-trees-t-17",
+        "b-10-purpose-authoring-prompts-32",
+        "b-10-purpose-editable-catalog-33",
+        "b-10-purpose-spectre-proved-those-pie-18",
+        "b-10-purpose-product-shape-19",
+        "b-10-purpose-the-kernel-is-not-just-a-20",
+        "b-10-purpose-a-host-app-should-be-abl-21",
+        "b-10-purpose-which-container-the-work-22",
+        "b-10-purpose-which-agent-and-run-exec-23",
+        "b-10-purpose-which-tool-call-spawned-24",
+        "b-10-purpose-which-prompt-and-context-25",
+        "b-10-purpose-which-pi-messages-and-to-26",
+        "b-10-purpose-which-lifecycle-and-diag-27",
+        "b-10-purpose-that-visibility-is-the-b-28",
+        "b-10-purpose-first-reference-app-29",
+        "b-10-purpose-spectre-is-the-reference-30"
+      ]
+    },
+    "b-10-purpose-the-kernel-exists-so-age-2": {
+      "id": "b-10-purpose-the-kernel-exists-so-age-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel exists so agent systems can share a strong runtime and viewing foundation without sharing the same product workflow, and so that verticals can scale agent work without scaling blind."
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-divider-3": {
+      "id": "b-10-purpose-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-purpose-the-stakes-4": {
+      "id": "b-10-purpose-the-stakes-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Stakes"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-the-kernel-is-designed-f-5": {
+      "id": "b-10-purpose-the-kernel-is-designed-f-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel is designed for agent systems that are extraordinarily token-hungry. A workload that spins up, say, 64 parallel workers can spend thousands of dollars in minutes. In that regime, cost is the dominant engineering risk: if you cannot see where tokens are going and measure the effectiveness behind each spend, you have no way to make the system sustainable."
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-this-is-why-observabilit-6": {
+      "id": "b-10-purpose-this-is-why-observabilit-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This is why observability and control are not secondary features. They are the reason the kernel exists. The product of an agent system is not just the work it does: it is "
+        },
+        {
+          "insert": "viewable",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " agent execution that you can attribute, budget, and improve."
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-divider-7": {
+      "id": "b-10-purpose-divider-7",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-purpose-problem-8": {
+      "id": "b-10-purpose-problem-8",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Problem"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-agent-applications-tend-9": {
+      "id": "b-10-purpose-agent-applications-tend-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Agent applications tend to rebuild the same hard parts:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-spawning-agents-from-dec-10": {
+      "id": "b-10-purpose-spawning-agents-from-dec-10",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "spawning agents from declarative definitions"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-assembling-context-consi-11": {
+      "id": "b-10-purpose-assembling-context-consi-11",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "assembling context consistently"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-enforcing-tool-and-files-12": {
+      "id": "b-10-purpose-enforcing-tool-and-files-12",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "enforcing tool and filesystem boundaries"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-running-foreground-and-b-13": {
+      "id": "b-10-purpose-running-foreground-and-b-13",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "running foreground and background subagents"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-capturing-pi-sdk-session-14": {
+      "id": "b-10-purpose-capturing-pi-sdk-session-14",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "capturing Pi SDK session JSONL"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-storing-runs-and-trace-e-15": {
+      "id": "b-10-purpose-storing-runs-and-trace-e-15",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "storing runs and trace events durably"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-reading-traces-back-thro-16": {
+      "id": "b-10-purpose-reading-traces-back-thro-16",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "reading traces back through stable APIs"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-rendering-trace-trees-t-17": {
+      "id": "b-10-purpose-rendering-trace-trees-t-17",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "rendering trace trees, transcripts, and run details in a viewer"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-authoring-prompts-32": {
+      "id": "b-10-purpose-authoring-prompts-32",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "authoring prompts and tracking each prompt revision"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-editable-catalog-33": {
+      "id": "b-10-purpose-editable-catalog-33",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "editing agent definitions through a shared catalog"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-spectre-proved-those-pie-18": {
+      "id": "b-10-purpose-spectre-proved-those-pie-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel grew out of Spectre. Spectre proved those pieces are useful, but it mixed them with coding-workflow semantics: sessions, phases, checkpoints, asks, docs, build status, and project worktrees. The kernel separates the reusable platform from the application-specific layer."
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-product-shape-19": {
+      "id": "b-10-purpose-product-shape-19",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Product Shape"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-the-kernel-is-not-just-a-20": {
+      "id": "b-10-purpose-the-kernel-is-not-just-a-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel is not just a spawn helper. Its product is viewable agent execution."
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-a-host-app-should-be-abl-21": {
+      "id": "b-10-purpose-a-host-app-should-be-abl-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A host app should be able to boot the kernel, register agents and loaders, run work, and immediately inspect:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-which-container-the-work-22": {
+      "id": "b-10-purpose-which-container-the-work-22",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "which container the work belonged to"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-which-agent-and-run-exec-23": {
+      "id": "b-10-purpose-which-agent-and-run-exec-23",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "which agent and run executed"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-which-tool-call-spawned-24": {
+      "id": "b-10-purpose-which-tool-call-spawned-24",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "which tool call spawned a subagent"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-which-prompt-and-context-25": {
+      "id": "b-10-purpose-which-prompt-and-context-25",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "which prompt and context were resolved"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-which-pi-messages-and-to-26": {
+      "id": "b-10-purpose-which-pi-messages-and-to-26",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "which Pi messages and tool calls appeared"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-which-lifecycle-and-diag-27": {
+      "id": "b-10-purpose-which-lifecycle-and-diag-27",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "which lifecycle and diagnostic events occurred"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-that-visibility-is-the-b-28": {
+      "id": "b-10-purpose-that-visibility-is-the-b-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "That visibility is the base stock for designing better agent systems."
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-first-reference-app-29": {
+      "id": "b-10-purpose-first-reference-app-29",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Reference Host"
+        }
+      ],
+      "children": []
+    },
+    "b-10-purpose-spectre-is-the-reference-30": {
+      "id": "b-10-purpose-spectre-is-the-reference-30",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The in-repo reference host is "
+        },
+        {
+          "insert": "examples/simple-research-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Live hosts are canvas-agent, prompt-kit-agent, core-harness ("
+        },
+        {
+          "insert": "packages/core-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), and "
+        },
+        {
+          "insert": "packages/tui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Each host runs its own workflow on the kernel, and none of those workflow concepts are kernel concepts. Hosts show how to extend the kernel; they do not define what the kernel is."
+        }
+      ],
+      "children": []
+    }
+  }
+}

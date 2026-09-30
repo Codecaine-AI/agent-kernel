@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-60-prompt-system-model",
+  "title": "Prompt System Model",
+  "root": "b-60-prompt-system-model-root-204",
+  "blocks": {
+    "b-60-prompt-system-model-root-204": {
+      "id": "b-60-prompt-system-model-root-204",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "prompt-system",
+          "prompt-kit",
+          "agent-bundle",
+          "prompt-revisions",
+          "state-model"
+        ],
+        "covers": "Section overview of the prompt system: the system map and its three parts (documents and bundles, editing and revisions, the state model).",
+        "depends-on": [
+          "00-foundation/30-boundaries",
+          "10-system-design/10-runtime-model",
+          "10-system-design/50-app-adapter-model"
+        ]
+      },
+      "children": [
+        "b-60-prompt-system-model-this-document-owns-the-d-2",
+        "b-60-prompt-system-model-it-has-two-parts-the-pr-3",
+        "b-60-psm-canvas-map",
+        "b-60-prompt-system-model-divider-4",
+        "b-60-psm-child-nodes",
+        "b-60-psm-child-10",
+        "b-60-psm-child-10-desc",
+        "b-60-psm-child-20",
+        "b-60-psm-child-20-desc",
+        "b-60-psm-child-30",
+        "b-60-psm-child-30-desc"
+      ]
+    },
+    "b-60-prompt-system-model-this-document-owns-the-d-2": {
+      "id": "b-60-prompt-system-model-this-document-owns-the-d-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This section owns the design of the prompt system: the layer that turns typed agent bundles into rendered prompts, bound context, registered tools, and, through the state model, the exact request the model sees each turn. It spans two repos. "
+        },
+        {
+          "insert": "@codecaine-ai/prompt-kit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is a generic authoring and rendering layer; the kernel owns the runtime-facing agent model and depends on prompt-kit, never the reverse."
+        }
+      ],
+      "children": []
+    },
+    "b-60-prompt-system-model-it-has-two-parts-the-pr-3": {
+      "id": "b-60-prompt-system-model-it-has-two-parts-the-pr-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decisions D1–D80 from the earlier design interviews are folded into the prose of the child docs; their numbering is retained where later entries cite them. D81–D99 stay a decision record with rationale."
+        }
+      ],
+      "children": []
+    },
+    "b-60-psm-canvas-map": {
+      "id": "b-60-psm-canvas-map",
+      "type": "canvas",
+      "props": {
+        "src": "./assets/canvases/prompt-system-map.canvas.json",
+        "title": "Prompt system map"
+      },
+      "children": []
+    },
+    "b-60-prompt-system-model-divider-4": {
+      "id": "b-60-prompt-system-model-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-60-psm-child-nodes": {
+      "id": "b-60-psm-child-nodes",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Child Nodes"
+        }
+      ],
+      "children": []
+    },
+    "b-60-psm-child-10": {
+      "id": "b-60-psm-child-10",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Documents and Bundles",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/10-documents-and-bundles"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-60-psm-child-10-desc": {
+      "id": "b-60-psm-child-10-desc",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The prompt-kit/kernel split, the agent bundle and its "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " manifest, the "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " model, and the variables, context, tools, and variants an agent declares."
+        }
+      ],
+      "children": []
+    },
+    "b-60-psm-child-20": {
+      "id": "b-60-psm-child-20",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Editing and Revisions",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/20-editing-and-revisions"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-60-psm-child-20-desc": {
+      "id": "b-60-psm-child-20-desc",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How prompts change: content-addressed revisions, the shared store behind the lab and the Prompt MCP, revision sources, annotations and prompt-edit sessions, and manifest field editing."
+        }
+      ],
+      "children": []
+    },
+    "b-60-psm-child-30": {
+      "id": "b-60-psm-child-30",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "State Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/30-state-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-60-psm-child-30-desc": {
+      "id": "b-60-psm-child-30-desc",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The decision record D81–D99: the state as the observation, the three-section request, state modes, the "
+        },
+        {
+          "insert": "state.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " contract, window policy, persistence, and wire-marked kernel lines."
+        }
+      ],
+      "children": []
+    }
+  }
+}

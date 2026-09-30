@@ -1,0 +1,179 @@
+{
+  "version": 1,
+  "id": "backfill",
+  "title": "Backfill a JSONL directory",
+  "participants": [
+    {
+      "id": "p1",
+      "name": "cli",
+      "kind": "actor",
+      "label": "agent-kernel-backfill"
+    },
+    {
+      "id": "p2",
+      "name": "runBackfill",
+      "kind": "participant",
+      "label": "runBackfill"
+    },
+    {
+      "id": "p3",
+      "name": "reader",
+      "kind": "participant",
+      "label": "readJsonlFile"
+    },
+    {
+      "id": "p4",
+      "name": "mapper",
+      "kind": "participant",
+      "label": "EventMapper"
+    },
+    {
+      "id": "p5",
+      "name": "db",
+      "kind": "participant",
+      "label": "Kernel db"
+    }
+  ],
+  "items": [
+    {
+      "kind": "message",
+      "id": "m1",
+      "from": "p1",
+      "to": "p2",
+      "line": "sync",
+      "text": "runBackfill({ jsonlDir, dbPath, mapper })"
+    },
+    {
+      "kind": "message",
+      "id": "m2",
+      "from": "p2",
+      "to": "p5",
+      "line": "sync",
+      "text": "openKernelDatabase, ensureKernelObservabilitySchema"
+    },
+    {
+      "kind": "fragment",
+      "id": "f1",
+      "op": "loop",
+      "operands": [
+        {
+          "guard": "for each .jsonl file",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m3",
+              "from": "p2",
+              "to": "p3",
+              "line": "sync",
+              "text": "readJsonlFile(file)"
+            },
+            {
+              "kind": "message",
+              "id": "m4",
+              "from": "p3",
+              "to": "p2",
+              "line": "return",
+              "text": "events, malformedLines, truncatedTail"
+            },
+            {
+              "kind": "fragment",
+              "id": "f2",
+              "op": "loop",
+              "operands": [
+                {
+                  "guard": "for each Pi event",
+                  "items": [
+                    {
+                      "kind": "message",
+                      "id": "m5",
+                      "from": "p2",
+                      "to": "p4",
+                      "line": "sync",
+                      "text": "map(event)"
+                    },
+                    {
+                      "kind": "fragment",
+                      "id": "f3",
+                      "op": "alt",
+                      "operands": [
+                        {
+                          "guard": "no container bound yet",
+                          "items": [
+                            {
+                              "kind": "message",
+                              "id": "m6",
+                              "from": "p4",
+                              "to": "p2",
+                              "line": "return",
+                              "text": "nothing; mapped events held pending"
+                            }
+                          ]
+                        },
+                        {
+                          "items": [
+                            {
+                              "kind": "message",
+                              "id": "m7",
+                              "from": "p4",
+                              "to": "p2",
+                              "line": "return",
+                              "text": "TraceEvents stamped with containerId, runId"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "note",
+              "id": "n1",
+              "anchor": "p4",
+              "side": "over",
+              "text": "The session-binding marker binds the container and releases held events"
+            },
+            {
+              "kind": "fragment",
+              "id": "f4",
+              "op": "loop",
+              "operands": [
+                {
+                  "guard": "for each batch of batchSize events (default 500)",
+                  "items": [
+                    {
+                      "kind": "message",
+                      "id": "m8",
+                      "from": "p2",
+                      "to": "p5",
+                      "line": "sync",
+                      "text": "insertTraceEventsBatch(batch)"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m9",
+                      "from": "p5",
+                      "to": "p2",
+                      "line": "return",
+                      "text": "inserted count; INSERT OR IGNORE on event_id"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "message",
+      "id": "m10",
+      "from": "p2",
+      "to": "p1",
+      "line": "return",
+      "text": "BackfillSummary: eventsInserted, eventsSkipped, warnings"
+    }
+  ],
+  "style": {}
+}

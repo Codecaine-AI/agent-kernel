@@ -1,0 +1,264 @@
+{
+  "schemaVersion": 1,
+  "id": "harness-topology",
+  "title": "Harness topology",
+  "mode": "diagram",
+  "objects": [
+    {
+      "id": "group-repo",
+      "type": "section",
+      "text": "agent-kernel repo",
+      "parentId": null,
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 1500,
+        "height": 560
+      }
+    },
+    {
+      "id": "group-external",
+      "type": "section",
+      "text": "External kernels (other repos)",
+      "parentId": null,
+      "geometry": {
+        "x": 0,
+        "y": 700,
+        "width": 1500,
+        "height": 280
+      }
+    },
+    {
+      "id": "kernel",
+      "type": "rectangle",
+      "text": "agent-kernel library\npackages/kernel",
+      "color": "blue",
+      "parentId": "group-repo",
+      "geometry": {
+        "x": 560,
+        "y": 80,
+        "width": 380,
+        "height": 120
+      }
+    },
+    {
+      "id": "core-harness",
+      "type": "rectangle",
+      "text": "core-harness :4860\ncore kernel service leg",
+      "color": "green",
+      "parentId": "group-repo",
+      "geometry": {
+        "x": 60,
+        "y": 340,
+        "width": 380,
+        "height": 130
+      }
+    },
+    {
+      "id": "simple-research",
+      "type": "rectangle",
+      "text": "simple-research-kernel :8788\nreference app harness",
+      "color": "green",
+      "parentId": "group-repo",
+      "geometry": {
+        "x": 560,
+        "y": 340,
+        "width": 380,
+        "height": 130
+      }
+    },
+    {
+      "id": "tui",
+      "type": "rectangle",
+      "text": "@agent-kernel/tui\nterminal harness, a pi extension",
+      "color": "green",
+      "parentId": "group-repo",
+      "geometry": {
+        "x": 1060,
+        "y": 340,
+        "width": 380,
+        "height": 130
+      }
+    },
+    {
+      "id": "canvas-agent",
+      "type": "rectangle",
+      "text": "canvas-agent :4822\napp harness",
+      "color": "gray",
+      "parentId": "group-external",
+      "geometry": {
+        "x": 60,
+        "y": 780,
+        "width": 380,
+        "height": 130
+      }
+    },
+    {
+      "id": "prompt-kit-agent",
+      "type": "rectangle",
+      "text": "prompt-kit-agent :4850\napp harness",
+      "color": "gray",
+      "parentId": "group-external",
+      "geometry": {
+        "x": 560,
+        "y": 780,
+        "width": 380,
+        "height": 130
+      }
+    },
+    {
+      "id": "docs-kernel",
+      "type": "rectangle",
+      "text": "docs-kernel :4840\ndocs-system kernel service",
+      "color": "gray",
+      "parentId": "group-external",
+      "geometry": {
+        "x": 1060,
+        "y": 780,
+        "width": 380,
+        "height": 130
+      }
+    },
+    {
+      "id": "trace-db",
+      "type": "rectangle",
+      "text": "trace.db\none per kernel",
+      "color": "violet",
+      "parentId": null,
+      "geometry": {
+        "x": 1650,
+        "y": 80,
+        "width": 320,
+        "height": 120
+      }
+    },
+    {
+      "id": "observatory",
+      "type": "rectangle",
+      "text": "Observatory\nkernel registry, traces, prompt lab",
+      "color": "teal",
+      "parentId": null,
+      "geometry": {
+        "x": 1650,
+        "y": 560,
+        "width": 320,
+        "height": 140
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "core-harness-to-kernel",
+      "from": {
+        "objectId": "core-harness",
+        "anchor": "top"
+      },
+      "to": {
+        "objectId": "kernel",
+        "anchor": "left"
+      },
+      "label": "embeds the library",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "simple-research-to-kernel",
+      "from": {
+        "objectId": "simple-research",
+        "anchor": "top"
+      },
+      "to": {
+        "objectId": "kernel",
+        "anchor": "bottom"
+      },
+      "label": "embeds the library",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "tui-to-kernel",
+      "from": {
+        "objectId": "tui",
+        "anchor": "top"
+      },
+      "to": {
+        "objectId": "kernel",
+        "anchor": "right"
+      },
+      "label": "db-free exports only",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "external-to-kernel",
+      "from": {
+        "objectId": "group-external",
+        "anchor": "top"
+      },
+      "to": {
+        "objectId": "kernel",
+        "anchor": "bottom"
+      },
+      "label": "embed the library as a dependency",
+      "style": "dashed",
+      "arrow": "forward"
+    },
+    {
+      "id": "kernel-to-trace-db",
+      "from": {
+        "objectId": "kernel",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "trace-db",
+        "anchor": "left"
+      },
+      "label": "trace events and identity rows",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "tui-to-trace-db",
+      "from": {
+        "objectId": "tui",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "trace-db",
+        "anchor": "bottom"
+      },
+      "label": "markers in pi JSONL + agent-kernel-tui-ingest",
+      "style": "dashed",
+      "arrow": "forward"
+    },
+    {
+      "id": "observatory-to-repo",
+      "from": {
+        "objectId": "observatory",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "group-repo",
+        "anchor": "right"
+      },
+      "label": "/kernel/* HTTP to core-harness and simple-research",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "observatory-to-external",
+      "from": {
+        "objectId": "observatory",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "group-external",
+        "anchor": "right"
+      },
+      "label": "/kernel/* HTTP",
+      "style": "solid",
+      "arrow": "forward"
+    }
+  ],
+  "annotations": []
+}

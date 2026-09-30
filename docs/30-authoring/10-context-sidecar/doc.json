@@ -1,0 +1,889 @@
+{
+  "schemaVersion": 1,
+  "id": "30-authoring-10-context-sidecar",
+  "title": "Author a Context Sidecar",
+  "root": "b-10-context-sidecar-root-23",
+  "blocks": {
+    "b-10-context-sidecar-root-23": {
+      "id": "b-10-context-sidecar-root-23",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/agent-definition/index.ts, packages/kernel/src/context/, packages/kernel/src/agent-registry/registry/bundle-layout.ts",
+        "concepts": [
+          "agent-authoring",
+          "context-sidecar",
+          "defineContext",
+          "context-loaders",
+          "context-assembly",
+          "standing-context",
+          "section-2"
+        ],
+        "covers": "How to author an agent context sidecar: choose its bundle shape, declare loaders, assemble standing reference material, and keep live working state in section ③.",
+        "depends-on": [
+          "30-authoring",
+          "10-system-design/10-runtime-model",
+          "10-system-design/60-prompt-system-model"
+        ]
+      },
+      "children": [
+        "b-10-context-sidecar-add-a-context-sidecar-wh-2",
+        "b-10-context-sidecar-divider-3",
+        "b-10-context-sidecar-1-choose-the-sidecar-sh-4",
+        "b-10-context-sidecar-use-either-context-ts-5",
+        "b-10-context-sidecar-the-sidecar-is-optional-6",
+        "b-10-context-sidecar-2-declare-and-assemble-7",
+        "b-10-context-sidecar-use-definecontext-to-d-8",
+        "b-10-context-sidecar-ts-9",
+        "b-10-context-sidecar-define-context-surface",
+        "b-10-context-sidecar-each-loadedmap-entry-r-11",
+        "b-10-context-sidecar-the-bundle-owns-loader-d-10",
+        "b-10-context-sidecar-loader-kinds",
+        "b-10-context-sidecar-3-keep-the-section-boun-12",
+        "b-10-context-sidecar-the-context-sidecar-supp-13",
+        "b-10-context-sidecar-do-not-use-it-for-materi-14",
+        "b-10-context-sidecar-when-an-agent-uses-the-s-15",
+        "b-10-context-sidecar-if-the-model-needs-stand-16",
+        "b-10-context-sidecar-fixtures-heading",
+        "b-10-context-sidecar-fixtures-envelope",
+        "b-10-context-sidecar-fixture-shape",
+        "b-10-context-sidecar-fixtures-use",
+        "b-10-context-sidecar-authoring-check-17",
+        "b-10-context-sidecar-the-sidecar-uses-one-leg-18",
+        "b-10-context-sidecar-every-declared-loader-ki-19",
+        "b-10-context-sidecar-assemble-handles-the-s-20",
+        "b-10-context-sidecar-section-contains-stand-21",
+        "b-10-context-sidecar-the-exported-resolver-is-22"
+      ]
+    },
+    "b-10-context-sidecar-add-a-context-sidecar-wh-2": {
+      "id": "b-10-context-sidecar-add-a-context-sidecar-wh-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Add a context sidecar when an agent needs standing reference material on its requests. Put changing work state in the state sidecar instead."
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-divider-3": {
+      "id": "b-10-context-sidecar-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-context-sidecar-1-choose-the-sidecar-sh-4": {
+      "id": "b-10-context-sidecar-1-choose-the-sidecar-sh-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "1. Choose the Sidecar Shape"
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-use-either-context-ts-5": {
+      "id": "b-10-context-sidecar-use-either-context-ts-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use either "
+        },
+        {
+          "insert": "context.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "context/index.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Both forms are permanent; choose the folder form when loader declarations or render helpers need separate files. If both forms exist, the registry uses "
+        },
+        {
+          "insert": "context.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and reports the shadowed folder through catalog diagnostics."
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-the-sidecar-is-optional-6": {
+      "id": "b-10-context-sidecar-the-sidecar-is-optional-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The sidecar is optional. When present, its entry point must export the resolver as either the default export or named "
+        },
+        {
+          "insert": "context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " export."
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-2-declare-and-assemble-7": {
+      "id": "b-10-context-sidecar-2-declare-and-assemble-7",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "2. Declare and Assemble Context"
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-use-definecontext-to-d-8": {
+      "id": "b-10-context-sidecar-use-definecontext-to-d-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use "
+        },
+        {
+          "insert": "defineContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to declare loaders and assemble their ordered results into one model-facing string:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-ts-9": {
+      "id": "b-10-context-sidecar-ts-9",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "import { defineContext } from \"@agent-kernel/kernel/agent-definition\";\nimport type {\n  AgentContextResolver,\n  LoadedMap,\n  SpawnContext,\n} from \"@agent-kernel/kernel/context\";\n\nconst loaders: AgentContextResolver[\"loaders\"] = [\n  { kind: \"file\", path: \"reference/style-guide.md\" },\n  {\n    kind: \"directory\",\n    pattern: \"reference/examples/**/*.md\",\n    extensions: [\".md\"],\n  },\n];\n\nfunction assemble(loaded: LoadedMap, ctx: SpawnContext): string {\n  return [\n    \"<agent_reference>\",\n    `<agent_name>${ctx.agentName}</agent_name>`,\n    ...loaded.map((input) => input.content),\n    \"</agent_reference>\",\n  ].join(\"\\n\\n\");\n}\n\nexport const context = defineContext({ loaders, assemble });\nexport default context;"
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-define-context-surface": {
+      "id": "b-10-context-sidecar-define-context-surface",
+      "type": "interaction-surface",
+      "props": {
+        "operations": [
+          {
+            "name": "defineContext",
+            "kind": "action",
+            "description": "Typing helper: returns the resolver unchanged. Export the result as the default export, the named context export, or both.",
+            "params": [
+              {
+                "name": "resolver",
+                "type": "AgentContextResolver",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "loaders",
+                    "type": "LoaderDeclaration[]",
+                    "required": true,
+                    "description": "Resolved in declaration order on every context build. See the loader kinds table below."
+                  },
+                  {
+                    "name": "assemble",
+                    "type": "(loaded, ctx) => string | Promise<string>",
+                    "required": true
+                  },
+                  {
+                    "name": "assembleImages",
+                    "type": "(loaded, ctx) => ContextImage[] | Promise<ContextImage[]>",
+                    "required": false,
+                    "description": "Omit for text-only context."
+                  }
+                ]
+              }
+            ],
+            "returns": "AgentContextResolver, the same object"
+          },
+          {
+            "name": "resolver.assemble",
+            "kind": "query",
+            "description": "The kernel calls it after every loader has resolved. Its string is the section ② context entry. A loader failure becomes an error entry in loaded; a throw from assemble fails the context build.",
+            "params": [
+              {
+                "name": "loaded",
+                "type": "LoadedMap",
+                "required": true,
+                "description": "Readonly array with one LoadedInput per declaration, in declaration order.",
+                "fields": [
+                  {
+                    "name": "decl",
+                    "type": "LoaderDeclaration",
+                    "required": true
+                  },
+                  {
+                    "name": "status",
+                    "type": "\"ok\" | \"empty\" | \"error\"",
+                    "required": true
+                  },
+                  {
+                    "name": "content",
+                    "type": "string",
+                    "required": true,
+                    "description": "Empty string when status is error."
+                  },
+                  {
+                    "name": "bytes",
+                    "type": "number",
+                    "required": true
+                  },
+                  {
+                    "name": "hash",
+                    "type": "string",
+                    "required": true,
+                    "description": "sha256 of content; empty string on error."
+                  },
+                  {
+                    "name": "error",
+                    "type": "string",
+                    "required": false,
+                    "description": "Set when status is error, for example Unknown loader kind: x."
+                  },
+                  {
+                    "name": "fromCache",
+                    "type": "boolean",
+                    "required": true
+                  }
+                ]
+              },
+              {
+                "name": "ctx",
+                "type": "SpawnContext",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "agentName",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "variables",
+                    "type": "Record<string, unknown>",
+                    "required": true
+                  },
+                  {
+                    "name": "caller",
+                    "type": "{ kind: \"user\" | \"agent\" | \"system\", id: string }",
+                    "required": true
+                  },
+                  {
+                    "name": "runtime",
+                    "type": "RuntimeState",
+                    "required": true,
+                    "description": "cwd plus optional containerId, sessionDir, topic, phase, and status."
+                  },
+                  {
+                    "name": "paths",
+                    "type": "{ workingDir, activeSessionDir, priorSessionsDir? }",
+                    "required": true,
+                    "description": "Loaders resolve relative paths against workingDir. activeSessionDir is workingDir/active_session."
+                  },
+                  {
+                    "name": "sessionData",
+                    "type": "AppSessionData | null",
+                    "required": false,
+                    "description": "Unset on live spawns. Catalog previews set it from a context fixture."
+                  }
+                ]
+              }
+            ],
+            "returns": "string | Promise<string>"
+          },
+          {
+            "name": "resolver.assembleImages",
+            "kind": "query",
+            "description": "Optional. Runs after assemble. The returned images ride with the rendered text in the injected context entry.",
+            "params": [
+              {
+                "name": "loaded",
+                "type": "LoadedMap",
+                "required": true
+              },
+              {
+                "name": "ctx",
+                "type": "SpawnContext",
+                "required": true
+              }
+            ],
+            "returns": "ReadonlyArray<{ data: string, mimeType: string }>, where data is base64"
+          }
+        ],
+        "title": "Context Sidecar Surface"
+      },
+      "children": []
+    },
+    "b-10-context-sidecar-each-loadedmap-entry-r-11": {
+      "id": "b-10-context-sidecar-each-loadedmap-entry-r-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decide in "
+        },
+        {
+          "insert": "assemble",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " whether empty and failed inputs are omitted, labeled, or rendered as an explicit limitation. Keep that policy local to the agent rather than assuming every loader succeeds."
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-the-bundle-owns-loader-d-10": {
+      "id": "b-10-context-sidecar-the-bundle-owns-loader-d-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The bundle owns loader declarations and assembly. Loader implementations are kernel- or app-registered infrastructure ("
+        },
+        {
+          "insert": "packages/kernel/src/context/loaders/types.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/context/loaders/types.ts"
+            }
+          }
+        },
+        {
+          "insert": "). The "
+        },
+        {
+          "insert": "runtime model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model"
+            }
+          }
+        },
+        {
+          "insert": " owns the resolver, status, and trace contracts. Declare one of these kinds:"
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-loader-kinds": {
+      "id": "b-10-context-sidecar-loader-kinds",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Kind",
+          "Required fields",
+          "Optional",
+          "Notes"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "file",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "path",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "None",
+            "Resolved against the working directory unless absolute. A missing file is an error input; an empty file is empty."
+          ],
+          [
+            [
+              {
+                "insert": "directory",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "pattern",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "extensions",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Glob scanned from the working directory. Each match is wrapped in a file marker. Zero matches is empty, not an error."
+          ],
+          [
+            [
+              {
+                "insert": "skill",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "name",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "mode",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": "
+              },
+              {
+                "insert": "\"force\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " or "
+              },
+              {
+                "insert": "\"dynamic\"",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Registered only when the app supplies a skill registry. "
+              },
+              {
+                "insert": "dynamic",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", the default, renders the description and a "
+              },
+              {
+                "insert": "skill_read",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " pointer. "
+              },
+              {
+                "insert": "force",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " inlines the full SKILL.md body."
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "command",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "command",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "args",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "timeoutMs",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Runs without a shell in the working directory, with a 10-second default timeout. Content is stdout."
+          ],
+          [
+            [
+              {
+                "insert": "text",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "content",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "label",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Inline text. Empty content is empty."
+          ],
+          [
+            "Custom",
+            [
+              {
+                "insert": "kind",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Any fields its loader reads",
+            "Register the loader in the app's loader catalog. An unregistered kind resolves to an error input at spawn; boot does not check it."
+          ]
+        ],
+        "title": "Loader kinds"
+      },
+      "children": []
+    },
+    "b-10-context-sidecar-3-keep-the-section-boun-12": {
+      "id": "b-10-context-sidecar-3-keep-the-section-boun-12",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "3. Keep the Section Boundary"
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-the-context-sidecar-supp-13": {
+      "id": "b-10-context-sidecar-the-context-sidecar-supp-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The context sidecar supplies section ②: standing material that should remain available as requests are rebuilt. Appropriate inputs include capabilities, skills, style guides, reference sheets, and stable supporting evidence."
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-do-not-use-it-for-materi-14": {
+      "id": "b-10-context-sidecar-do-not-use-it-for-materi-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Do not use it for material that moves with the work. Target documents, work queues, current requests, editor state, progress, and conversation belong to the state sidecar's section ③ render. Context and state are sibling request sections; state is never nested inside context. The full request and state contract lives in the "
+        },
+        {
+          "insert": "runtime model's state section",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model",
+              "label": "runtime model's state section"
+            }
+          }
+        },
+        {
+          "insert": ", with the governing decisions D81–D99 in the "
+        },
+        {
+          "insert": "State Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/30-state-model",
+              "label": "State Model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-when-an-agent-uses-the-s-15": {
+      "id": "b-10-context-sidecar-when-an-agent-uses-the-s-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "When an agent uses the state extension, the assembled result becomes an entry in the kernel-held context set and is rebuilt into one section ② message per request. Pass-through behavior and current injection details remain implementation concerns; author against the section boundary."
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-if-the-model-needs-stand-16": {
+      "id": "b-10-context-sidecar-if-the-model-needs-stand-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "If the model needs standing guidance for how to use available tools, supply that guidance through section ②. Tool schemas and executable behavior belong to the tools sidecar. For prompt design, see the prompt-kit repo, "
+        },
+        {
+          "insert": "docs/30-prompt-structure/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-fixtures-heading": {
+      "id": "b-10-context-sidecar-fixtures-heading",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "4. Add Context Fixtures"
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-fixtures-envelope": {
+      "id": "b-10-context-sidecar-fixtures-envelope",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Put catalog preview inputs in "
+        },
+        {
+          "insert": "context/fixtures/*.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", one envelope per file. The file name without "
+        },
+        {
+          "insert": ".json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the fixture id. Fixtures sort by id, and files that fail to parse or have the wrong shape are skipped."
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-fixture-shape": {
+      "id": "b-10-context-sidecar-fixture-shape",
+      "type": "state-shape",
+      "props": {
+        "example": "{\n  \"label\": \"Open pull request\",\n  \"variables\": { \"objective\": \"Review the change\" },\n  \"sessionData\": { \"prNumber\": 42 }\n}",
+        "fields": [
+          {
+            "name": "label",
+            "type": "string",
+            "required": false,
+            "description": "Picker label. A missing or blank label falls back to the fixture id."
+          },
+          {
+            "name": "variables",
+            "type": "object",
+            "required": false,
+            "description": "Overlays the manifest variable defaults for the preview."
+          },
+          {
+            "name": "sessionData",
+            "type": "object",
+            "required": true,
+            "description": "Preview session data for the context build, also passed to the host toolsPreview hook. A file without it is skipped."
+          }
+        ],
+        "name": "Context fixture envelope",
+        "source": {
+          "path": "packages/kernel/src/context-fixtures.ts",
+          "symbol": "discoverContextFixtures"
+        }
+      },
+      "children": []
+    },
+    "b-10-context-sidecar-fixtures-use": {
+      "id": "b-10-context-sidecar-fixtures-use",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Fixtures feed catalog previews only; a live spawn never reads them. The first fixture supplies the default Context view, and the lab's fixture picker switches between them."
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-authoring-check-17": {
+      "id": "b-10-context-sidecar-authoring-check-17",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Authoring Check"
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-the-sidecar-uses-one-leg-18": {
+      "id": "b-10-context-sidecar-the-sidecar-uses-one-leg-18",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The sidecar uses one legal D98 entry-point shape."
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-every-declared-loader-ki-19": {
+      "id": "b-10-context-sidecar-every-declared-loader-ki-19",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Every declared loader kind exists in the configured loader catalog."
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-assemble-handles-the-s-20": {
+      "id": "b-10-context-sidecar-assemble-handles-the-s-20",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "assemble",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " handles the statuses the agent can tolerate."
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-section-contains-stand-21": {
+      "id": "b-10-context-sidecar-section-contains-stand-21",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Section ② contains standing reference only; live work renders from section ③."
+        }
+      ],
+      "children": []
+    },
+    "b-10-context-sidecar-the-exported-resolver-is-22": {
+      "id": "b-10-context-sidecar-the-exported-resolver-is-22",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The exported resolver is named "
+        },
+        {
+          "insert": "context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", default-exported, or both."
+        }
+      ],
+      "children": []
+    }
+  }
+}

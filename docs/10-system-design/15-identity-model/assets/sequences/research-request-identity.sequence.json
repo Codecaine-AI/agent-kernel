@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "id": "research-identity",
+  "title": "Research request identity",
+  "participants": [
+    {
+      "id": "p1",
+      "name": "harness",
+      "kind": "participant",
+      "label": "Harness"
+    },
+    {
+      "id": "p2",
+      "name": "kernel",
+      "kind": "participant",
+      "label": "Kernel"
+    },
+    {
+      "id": "p3",
+      "name": "coordinator",
+      "kind": "participant",
+      "label": "research-coordinator"
+    },
+    {
+      "id": "p4",
+      "name": "scout1",
+      "kind": "participant",
+      "label": "source-scout 1"
+    },
+    {
+      "id": "p5",
+      "name": "scout2",
+      "kind": "participant",
+      "label": "source-scout 2"
+    },
+    {
+      "id": "p6",
+      "name": "tracedb",
+      "kind": "participant",
+      "label": "trace.db"
+    }
+  ],
+  "items": [
+    {
+      "kind": "message",
+      "id": "m1",
+      "from": "p1",
+      "to": "p2",
+      "line": "sync",
+      "text": "container(kind session, key [requestId])"
+    },
+    {
+      "kind": "message",
+      "id": "m2",
+      "from": "p2",
+      "to": "p6",
+      "line": "sync",
+      "text": "upsert container C, id derived from kind and key"
+    },
+    {
+      "kind": "message",
+      "id": "m3",
+      "from": "p2",
+      "to": "p1",
+      "line": "return",
+      "text": "container C"
+    },
+    {
+      "kind": "message",
+      "id": "m4",
+      "from": "p1",
+      "to": "p2",
+      "line": "sync",
+      "text": "spawnAgent research-coordinator in C, trigger operator"
+    },
+    {
+      "kind": "message",
+      "id": "m5",
+      "from": "p2",
+      "to": "p6",
+      "line": "sync",
+      "text": "upsert session S1 with promptHash, insert run R1 operator running"
+    },
+    {
+      "kind": "message",
+      "id": "m6",
+      "from": "p2",
+      "to": "p3",
+      "line": "sync",
+      "text": "operator prompt"
+    },
+    {
+      "kind": "message",
+      "id": "m7",
+      "from": "p3",
+      "to": "p2",
+      "line": "sync",
+      "text": "spawn_research_scouts tool call T1"
+    },
+    {
+      "kind": "message",
+      "id": "m8",
+      "from": "p2",
+      "to": "p6",
+      "line": "sync",
+      "text": "sessions S2 and S3: parentSessionId S1, parentToolUseId T1"
+    },
+    {
+      "kind": "message",
+      "id": "m9",
+      "from": "p2",
+      "to": "p6",
+      "line": "sync",
+      "text": "runs R2 and R3 in C: parentRunId R1, parentToolUseId T1, trigger parent-tool"
+    },
+    {
+      "kind": "message",
+      "id": "m10",
+      "from": "p2",
+      "to": "p4",
+      "line": "async",
+      "text": "scout assignment"
+    },
+    {
+      "kind": "message",
+      "id": "m11",
+      "from": "p2",
+      "to": "p5",
+      "line": "async",
+      "text": "scout assignment"
+    },
+    {
+      "kind": "message",
+      "id": "m12",
+      "from": "p4",
+      "to": "p2",
+      "line": "return",
+      "text": "final response, run R2 done"
+    },
+    {
+      "kind": "message",
+      "id": "m13",
+      "from": "p5",
+      "to": "p2",
+      "line": "return",
+      "text": "final response, run R3 done"
+    },
+    {
+      "kind": "message",
+      "id": "m14",
+      "from": "p2",
+      "to": "p3",
+      "line": "return",
+      "text": "tool result: completion summaries"
+    },
+    {
+      "kind": "message",
+      "id": "m15",
+      "from": "p3",
+      "to": "p2",
+      "line": "return",
+      "text": "final response"
+    },
+    {
+      "kind": "message",
+      "id": "m16",
+      "from": "p2",
+      "to": "p6",
+      "line": "sync",
+      "text": "run R1 done, session S1 ended, usage rolled up to S1 and C"
+    },
+    {
+      "kind": "message",
+      "id": "m17",
+      "from": "p2",
+      "to": "p1",
+      "line": "return",
+      "text": "spawn result"
+    },
+    {
+      "kind": "message",
+      "id": "m18",
+      "from": "p1",
+      "to": "p6",
+      "line": "sync",
+      "text": "container C status done"
+    },
+    {
+      "kind": "note",
+      "id": "n1",
+      "anchor": "p6",
+      "side": "over",
+      "text": "Every event carries containerId C and its own runId"
+    }
+  ],
+  "style": {}
+}

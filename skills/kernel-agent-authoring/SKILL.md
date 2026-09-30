@@ -79,10 +79,10 @@ repo-root-anchored.
 
 | Topic | From this dir | Repo-anchored |
 |---|---|---|
-| Bundle anatomy + change routing | `../../docs/30-authoring/00-overview.md` | `agent-kernel/docs/30-authoring/00-overview.md` |
-| Context sidecar (②) | `../../docs/30-authoring/10-context-sidecar.md` | `agent-kernel/docs/30-authoring/10-context-sidecar.md` |
-| State sidecar (③) + fixtures | `../../docs/30-authoring/20-state-sidecar.md` | `agent-kernel/docs/30-authoring/20-state-sidecar.md` |
-| Tools sidecar | `../../docs/30-authoring/30-tools-sidecar.md` | `agent-kernel/docs/30-authoring/30-tools-sidecar.md` |
-| Validation + inspection | `../../docs/30-authoring/40-validation.md` | `agent-kernel/docs/30-authoring/40-validation.md` |
+| Bundle anatomy + change routing | `../../docs/30-authoring/` | `agent-kernel/docs/30-authoring/` |
+| Context sidecar (②) | `../../docs/30-authoring/10-context-sidecar/` | `agent-kernel/docs/30-authoring/10-context-sidecar/` |
+| State sidecar (③) + fixtures | `../../docs/30-authoring/20-state-sidecar/` | `agent-kernel/docs/30-authoring/20-state-sidecar/` |
+| Tools sidecar | `../../docs/30-authoring/30-tools-sidecar/` | `agent-kernel/docs/30-authoring/30-tools-sidecar/` |
+| Validation + inspection | `../../docs/30-authoring/40-validation/` | `agent-kernel/docs/30-authoring/40-validation/` |
 | Canonical example bundles | `../../examples/simple-research-kernel/src/agent-catalog/` | `agent-kernel/examples/simple-research-kernel/src/agent-catalog/` |
 | Generic context-editor bundle | `../../catalog/context-editor/` | `agent-kernel/catalog/context-editor/` |

@@ -1,0 +1,1565 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-50-read-api",
+  "title": "Read API",
+  "root": "b-50-read-api-root-15",
+  "blocks": {
+    "b-50-read-api-root-15": {
+      "id": "b-50-read-api-root-15",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/read-api.ts, packages/kernel/src/read-service.ts, packages/kernel/src/catalog-api.ts, packages/viewer-core/src/api.ts",
+        "concepts": [
+          "read-api",
+          "catalog-api",
+          "elysia",
+          "route-factory",
+          "viewer-core",
+          "path-constants",
+          "service-contract"
+        ],
+        "covers": "Implementation area page for the kernel read API: role, source pointer, governing design pages, and structural decisions about route constants and the service seam.",
+        "depends-on": [
+          "10-system-design/20-observability-model"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-50-read-api-the-read-api-is-the-stab-2",
+        "b-50-read-api-source-packages-kernel-3",
+        "b-50-read-api-governed-by-20-observa-4",
+        "b-50-read-api-divider-5",
+        "b-50-read-api-routes-heading",
+        "b-50-read-api-routes-lead",
+        "b-50-read-api-routes-trace-link",
+        "b-50-read-api-routes-conventions",
+        "b-50-read-api-detail-lead",
+        "b-50-read-api-detail-shape",
+        "b-50-read-api-catalog-surface",
+        "b-50-read-api-annotations-lead",
+        "b-50-read-api-annotations-surface",
+        "b-50-read-api-sessions-lead",
+        "b-50-read-api-sessions-surface",
+        "b-50-read-api-decisions-6",
+        "b-50-read-api-route-paths-are-viewer-c-7",
+        "b-50-read-api-decision-every-url-8",
+        "b-50-read-api-why-the-routes-are-9",
+        "b-50-read-api-applies-to-package-10",
+        "b-50-read-api-routes-bind-to-a-service-11",
+        "b-50-read-api-decision-the-route-12",
+        "b-50-read-api-why-apps-with-custo-13",
+        "b-50-read-api-applies-to-package-14"
+      ]
+    },
+    "b-50-read-api-the-read-api-is-the-stab-2": {
+      "id": "b-50-read-api-the-read-api-is-the-stab-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The read API is the stable route surface between kernel trace storage and viewer-core: Elysia route factories apps mount inside their own HTTP service, plus the kernel's default read service. Trace read routes, query limits, and the request-snapshot read path are design: "
+        },
+        {
+          "insert": "Observability Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-observability-model",
+              "label": "Observability Model"
+            }
+          }
+        },
+        {
+          "insert": " § Read Surface. This page owns the catalog, annotation, and prompt-edit session routes."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-source-packages-kernel-3": {
+      "id": "b-50-read-api-source-packages-kernel-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Source: "
+        },
+        {
+          "insert": "packages/kernel/src/read-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "read-service.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "catalog-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "catalog-annotations-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "prompt-edit-session-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; client-side path constants in "
+        },
+        {
+          "insert": "packages/viewer-core/src/api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-governed-by-20-observa-4": {
+      "id": "b-50-read-api-governed-by-20-observa-4",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Governed by: "
+        },
+        {
+          "insert": "Observability Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-observability-model",
+              "label": "Observability Model"
+            }
+          }
+        },
+        {
+          "insert": ", and (for the prompt side of the catalog surface) "
+        },
+        {
+          "insert": "Editing and Revisions",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/20-editing-and-revisions",
+              "label": "Editing and Revisions"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-divider-5": {
+      "id": "b-50-read-api-divider-5",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-50-read-api-routes-heading": {
+      "id": "b-50-read-api-routes-heading",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Routes"
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-routes-lead": {
+      "id": "b-50-read-api-routes-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "createKernelTraceReadApi",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "createKernelCatalogApi",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " mount their routes under a prefix, "
+        },
+        {
+          "insert": "/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " by default. The reference mount is "
+        },
+        {
+          "insert": "packages/core-harness/src/server.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": it mounts both factories with writes enabled and passes a prompt-edit session service."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-routes-trace-link": {
+      "id": "b-50-read-api-routes-trace-link",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Trace reads ("
+        },
+        {
+          "insert": "read-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") serve the routes that Observability Model defines. One check runs before the service is called: a blob hash that is not "
+        },
+        {
+          "insert": "b1-<sha256hex>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " answers 404."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-routes-conventions": {
+      "id": "b-50-read-api-routes-conventions",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every catalog, annotation, and prompt-edit mutation answers 403 unless "
+        },
+        {
+          "insert": "allowWrites",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is set on the factory options or the service. Production harnesses ship read-only catalogs and leave it off. All routes answer 404 for an unknown agent, annotation, session, or request alias, and 400 with "
+        },
+        {
+          "insert": "{ errors }",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for invalid input. Paths below omit the prefix."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-detail-lead": {
+      "id": "b-50-read-api-detail-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Catalog routes live in "
+        },
+        {
+          "insert": "catalog-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Agent detail is the largest response, built by "
+        },
+        {
+          "insert": "KernelCatalogService.getAgentDetail",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ":"
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-detail-shape": {
+      "id": "b-50-read-api-detail-shape",
+      "type": "state-shape",
+      "props": {
+        "example": "{\n  \"manifest\": {\n    \"$schema\": \"agent-kernel/agent-v1\",\n    \"name\": \"docs-writer\",\n    \"description\": \"Kicks off and executes documentation tasks in whatever repo the session runs in...\",\n    \"model\": \"docs-writer\",\n    \"thinking\": \"medium\",\n    \"maxTurns\": 40,\n    \"disallowedTools\": [\n      \"write\",\n      \"edit\"\n    ]\n  },\n  \"prompt\": {\n    \"kind\": \"prompt\",\n    \"schemaVersion\": \"prompt-kit/v1\",\n    \"id\": \"docsWriterPrompt\",\n    \"title\": \"Docs Writer\",\n    \"archetype\": \"workflow\",\n    \"nodes\": [\n      {\n        \"type\": \"section\",\n        \"id\": \"node-section-purpose\",\n        \"tag\": \"purpose\",\n        \"children\": []\n      }\n    ]\n  },\n  \"promptHash\": \"pk1-63801a3d2f2ec4c1b75e6650902114335130c83fc6c29d22a5a05ce079714a20\",\n  \"rendered\": \"<purpose>\\n    You are the docs writer: ...\\n</purpose>\",\n  \"declaredVariables\": [],\n  \"modelAliases\": [\n    \"prompt-editor\",\n    \"context-editor\",\n    \"docs-writer\"\n  ],\n  \"context\": {\n    \"modulePath\": \"/repo/catalog/docs-writer/context/index.ts\",\n    \"inputs\": [\n      {\n        \"loaderKind\": \"file\",\n        \"inputRef\": \"/repo/docs-system/docs/10-system-design/10-doc-standards/10-structure/doc.json\",\n        \"status\": \"ok\",\n        \"bytes\": 6120\n      }\n    ],\n    \"renderedContext\": \"<doc-standards>...</doc-standards>\"\n  },\n  \"fixtures\": [],\n  \"tools\": [\n    {\n      \"name\": \"docs_tree\",\n      \"label\": \"Docs tree\",\n      \"description\": \"List the repo's docs-system corpus: every doc node with its path, title, and block count. Start here to orient.\",\n      \"parameters\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"root\": {\n            \"type\": \"string\",\n            \"description\": \"docs root; default: nearest docs/ up-tree\"\n          }\n        }\n      }\n    }\n  ]\n}",
+        "fields": [
+          {
+            "name": "manifest",
+            "type": "Record<string, unknown>",
+            "required": true,
+            "description": "The bundle's agent.json."
+          },
+          {
+            "name": "prompt",
+            "type": "PromptDocument",
+            "required": true
+          },
+          {
+            "name": "promptHash",
+            "type": "string",
+            "required": true,
+            "description": "pk1- canonical hash of prompt."
+          },
+          {
+            "name": "rendered",
+            "type": "string",
+            "required": true,
+            "description": "Rendered system prompt text."
+          },
+          {
+            "name": "declaredVariables",
+            "type": "string[]",
+            "required": true
+          },
+          {
+            "name": "modelAliases",
+            "type": "string[]",
+            "required": true,
+            "description": "Keys of the kernel's models.aliases, offered as model suggestions."
+          },
+          {
+            "name": "context",
+            "type": "KernelCatalogContextPreview | null",
+            "required": true,
+            "description": "null when the bundle has no context sidecar.",
+            "fields": [
+              {
+                "name": "modulePath",
+                "type": "string | null",
+                "required": true
+              },
+              {
+                "name": "inputs",
+                "type": "object[]",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "loaderKind",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "inputRef",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "status",
+                    "type": "\"ok\" | \"empty\" | \"error\"",
+                    "required": true
+                  },
+                  {
+                    "name": "bytes",
+                    "type": "number",
+                    "required": true
+                  }
+                ]
+              },
+              {
+                "name": "renderedContext",
+                "type": "string | null",
+                "required": true,
+                "description": "null when the preview cannot be built."
+              }
+            ]
+          },
+          {
+            "name": "fixtures",
+            "type": "{ id, label }[]",
+            "required": true,
+            "description": "Named state fixtures; empty when the bundle ships none."
+          },
+          {
+            "name": "tools",
+            "type": "KernelCatalogToolPreview[] | null",
+            "required": true,
+            "description": "null when no tool preview is available.",
+            "fields": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "label",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "description",
+                "type": "string",
+                "required": true
+              },
+              {
+                "name": "parameters",
+                "type": "object",
+                "required": true,
+                "description": "JSON Schema, as registered with the provider."
+              }
+            ]
+          },
+          {
+            "name": "contextFixtures",
+            "type": "{ id, label, context, tools? }[]",
+            "required": false,
+            "description": "Per-fixture context previews."
+          }
+        ],
+        "name": "KernelCatalogAgentDetail",
+        "source": {
+          "path": "packages/kernel/src/catalog-service.ts",
+          "symbol": "KernelCatalogAgentDetail"
+        }
+      },
+      "children": []
+    },
+    "b-50-read-api-catalog-surface": {
+      "id": "b-50-read-api-catalog-surface",
+      "type": "interaction-surface",
+      "props": {
+        "operations": [
+          {
+            "name": "GET /catalog/agents",
+            "kind": "query",
+            "returns": "{ agents: KernelCatalogAgentSummary[] }",
+            "description": "Lists agents from listed catalog roots only. Each row carries name, description, pre-alias model, promptHash, and valid."
+          },
+          {
+            "name": "GET /catalog/agents/:name",
+            "kind": "query",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              }
+            ],
+            "returns": "KernelCatalogAgentDetail",
+            "description": "Agents from unlisted roots still resolve here. Unknown agent answers 404."
+          },
+          {
+            "name": "PUT /catalog/agents/:name/prompt",
+            "kind": "action",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              },
+              {
+                "name": "body",
+                "type": "object",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "document",
+                    "type": "PromptDocument",
+                    "required": true
+                  },
+                  {
+                    "name": "expectedHash",
+                    "type": "string",
+                    "required": false,
+                    "description": "Stale value answers 409 with { currentHash }."
+                  }
+                ]
+              }
+            ],
+            "returns": "{ hash }",
+            "description": "A bare PromptDocument body is also accepted. Invalid documents answer 400 with { errors }. A 500 with committed: true means the prompt file was written but a later step failed."
+          },
+          {
+            "name": "PUT /catalog/agents/:name/manifest",
+            "kind": "action",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              },
+              {
+                "name": "body",
+                "type": "object",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "description",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "model",
+                    "type": "string",
+                    "required": false
+                  }
+                ]
+              }
+            ],
+            "returns": "{ manifest }",
+            "description": "Only description and model are editable; any other key answers 400."
+          },
+          {
+            "name": "GET /catalog/agents/:name/revisions",
+            "kind": "query",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              }
+            ],
+            "returns": "{ revisions: { hash, source, createdAt }[] }"
+          },
+          {
+            "name": "GET /catalog/agents/:name/revisions/:hash/document",
+            "kind": "query",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              },
+              {
+                "name": "hash",
+                "type": "string",
+                "required": true
+              }
+            ],
+            "returns": "{ hash, createdAt, document: PromptDocument }"
+          },
+          {
+            "name": "GET /catalog/agents/:name/revisions/:hash/stats",
+            "kind": "query",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              },
+              {
+                "name": "hash",
+                "type": "string",
+                "required": true
+              }
+            ],
+            "returns": "PromptRevisionStats: runs, totalTokens, avgTokens, cost",
+            "description": "Aggregates runs whose sessions carry this prompt hash."
+          },
+          {
+            "name": "GET /catalog/agents/:name/fixtures/:fixtureId/state-preview",
+            "kind": "query",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              },
+              {
+                "name": "fixtureId",
+                "type": "string",
+                "required": true,
+                "description": "A state/fixtures/<id>.json file in the bundle."
+              }
+            ],
+            "returns": "{ fixtureId, source: \"state-module\" | \"fallback\", renderedState }",
+            "description": "Renders through the bundle's state module when it has one, otherwise pretty-prints the fixture state."
+          }
+        ],
+        "title": "Catalog Routes"
+      },
+      "children": []
+    },
+    "b-50-read-api-annotations-lead": {
+      "id": "b-50-read-api-annotations-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "createKernelCatalogApi",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " also mounts the annotation routes from "
+        },
+        {
+          "insert": "catalog-annotations-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Every mutation answers 409 with "
+        },
+        {
+          "insert": "{ currentHash }",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on a stale "
+        },
+        {
+          "insert": "expectedHash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-annotations-surface": {
+      "id": "b-50-read-api-annotations-surface",
+      "type": "interaction-surface",
+      "props": {
+        "operations": [
+          {
+            "name": "GET /catalog/agents/:name/annotations",
+            "kind": "query",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              }
+            ],
+            "returns": "{ annotations, hash, dangling }",
+            "description": "dangling lists targets that no longer resolve against the current prompt. A corrupt sidecar answers 422."
+          },
+          {
+            "name": "POST /catalog/agents/:name/annotations",
+            "kind": "action",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              },
+              {
+                "name": "body",
+                "type": "object",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "target",
+                    "type": "annotation target",
+                    "required": true,
+                    "description": "Must resolve against the current prompt, or the route answers 400."
+                  },
+                  {
+                    "name": "body",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "intent",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "author",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "expectedHash",
+                    "type": "string",
+                    "required": false,
+                    "description": "Sidecar hash the edit is based on; a stale value answers 409 with { currentHash }."
+                  }
+                ]
+              }
+            ],
+            "returns": "{ ok, annotation, annotations, hash }"
+          },
+          {
+            "name": "POST /catalog/agents/:name/annotations/prune",
+            "kind": "action",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              },
+              {
+                "name": "body",
+                "type": "object",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "resolvedOlderThan",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "expectedHash",
+                    "type": "string",
+                    "required": false,
+                    "description": "Sidecar hash the edit is based on; a stale value answers 409 with { currentHash }."
+                  }
+                ]
+              }
+            ],
+            "returns": "{ ok, removed, annotations, hash }",
+            "description": "Compacts the sidecar by removing resolved annotations."
+          },
+          {
+            "name": "POST /catalog/agents/:name/annotations/:id/replies",
+            "kind": "action",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              },
+              {
+                "name": "id",
+                "type": "string",
+                "required": true,
+                "description": "Annotation id."
+              },
+              {
+                "name": "body",
+                "type": "object",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "author",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "body",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "expectedHash",
+                    "type": "string",
+                    "required": false,
+                    "description": "Sidecar hash the edit is based on; a stale value answers 409 with { currentHash }."
+                  }
+                ]
+              }
+            ],
+            "returns": "{ ok, annotation, annotations, hash }"
+          },
+          {
+            "name": "POST /catalog/agents/:name/annotations/:id/resolve",
+            "kind": "action",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              },
+              {
+                "name": "id",
+                "type": "string",
+                "required": true,
+                "description": "Annotation id."
+              },
+              {
+                "name": "body",
+                "type": "object",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "status",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "resolution",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "expectedHash",
+                    "type": "string",
+                    "required": false,
+                    "description": "Sidecar hash the edit is based on; a stale value answers 409 with { currentHash }."
+                  }
+                ]
+              }
+            ],
+            "returns": "{ ok, annotation, annotations, hash }"
+          },
+          {
+            "name": "POST /catalog/agents/:name/annotations/:id/agent-run",
+            "kind": "action",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              },
+              {
+                "name": "id",
+                "type": "string",
+                "required": true,
+                "description": "Annotation id."
+              },
+              {
+                "name": "body",
+                "type": "object",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "sessionId",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "patchId",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "summary",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "changedIds",
+                    "type": "string[]",
+                    "required": false
+                  },
+                  {
+                    "name": "expectedHash",
+                    "type": "string",
+                    "required": false,
+                    "description": "Sidecar hash the edit is based on; a stale value answers 409 with { currentHash }."
+                  }
+                ]
+              }
+            ],
+            "returns": "{ ok, annotation, annotations, hash }",
+            "description": "Records the agent run that acted on the annotation."
+          },
+          {
+            "name": "DELETE /catalog/agents/:name/annotations/:id",
+            "kind": "action",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              },
+              {
+                "name": "id",
+                "type": "string",
+                "required": true,
+                "description": "Annotation id."
+              },
+              {
+                "name": "expectedHash",
+                "type": "string",
+                "required": false,
+                "description": "Passed as a query parameter."
+              }
+            ],
+            "returns": "{ ok, annotations, hash }"
+          }
+        ],
+        "title": "Annotation Routes"
+      },
+      "children": []
+    },
+    "b-50-read-api-sessions-lead": {
+      "id": "b-50-read-api-sessions-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt-edit session routes ("
+        },
+        {
+          "insert": "prompt-edit-session-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") mount only when "
+        },
+        {
+          "insert": "createKernelCatalogApi",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " receives "
+        },
+        {
+          "insert": "promptEditSessions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Review conflicts answer 409 with a typed "
+        },
+        {
+          "insert": "failure",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-sessions-surface": {
+      "id": "b-50-read-api-sessions-surface",
+      "type": "interaction-surface",
+      "props": {
+        "operations": [
+          {
+            "name": "POST /catalog/agents/:name/edit-sessions",
+            "kind": "action",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Agent name from the catalog registry."
+              },
+              {
+                "name": "body",
+                "type": "object",
+                "required": false,
+                "fields": [
+                  {
+                    "name": "instruction",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "requestIds",
+                    "type": "string[]",
+                    "required": false,
+                    "description": "Scopes the session. One id is a run-now, the queued set is apply; omitted works every open request. An empty array answers 400."
+                  },
+                  {
+                    "name": "extraRequests",
+                    "type": "array",
+                    "required": false
+                  },
+                  {
+                    "name": "sessionId",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "spawn",
+                    "type": "boolean",
+                    "required": false
+                  }
+                ]
+              }
+            ],
+            "returns": "201 { state }",
+            "description": "Answers 409 with a typed failure for agent-busy (the agent already has an open session) or empty-scope (no requested id is an open request)."
+          },
+          {
+            "name": "GET /prompt-edit-sessions",
+            "kind": "query",
+            "returns": "{ sessions }"
+          },
+          {
+            "name": "GET /prompt-edit-sessions/:id",
+            "kind": "query",
+            "params": [
+              {
+                "name": "id",
+                "type": "string",
+                "required": true,
+                "description": "Prompt-edit session id."
+              }
+            ],
+            "returns": "{ state }"
+          },
+          {
+            "name": "GET /prompt-edit-sessions/:id/events",
+            "kind": "event",
+            "params": [
+              {
+                "name": "id",
+                "type": "string",
+                "required": true,
+                "description": "Prompt-edit session id."
+              }
+            ],
+            "returns": "text/event-stream of data: <json> frames",
+            "description": "Sends one session-state snapshot on connect, then forwards every session and review event. The stream ends after session-disposed."
+          },
+          {
+            "name": "POST /prompt-edit-sessions/:id/requests",
+            "kind": "action",
+            "params": [
+              {
+                "name": "id",
+                "type": "string",
+                "required": true,
+                "description": "Prompt-edit session id."
+              },
+              {
+                "name": "body",
+                "type": "object",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "target",
+                    "type": "prompt target",
+                    "required": true
+                  },
+                  {
+                    "name": "body",
+                    "type": "string",
+                    "required": true,
+                    "description": "Non-empty."
+                  },
+                  {
+                    "name": "id",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "author",
+                    "type": "string",
+                    "required": false
+                  }
+                ]
+              }
+            ],
+            "returns": "{ ok: true, request }",
+            "description": "Adds a human request to a running session."
+          },
+          {
+            "name": "POST /prompt-edit-sessions/:id/requests/:alias/accept",
+            "kind": "action",
+            "params": [
+              {
+                "name": "id",
+                "type": "string",
+                "required": true,
+                "description": "Prompt-edit session id."
+              },
+              {
+                "name": "alias",
+                "type": "string",
+                "required": true,
+                "description": "Request alias within the session."
+              }
+            ],
+            "returns": "{ ok, alias, transactionId, hash, annotation }",
+            "description": "Applies the staged proposal as a prompt save. A moved live prompt answers 409 with { currentHash }; out-of-order accepts also answer 409."
+          },
+          {
+            "name": "POST /prompt-edit-sessions/:id/requests/:alias/reject",
+            "kind": "action",
+            "params": [
+              {
+                "name": "id",
+                "type": "string",
+                "required": true,
+                "description": "Prompt-edit session id."
+              },
+              {
+                "name": "alias",
+                "type": "string",
+                "required": true,
+                "description": "Request alias within the session."
+              },
+              {
+                "name": "body",
+                "type": "object",
+                "required": false,
+                "fields": [
+                  {
+                    "name": "note",
+                    "type": "string",
+                    "required": false
+                  }
+                ]
+              }
+            ],
+            "returns": "{ ok, alias, transactionId, request, annotation }",
+            "description": "Only the latest staged proposal can be rejected; others answer 409."
+          },
+          {
+            "name": "POST /prompt-edit-sessions/:id/requests/:alias/undo",
+            "kind": "action",
+            "params": [
+              {
+                "name": "id",
+                "type": "string",
+                "required": true,
+                "description": "Prompt-edit session id."
+              },
+              {
+                "name": "alias",
+                "type": "string",
+                "required": true,
+                "description": "Request alias within the session."
+              }
+            ],
+            "returns": "{ ok, alias, transactionId, hash }",
+            "description": "Only the latest applied proposal can be undone; others answer 409."
+          },
+          {
+            "name": "POST /prompt-edit-sessions/:id/requests/:alias/replies",
+            "kind": "action",
+            "params": [
+              {
+                "name": "id",
+                "type": "string",
+                "required": true,
+                "description": "Prompt-edit session id."
+              },
+              {
+                "name": "alias",
+                "type": "string",
+                "required": true,
+                "description": "Request alias within the session."
+              },
+              {
+                "name": "body",
+                "type": "object",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "body",
+                    "type": "string",
+                    "required": true,
+                    "description": "Non-empty."
+                  }
+                ]
+              }
+            ],
+            "returns": "{ ok: true, request }"
+          },
+          {
+            "name": "DELETE /prompt-edit-sessions/:id",
+            "kind": "action",
+            "params": [
+              {
+                "name": "id",
+                "type": "string",
+                "required": true,
+                "description": "Prompt-edit session id."
+              }
+            ],
+            "returns": "{ ok: true }",
+            "description": "Disposes the session and ends its event streams."
+          }
+        ],
+        "title": "Prompt-Edit Session Routes"
+      },
+      "children": []
+    },
+    "b-50-read-api-decisions-6": {
+      "id": "b-50-read-api-decisions-6",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-route-paths-are-viewer-c-7": {
+      "id": "b-50-read-api-route-paths-are-viewer-c-7",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Route paths are duplicated between kernel and viewer-core"
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-decision-every-url-8": {
+      "id": "b-50-read-api-decision-every-url-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "@agent-kernel/viewer-core",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " defines the client side of each URL shape: "
+        },
+        {
+          "insert": "KERNEL_TRACE_READ_PATHS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "KERNEL_CATALOG_PATHS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "KERNEL_PROMPT_EDIT_SESSION_PATHS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Viewer-ui fetchers use these constants. The kernel route factories write the same paths as template literals, because the kernel does not depend on the viewer ("
+        },
+        {
+          "insert": "catalog-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " header). Viewer-core also defines "
+        },
+        {
+          "insert": "KERNEL_OBSERVER_READ_PATHS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for a cross-kernel observer plane; no server implements it yet."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-why-the-routes-are-9": {
+      "id": "b-50-read-api-why-the-routes-are-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Sharing the constants would make the kernel import a viewer package, which reverses the package dependency direction. The cost is that a path rename must change both sides by hand. "
+        },
+        {
+          "insert": "packages/viewer-ui/src/kernel-route-parity.test.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " guards the pair. It builds the route factories over stub services, enumerates the registered routes, and fails when a method and path shape exists on one side only. The test lives in viewer-ui because that package already takes the kernel as a devDependency. Its one allowlisted gap is "
+        },
+        {
+          "insert": "KERNEL_OBSERVER_READ_PATHS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-applies-to-package-10": {
+      "id": "b-50-read-api-applies-to-package-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/viewer-core/src/api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "packages/kernel/src/read-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "catalog-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "catalog-annotations-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "prompt-edit-session-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and every future route. A new route adds its template literal in the kernel, its constant in viewer-core, and the constant's HTTP method in the parity test's method table."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-routes-bind-to-a-service-11": {
+      "id": "b-50-read-api-routes-bind-to-a-service-11",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Routes bind to a service contract, not to the database"
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-decision-the-route-12": {
+      "id": "b-50-read-api-decision-the-route-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The route factory takes a "
+        },
+        {
+          "insert": "KernelTraceReadService",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "getContainerTrace",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is required; "
+        },
+        {
+          "insert": "listSessionContainers",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "getBlob",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "getRunTurnContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are optional, and each route answers 404 when its method is absent. The kernel ships the default container-backed implementation ("
+        },
+        {
+          "insert": "kernel.readApiService",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", flushing pending trace writes before each read); the routes never import DB actions directly."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-why-apps-with-custo-13": {
+      "id": "b-50-read-api-why-apps-with-custo-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Apps with custom auth, tenancy, or payload shapes must be able to supply their own service without forking the routes. Binding routes straight to the db was rejected because it makes the route surface and the storage layer one unit."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-applies-to-package-14": {
+      "id": "b-50-read-api-applies-to-package-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/kernel/src/read-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "read-service.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and every future route: new reads extend the service contract, then the routes."
+        }
+      ],
+      "children": []
+    }
+  }
+}

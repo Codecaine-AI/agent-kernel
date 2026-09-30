@@ -1,0 +1,1330 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-15-identity-model",
+  "title": "Identity Model",
+  "root": "b-15-identity-model-root-36",
+  "blocks": {
+    "b-15-identity-model-root-36": {
+      "id": "b-15-identity-model-root-36",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "identity-model",
+          "containers",
+          "container-kind",
+          "agent-sessions",
+          "agent-runs",
+          "turns",
+          "linkage-invariants",
+          "trace-doctor"
+        ],
+        "covers": "The kernel identity model: containers with kinds as the single grouping primitive, agent sessions, runs, turns, and the linkage invariants the trace doctor enforces.",
+        "depends-on": [
+          "10-system-design/20-observability-model"
+        ]
+      },
+      "children": [
+        "b-15-identity-model-one-grouping-primitive-2",
+        "b-15-identity-model-divider-3",
+        "b-15-identity-model-the-nesting-4",
+        "b-15-identity-model-text-5",
+        "b-15-identity-model-there-is-no-separate-ap-6",
+        "b-15-identity-model-container-identity-7",
+        "b-15-identity-model-containers-are-identifie-8",
+        "b-15-identity-model-container-spec",
+        "b-15-identity-model-the-call-is-an-upsert-t-10",
+        "b-15-identity-model-entity-meanings-11",
+        "b-15-identity-model-entity-table",
+        "b-15-identity-model-a-run-is-one-processing-13",
+        "b-15-identity-model-run-heading",
+        "b-15-identity-model-run-triggers-operator-14",
+        "b-15-identity-model-run-vocab-table",
+        "b-15-identity-model-linkage-rules-15",
+        "b-15-identity-model-if-a-relationship-is-kno-16",
+        "b-15-identity-model-every-trace-event-carrie-17",
+        "b-15-identity-model-every-run-carries-pises-18",
+        "b-15-identity-model-a-subagent-s-session-car-19",
+        "b-15-identity-model-a-subagent-s-run-carries-20",
+        "b-15-identity-model-timestamps-order-events-21",
+        "b-15-identity-model-trace-doctor-invariants-22",
+        "b-15-identity-model-agent-kernel-doctor-ch-23",
+        "b-15-identity-model-doctor-table",
+        "b-15-identity-model-worked-example-25",
+        "b-15-identity-model-a-research-harness-recei-26",
+        "b-15-identity-model-worked-sequence"
+      ]
+    },
+    "b-15-identity-model-one-grouping-primitive-2": {
+      "id": "b-15-identity-model-one-grouping-primitive-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "One grouping primitive, four nested levels, explicit linkage everywhere."
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-divider-3": {
+      "id": "b-15-identity-model-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-15-identity-model-the-nesting-4": {
+      "id": "b-15-identity-model-the-nesting-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Nesting"
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-text-5": {
+      "id": "b-15-identity-model-text-5",
+      "type": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "Container (kind + key, forms a tree)      the only grouping primitive\n  Agent session (Pi conversation)         promptHash, frozen system prompt\n    Run (message in -> response out)      trigger, status, usage rollup\n      Turn (one model call)               pi_turn_* trace events, no row"
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-there-is-no-separate-ap-6": {
+      "id": "b-15-identity-model-there-is-no-separate-ap-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "There is no separate \"app session\" identity. An app session is a container of\n"
+        },
+        {
+          "insert": "kind: \"session\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". A worker slot is a container of "
+        },
+        {
+          "insert": "kind: \"worker\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The kind\nvocabulary belongs to the host app; the container mechanics belong to the\nkernel."
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-container-identity-7": {
+      "id": "b-15-identity-model-container-identity-7",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Container Identity"
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-containers-are-identifie-8": {
+      "id": "b-15-identity-model-containers-are-identifie-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A host app asks for a container with "
+        },
+        {
+          "insert": "kernel.container(spec)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The kernel derives the id from "
+        },
+        {
+          "insert": "(kernelId, kind, key)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as "
+        },
+        {
+          "insert": "uuidv5(kernelNamespace(kernelId), JSON.stringify([kind, ...key]))",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-container-spec": {
+      "id": "b-15-identity-model-container-spec",
+      "type": "state-shape",
+      "props": {
+        "description": "The argument to kernel.container(). Kind and key vocabulary belong to the host app.",
+        "example": "{\n  \"kind\": \"session\",\n  \"key\": [\"3f2b9c4e-7a1d-4c55-9e0a-2b8f6d1c4a90\"],\n  \"label\": \"Research: how spawner tools change subagent dispatch\",\n  \"phase\": \"research\",\n  \"phaseVocabulary\": [\"research\"],\n  \"workingDir\": \"/repo/examples/simple-research-kernel\",\n  \"metadata\": {\n    \"app\": \"simple-research-kernel\",\n    \"topic\": \"how spawner tools change subagent dispatch\"\n  }\n}",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "string",
+            "description": "App-defined, such as session, worker, or epoch. Part of the identity."
+          },
+          {
+            "name": "key",
+            "type": "string[]",
+            "description": "Non-empty. Part of the identity."
+          },
+          {
+            "name": "parent",
+            "type": "string | { id: string }",
+            "required": false,
+            "description": "Parent container row or id. Builds the container tree."
+          },
+          {
+            "name": "label",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "phase",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "phaseVocabulary",
+            "type": "string[]",
+            "required": false
+          },
+          {
+            "name": "workingDir",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "metadata",
+            "type": "Record<string, unknown>",
+            "required": false,
+            "description": "Opaque to the kernel."
+          }
+        ],
+        "name": "KernelContainerSpec",
+        "source": {
+          "path": "packages/kernel/src/containers.ts",
+          "symbol": "KernelContainerSpec"
+        }
+      },
+      "children": []
+    },
+    "b-15-identity-model-the-call-is-an-upsert-t-10": {
+      "id": "b-15-identity-model-the-call-is-an-upsert-t-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The call is an upsert: the same kind and key always resolve to the same\ncontainer. Host apps never mint or hash their own grouping ids."
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-entity-meanings-11": {
+      "id": "b-15-identity-model-entity-meanings-11",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Entity Meanings"
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-entity-table": {
+      "id": "b-15-identity-model-entity-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Entity",
+          "Created",
+          "Closed / status",
+          "Rolls up",
+          "Persisted as"
+        ],
+        "rows": [
+          [
+            "Container",
+            [
+              {
+                "insert": "First "
+              },
+              {
+                "insert": "kernel.container()",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " upsert"
+              }
+            ],
+            [
+              {
+                "insert": "The host app sets the status. Open vocabulary with kernel conventions "
+              },
+              {
+                "insert": "active",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "done",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "error",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and "
+              },
+              {
+                "insert": "aborted",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Input and output tokens, cache read and write, cost estimate",
+            [
+              {
+                "insert": "containers",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " row, unique on "
+              },
+              {
+                "insert": "(kernel_id, kind, app_key)",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Agent session",
+            [
+              {
+                "insert": "Spawn upserts the Pi session as "
+              },
+              {
+                "insert": "active",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "ended",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " when its run finishes, "
+              },
+              {
+                "insert": "error",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " when the spawn fails. Open vocabulary"
+              }
+            ],
+            "Input and output tokens",
+            [
+              {
+                "insert": "pi_agent_sessions",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " row with "
+              },
+              {
+                "insert": "prompt_hash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "parent_session_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and "
+              },
+              {
+                "insert": "parent_tool_use_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Run",
+            [
+              {
+                "insert": "Spawn inserts it as "
+              },
+              {
+                "insert": "running",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Closed vocabulary, listed under Run Triggers and Statuses",
+            "Input and output tokens, cache read and write, cost estimate",
+            [
+              {
+                "insert": "agent_runs",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " row with "
+              },
+              {
+                "insert": "trigger",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "inbound_event_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "outbound_event_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and "
+              },
+              {
+                "insert": "parent_run_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Turn",
+            "Pi turn start",
+            "Pi turn end",
+            [
+              {
+                "insert": "Per-call usage on "
+              },
+              {
+                "insert": "pi_turn_end",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "No row. Only "
+              },
+              {
+                "insert": "pi_turn_start",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": "pi_turn_end",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " trace events"
+              }
+            ]
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-15-identity-model-a-run-is-one-processing-13": {
+      "id": "b-15-identity-model-a-run-is-one-processing-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A run is one processing loop: a message goes in, the agent works, a response\ncomes out. A session holds many runs. The system prompt is frozen when the\nsession is created, so "
+        },
+        {
+          "insert": "promptHash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " lives on the session; every run inherits\nit."
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-run-heading": {
+      "id": "b-15-identity-model-run-heading",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Run Triggers and Statuses"
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-run-triggers-operator-14": {
+      "id": "b-15-identity-model-run-triggers-operator-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Both vocabularies are closed: "
+        },
+        {
+          "insert": "RUN_TRIGGER",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "RUN_STATUS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "packages/db/src/schema/agent-runs.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/db/src/schema/agent-runs.ts"
+            }
+          }
+        },
+        {
+          "insert": ". Steering does not open a run. It emits a "
+        },
+        {
+          "insert": "run_steered",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " event on the agent's existing run."
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-run-vocab-table": {
+      "id": "b-15-identity-model-run-vocab-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Field",
+          "Value",
+          "Set when"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "trigger",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "operator",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Derived: the spawn has no "
+              },
+              {
+                "insert": "parentToolUseId",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "trigger",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "parent-tool",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Derived: the spawn has a "
+              },
+              {
+                "insert": "parentToolUseId",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "trigger",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "steer",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "resume",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "system",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Only when a caller passes the trigger explicitly. No current code path does"
+          ],
+          [
+            [
+              {
+                "insert": "status",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "running",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The spawn opens the run"
+          ],
+          [
+            [
+              {
+                "insert": "status",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "done",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The final response arrives without an abort or turn limit"
+          ],
+          [
+            [
+              {
+                "insert": "status",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "turn-limit",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The run reaches its turn limit"
+          ],
+          [
+            [
+              {
+                "insert": "status",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "aborted",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The abort signal fires, or the session reports an aborted result"
+          ],
+          [
+            [
+              {
+                "insert": "status",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "error",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The spawn throws without an abort, including an assistant turn that stops with an error"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-15-identity-model-linkage-rules-15": {
+      "id": "b-15-identity-model-linkage-rules-15",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Linkage Rules"
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-if-a-relationship-is-kno-16": {
+      "id": "b-15-identity-model-if-a-relationship-is-kno-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "If a relationship is known at emit time, it is written explicitly. The kernel\nruntime stamps identity from "
+        },
+        {
+          "insert": "RunContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " automatically. Adapters do not fill\nenvelope identity fields by hand."
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-every-trace-event-carrie-17": {
+      "id": "b-15-identity-model-every-trace-event-carrie-17",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "every trace event carries "
+        },
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; events inside a run carry "
+        },
+        {
+          "insert": "runId",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-every-run-carries-pises-18": {
+      "id": "b-15-identity-model-every-run-carries-pises-18",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "every run carries "
+        },
+        {
+          "insert": "piSessionId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-a-subagent-s-session-car-19": {
+      "id": "b-15-identity-model-a-subagent-s-session-car-19",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "a subagent's session carries "
+        },
+        {
+          "insert": "parentSessionId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "parentToolUseId",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-a-subagent-s-run-carries-20": {
+      "id": "b-15-identity-model-a-subagent-s-run-carries-20",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "a subagent's run carries "
+        },
+        {
+          "insert": "parentRunId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "parentToolUseId",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-timestamps-order-events-21": {
+      "id": "b-15-identity-model-timestamps-order-events-21",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "timestamps order events; they never prove parentage"
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-trace-doctor-invariants-22": {
+      "id": "b-15-identity-model-trace-doctor-invariants-22",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Trace Doctor Invariants"
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-agent-kernel-doctor-ch-23": {
+      "id": "b-15-identity-model-agent-kernel-doctor-ch-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "agent-kernel-doctor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (a bin of the kernel package) checks a kernel database against the linkage rules:"
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-doctor-table": {
+      "id": "b-15-identity-model-doctor-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "#",
+          "Check",
+          "Rule"
+        ],
+        "rows": [
+          [
+            "1",
+            [
+              {
+                "insert": "event-container-resolves",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Every "
+              },
+              {
+                "insert": "trace_events.container_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " exists in "
+              },
+              {
+                "insert": "containers",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "2",
+            [
+              {
+                "insert": "run-linkage-resolves",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Every "
+              },
+              {
+                "insert": "agent_runs.container_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": "agent_runs.pi_session_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " resolve"
+              }
+            ]
+          ],
+          [
+            "3",
+            [
+              {
+                "insert": "child-session-linkage",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "A session with "
+              },
+              {
+                "insert": "parent_session_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " has a parent that resolves and carries "
+              },
+              {
+                "insert": "parent_tool_use_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "4",
+            [
+              {
+                "insert": "run-terminal-or-session-active",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "A run without a terminal status belongs to a session that is still "
+              },
+              {
+                "insert": "active",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "5",
+            [
+              {
+                "insert": "tool-call-pairing",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Every "
+              },
+              {
+                "insert": "tool_call_start",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " pairs with a "
+              },
+              {
+                "insert": "tool_call_end",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " by "
+              },
+              {
+                "insert": "tool_use_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", unless its run is "
+              },
+              {
+                "insert": "running",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " or ended "
+              },
+              {
+                "insert": "error",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "aborted",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", or "
+              },
+              {
+                "insert": "turn-limit",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "6",
+            [
+              {
+                "insert": "container-kind-present",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Every container has a non-empty "
+              },
+              {
+                "insert": "kind",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "6",
+            [
+              {
+                "insert": "container-tree-acyclic",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The container parent tree has no cycles"
+          ],
+          [
+            "7",
+            [
+              {
+                "insert": "event-run-resolves",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Every non-null "
+              },
+              {
+                "insert": "trace_events.run_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " resolves to a run"
+              }
+            ]
+          ],
+          [
+            "8",
+            [
+              {
+                "insert": "session-usage-rollup",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Run input and output tokens summed per session equal the session rollup"
+          ],
+          [
+            "8",
+            [
+              {
+                "insert": "container-usage-rollup",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Run tokens, cache read and write, and cost summed per container equal the container rollup. There is no turn-level check"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-15-identity-model-worked-example-25": {
+      "id": "b-15-identity-model-worked-example-25",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Worked Example"
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-a-research-harness-recei-26": {
+      "id": "b-15-identity-model-a-research-harness-recei-26",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The reference research harness handles one operator request. The coordinator's "
+        },
+        {
+          "insert": "spawn_research_scouts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tool dispatches two scouts, and every row the kernel writes links back through explicit ids."
+        }
+      ],
+      "children": []
+    },
+    "b-15-identity-model-worked-sequence": {
+      "id": "b-15-identity-model-worked-sequence",
+      "type": "sequence",
+      "props": {
+        "src": "./assets/sequences/research-request-identity.sequence.json",
+        "title": "Research request identity"
+      },
+      "children": []
+    }
+  }
+}

@@ -16,3 +16,9 @@ examples/simple-research-kernel/.agent-kernel/
 examples/simple-research-kernel/.pi-agent/
 
 ai_docs/
+
+# Local Docs indexes and reversible edit journals
+docs/.index/
+
+# Docs tool recovery journals
+docs/.changesets/

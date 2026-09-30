@@ -6,9 +6,9 @@ no service processes (transcript recovery is an in-kernel import tool, not a
 running daemon).
 
 Architecture and the harness taxonomy it belongs to:
-[`docs/10-system-design/70-harness-model.md`](../../docs/10-system-design/70-harness-model.md).
+[`docs/10-system-design/70-harness-model/`](../../docs/10-system-design/70-harness-model/).
 The adapter model it demonstrates:
-[`docs/10-system-design/50-app-adapter-model.md`](../../docs/10-system-design/50-app-adapter-model.md).
+[`docs/10-system-design/50-app-adapter-model/`](../../docs/10-system-design/50-app-adapter-model/).
 
 ## Run
 

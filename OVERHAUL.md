@@ -5,7 +5,7 @@ the `prompt-kit` submodule): what was implemented, how it was verified, and
 the follow-up work it sets up. The full implementation plan that drove it is
 [docs/.drafts/agent-kernel-overhaul.plan.md](docs/.drafts/agent-kernel-overhaul.plan.md);
 decisions are recorded as D70–D80 in
-[docs/10-system-design/60-prompt-system-model.md](docs/10-system-design/60-prompt-system-model.md).
+[docs/10-system-design/60-prompt-system-model/](docs/10-system-design/60-prompt-system-model/).
 
 ---
 
@@ -27,7 +27,7 @@ decisions are recorded as D70–D80 in
   inbound/outbound event references.
 - `agent-kernel doctor` (and `make doctor`) checks 8 linkage/usage invariants
   over any kernel database; also surfaced in the viewer.
-- See [docs/10-system-design/15-identity-model.md](docs/10-system-design/15-identity-model.md).
+- See [docs/10-system-design/15-identity-model/](docs/10-system-design/15-identity-model/).
 
 ### Tracing — in-process emission, token accounting, transcript recovery
 

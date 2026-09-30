@@ -1,0 +1,872 @@
+{
+  "schemaVersion": 1,
+  "id": "30-authoring-40-validation",
+  "title": "Validation",
+  "root": "b-40-validation-root-37",
+  "blocks": {
+    "b-40-validation-root-37": {
+      "id": "b-40-validation-root-37",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/agent-registry/, packages/kernel/src/doctor.ts, packages/kernel/src/catalog-service.ts, packages/viewer-ui/src/agent-viewer/, packages/viewer-ui/src/trace-viewer/",
+        "concepts": [
+          "agent-authoring",
+          "validation",
+          "registry-boot",
+          "runtime-traces",
+          "catalog-doctor",
+          "agent-viewer"
+        ],
+        "covers": "How to validate an authored agent bundle: static boot checks, runtime-only failures, generated prompt checks, catalog layout checks, and viewer inspection.",
+        "depends-on": [
+          "30-authoring",
+          "10-system-design/10-runtime-model",
+          "20-implementation/60-viewer"
+        ]
+      },
+      "children": [
+        "b-40-validation-run-static-checks-after-2",
+        "b-40-validation-authoring-check-3",
+        "b-40-validation-pipeline-lead",
+        "b-40-validation-pipeline",
+        "b-40-validation-prompt-structure-itself-11",
+        "b-40-validation-divider-12",
+        "b-40-validation-catch-at-boot-13",
+        "b-40-validation-fix-these-before-running-14",
+        "b-40-validation-failure-table",
+        "b-40-validation-context-loaders-report-27",
+        "b-40-validation-viewer-expectations-28",
+        "b-40-validation-use-the-viewer-as-inspec-29",
+        "b-40-validation-viewer-table",
+        "b-40-validation-do-not-author-a-combined-35",
+        "b-40-validation-for-the-as-built-viewer-36"
+      ]
+    },
+    "b-40-validation-run-static-checks-after-2": {
+      "id": "b-40-validation-run-static-checks-after-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Run static checks after every bundle change, then inspect one representative runtime trace. Static validation can prove the bundle is loadable; only a spawn can exercise dynamic data and tool behavior."
+        }
+      ],
+      "children": []
+    },
+    "b-40-validation-authoring-check-3": {
+      "id": "b-40-validation-authoring-check-3",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Validate a Bundle"
+        }
+      ],
+      "children": []
+    },
+    "b-40-validation-pipeline-lead": {
+      "id": "b-40-validation-pipeline-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Run these steps in order. The commands live in "
+        },
+        {
+          "insert": "packages/kernel/src/render-prompts-cli.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/render-prompts-cli.ts"
+            }
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "packages/kernel/src/doctor-cli.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/doctor-cli.ts"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-40-validation-pipeline": {
+      "id": "b-40-validation-pipeline",
+      "type": "process-outline",
+      "props": {
+        "steps": [
+          {
+            "text": "Validate an agent bundle",
+            "steps": [
+              {
+                "text": "Regenerate the committed prompt render when the prompt changed",
+                "steps": [
+                  {
+                    "text": "`bunx agent-kernel-render-prompts <catalog-root>`",
+                    "kind": "note"
+                  },
+                  {
+                    "text": "`--agent` treats each path as one bundle directory. `--no-canonical` leaves `prompt.json` bytes unchanged.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Check the render with `--check`",
+                "steps": [
+                  {
+                    "text": "`bunx agent-kernel-render-prompts --check <catalog-root>` writes nothing and exits non-zero on a stale render.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Boot the registry through app startup or its catalog test",
+                "steps": [
+                  {
+                    "text": "Boot reports every broken agent at once. See the failure catalog below.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Run the catalog doctor",
+                "steps": [
+                  {
+                    "text": "`bunx agent-kernel-doctor --catalog <catalog-root...> --strict`",
+                    "kind": "note"
+                  },
+                  {
+                    "text": "Layout and host-portability findings print as warnings. Only `--strict` exits 1.",
+                    "kind": "note"
+                  },
+                  {
+                    "text": "The host check loads the sidecars of every `host: \"any\"` bundle under Node through jiti.",
+                    "kind": "note"
+                  },
+                  {
+                    "text": "Without `--catalog`, the command runs the trace-database doctor.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Open the agent lab",
+                "steps": [
+                  {
+                    "text": "Inspect the System, Context, State, and Tools views"
+                  },
+                  {
+                    "text": "Switch context and state fixtures with the fixture pickers"
+                  }
+                ]
+              },
+              {
+                "text": "Run a representative spawn",
+                "steps": [
+                  {
+                    "text": "Kernel emits `context_build_started`, then one `context_input_resolved` per loader",
+                    "trace": true
+                  },
+                  {
+                    "text": "Kernel emits `context_build_completed` with the rendered context",
+                    "trace": true
+                  },
+                  {
+                    "text": "Inspect the Turn view and tool results"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-40-validation-prompt-structure-itself-11": {
+      "id": "b-40-validation-prompt-structure-itself-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompt structure itself belongs in the prompt-kit repo, "
+        },
+        {
+          "insert": "docs/30-prompt-structure/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; this guide validates the kernel bundle around it."
+        }
+      ],
+      "children": []
+    },
+    "b-40-validation-divider-12": {
+      "id": "b-40-validation-divider-12",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-40-validation-catch-at-boot-13": {
+      "id": "b-40-validation-catch-at-boot-13",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Failure Catalog"
+        }
+      ],
+      "children": []
+    },
+    "b-40-validation-fix-these-before-running-14": {
+      "id": "b-40-validation-fix-these-before-running-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Boot collects every per-agent error into one "
+        },
+        {
+          "insert": "AggregateError",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "packages/kernel/src/agent-registry/registry/registry.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/agent-registry/registry/registry.ts"
+            }
+          }
+        },
+        {
+          "insert": "), so one boot run lists every broken agent. Spawn-stage failures appear in trace events or tool results because their inputs do not exist at boot."
+        }
+      ],
+      "children": []
+    },
+    "b-40-validation-failure-table": {
+      "id": "b-40-validation-failure-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Failure",
+          "Stage",
+          "Where it surfaces",
+          "Fix"
+        ],
+        "rows": [
+          [
+            "Catalog root does not exist",
+            "Boot, before any agent loads",
+            [
+              {
+                "insert": "Plain error "
+              },
+              {
+                "insert": "agent catalog root not found",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Fix the root path passed to the kernel."
+          ],
+          [
+            [
+              {
+                "insert": "agent.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " unparseable or schema-invalid, including unknown keys and bad "
+              },
+              {
+                "insert": "state.window",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " fields"
+              }
+            ],
+            "Boot",
+            [
+              {
+                "insert": "invalid agent.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " in the "
+              },
+              {
+                "insert": "AggregateError",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Match the manifest schema. A folder without "
+              },
+              {
+                "insert": "agent.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " is not discovered, so it reports nothing."
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "prompt.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " missing, unparseable, or not a "
+              },
+              {
+                "insert": "PromptDocument",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Boot",
+            [
+              {
+                "insert": "missing prompt.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " or "
+              },
+              {
+                "insert": "invalid prompt.json",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Add or repair "
+              },
+              {
+                "insert": "prompt.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " or "
+              },
+              {
+                "insert": "prompt/prompt.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ]
+          ],
+          [
+            "PromptKit validation error or an undeclared variable",
+            "Boot",
+            [
+              {
+                "insert": "The diagnostic code, such as "
+              },
+              {
+                "insert": "unknown_variable",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", or "
+              },
+              {
+                "insert": "undeclared variable reference: {{var}}",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Declare the variable in "
+              },
+              {
+                "insert": "agent.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " or remove the node. Unused declarations are warnings only."
+              }
+            ]
+          ],
+          [
+            "Unknown tool profile",
+            "Boot",
+            [
+              {
+                "insert": "unknown tool profile",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with the known profiles listed"
+              }
+            ],
+            [
+              {
+                "insert": "Fix the name or configure the profile in the kernel's "
+              },
+              {
+                "insert": "toolProfiles",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ]
+          ],
+          [
+            "Sidecar exports the wrong shape",
+            "Boot",
+            [
+              {
+                "insert": "context.ts must export",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", or the tools or state equivalent"
+              }
+            ],
+            [
+              {
+                "insert": "Export default or named: context "
+              },
+              {
+                "insert": "{ loaders, assemble }",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", tools a register function, state "
+              },
+              {
+                "insert": "seed",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "update",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and "
+              },
+              {
+                "insert": "render",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ]
+          ],
+          [
+            "Tool registration throws during the boot harvest",
+            "Boot",
+            "The thrown message, attributed to the agent's manifest",
+            [
+              {
+                "insert": "Keep the register callback free of runtime calls; check "
+              },
+              {
+                "insert": "runtime",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " inside "
+              },
+              {
+                "insert": "execute",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ]
+          ],
+          [
+            "Two manifests declare the same agent name",
+            "Boot",
+            [
+              {
+                "insert": "name collision",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with both manifest paths"
+              }
+            ],
+            "Rename one agent."
+          ],
+          [
+            "Spawner tool targets an agent outside the catalog",
+            "Boot",
+            [
+              {
+                "insert": "spawner tool \"x\" targets unknown agent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Fix "
+              },
+              {
+                "insert": "spawns",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " or add the target agent."
+              }
+            ]
+          ],
+          [
+            "Section present in both file and folder form, or a host-portability failure",
+            "Doctor",
+            [
+              {
+                "insert": "Warning from "
+              },
+              {
+                "insert": "agent-kernel-doctor --catalog",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Delete one form. For portability, remove app imports or drop "
+              },
+              {
+                "insert": "host: \"any\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ]
+          ],
+          [
+            "Loader kind not registered in the loader catalog",
+            "Spawn",
+            [
+              {
+                "insert": "context_input_resolved",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with status "
+              },
+              {
+                "insert": "error",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": "Unknown loader kind",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Register the loader in the app's loader catalog, or fix the kind."
+          ],
+          [
+            "Loader input empty or failing: missing session file, failing command, or unavailable app state",
+            "Spawn",
+            [
+              {
+                "insert": "context_input_resolved",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with status "
+              },
+              {
+                "insert": "empty",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " or "
+              },
+              {
+                "insert": "error",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Handle each status in "
+              },
+              {
+                "insert": "assemble",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ]
+          ],
+          [
+            "Tool execution fails",
+            "Spawn",
+            "The tool result in the Turn view",
+            [
+              {
+                "insert": "Fix the handler or the "
+              },
+              {
+                "insert": "toolRuntime",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " service it calls."
+              }
+            ]
+          ],
+          [
+            "Subagent fails",
+            "Spawn",
+            "The child run's trace and the spawner tool's result",
+            "Open the child run and fix its failure there."
+          ]
+        ],
+        "title": "Boot and runtime failures"
+      },
+      "children": []
+    },
+    "b-40-validation-context-loaders-report-27": {
+      "id": "b-40-validation-context-loaders-report-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Keep static failures at the boot boundary instead of converting them into runtime warnings. Make the assembler's treatment of each loader status explicit, and test any path that must stop the run instead of rendering degraded context. The "
+        },
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model"
+            }
+          }
+        },
+        {
+          "insert": " records the boot and trace design."
+        }
+      ],
+      "children": []
+    },
+    "b-40-validation-viewer-expectations-28": {
+      "id": "b-40-validation-viewer-expectations-28",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Viewer Expectations"
+        }
+      ],
+      "children": []
+    },
+    "b-40-validation-use-the-viewer-as-inspec-29": {
+      "id": "b-40-validation-use-the-viewer-as-inspec-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Use the viewer as inspection evidence, not as another authored artifact. A rejected manifest or prompt save in the lab returns its validation errors as a list of strings."
+        }
+      ],
+      "children": []
+    },
+    "b-40-validation-viewer-table": {
+      "id": "b-40-validation-viewer-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Surface",
+          "Shows",
+          "When"
+        ],
+        "rows": [
+          [
+            "Agent lab System view",
+            "The canonical system prompt, declared variables, and revisions",
+            "Every agent"
+          ],
+          [
+            "Agent lab Context view",
+            "The resolved context preview; the context fixture picker switches previews",
+            "The bundle has a context sidecar"
+          ],
+          [
+            "Agent lab State view",
+            "The state render for the selected state fixture, with its variable overlay",
+            "The bundle has state fixtures"
+          ],
+          [
+            "Agent lab Tools view",
+            "The host's tools preview, or the harvested private tool declarations",
+            "The host supplies a preview or the bundle registers private tools"
+          ],
+          [
+            "Prompt-edit session",
+            "Agent-proposed prompt changes you accept, reject, or undo",
+            "The host enables editing and you annotate the prompt"
+          ],
+          [
+            "Captured Turn",
+            "State, Context, System prompt, and Tools tabs of the actual request. Tools is the roster on that request.",
+            "Every model turn of a spawn"
+          ],
+          [
+            "Turn messages",
+            "Real conversation; kernel-authored context and state lines carry the KERNEL badge, per decision D99 in Prompt System Model",
+            "Every captured Turn"
+          ]
+        ],
+        "title": "Viewer surfaces"
+      },
+      "children": []
+    },
+    "b-40-validation-do-not-author-a-combined-35": {
+      "id": "b-40-validation-do-not-author-a-combined-35",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Do not author a combined/effective prompt file. The agent lab intentionally has no combined System + Context editing view; inspect composed runtime input on trace events and captured Turns."
+        }
+      ],
+      "children": []
+    },
+    "b-40-validation-for-the-as-built-viewer-36": {
+      "id": "b-40-validation-for-the-as-built-viewer-36",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "For the as-built viewer surfaces, see "
+        },
+        {
+          "insert": "Viewer Packages",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/60-viewer",
+              "label": "Viewer Packages"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    }
+  }
+}

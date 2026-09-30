@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "id": "tools-boot-vs-spawn",
+  "title": "Tools sidecar at registry boot and at spawn",
+  "participants": [
+    {
+      "id": "p1",
+      "name": "registry",
+      "kind": "participant",
+      "label": "Registry boot"
+    },
+    {
+      "id": "p2",
+      "name": "sidecar",
+      "kind": "participant",
+      "label": "tools sidecar"
+    },
+    {
+      "id": "p3",
+      "name": "stub",
+      "kind": "participant",
+      "label": "Stub pi"
+    },
+    {
+      "id": "p4",
+      "name": "spawn",
+      "kind": "participant",
+      "label": "spawnAgent"
+    },
+    {
+      "id": "p5",
+      "name": "pi",
+      "kind": "participant",
+      "label": "Pi session"
+    }
+  ],
+  "items": [
+    {
+      "kind": "message",
+      "id": "m1",
+      "from": "p1",
+      "to": "p2",
+      "line": "sync",
+      "text": "register(stubPi, undefined)"
+    },
+    {
+      "kind": "message",
+      "id": "m2",
+      "from": "p2",
+      "to": "p3",
+      "line": "sync",
+      "text": "pi.registerTool(declaration)"
+    },
+    {
+      "kind": "note",
+      "id": "n1",
+      "anchor": "p3",
+      "side": "over",
+      "text": "records name, label, description, parameters, spawns"
+    },
+    {
+      "kind": "message",
+      "id": "m3",
+      "from": "p2",
+      "to": "p1",
+      "line": "return",
+      "text": "names, definitions, spawnerTools"
+    },
+    {
+      "kind": "note",
+      "id": "n2",
+      "anchor": "p1",
+      "side": "over",
+      "text": "adds names to the allowlist; checks spawner targets"
+    },
+    {
+      "kind": "fragment",
+      "id": "f1",
+      "op": "loop",
+      "operands": [
+        {
+          "guard": "each spawnAgent call",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m4",
+              "from": "p4",
+              "to": "p5",
+              "line": "sync",
+              "text": "createPiSession(toolFactories)"
+            },
+            {
+              "kind": "message",
+              "id": "m5",
+              "from": "p5",
+              "to": "p2",
+              "line": "sync",
+              "text": "register(bindSpawnerTools(pi), toolRuntime)"
+            },
+            {
+              "kind": "message",
+              "id": "m6",
+              "from": "p2",
+              "to": "p5",
+              "line": "sync",
+              "text": "pi.registerTool(declaration)"
+            },
+            {
+              "kind": "fragment",
+              "id": "f2",
+              "op": "opt",
+              "operands": [
+                {
+                  "guard": "model calls the tool",
+                  "items": [
+                    {
+                      "kind": "message",
+                      "id": "m7",
+                      "from": "p5",
+                      "to": "p2",
+                      "line": "sync",
+                      "text": "execute(toolCallId, params, signal, onUpdate, ctx)"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m8",
+                      "from": "p2",
+                      "to": "p5",
+                      "line": "return",
+                      "text": "AgentToolResult"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "style": {}
+}

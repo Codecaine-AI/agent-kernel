@@ -1,0 +1,402 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-20-kernel-40-subagents",
+  "title": "Subagents",
+  "root": "b-40-subagents-root-13",
+  "blocks": {
+    "b-40-subagents-root-13": {
+      "id": "b-40-subagents-root-13",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/subagents/",
+        "concepts": [
+          "subagents",
+          "spawner-tools",
+          "agent-manager",
+          "spawn-adapter"
+        ],
+        "covers": "Structural decisions in the subagent module: per-tool spawn grants (D77) and the AgentManager's runtime-host independence.",
+        "depends-on": [
+          "20-implementation/20-kernel",
+          "10-system-design/10-runtime-model"
+        ]
+      },
+      "children": [
+        "b-40-subagents-packages-kernel-src-sub-2",
+        "b-40-subagents-divider-3",
+        "b-40-subagents-decisions-4",
+        "b-40-subagents-spawning-is-a-tool-decla-5",
+        "b-40-subagents-decision-the-only-w-6",
+        "b-40-subagents-why-an-agent-level-7",
+        "b-40-subagents-applies-to-package-8",
+        "b-40-subagents-agentmanager-takes-a-9",
+        "b-40-subagents-decision-the-manage-10",
+        "b-40-subagents-why-subagent-orches-11",
+        "b-40-subagents-applies-to-package-12"
+      ]
+    },
+    "b-40-subagents-packages-kernel-src-sub-2": {
+      "id": "b-40-subagents-packages-kernel-src-sub-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "packages/kernel/src/subagents/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " implements subagent orchestration: spawner-tool binding, the "
+        },
+        {
+          "insert": "AgentManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", foreground/background dispatch, and steering. The behavior (dispatch semantics, queueing, identity forwarding, steering observability) is design: "
+        },
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model",
+              "label": "Runtime Model"
+            }
+          }
+        },
+        {
+          "insert": " § Subagents. "
+        },
+        {
+          "insert": "parallel-completion.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " exports a "
+        },
+        {
+          "insert": "GroupJoinManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " that nothing in the workspace uses yet."
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-divider-3": {
+      "id": "b-40-subagents-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-40-subagents-decisions-4": {
+      "id": "b-40-subagents-decisions-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-spawning-is-a-tool-decla-5": {
+      "id": "b-40-subagents-spawning-is-a-tool-decla-5",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Spawning is a tool declaration, not an agent flag (D77)"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-decision-the-only-w-6": {
+      "id": "b-40-subagents-decision-the-only-w-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The only way an agent gains spawn capability is a spawner tool declared in its tools sidecar via "
+        },
+        {
+          "insert": "defineSpawnerTool({ name, parameters, spawns, execute })",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", with "
+        },
+        {
+          "insert": "spawns",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " an explicit allowlist of agent names ("
+        },
+        {
+          "insert": "[\"*\"]",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the loud general opt-in). The declaration compiles into an ordinary Pi-registerable tool; at session build time "
+        },
+        {
+          "insert": "bindSpawnerTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " replaces the placeholder execute with one holding the scoped "
+        },
+        {
+          "insert": "dispatch",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " handle. The agent-level "
+        },
+        {
+          "insert": "canSpawnSubagent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " manifest boolean is retired, and the generic Pi subagent tools are disallowed for every kernel agent."
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-why-an-agent-level-7": {
+      "id": "b-40-subagents-why-an-agent-level-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " An agent-level flag grants a capability without naming its targets, so nothing can validate the fan-out at boot and a typo becomes a silently errored record at runtime. A per-tool allowlist is boot-validated against the catalog and puts the grant on the action surface where the tool author already is."
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-applies-to-package-8": {
+      "id": "b-40-subagents-applies-to-package-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/kernel/src/subagents/spawner-binding.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", spawner harvest in the registry, "
+        },
+        {
+          "insert": "spawn-pipeline/pi-session-factory/tool-scoping.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (which adds the generic Pi subagent tools, "
+        },
+        {
+          "insert": "SUBAGENT_TOOL_NAMES",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", to every session's disallow list), and every future spawner tool: new spawn capabilities must be declared this way, never as manifest flags."
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-agentmanager-takes-a-9": {
+      "id": "b-40-subagents-agentmanager-takes-a-9",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "AgentManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " takes a "
+        },
+        {
+          "insert": "spawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " adapter"
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-decision-the-manage-10": {
+      "id": "b-40-subagents-decision-the-manage-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The manager does not import the spawn pipeline. Its "
+        },
+        {
+          "insert": "AgentManagerDeps",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " require a "
+        },
+        {
+          "insert": "spawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " function and accept an optional "
+        },
+        {
+          "insert": "traceWriter",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "subagentLinkCustomType",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". With a trace writer, the manager emits "
+        },
+        {
+          "insert": "run_steered",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " itself for each accepted steering message, deferring the event until the run's trace identity is known. "
+        },
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " passes its own trace writer when a db is configured."
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-why-subagent-orches-11": {
+      "id": "b-40-subagents-why-subagent-orches-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Subagent orchestration (records, queueing, stop/cleanup, steering) stays independent of the concrete runtime host and testable without one. The rejected alternative (the manager calling the pipeline directly) makes orchestration and spawning one unswappable unit."
+        }
+      ],
+      "children": []
+    },
+    "b-40-subagents-applies-to-package-12": {
+      "id": "b-40-subagents-applies-to-package-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/kernel/src/subagents/manager.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and any future orchestration feature: new manager behavior must go through the adapter, not reach into the pipeline."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -5,7 +5,7 @@
  * shape of eventData is determined by the `type` field.
  *
  * Identity model: `containerId` is the single required grouping identity —
- * see docs/10-system-design/15-identity-model.md. There is no app-session
+ * see docs/10-system-design/15-identity-model/. There is no app-session
  * identity on the envelope; host correlation happens through container
  * kind + appKey.
  */

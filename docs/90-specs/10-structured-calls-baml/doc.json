@@ -1,0 +1,1568 @@
+{
+  "schemaVersion": 1,
+  "id": "new-features-10-structured-calls-baml",
+  "title": "Structured Calls (BAML)",
+  "root": "b-10-structured-calls-baml-root-123",
+  "blocks": {
+    "b-10-structured-calls-baml-root-123": {
+      "id": "b-10-structured-calls-baml-root-123",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/index.ts, packages/kernel/src/spawn-pipeline/spawn-agent.ts, packages/kernel/src/subagents/, packages/protocol/src/types.ts, packages/db/src/schema/agent-runs.ts",
+        "concepts": [
+          "structured-calls",
+          "baml",
+          "schema-aligned-parsing",
+          "typed-results",
+          "post-run-extraction",
+          "function-bundle",
+          "kernel-call",
+          "client-registry",
+          "collector",
+          "run-trigger",
+          "trace-events"
+        ],
+        "covers": "Design note for structured calls: a single-shot, typed LLM primitive in the kernel, implemented on BAML, that replaces spinning up a Pi agent session to extract, classify, or summarize. Covers motivation, the proposed kernel surface, identity and trace mapping, model routing, the relationship to the prompt system, alternatives, phasing, and open questions.",
+        "depends-on": [
+          "10-system-design/10-runtime-model",
+          "10-system-design/15-identity-model",
+          "10-system-design/20-observability-model",
+          "10-system-design/30-event-protocol",
+          "10-system-design/60-prompt-system-model"
+        ],
+        "status": "brainstorm",
+        "type": "design-note"
+      },
+      "children": [
+        "b-baml-proposal-01",
+        "b-baml-proposal-02",
+        "b-baml-proposal-03",
+        "57f160e0-4167-4a21-bed5-54783068d645",
+        "b-baml-proposal-04",
+        "b-baml-proposal-05",
+        "d3dfc03f-2f18-4f02-be6a-32a79f81d289",
+        "b-baml-canvas-description",
+        "42d27dfb-a9af-4a28-a8cf-8654daadca5a",
+        "b-baml-proposal-06",
+        "b-baml-proposal-07",
+        "b-baml-proposal-08",
+        "b-baml-proposal-09",
+        "d83f6a97-ef67-4656-99fe-bf546eed60a7",
+        "b-baml-proposal-10",
+        "b-baml-proposal-11",
+        "1a9d106e-237b-404c-911a-1b681d1d1438",
+        "b-baml-proposal-12",
+        "b-baml-proposal-13",
+        "b-baml-proposal-14",
+        "b-baml-proposal-15",
+        "b-baml-proposal-16",
+        "323f3801-5fea-4c80-9fdd-529be024271b",
+        "e0326560-c311-414c-a2ed-5638406a962b",
+        "b-baml-proposal-17",
+        "b-baml-proposal-18",
+        "b-baml-proposal-19",
+        "b-baml-proposal-20",
+        "b-baml-proposal-21",
+        "b-baml-proposal-22",
+        "b-baml-proposal-23",
+        "b-baml-proposal-24",
+        "b-baml-proposal-25",
+        "b-baml-proposal-26",
+        "b-baml-proposal-27",
+        "b-baml-proposal-28",
+        "b-baml-proposal-29",
+        "b-baml-proposal-30",
+        "b-baml-proposal-31",
+        "5e11ddc6-6b68-4388-840f-c404dcd94b03",
+        "b-baml-proposal-32",
+        "b-baml-proposal-33",
+        "7ab2edde-0950-4cb2-a766-96bf33a96ff5",
+        "b-baml-proposal-34",
+        "b-baml-proposal-35",
+        "b-baml-proposal-36",
+        "b-baml-proposal-37",
+        "b-baml-proposal-38"
+      ]
+    },
+    "b-baml-proposal-01": {
+      "id": "b-baml-proposal-01",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A structured call is one model request in, one typed object out. It has the same request shape as one agent turn (system prompt, context block, input) but runs a single turn, has no tools, and returns a typed result. Deterministic harness code calls it at fixed points in a process: summarize, classify, extract. It is "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", a second kernel primitive beside "
+        },
+        {
+          "insert": "spawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-02": {
+      "id": "b-baml-proposal-02",
+      "type": "callout",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: proposal, nothing built. First step: a one-day spike in "
+        },
+        {
+          "insert": "spikes/baml-bun/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " that calls one BAML function through codex-lb under Bun and captures Collector output."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-03": {
+      "id": "b-baml-proposal-03",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "spawnAgent versus call"
+        }
+      ],
+      "children": []
+    },
+    "57f160e0-4167-4a21-bed5-54783068d645": {
+      "id": "57f160e0-4167-4a21-bed5-54783068d645",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Aspect",
+          "spawnAgent",
+          "call"
+        ],
+        "rows": [
+          [
+            "Engine",
+            "Pi session",
+            "BAML function"
+          ],
+          [
+            "Turns",
+            "Many, with tools and state",
+            "One model request; retries and fallbacks add turns"
+          ],
+          [
+            "Request",
+            "System prompt, context block, user message; repeated every turn",
+            "System prompt, context block, input; once, with the output format appended"
+          ],
+          [
+            "Called by",
+            "Operators, harness code, parent agents",
+            "Deterministic harness code at fixed points; an agent later, through a tool"
+          ],
+          [
+            "Returns",
+            [
+              {
+                "insert": "responseText",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", a string the caller parses"
+              }
+            ],
+            "A typed object, the BAML return type"
+          ],
+          [
+            "Identity",
+            "Container, session, run, turns",
+            "Same four entities"
+          ],
+          [
+            "Trace events",
+            [
+              {
+                "insert": "agent_run_*",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "pi_turn_*",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", tool events"
+              }
+            ],
+            [
+              {
+                "insert": "baml_call_*",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "pi_turn_*",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", no tool events"
+              }
+            ]
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-baml-proposal-04": {
+      "id": "b-baml-proposal-04",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Where it plugs in"
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-05": {
+      "id": "b-baml-proposal-05",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The harness owns the BAML sources and the generated client, the same way it owns its agent catalog. The kernel receives the generated client through one config slot and never parses "
+        },
+        {
+          "insert": ".baml",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " files."
+        }
+      ],
+      "children": []
+    },
+    "d3dfc03f-2f18-4f02-be6a-32a79f81d289": {
+      "id": "d3dfc03f-2f18-4f02-be6a-32a79f81d289",
+      "type": "canvas",
+      "props": {
+        "src": "./assets/canvases/structured-call-architecture.canvas.json",
+        "title": "Where kernel.call plugs in"
+      },
+      "children": []
+    },
+    "b-baml-canvas-description": {
+      "id": "b-baml-canvas-description",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Proposed. The harness never touches the BAML runtime directly; only "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " does."
+        }
+      ],
+      "children": []
+    },
+    "42d27dfb-a9af-4a28-a8cf-8654daadca5a": {
+      "id": "42d27dfb-a9af-4a28-a8cf-8654daadca5a",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "baml_src/",
+            "note": "harness-owned, beside catalog/"
+          },
+          {
+            "path": "baml_src/functions/"
+          },
+          {
+            "path": "baml_src/functions/summarize-worker-run.baml",
+            "note": "types, prompt, and client for one function"
+          },
+          {
+            "path": "baml_src/functions/summarize-worker-run.json",
+            "note": "kernel-facing manifest (see State Shape below)"
+          },
+          {
+            "path": "baml_src/clients.baml",
+            "note": "development defaults; the kernel overrides the model per call"
+          },
+          {
+            "path": "baml_src/generators.baml"
+          },
+          {
+            "path": "baml_client/",
+            "note": "generated by baml-cli; committed, snapshot-tested"
+          },
+          {
+            "path": "catalog/",
+            "note": "agent bundles, unchanged"
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-baml-proposal-06": {
+      "id": "b-baml-proposal-06",
+      "type": "code",
+      "props": {
+        "language": "typescript"
+      },
+      "text": [
+        {
+          "insert": "const kernel = createKernel({\n  // existing config unchanged\n  functions: { client: b, sources: \"./baml_src\" },\n});"
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-07": {
+      "id": "b-baml-proposal-07",
+      "type": "callout",
+      "props": {},
+      "text": [
+        {
+          "insert": "Today the GameCube harness spawns a zero-tool Pi agent, "
+        },
+        {
+          "insert": "worker-summarizer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", then regex-parses JSON out of "
+        },
+        {
+          "insert": "responseText",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The same pattern recurs at four more sites in that harness. One "
+        },
+        {
+          "insert": "call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " replaces each."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-08": {
+      "id": "b-baml-proposal-08",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "How a call runs"
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-09": {
+      "id": "b-baml-proposal-09",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Proposed flow. The request has the same shape as one agent turn: system prompt, context block, then the input. BAML appends the output format and parses the reply into the declared type. Trace steps name the event they emit."
+        }
+      ],
+      "children": []
+    },
+    "d83f6a97-ef67-4656-99fe-bf546eed60a7": {
+      "id": "d83f6a97-ef67-4656-99fe-bf546eed60a7",
+      "type": "process-outline",
+      "props": {
+        "steps": [
+          {
+            "text": "Proposed structured call",
+            "steps": [
+              {
+                "text": "Harness calls `kernel.call(fnName, input, opts)`"
+              },
+              {
+                "text": "Kernel resolves the model: `opts.model`, then the manifest default, then the kernel default, all through `models.aliases`",
+                "steps": [
+                  {
+                    "text": "Builds a `ClientRegistry` with the credential read from Pi's store (`readStoredCredential`).",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Kernel mints identity: one function session (kind `\"function\"`, `promptHash` of the `.baml` source) and one run (`agentName = fnName`, `containerId`, `parentRunId`, `trigger`)"
+              },
+              {
+                "text": "Kernel emits `baml_call_start` (input blob, resolved model, `promptHash`)",
+                "trace": true
+              },
+              {
+                "text": "BAML runtime invokes the function with the collector, the client registry, and the abort signal",
+                "steps": [
+                  {
+                    "text": "Provider HTTP calls, retries, and fallbacks are additional calls.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Kernel emits one turn per collector call: `pi_turn_start` and `pi_turn_end` with `TurnUsage` and `costEstimate` from `models.prices`, plus `pi_request_snapshot` from the raw HTTP body",
+                "trace": true
+              },
+              {
+                "text": "Kernel emits `baml_call_end` (output blob, status, rolled-up usage), then closes the run and session",
+                "trace": true
+              },
+              {
+                "text": "Harness receives the typed object",
+                "steps": [
+                  {
+                    "text": "On parse failure BAML throws. The run ends `error`, and the raw response stays in the blob.",
+                    "kind": "note"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-baml-proposal-10": {
+      "id": "b-baml-proposal-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "How the trace shows up"
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-11": {
+      "id": "b-baml-proposal-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "No new table. A call is a session of kind function, one run, and one or more turns, so the usage rollup path (turn, run, session, container) is unchanged."
+        }
+      ],
+      "children": []
+    },
+    "1a9d106e-237b-404c-911a-1b681d1d1438": {
+      "id": "1a9d106e-237b-404c-911a-1b681d1d1438",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Entity",
+          "Agent run",
+          "Structured call"
+        ],
+        "rows": [
+          [
+            "Container",
+            "App-chosen",
+            "Same, passed by the caller or inherited"
+          ],
+          [
+            "Session",
+            [
+              {
+                "insert": "One Pi conversation; "
+              },
+              {
+                "insert": "promptHash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " of the frozen prompt"
+              }
+            ],
+            [
+              {
+                "insert": "One function session, kind "
+              },
+              {
+                "insert": "\"function\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "; "
+              },
+              {
+                "insert": "promptHash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " of the "
+              },
+              {
+                "insert": ".baml",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " source"
+              }
+            ]
+          ],
+          [
+            "Run",
+            "Message in, response out",
+            [
+              {
+                "insert": "Input in, typed output out; trigger "
+              },
+              {
+                "insert": "post-run",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "parent-tool",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", or "
+              },
+              {
+                "insert": "system",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Turn",
+            "One model call",
+            "One HTTP call from the Collector; retries add turns, each with its own model"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-baml-proposal-12": {
+      "id": "b-baml-proposal-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "In the viewer:"
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-13": {
+      "id": "b-baml-proposal-13",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The call nests under the worker run it describes ("
+        },
+        {
+          "insert": "parentRunId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " plus trigger "
+        },
+        {
+          "insert": "post-run",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), not as a peer agent."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-14": {
+      "id": "b-baml-proposal-14",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Its cost rolls into the container beside the worker's cost."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-15": {
+      "id": "b-baml-proposal-15",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The request snapshot is the exact BAML-rendered prompt, output format included."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-16": {
+      "id": "b-baml-proposal-16",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "How it ties into the kernel"
+        }
+      ],
+      "children": []
+    },
+    "323f3801-5fea-4c80-9fdd-529be024271b": {
+      "id": "323f3801-5fea-4c80-9fdd-529be024271b",
+      "type": "interaction-surface",
+      "props": {
+        "operations": [
+          {
+            "name": "call",
+            "description": "Runs kernel.call(fnName, input, opts). On parse failure it throws and the run ends \"error\".",
+            "params": [
+              {
+                "name": "fnName",
+                "type": "string",
+                "required": true,
+                "description": "Must exist in the generated client; validated at boot."
+              },
+              {
+                "name": "input",
+                "type": "the function's BAML input type",
+                "required": true
+              },
+              {
+                "name": "opts",
+                "type": "object",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "containerId",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "parentRunId",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "parentToolUseId",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "trigger",
+                    "type": "\"post-run\" | \"parent-tool\" | \"system\"",
+                    "required": false
+                  },
+                  {
+                    "name": "model",
+                    "type": "alias or resolved model string",
+                    "required": false
+                  },
+                  {
+                    "name": "displayLabel",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "signal",
+                    "type": "AbortSignal",
+                    "required": false
+                  }
+                ]
+              }
+            ],
+            "returns": "the function's BAML return type",
+            "kind": "action"
+          },
+          {
+            "name": "baml_call_start",
+            "params": [
+              {
+                "name": "payload",
+                "type": "object",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "functionName",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "inputBlobHash",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "model",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "promptHash",
+                    "type": "string",
+                    "required": true
+                  }
+                ]
+              }
+            ],
+            "kind": "event"
+          },
+          {
+            "name": "baml_call_end",
+            "params": [
+              {
+                "name": "payload",
+                "type": "object",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "outputBlobHash",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "status",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "usage",
+                    "type": "TurnUsage",
+                    "required": true,
+                    "description": "Rolled up from turns."
+                  }
+                ]
+              }
+            ],
+            "kind": "event"
+          }
+        ]
+      },
+      "children": []
+    },
+    "e0326560-c311-414c-a2ed-5638406a962b": {
+      "id": "e0326560-c311-414c-a2ed-5638406a962b",
+      "type": "state-shape",
+      "props": {
+        "example": "{\n  \"$schema\": \"agent-kernel/function-v1\",\n  \"name\": \"SummarizeWorkerRun\",\n  \"description\": \"Narrate one worker run into a typed summary.\",\n  \"model\": \"summarizer\",\n  \"exposeAsTool\": false\n}",
+        "fields": [
+          {
+            "name": "$schema",
+            "type": "string",
+            "required": true,
+            "description": "Must be \"agent-kernel/function-v1\"."
+          },
+          {
+            "name": "name",
+            "type": "string",
+            "required": true,
+            "description": "Must match a generated client export."
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "model",
+            "type": "string",
+            "required": true,
+            "description": "Alias resolved through models.aliases."
+          },
+          {
+            "name": "exposeAsTool",
+            "type": "boolean",
+            "required": false,
+            "description": "Defaults to false; used in a later phase."
+          }
+        ],
+        "name": "Function manifest",
+        "source": {
+          "path": "baml_src/functions/<name>.json"
+        }
+      },
+      "children": []
+    },
+    "b-baml-proposal-17": {
+      "id": "b-baml-proposal-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernel changes in phase 1:"
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-18": {
+      "id": "b-baml-proposal-18",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "functions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " slot on "
+        },
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-19": {
+      "id": "b-baml-proposal-19",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " column on "
+        },
+        {
+          "insert": "pi_agent_sessions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "\"pi\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "\"function\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), so runs keep their session foreign key."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-20": {
+      "id": "b-baml-proposal-20",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Two new core events, "
+        },
+        {
+          "insert": "baml_call_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "baml_call_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the call's counterpart to the agent run events. Turns reuse "
+        },
+        {
+          "insert": "pi_turn_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "pi_turn_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so cost queries need no special case."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-21": {
+      "id": "b-baml-proposal-21",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "post-run",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " added to "
+        },
+        {
+          "insert": "RunTrigger",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Today it is a closed TypeScript union ("
+        },
+        {
+          "insert": "operator",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "parent-tool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "steer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "resume",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "system",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") with no SQL constraint, so this is a type edit plus callers."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-22": {
+      "id": "b-baml-proposal-22",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "One doctor check: a function run has zero tool-call events and at least one turn."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-23": {
+      "id": "b-baml-proposal-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Later phases:"
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-24": {
+      "id": "b-baml-proposal-24",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "result",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " block in "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " names a function that turns a finished run into a typed record, returned on "
+        },
+        {
+          "insert": "KernelSpawnAgentResult.result",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and to the parent tool on subagent dispatch."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-25": {
+      "id": "b-baml-proposal-25",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "defineFunctionTool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " binds a function into an agent's tool surface for cheap typed calls mid-run."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-26": {
+      "id": "b-baml-proposal-26",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A TUI "
+        },
+        {
+          "insert": "/call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " command for authoring checks."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-27": {
+      "id": "b-baml-proposal-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Unchanged:"
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-28": {
+      "id": "b-baml-proposal-28",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "spawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the spawn pipeline, the state model, and the three-section request."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-29": {
+      "id": "b-baml-proposal-29",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Prompt-kit stays the authority for agent prompts; BAML is the authority for function prompts."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-30": {
+      "id": "b-baml-proposal-30",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "No new grouping primitive; calls live in containers like everything else."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-31": {
+      "id": "b-baml-proposal-31",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "5e11ddc6-6b68-4388-840f-c404dcd94b03": {
+      "id": "5e11ddc6-6b68-4388-840f-c404dcd94b03",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Question",
+          "Evidence",
+          "Decision"
+        ],
+        "rows": [
+          [
+            "BAML runtime under Bun",
+            "Bun is unpinned here; BAML 0.222.0 already runs in the canvas eval-suite runner",
+            "Spike it"
+          ],
+          [
+            "Credentials",
+            [
+              {
+                "insert": "pi-coding-agent exports "
+              },
+              {
+                "insert": "readStoredCredential(providerId, authPath)",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Use it; no environment-variable split"
+          ],
+          [
+            "Provider reach",
+            "The only live provider is codex-lb, an OpenAI Responses proxy behind OAuth",
+            "The spike gate is \"BAML client against codex-lb\""
+          ],
+          [
+            "post-run trigger",
+            [
+              {
+                "insert": "RunTrigger",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " is a closed union with no SQL constraint"
+              }
+            ],
+            "Add it"
+          ],
+          [
+            "Generated client",
+            "Must match the installed baml-cli version",
+            "Commit it, with a snapshot test that regenerates and diffs"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-baml-proposal-32": {
+      "id": "b-baml-proposal-32",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Deferred: streaming partials, TypeBuilder passthrough for dynamic enums, and the TUI command."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-33": {
+      "id": "b-baml-proposal-33",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Phasing"
+        }
+      ],
+      "children": []
+    },
+    "7ab2edde-0950-4cb2-a766-96bf33a96ff5": {
+      "id": "7ab2edde-0950-4cb2-a766-96bf33a96ff5",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Phase",
+          "Deliverable",
+          "Gate",
+          "Size"
+        ],
+        "rows": [
+          [
+            "0. Spike",
+            [
+              {
+                "insert": "spikes/baml-bun",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": runtime install, one function through codex-lb, Collector and ClientRegistry exercised, "
+              },
+              {
+                "insert": "RESULTS.md",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Runtime works under Bun; Collector exposes usage and the raw request",
+            "One day"
+          ],
+          [
+            "1. kernel.call",
+            [
+              {
+                "insert": "Config slot, manifests with boot validation, identity, "
+              },
+              {
+                "insert": "baml_call_*",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " events, turns and snapshots from the collector, cost rollup, "
+              },
+              {
+                "insert": "promptHash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " registration"
+              }
+            ],
+            [
+              {
+                "insert": "worker-summarizer",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " replaced by one call; doctor passes; viewer nests the call under the worker run"
+              }
+            ],
+            "About a week"
+          ],
+          [
+            "2. Declared results",
+            [
+              {
+                "insert": "agent.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " result block, typed result on spawn and subagent dispatch, "
+              },
+              {
+                "insert": "post-run",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " trigger"
+              }
+            ],
+            "Coordinators receive typed records from workers",
+            "A few days"
+          ],
+          [
+            "3. Surface",
+            [
+              {
+                "insert": "defineFunctionTool",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", viewer function card with read-only source, TUI "
+              },
+              {
+                "insert": "/call",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Functions usable mid-run and inspectable",
+            "Incremental"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-baml-proposal-34": {
+      "id": "b-baml-proposal-34",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Why BAML and not pi-ai directly"
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-35": {
+      "id": "b-baml-proposal-35",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Schema-aligned parsing coerces messy model output into the declared type, so the harness never parses JSON again."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-36": {
+      "id": "b-baml-proposal-36",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Prompt and schema live in one artifact; "
+        },
+        {
+          "insert": "{{ ctx.output_format }}",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " injects the return type, so drift is impossible."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-37": {
+      "id": "b-baml-proposal-37",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Retries, fallbacks, and per-call usage come from "
+        },
+        {
+          "insert": "retry_policy",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "fallback",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "Collector",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", declared once."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-proposal-38": {
+      "id": "b-baml-proposal-38",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "If BAML cannot reach codex-lb, a pi-ai engine can sit behind the same "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " surface; harness code would not change."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,458 @@
+{
+  "schemaVersion": 1,
+  "id": "00-foundation-30-boundaries",
+  "title": "Boundaries",
+  "root": "b-30-boundaries-root-17",
+  "blocks": {
+    "b-30-boundaries-root-17": {
+      "id": "b-30-boundaries-root-17",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "boundaries",
+          "kernel-core",
+          "app-adapter",
+          "ownership",
+          "custom-loaders",
+          "custom-tools"
+        ],
+        "covers": "Kernel versus application ownership boundaries, including which concepts stay core and which must be supplied by app adapters.",
+        "depends-on": [
+          "00-foundation/20-principles"
+        ]
+      },
+      "children": [
+        "b-30-boundaries-the-kernel-owns-the-reus-2",
+        "b-30-boundaries-divider-3",
+        "b-30-boundaries-kernel-owns-4",
+        "b-30-boundaries-the-kernel-owns-the-whol-5",
+        "b-30-boundaries-running-agents-spa-6",
+        "b-30-boundaries-capturing-what-happene-7",
+        "b-30-boundaries-reading-it-back-ve-8",
+        "b-30-boundaries-prompt-editing-catalog-18",
+        "b-30-boundaries-harnesses-19",
+        "b-30-boundaries-the-concrete-schemas-en-9",
+        "b-30-boundaries-apps-own-10",
+        "b-30-boundaries-apps-own-table-11",
+        "b-30-boundaries-adapter-layer-12",
+        "b-30-boundaries-the-adapter-layer-is-the-13",
+        "b-30-boundaries-promotion-rule-14",
+        "b-30-boundaries-a-feature-starts-app-sid-15",
+        "b-30-boundaries-durable-human-in-the-loo-16"
+      ]
+    },
+    "b-30-boundaries-the-kernel-owns-the-reus-2": {
+      "id": "b-30-boundaries-the-kernel-owns-the-reus-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel owns the reusable runtime and observability foundation. A host application owns workflow semantics and product behavior."
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-divider-3": {
+      "id": "b-30-boundaries-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-30-boundaries-kernel-owns-4": {
+      "id": "b-30-boundaries-kernel-owns-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Kernel Owns"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-the-kernel-owns-the-whol-5": {
+      "id": "b-30-boundaries-the-kernel-owns-the-whol-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel owns the whole path from spawning an agent to viewing what it did:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-running-agents-spa-6": {
+      "id": "b-30-boundaries-running-agents-spa-6",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Running agents",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": spawning from declarative definitions, identity, context assembly, agent state, and subagent management. Contracts: "
+        },
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model"
+            }
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "Identity Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/15-identity-model"
+            }
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "Prompt System Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-capturing-what-happene-7": {
+      "id": "b-30-boundaries-capturing-what-happene-7",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Capturing what happened",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": the trace event protocol, durable storage, and transcript recovery. Contracts: "
+        },
+        {
+          "insert": "Event Protocol",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/30-event-protocol"
+            }
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "Observability Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-observability-model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-reading-it-back-ve-8": {
+      "id": "b-30-boundaries-reading-it-back-ve-8",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Reading it back",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": versioned read APIs and the reusable viewer surface. Contracts: "
+        },
+        {
+          "insert": "Observability Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-observability-model"
+            }
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "Viewer Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/40-viewer-model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-prompt-editing-catalog-18": {
+      "id": "b-30-boundaries-prompt-editing-catalog-18",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Prompt editing and the agent catalog",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": the catalog API ("
+        },
+        {
+          "insert": "catalog-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), prompt edit sessions ("
+        },
+        {
+          "insert": "prompt-edit-session/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), and the annotation sidecar. Contract: "
+        },
+        {
+          "insert": "Editing and Revisions",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/20-editing-and-revisions",
+              "label": "Editing and Revisions"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-harnesses-19": {
+      "id": "b-30-boundaries-harnesses-19",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Harnesses",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": the runnable hosts that ship with the kernel, "
+        },
+        {
+          "insert": "packages/tui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "packages/core-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Contract: "
+        },
+        {
+          "insert": "Harness Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-harness-model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-the-concrete-schemas-en-9": {
+      "id": "b-30-boundaries-the-concrete-schemas-en-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The concrete schemas, envelopes, and decision records for each area belong to those design pages, not to this one."
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-apps-own-10": {
+      "id": "b-30-boundaries-apps-own-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Apps Own"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-apps-own-table-11": {
+      "id": "b-30-boundaries-apps-own-table-11",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Area",
+          "App Responsibility"
+        ],
+        "rows": [
+          [
+            "Workflow state",
+            "App session rows, phase slices, task/checkpoint graphs, project docs, local artifacts"
+          ],
+          [
+            "Workflow rules",
+            "When phases start/end, how gates work, what \"done\" means"
+          ],
+          [
+            "Domain tools",
+            "Tools that mutate app rows or app files"
+          ],
+          [
+            "Custom loaders",
+            "Loaders that read app-specific state, such as a workflow's checkpoint slice"
+          ],
+          [
+            "App APIs",
+            "Routes that start, stop, resume, answer, or mutate workflow artifacts"
+          ],
+          [
+            "Viewer extensions",
+            "Panels and renderers that interpret app-specific labels or custom events"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-30-boundaries-adapter-layer-12": {
+      "id": "b-30-boundaries-adapter-layer-12",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Adapter Layer"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-the-adapter-layer-is-the-13": {
+      "id": "b-30-boundaries-the-adapter-layer-is-the-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The adapter layer is the code that joins a host app to the kernel. It should be explicit and small enough to audit: identity mapping, schema composition, catalog roots, injected services, custom loaders, API mounts, and viewer plugins all live there rather than leaking into either side. The contract is the "
+        },
+        {
+          "insert": "App Adapter Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/50-app-adapter-model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-promotion-rule-14": {
+      "id": "b-30-boundaries-promotion-rule-14",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Promotion Rule"
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-a-feature-starts-app-sid-15": {
+      "id": "b-30-boundaries-a-feature-starts-app-sid-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A feature starts app-side when its generic shape is unclear. It can move into the kernel only after it proves useful beyond one app and can be expressed without app workflow semantics."
+        }
+      ],
+      "children": []
+    },
+    "b-30-boundaries-durable-human-in-the-loo-16": {
+      "id": "b-30-boundaries-durable-human-in-the-loo-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Durable human-in-the-loop asks are a good example. The suspend/resume mechanics are generic. An app's ask rows and payloads stay app-side until the kernel has a clean cross-app contract."
+        }
+      ],
+      "children": []
+    }
+  }
+}

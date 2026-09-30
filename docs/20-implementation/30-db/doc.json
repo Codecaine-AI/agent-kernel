@@ -1,0 +1,1135 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-30-db",
+  "title": "Database Package",
+  "root": "b-30-db-root-15",
+  "blocks": {
+    "b-30-db-root-15": {
+      "id": "b-30-db-root-15",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/db/src/",
+        "concepts": [
+          "db",
+          "sqlite",
+          "drizzle",
+          "pg-mirror",
+          "bootstrap",
+          "actions-layer"
+        ],
+        "covers": "Implementation area page for @agent-kernel/db: role, source pointer, governing design pages, and structural decisions about dialects, bootstrap, and the actions layer.",
+        "depends-on": [
+          "10-system-design/20-observability-model"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-30-db-agent-kernel-db-owns-2",
+        "b-30-db-governed-by-20-observa-4",
+        "b-30-db-source-packages-db-src-3",
+        "b-30-db-source-tree",
+        "b-30-db-exports-lead",
+        "b-30-db-exports-readonly",
+        "b-30-db-exports-delete",
+        "b-30-db-exports-usage",
+        "b-30-db-exports-manifest",
+        "b-30-db-tables-heading",
+        "b-30-db-tables-lead",
+        "b-30-db-tables",
+        "b-30-db-trace-row-lead",
+        "b-30-db-trace-row",
+        "b-30-db-divider-5",
+        "b-30-db-decisions-6",
+        "b-30-db-sqlite-first-actions-th-7",
+        "b-30-db-decision-the-action-8",
+        "b-30-db-why-shared-plane-de-9",
+        "b-30-db-applies-to-package-10",
+        "b-30-db-idempotent-bootstrap-ins-11",
+        "b-30-db-decision-ensureker-12",
+        "b-30-db-why-the-database-is-13",
+        "b-30-db-applies-to-package-14"
+      ]
+    },
+    "b-30-db-agent-kernel-db-owns-2": {
+      "id": "b-30-db-agent-kernel-db-owns-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@agent-kernel/db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " owns kernel observability storage: the client and bootstrap for the per-kernel SQLite database, the kernel manifest helpers, the Drizzle schema (containers, Pi agent sessions, agent runs, trace events, prompt revisions, trace blobs), and the write actions and container-first read helpers over it."
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-governed-by-20-observa-4": {
+      "id": "b-30-db-governed-by-20-observa-4",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Governed by: "
+        },
+        {
+          "insert": "Observability Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-observability-model",
+              "label": "Observability Model"
+            }
+          }
+        },
+        {
+          "insert": " (records, storage behavior, identity, rollups, idempotent inserts)."
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-source-packages-db-src-3": {
+      "id": "b-30-db-source-packages-db-src-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Source lives in "
+        },
+        {
+          "insert": "packages/db/src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", test files omitted:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-source-tree": {
+      "id": "b-30-db-source-tree",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "packages/db/src/index.ts",
+            "note": "entry \".\"; everything except schema/pg"
+          },
+          {
+            "path": "packages/db/src/client.ts",
+            "note": "open read-write or read-only"
+          },
+          {
+            "path": "packages/db/src/bootstrap.ts",
+            "note": "ensureKernelObservabilitySchema"
+          },
+          {
+            "path": "packages/db/src/manifest.ts",
+            "note": "kernel manifest v1 and v2"
+          },
+          {
+            "path": "packages/db/src/types.ts",
+            "note": "row types inferred from the schema"
+          },
+          {
+            "path": "packages/db/src/schema/",
+            "note": "one file per table, Drizzle SQLite"
+          },
+          {
+            "path": "packages/db/src/schema/pg.ts",
+            "note": "Postgres mirror, schema/pg subpath"
+          },
+          {
+            "path": "packages/db/src/actions/",
+            "note": "one file per table, plus the two below"
+          },
+          {
+            "path": "packages/db/src/actions/read-api.ts",
+            "note": "container-tree reads and deletes"
+          },
+          {
+            "path": "packages/db/src/actions/usage.ts",
+            "note": "run, session, container usage rollups"
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-30-db-exports-lead": {
+      "id": "b-30-db-exports-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Four exports go beyond opening, writing, and reading a single trace:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-exports-readonly": {
+      "id": "b-30-db-exports-readonly",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "openKernelDatabaseReadOnly(dbPath)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " opens an existing database read-only. Unlike "
+        },
+        {
+          "insert": "openKernelDatabase",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", it creates no directory or file, sets no write PRAGMAs, and skips the schema bootstrap."
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-exports-delete": {
+      "id": "b-30-db-exports-delete",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "deleteKernelTraceRows(db, rootContainerId)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "actions/read-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") deletes a container subtree and every row hanging off it in one transaction."
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-exports-usage": {
+      "id": "b-30-db-exports-usage",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "actions/usage.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " holds the usage rollup writes. "
+        },
+        {
+          "insert": "updateRunUsage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " adds each turn's usage to the run row; "
+        },
+        {
+          "insert": "incrementSessionUsage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "incrementContainerUsage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " fold run totals into the session and container rows when the run closes. A cost column stays NULL until a delta carries a cost."
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-exports-manifest": {
+      "id": "b-30-db-exports-manifest",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "manifest.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " reads two manifest versions. "
+        },
+        {
+          "insert": "writeKernelManifest",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " writes version 2 ("
+        },
+        {
+          "insert": "KernelManifest",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), which adds "
+        },
+        {
+          "insert": "kernelRoot",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "dbPath",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "catalogRoots",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "readApiBaseUrl",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Version 1 ("
+        },
+        {
+          "insert": "KernelManifestV1",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "manifestVersion",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " absent or 1) is kept for backward-compatible reads."
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-tables-heading": {
+      "id": "b-30-db-tables-heading",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Tables"
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-tables-lead": {
+      "id": "b-30-db-tables-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Six tables, created by "
+        },
+        {
+          "insert": "bootstrap.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The three identity tables are upserted and then updated in place. The three content-keyed tables only insert, ignoring a key that already exists. "
+        },
+        {
+          "insert": "deleteKernelTraceRows",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the package's only delete action, and it leaves blobs and prompt revisions in place."
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-tables": {
+      "id": "b-30-db-tables",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Table",
+          "Primary key",
+          "Indexes",
+          "Writer actions"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "containers",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "UNIQUE (kernel_id, kind, app_key)",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "ix_containers_parent_container_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "upsertContainer",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "updateContainerStatus",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "incrementContainerUsage",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "pi_agent_sessions",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (Pi session uuid)"
+              }
+            ],
+            [
+              {
+                "insert": "ix_pi_agent_sessions_container_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "ix_pi_agent_sessions_parent_session_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "upsertPiAgentSession",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "setParentSession",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "updatePiAgentSessionStatus",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "incrementSessionUsage",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "agent_runs",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "ix_agent_runs_pi_session_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "ix_agent_runs_container_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "ix_agent_runs_parent_run_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "createAgentRun",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "upsertAgentRun",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "updateAgentRunStatus",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "updateAgentRunInboundEvent",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "updateRunUsage",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "trace_events",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "event_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "idx_events_container_ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (container_id, timestamp), "
+              },
+              {
+                "insert": "idx_events_run",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "idx_events_pi_session",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "insertTraceEventsBatch",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (insert or ignore)"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "trace_blobs",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "hash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " ("
+              },
+              {
+                "insert": "b1-<sha256hex>",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            "none",
+            [
+              {
+                "insert": "upsertTraceBlobs",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (insert or ignore)"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "prompt_revisions",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "hash",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "none",
+            [
+              {
+                "insert": "upsertPromptRevision",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (insert or ignore)"
+              }
+            ]
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-30-db-trace-row-lead": {
+      "id": "b-30-db-trace-row-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "trace_events",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " row stores one "
+        },
+        {
+          "insert": "TraceEvent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " envelope (defined in "
+        },
+        {
+          "insert": "Event Protocol",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/30-event-protocol",
+              "label": "Event Protocol"
+            }
+          }
+        },
+        {
+          "insert": ") as snake_case columns. The example is a real row from this repo's "
+        },
+        {
+          "insert": ".agent-kernel/trace.db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-trace-row": {
+      "id": "b-30-db-trace-row",
+      "type": "state-shape",
+      "props": {
+        "example": "{\n  \"event_id\": \"3840e813-3cbb-3e56-c17c-562b56eeaede\",\n  \"container_id\": \"ae1d1f13-c188-478a-8446-78faada58988\",\n  \"run_id\": \"11f86779-efd8-42ad-b06a-33e2ae1123bd\",\n  \"pi_session_id\": \"019fdcfc-defd-7116-84a4-6e00906709dd\",\n  \"agent_id\": null,\n  \"user_id\": null,\n  \"type\": \"user_message\",\n  \"source\": \"agent\",\n  \"trace_level\": 0,\n  \"event_data\": \"{\\\"content\\\":\\\"Reply with exactly: ok\\\",\\\"phase\\\":\\\"unknown\\\"}\",\n  \"span_id\": null,\n  \"parent_event_id\": null,\n  \"timestamp\": \"2026-08-07T16:09:51.031Z\"\n}",
+        "fields": [
+          {
+            "name": "event_id",
+            "type": "TEXT",
+            "description": "Primary key and idempotent insert key. Derived deterministically by every emission path."
+          },
+          {
+            "name": "container_id",
+            "type": "TEXT",
+            "description": "NOT NULL, with no foreign key to containers."
+          },
+          {
+            "name": "run_id",
+            "type": "TEXT | null"
+          },
+          {
+            "name": "pi_session_id",
+            "type": "TEXT | null",
+            "description": "Written from the envelope's transport-only piSessionUuid."
+          },
+          {
+            "name": "agent_id",
+            "type": "TEXT | null"
+          },
+          {
+            "name": "user_id",
+            "type": "TEXT | null"
+          },
+          {
+            "name": "type",
+            "type": "TEXT",
+            "description": "Open event-type string from the protocol catalog."
+          },
+          {
+            "name": "source",
+            "type": "\"kernel\" | \"app\" | \"agent\" | string"
+          },
+          {
+            "name": "trace_level",
+            "type": "INTEGER"
+          },
+          {
+            "name": "event_data",
+            "type": "TEXT (JSON)",
+            "description": "Payload for the event type. Drizzle reads it back as an object."
+          },
+          {
+            "name": "span_id",
+            "type": "TEXT | null"
+          },
+          {
+            "name": "parent_event_id",
+            "type": "TEXT | null"
+          },
+          {
+            "name": "timestamp",
+            "type": "TEXT",
+            "description": "ISO-8601."
+          }
+        ],
+        "name": "trace_events row",
+        "source": {
+          "path": "packages/db/src/schema/trace-events.ts",
+          "symbol": "traceEvents"
+        }
+      },
+      "children": []
+    },
+    "b-30-db-divider-5": {
+      "id": "b-30-db-divider-5",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-30-db-decisions-6": {
+      "id": "b-30-db-decisions-6",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-sqlite-first-actions-th-7": {
+      "id": "b-30-db-sqlite-first-actions-th-7",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "SQLite-first actions; the Postgres mirror is schema-only, behind a subpath"
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-decision-the-action-8": {
+      "id": "b-30-db-decision-the-action-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " SQLite is the only runtime store. The actions layer is typed against the Bun-SQLite Drizzle handle. "
+        },
+        {
+          "insert": "schema/pg.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is an inert Postgres mirror of the schema with matching column names, row shapes, constraints, and indexes, and timestamps stay ISO-8601 TEXT. No package imports the mirror, and it is exported only through the "
+        },
+        {
+          "insert": "schema/pg",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " subpath."
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-why-shared-plane-de-9": {
+      "id": "b-30-db-why-shared-plane-de-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The mirror keeps the table shapes ready for a Postgres deployment. No Postgres deployment exists, so making every action dual-dialect was rejected as cost without a consumer. The subpath keeps the default entrypoint SQLite-only so nothing accidentally depends on the mirror."
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-applies-to-package-10": {
+      "id": "b-30-db-applies-to-package-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/db/src/schema/pg.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and every future schema change: new actions are written SQLite-first, and every new table, column, and index is added to both schemas with matching shapes."
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-idempotent-bootstrap-ins-11": {
+      "id": "b-30-db-idempotent-bootstrap-ins-11",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Idempotent bootstrap instead of migration tooling"
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-decision-ensureker-12": {
+      "id": "b-30-db-decision-ensureker-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "ensureKernelObservabilitySchema(db)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " runs "
+        },
+        {
+          "insert": "CREATE TABLE IF NOT EXISTS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "CREATE INDEX IF NOT EXISTS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " statements mirroring the Drizzle schema on every kernel start. There is no migration framework and no "
+        },
+        {
+          "insert": "ALTER TABLE",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-why-the-database-is-13": {
+      "id": "b-30-db-why-the-database-is-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The database is local, per-kernel, and rebuildable from JSONL via backfill: migration tooling was rejected as machinery without a payoff at this scale. The consequence is a rule, not a convenience: only new tables and new indexes reach an existing database. "
+        },
+        {
+          "insert": "CREATE TABLE IF NOT EXISTS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " skips a table that already exists, so a new column on an existing table appears only in databases created after the change. A column change or a data migration needs a design decision first."
+        }
+      ],
+      "children": []
+    },
+    "b-30-db-applies-to-package-14": {
+      "id": "b-30-db-applies-to-package-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/db/src/bootstrap.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "schema/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and every future schema change."
+        }
+      ],
+      "children": []
+    }
+  }
+}

@@ -1,0 +1,193 @@
+{
+  "version": 1,
+  "id": "request-snapshot-capture",
+  "title": "Request snapshot capture",
+  "participants": [
+    {
+      "id": "p1",
+      "name": "pi",
+      "kind": "participant",
+      "label": "Pi session"
+    },
+    {
+      "id": "p2",
+      "name": "builder",
+      "kind": "participant",
+      "label": "Three-section builder"
+    },
+    {
+      "id": "p3",
+      "name": "recorder",
+      "kind": "participant",
+      "label": "Snapshot recorder"
+    },
+    {
+      "id": "p4",
+      "name": "blobs",
+      "kind": "participant",
+      "label": "trace_blobs"
+    },
+    {
+      "id": "p5",
+      "name": "writer",
+      "kind": "participant",
+      "label": "Trace writer"
+    }
+  ],
+  "items": [
+    {
+      "kind": "message",
+      "id": "m1",
+      "from": "p1",
+      "to": "p3",
+      "line": "async",
+      "text": "agent_start"
+    },
+    {
+      "kind": "note",
+      "id": "n1",
+      "anchor": "p3",
+      "side": "over",
+      "text": "turn_number resets to 0"
+    },
+    {
+      "kind": "fragment",
+      "id": "f1",
+      "op": "alt",
+      "operands": [
+        {
+          "guard": "no state extension: transcript capture",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m2",
+              "from": "p1",
+              "to": "p3",
+              "line": "async",
+              "text": "turn_start"
+            },
+            {
+              "kind": "note",
+              "id": "n2",
+              "anchor": "p3",
+              "side": "over",
+              "text": "sync capture: system prompt, sent-to-model messages, tool roster; turn_number + 1"
+            },
+            {
+              "kind": "message",
+              "id": "m3",
+              "from": "p3",
+              "to": "p4",
+              "line": "async",
+              "text": "upsert new blobs (deferred tail)"
+            },
+            {
+              "kind": "message",
+              "id": "m4",
+              "from": "p3",
+              "to": "p5",
+              "line": "async",
+              "text": "pi_request_snapshot, no sections"
+            }
+          ]
+        },
+        {
+          "guard": "state extension: built-request capture",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m5",
+              "from": "p1",
+              "to": "p3",
+              "line": "async",
+              "text": "turn_start"
+            },
+            {
+              "kind": "note",
+              "id": "n3",
+              "anchor": "p3",
+              "side": "over",
+              "text": "ignored: builderOwnsCapture set at recorder creation"
+            },
+            {
+              "kind": "message",
+              "id": "m6",
+              "from": "p1",
+              "to": "p2",
+              "line": "sync",
+              "text": "context hook"
+            },
+            {
+              "kind": "message",
+              "id": "m7",
+              "from": "p2",
+              "to": "p3",
+              "line": "sync",
+              "text": "onRequestBuilt: recordBuiltRequest(messages, sections)"
+            },
+            {
+              "kind": "message",
+              "id": "m8",
+              "from": "p2",
+              "to": "p1",
+              "line": "return",
+              "text": "built messages"
+            },
+            {
+              "kind": "message",
+              "id": "m9",
+              "from": "p3",
+              "to": "p4",
+              "line": "async",
+              "text": "upsert new blobs (deferred tail)"
+            },
+            {
+              "kind": "message",
+              "id": "m10",
+              "from": "p3",
+              "to": "p5",
+              "line": "async",
+              "text": "pi_request_snapshot with sections"
+            },
+            {
+              "kind": "fragment",
+              "id": "f2",
+              "op": "opt",
+              "operands": [
+                {
+                  "guard": "provider retry inside one turn",
+                  "items": [
+                    {
+                      "kind": "message",
+                      "id": "m11",
+                      "from": "p1",
+                      "to": "p2",
+                      "line": "sync",
+                      "text": "context hook again"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m12",
+                      "from": "p2",
+                      "to": "p3",
+                      "line": "sync",
+                      "text": "recordBuiltRequest: extra snapshot"
+                    },
+                    {
+                      "kind": "note",
+                      "id": "n4",
+                      "anchor": "p3",
+                      "side": "over",
+                      "text": "turn_number now runs ahead of pi_turn_start"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "style": {}
+}

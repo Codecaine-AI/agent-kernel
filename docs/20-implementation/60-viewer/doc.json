@@ -1,0 +1,1816 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-60-viewer-00-overview",
+  "title": "Viewer Packages",
+  "root": "b-00-overview-root-27",
+  "blocks": {
+    "b-00-overview-root-27": {
+      "id": "b-00-overview-root-27",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/viewer-core/src/, packages/viewer-ui/src/, packages/viewer-shell/src/",
+        "concepts": [
+          "viewer-core",
+          "viewer-ui",
+          "viewer-shell",
+          "trace-builder",
+          "renderer-registry",
+          "doc-figure",
+          "vertical-slices",
+          "style-tokens"
+        ],
+        "covers": "Viewer implementation area: the three-package split, structural decisions governing viewer-core transforms, viewer-ui components, and the cross-package style/token boundaries.",
+        "depends-on": [
+          "10-system-design/40-viewer-model",
+          "20-implementation/50-read-api"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-the-viewer-implementatio-2",
+        "b-00-overview-governed-by-10-system-3",
+        "b-00-overview-divider-4",
+        "b-00-overview-package-boundaries-5",
+        "b-00-overview-decision-the-viewer-6",
+        "b-00-overview-decision-viewer-co-7",
+        "b-00-overview-decision-viewer-ui-8",
+        "b-00-overview-decision-presentati-9",
+        "b-00-overview-viewer-core-structure-10",
+        "b-00-overview-decision-one-canoni-11",
+        "b-00-overview-decision-all-span-f-12",
+        "b-00-overview-decision-a-byte-exa-13",
+        "b-00-overview-viewer-ui-structure-14",
+        "b-00-overview-decision-card-chrom-15",
+        "b-00-overview-decision-the-card-t-17",
+        "b-00-overview-visual-constant-owners",
+        "b-00-overview-decision-trace-vie-16",
+        "b-00-overview-decision-detail-ren-18",
+        "b-00-overview-decision-detail-pa-19",
+        "b-00-overview-decision-viewer-ui-20",
+        "b-00-overview-decision-viewer-com-21",
+        "b-00-overview-decision-prompt-ren-22",
+        "b-00-overview-roster-23",
+        "b-00-overview-source-layout-tree",
+        "b-00-overview-lab-data-flow"
+      ]
+    },
+    "b-00-overview-the-viewer-implementatio-2": {
+      "id": "b-00-overview-the-viewer-implementatio-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The viewer implementation spans three packages: "
+        },
+        {
+          "insert": "packages/viewer-core",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (browser-safe data contracts and trace transforms), "
+        },
+        {
+          "insert": "packages/viewer-ui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (reusable React components), "
+        },
+        {
+          "insert": "packages/viewer-shell",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (what a host mounts: composition surfaces and the shared style system, see "
+        },
+        {
+          "insert": "Workspace and Shell",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/60-viewer/40-workspace-shell",
+              "label": "Workspace and Shell"
+            }
+          }
+        },
+        {
+          "insert": ")."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-governed-by-10-system-3": {
+      "id": "b-00-overview-governed-by-10-system-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Governed by: "
+        },
+        {
+          "insert": "Viewer Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/40-viewer-model",
+              "label": "Viewer Model"
+            }
+          }
+        },
+        {
+          "insert": ". The viewer's behavior, layout standards, and extension contracts. This page records only how the code is organized and why."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-4": {
+      "id": "b-00-overview-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-package-boundaries-5": {
+      "id": "b-00-overview-package-boundaries-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Package boundaries"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-the-viewer-6": {
+      "id": "b-00-overview-decision-the-viewer-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": The viewer is three packages (core (data), ui (components), shell (composition + style)), not one.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": A host that only needs transforms and DTOs (a custom workflow UI, the observer) must not pull React components; a host composing "
+        },
+        {
+          "insert": "viewer-ui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " directly must not inherit shell chrome. One merged package (the rejected alternative) makes every consumer carry everything.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "packages/viewer-core/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "packages/viewer-ui/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "packages/viewer-shell/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any future viewer code, which joins the layer matching what it exports."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-viewer-co-7": {
+      "id": "b-00-overview-decision-viewer-co-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "viewer-core",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is browser-safe by construction: it never imports Drizzle schema, "
+        },
+        {
+          "insert": "@agent-kernel/db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or app DB types. Its API surface is path constants ("
+        },
+        {
+          "insert": "KERNEL_TRACE_READ_PATHS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "KERNEL_CATALOG_PATHS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "KERNEL_PROMPT_EDIT_SESSION_PATHS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "KERNEL_OBSERVER_READ_PATHS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), DTOs ("
+        },
+        {
+          "insert": "catalog-types.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and the trace DTOs), and pure transforms ("
+        },
+        {
+          "insert": "buildTraceSpans",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "diffPromptDocuments",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ").\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Viewers read through APIs that return viewer-core DTOs (the design page's rule); a direct DB import (the rejected shortcut) would silently couple browser bundles to server schema.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": everything under "
+        },
+        {
+          "insert": "packages/viewer-core/src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-viewer-ui-8": {
+      "id": "b-00-overview-decision-viewer-ui-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": viewer-ui emits only Tailwind utilities; color "
+        },
+        {
+          "insert": "values",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " are host theme tokens ("
+        },
+        {
+          "insert": "--trace-*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "--selection-*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", band alphas as "
+        },
+        {
+          "insert": "--band-*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tokens) supplied by viewer-shell's style system, always with baked fallbacks.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Hosts must retheme without forking components. Baking values into viewer-ui (the rejected alternative) makes every theme change a package release. The token ownership crosses the package boundary on purpose.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": all styled components in "
+        },
+        {
+          "insert": "packages/viewer-ui/src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", token emission in "
+        },
+        {
+          "insert": "packages/viewer-shell/src/style/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-presentati-9": {
+      "id": "b-00-overview-decision-presentati-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Presentation knobs travel as options and CSS variables: "
+        },
+        {
+          "insert": "SpanCardViewOptions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is defined in viewer-ui ("
+        },
+        {
+          "insert": "SpanCard.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and consumed by the shell; persistence and rail UI live only in viewer-shell.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": The packages stay host-agnostic; per-host forks or prop-drilled preference plumbing (rejected) were how earlier hosts diverged. Where a surface has no prop path from the host (the detail panel's message cards), options reach it through "
+        },
+        {
+          "insert": "icons/icon-settings.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " rather than a new prop chain.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": every user-tunable presentation option, current and future."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-viewer-core-structure-10": {
+      "id": "b-00-overview-viewer-core-structure-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "viewer-core structure"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-one-canoni-11": {
+      "id": "b-00-overview-decision-one-canoni-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": One canonical event sort, applied once at the top of "
+        },
+        {
+          "insert": "buildTraceSpans",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "trace-builder/eventOrder.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "); every later stage sorts stably on "
+        },
+        {
+          "insert": "startTime",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and never re-orders otherwise.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": The ordering semantics (timestamp → turn number → causal rank → event id, see the design page) must hold at every zoom. Per-consumer re-sorting (the rejected alternative) lets each surface resolve same-millisecond ties differently.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "trace-builder/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", any new transform stage."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-all-span-f-12": {
+      "id": "b-00-overview-decision-all-span-f-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": All span folding lives in "
+        },
+        {
+          "insert": "trace-builder/nesting.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": turn ownership ("
+        },
+        {
+          "insert": "groupSpansByTurn",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), user-message grouping ("
+        },
+        {
+          "insert": "groupSpansByUserMessage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), usage folding, context-input grouping, and provisioning wrapping, as post-sort passes over the span list. It also holds "
+        },
+        {
+          "insert": "findToolCallSpanByToolUseId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", which "
+        },
+        {
+          "insert": "buildTraceSpans",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " uses to attach a nested PI session to the tool-call span that spawned it. Spawner titling (\"Dispatch: <agents>\") is span attribution, not folding, and lives in "
+        },
+        {
+          "insert": "trace-builder/spanAttributes.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ".\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Nesting is causal, so it is only correct "
+        },
+        {
+          "insert": "after",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " the canonical sort; scattering fold logic into per-span factories (rejected) would re-derive order locally and drift.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "trace-builder/nesting.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and any future folding rule."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-a-byte-exa-13": {
+      "id": "b-00-overview-decision-a-byte-exa-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": A byte-exact characterization snapshot ("
+        },
+        {
+          "insert": "trace-builder/__snapshots__/characterization.test.ts.snap",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") pins trace-builder output. Styling work must never move it. styling changes land in viewer-ui, viewer-shell, or the host, never in viewer-core semantics.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": It separates semantic changes (rare, reviewed against the snapshot) from presentation churn (frequent). Trusting unit tests alone (the rejected alternative) let semantic drift ride in on styling PRs.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": every change touching "
+        },
+        {
+          "insert": "packages/viewer-core/src/trace-builder/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-viewer-ui-structure-14": {
+      "id": "b-00-overview-viewer-ui-structure-14",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "viewer-ui structure"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-card-chrom-15": {
+      "id": "b-00-overview-decision-card-chrom-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Card chrome (cap kind, group, side, style) is resolved once in "
+        },
+        {
+          "insert": "trace-viewer/SpanCard/SpanCard.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and threaded to variants as a "
+        },
+        {
+          "insert": "SpanCardChrome",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " bundle; variants ("
+        },
+        {
+          "insert": "SpanCard/variants/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") supply content only.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Per-variant chrome (rejected) is how row anatomies drift apart. A new variant gets the standard frame for free and cannot opt out.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "SpanCard/variants/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", including variants not yet written."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-the-card-t-17": {
+      "id": "b-00-overview-decision-the-card-t-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Each trace-tree and detail-panel constant has exactly one owner module, listed below with the test that pins it.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": The design page's invariants (three sizes, fixed 24px cells, square caps) then have one place to be violated and, where pinned, one test to catch it. Ad-hoc local constants were the rejected default.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": all trace-tree and detail-panel rendering code."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-visual-constant-owners": {
+      "id": "b-00-overview-visual-constant-owners",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Visual constant",
+          "Owner module",
+          "Pinning test"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "Card type scale ("
+              },
+              {
+                "insert": "CARD_TYPE_LABEL",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "CARD_TYPE_BODY",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "CARD_TYPE_META",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            [
+              {
+                "insert": "SpanCard/variants/card-type.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "None; the module header forbids other card text sizes"
+          ],
+          [
+            "Connector geometry (fixed 24px cells)",
+            [
+              {
+                "insert": "SpanCard/SpanCardConnector.tsx",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "; the step is "
+              },
+              {
+                "insert": "LAYOUT_CONSTANTS.CONNECTOR_WIDTH",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " in "
+              },
+              {
+                "insert": "SpanCard/SpanCard.tsx",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "SpanCard/span-indent.test.tsx",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Cap size ("
+              },
+              {
+                "insert": "SPAN_CAP_SIZE",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            [
+              {
+                "insert": "icons/SpanIconCap.tsx",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "detail-panel/renderers/turn/turn-block-content.test.tsx",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (role header height)"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Icon resolver ("
+              },
+              {
+                "insert": "resolveSpanIcon",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": icon kind, group, accent)"
+              }
+            ],
+            [
+              {
+                "insert": "icons/resolve-span-icon.tsx",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "icons/span-icons.test.tsx",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (reserved-status rule)"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Renderer registry ("
+              },
+              {
+                "insert": "rendererRegistry",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            [
+              {
+                "insert": "detail-panel/rendererRegistry.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "detail-panel/contract-conformance.test.tsx",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (iterates the registry)"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Block slot order ("
+              },
+              {
+                "insert": "BLOCK_SLOT_ORDER",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            [
+              {
+                "insert": "detail-panel/contract.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "detail-panel/contract-conformance.test.tsx",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ]
+        ],
+        "title": "Visual constant owners (paths under packages/viewer-ui/src/trace-viewer/)"
+      },
+      "children": []
+    },
+    "b-00-overview-decision-trace-vie-16": {
+      "id": "b-00-overview-decision-trace-vie-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Every surface that shows role or kind color resolves it through the icon resolver (table above), the detail panel's message stream included.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Duplicated hue tables (rejected) are how the tree and the panel stop agreeing on what blue means.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "icons/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any new surface rendering span identity."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-detail-ren-18": {
+      "id": "b-00-overview-decision-detail-ren-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Detail renderers are data-only functions in the exported renderer registry (table above), and the conformance test iterates the registry rather than a hand-kept list. The renderer contract and the "
+        },
+        {
+          "insert": "DetailBlockProvider",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " host seam are defined in the Viewer Model; their types live in "
+        },
+        {
+          "insert": "detail-panel/contract.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "detail-panel/blocks.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ".\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": A renderer added later is covered without touching the test, so the contract enforces itself on unwritten code. A manually maintained test list was the rejected alternative.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "detail-panel/renderers/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", every future renderer and extension block source."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-detail-pa-19": {
+      "id": "b-00-overview-decision-detail-pa-19",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "detail-panel/doc-figure/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the single data-block substrate app-wide (figure, "
+        },
+        {
+          "insert": "tokenize.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "Clamped.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "); JSON canonicalization sits beside the renderers ("
+        },
+        {
+          "insert": "renderers/json-document.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), and the primary-figure clamp constant is "
+        },
+        {
+          "insert": "renderers/primary-figure.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", stamped by "
+        },
+        {
+          "insert": "renderers/TurnBody.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ".\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Byte-exactness, gutter, zebra, and clamp behavior are contracts (design page); one substrate means one place they can break. Per-surface code blocks were the rejected pattern.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": any surface rendering source text, including future tabs and renderers, which inherit the primary-figure policy from the Turn body rather than naming it."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-viewer-ui-20": {
+      "id": "b-00-overview-decision-viewer-ui-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": viewer-ui keeps a local structural mirror of the request-snapshot section-tag type ("
+        },
+        {
+          "insert": "RequestSectionTag",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " / "
+        },
+        {
+          "insert": "RequestSectionKind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "detail-panel/renderers/turn-sections.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") rather than importing the canonical type from "
+        },
+        {
+          "insert": "@agent-kernel/protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "PiRequestSnapshotData",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). The shapes are intentionally identical, and snapshots without tags parse to "
+        },
+        {
+          "insert": "null",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " so the renderer falls back to the flat context list.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": viewer-ui must stay buildable against protocol versions that predate the field. Importing the protocol type directly (the rejected alternative) couples viewer-ui builds to protocol version.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "detail-panel/renderers/turn-sections.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any future viewer type mirroring an optional protocol field."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-viewer-com-21": {
+      "id": "b-00-overview-decision-viewer-com-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Viewer components are vertical slices: a folder named for the component with a thin index composition root and responsibility-named siblings; external import specifiers resolve through the folder index, so restructuring is invisible to consumers. Single-responsibility modules stay flat files. folderizing for symmetry is an anti-pattern.\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": The alternative, shared-by-layer folders ("
+        },
+        {
+          "insert": "components/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "hooks/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "utils/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), scatters one component's parts and makes deletion unsafe.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "agent-viewer/AgentCatalogViewer/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (the exemplar) and every new multi-file component."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-prompt-ren-22": {
+      "id": "b-00-overview-decision-prompt-ren-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Prompt-rendering surfaces build on prompt-kit's shared editor surface: the editor tokens are defined once in "
+        },
+        {
+          "insert": "@codecaine-ai/prompt-kit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "ui/surface/editor-surface.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), and the inline lab ("
+        },
+        {
+          "insert": "PromptInlineLab",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") is re-exported from prompt-kit rather than reimplemented; viewer-ui adds the kernel-facing shells ("
+        },
+        {
+          "insert": "AgentCatalogViewer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "AgentPromptLabContainer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "RevisionHistoryPanel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "RevisionStatsStrip",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ").\n"
+        },
+        {
+          "insert": "Why",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": Every prompt view sharing one token source is what keeps views from drifting (prompt-kit's presentation contract); a viewer-local token copy or lab fork (rejected) would drift on the first edit.\n"
+        },
+        {
+          "insert": "Applies to",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "agent-viewer/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any new prompt-rendering surface."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-roster-23": {
+      "id": "b-00-overview-roster-23",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Source layout"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-source-layout-tree": {
+      "id": "b-00-overview-source-layout-tree",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "packages/viewer-core/src/",
+            "note": "browser-safe DTOs, paths, pure transforms"
+          },
+          {
+            "path": "packages/viewer-core/src/api.ts",
+            "note": "KERNEL_*_PATHS route constants"
+          },
+          {
+            "path": "packages/viewer-core/src/catalog-types.ts",
+            "note": "catalog DTOs"
+          },
+          {
+            "path": "packages/viewer-core/src/types.ts",
+            "note": "trace DTOs"
+          },
+          {
+            "path": "packages/viewer-core/src/build-trace-spans.ts",
+            "note": "buildTraceSpans entry"
+          },
+          {
+            "path": "packages/viewer-core/src/prompt-diff.ts",
+            "note": "diffPromptDocuments"
+          },
+          {
+            "path": "packages/viewer-core/src/trace-builder/",
+            "note": "sort once, then fold; snapshot-pinned"
+          },
+          {
+            "path": "packages/viewer-core/src/trace-builder/eventOrder.ts",
+            "note": "the one canonical event sort"
+          },
+          {
+            "path": "packages/viewer-core/src/trace-builder/nesting.ts",
+            "note": "all span folding"
+          },
+          {
+            "path": "packages/viewer-core/src/trace-builder/spanAttributes.ts",
+            "note": "span attribution, spawner titles"
+          },
+          {
+            "path": "packages/viewer-core/src/trace-builder/runBucketing.ts",
+            "note": "run bucketing"
+          },
+          {
+            "path": "packages/viewer-core/src/trace-builder/__snapshots__/",
+            "note": "byte-exact characterization snapshot"
+          },
+          {
+            "path": "packages/viewer-ui/src/",
+            "note": "React components; Tailwind + host tokens only"
+          },
+          {
+            "path": "packages/viewer-ui/src/trace-viewer/",
+            "note": "TreeView, DoctorPanel, usage panels, filters"
+          },
+          {
+            "path": "packages/viewer-ui/src/trace-viewer/SpanCard/",
+            "note": "chrome resolved once in SpanCard.tsx"
+          },
+          {
+            "path": "packages/viewer-ui/src/trace-viewer/SpanCard/variants/",
+            "note": "per-kind content only; card type scale"
+          },
+          {
+            "path": "packages/viewer-ui/src/trace-viewer/icons/",
+            "note": "icon resolver, cap, icon-settings options"
+          },
+          {
+            "path": "packages/viewer-ui/src/trace-viewer/detail-panel/",
+            "note": "contract, blocks seam, renderer registry"
+          },
+          {
+            "path": "packages/viewer-ui/src/trace-viewer/detail-panel/renderers/",
+            "note": "data-only renderers; turn-sections mirror"
+          },
+          {
+            "path": "packages/viewer-ui/src/trace-viewer/detail-panel/doc-figure/",
+            "note": "the one data-block substrate"
+          },
+          {
+            "path": "packages/viewer-ui/src/agent-viewer/",
+            "note": "kernel-facing prompt lab shells"
+          },
+          {
+            "path": "packages/viewer-ui/src/agent-viewer/AgentCatalogViewer/",
+            "note": "vertical-slice exemplar"
+          },
+          {
+            "path": "packages/viewer-ui/src/agent-viewer/catalog-client.ts",
+            "note": "revision loads, prompt saves"
+          },
+          {
+            "path": "packages/viewer-ui/src/agent-viewer/prompt-edit-client.ts",
+            "note": "annotation + prompt-edit routes, SSE"
+          },
+          {
+            "path": "packages/viewer-ui/src/agent-viewer/prompt-edit-session-view.ts",
+            "note": "session DTOs to lab props"
+          },
+          {
+            "path": "packages/viewer-ui/src/agent-viewer/prompt-lab-session-controller.ts",
+            "note": "annotate, session, review state"
+          },
+          {
+            "path": "packages/viewer-ui/src/agent-viewer/prompt-lab-session-mode.ts",
+            "note": "no prompt-edit state in a read-only lab"
+          },
+          {
+            "path": "packages/viewer-ui/src/agent-viewer/render-tools.ts",
+            "note": "Tools view document"
+          },
+          {
+            "path": "packages/viewer-shell/src/",
+            "note": "what a host mounts"
+          },
+          {
+            "path": "packages/viewer-shell/src/KernelTraceViewer.tsx",
+            "note": "tree + detail drill-in"
+          },
+          {
+            "path": "packages/viewer-shell/src/workspace/",
+            "note": "KernelTraceWorkspace"
+          },
+          {
+            "path": "packages/viewer-shell/src/style/",
+            "note": "shared style rail and CSS-variable emission"
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-00-overview-lab-data-flow": {
+      "id": "b-00-overview-lab-data-flow",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The lab's views, zones, and editing behavior are prompt-kit's, documented in the prompt-kit repo's UI implementation doc (docs/30-implementation/10-prompt-kit/20-ui). The kernel side is the data feeding it. Context fixtures flow from "
+        },
+        {
+          "insert": "packages/kernel/src/context-fixtures.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " through "
+        },
+        {
+          "insert": "catalog-service.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " into "
+        },
+        {
+          "insert": "CatalogAgentDetail.contextFixtures",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; "
+        },
+        {
+          "insert": "AgentPromptLabContainer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " passes them to the lab's fixture picker unless the host supplies its own context preview. The Tools view document comes from the host's "
+        },
+        {
+          "insert": "toolsZone",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " when set; otherwise "
+        },
+        {
+          "insert": "render-tools.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " renders the selected context fixture's tools, falling back to the detail's tool preview ("
+        },
+        {
+          "insert": "CatalogAgentDetail.tools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). When the host enables editing, prompt annotations open prompt-edit sessions on the "
+        },
+        {
+          "insert": "KERNEL_PROMPT_EDIT_SESSION_PATHS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " routes, and the controller follows session events over SSE."
+        }
+      ],
+      "children": []
+    }
+  }
+}

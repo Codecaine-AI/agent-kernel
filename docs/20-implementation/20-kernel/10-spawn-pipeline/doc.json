@@ -1,0 +1,1127 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-30d9364ea7bcb5b69c37dfa6e401940f",
+  "title": "Spawn Pipeline",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/spawn-pipeline/",
+        "concepts": [
+          "spawn-pipeline",
+          "agent-run-trace",
+          "tool-scoping",
+          "branch-based-resume",
+          "turn-limits",
+          "request-snapshot-recorder"
+        ],
+        "covers": "Structural decisions in the spawn pipeline: fail-safe agent_run emission, tool scoping, branch-based resume, turn limits, and request snapshot recorder placement.",
+        "depends-on": [
+          "20-implementation/20-kernel",
+          "10-system-design/10-runtime-model",
+          "10-system-design/20-observability-model"
+        ]
+      },
+      "children": [
+        "b-10-sp-role",
+        "b-10-sp-gov",
+        "b-10-sp-div",
+        "b-10-sp-layout",
+        "b-10-sp-tree-lead",
+        "b-10-sp-tree",
+        "b-10-sp-decisions",
+        "b-10-sp-trace",
+        "b-10-sp-trace-d",
+        "b-10-sp-trace-w",
+        "b-10-sp-trace-a",
+        "b-10-sp-scoping",
+        "b-10-sp-scoping-d",
+        "b-10-sp-scoping-w",
+        "b-10-sp-scoping-a",
+        "b-10-sp-resume",
+        "b-10-sp-resume-d",
+        "b-10-sp-resume-w",
+        "b-10-sp-resume-a",
+        "b-10-sp-turns",
+        "b-10-sp-turns-d",
+        "b-10-sp-turns-w",
+        "b-10-sp-turns-a",
+        "b-10-sp-snapshot",
+        "b-10-sp-snapshot-d",
+        "b-10-sp-snapshot-w",
+        "b-10-sp-snapshot-a"
+      ]
+    },
+    "b-10-sp-role": {
+      "id": "b-10-sp-role",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "packages/kernel/src/spawn-pipeline/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " turns one spawn call into a traced Pi run. "
+        },
+        {
+          "insert": "spawn-agent.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " holds the sequence; each subfolder owns one stage of it. "
+        },
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " assembles the pipeline from config, so "
+        },
+        {
+          "insert": "createSpawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and its adapter bundle stay internal."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-gov": {
+      "id": "b-10-sp-gov",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Governed by: "
+        },
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model",
+              "label": "Runtime Model"
+            }
+          }
+        },
+        {
+          "insert": " § Spawn Pipeline (the spawn order and its expected trace) and "
+        },
+        {
+          "insert": "Observability Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-observability-model",
+              "label": "Observability Model"
+            }
+          }
+        },
+        {
+          "insert": " (run records and request snapshots)."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-div": {
+      "id": "b-10-sp-div",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-10-sp-layout": {
+      "id": "b-10-sp-layout",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Layout"
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-tree-lead": {
+      "id": "b-10-sp-tree-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Subfolder barrels and test files omitted. The subfolders follow the stages of the spawn sequence."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-tree": {
+      "id": "b-10-sp-tree",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "packages/kernel/src/spawn-pipeline/spawn-agent.ts",
+            "note": "createSpawnAgent: the spawn sequence"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/types.ts",
+            "note": "AgentConfig, ParsedAgent, DomainRule, session slices"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/index.ts",
+            "note": "barrel; createSpawnAgent stays internal"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/config/turn-limits.ts",
+            "note": "default maxTurns and grace turns"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/hooks/domain-guard.ts",
+            "note": "DomainRule path check per file operation"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/pi-session-factory/create-session.ts",
+            "note": "createPiSession: loader, model, binding, scoping"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/pi-session-factory/model-resolver.ts",
+            "note": "fuzzy model match against the registry"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/pi-session-factory/pi-lifecycle-logger.ts",
+            "note": "kernel:pi-lifecycle JSONL entries"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/pi-session-factory/tool-scoping.ts",
+            "note": "allow, disallow, and extension filters"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/runtime/lifecycle-emitter.ts",
+            "note": "spawn lifecycle emitter from ids or context"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/runtime/run-context-builder.ts",
+            "note": "RunContext; null without a trace writer"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/runtime/runtime-state.ts",
+            "note": "RuntimeState for variables and context"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/session/session-manager-builder.ts",
+            "note": "open, reuse, or create the Pi session store"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/session/branch-based-resume.ts",
+            "note": "branch at the ask call, append the answer"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/session/ask-call-entry-lookup.ts",
+            "note": "find the entry carrying a toolCall id"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/session/pi-session-db-init.ts",
+            "note": "pre-insert session and run rows"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/session/turn-trigger.ts",
+            "note": "prompt, or hidden resume message"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/streaming/session-event-subscriber.ts",
+            "note": "one subscription: capture, emit, turn limit"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/streaming/request-snapshot.ts",
+            "note": "per-turn pi_request_snapshot recorder"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/system-prompt-resolver/resolve-system-prompt.ts",
+            "note": "substitute {{vars}}; fail on leftovers"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/system-prompt-resolver/resolve-variables.ts",
+            "note": "caller values over manifest defaults"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/trace/agent-run-trace.ts",
+            "note": "agent_run_start and agent_run_end"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/trace/assistant-message-inspection.ts",
+            "note": "last assistant text and error"
+          },
+          {
+            "path": "packages/kernel/src/spawn-pipeline/trace/usage-rollup.ts",
+            "note": "run, session, and container usage"
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-10-sp-decisions": {
+      "id": "b-10-sp-decisions",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-trace": {
+      "id": "b-10-sp-trace",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Run trace emission never fails a run"
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-trace-d": {
+      "id": "b-10-sp-trace-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "spawn-agent.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " emits "
+        },
+        {
+          "insert": "agent_run_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "agent_run_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " only through "
+        },
+        {
+          "insert": "safeEmitAgentRunStart",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "safeEmitAgentRunEnd",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "trace/agent-run-trace.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Each wrapper catches a sink error and logs a warning. The run-status and session-status writes that close a run follow the same rule: each one catches and logs."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-trace-w": {
+      "id": "b-10-sp-trace-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "The trace observes the run; it is not a dependency of it. A throwing sink would turn a finished run into an error, or skip the status writes that close it."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-trace-a": {
+      "id": "b-10-sp-trace-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "trace/agent-run-trace.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the close paths in "
+        },
+        {
+          "insert": "spawn-agent.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and every future trace or DB write on those close paths. The unwrapped "
+        },
+        {
+          "insert": "emitAgentRunStart",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "emitAgentRunEnd",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " stay exported for direct callers and tests."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-scoping": {
+      "id": "b-10-sp-scoping",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Tool scoping filters the finished roster"
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-scoping-d": {
+      "id": "b-10-sp-scoping-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "applyToolScoping",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "pi-session-factory/tool-scoping.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " runs once, after "
+        },
+        {
+          "insert": "createAgentSession",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " has loaded every extension factory, and narrows the session's active tools. The disallow list always gains "
+        },
+        {
+          "insert": "SUBAGENT_TOOL_NAMES",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The allowlist filters non-extension tools. Extension tools (names containing "
+        },
+        {
+          "insert": "__",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", such as "
+        },
+        {
+          "insert": "mcp__",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tools) follow the manifest "
+        },
+        {
+          "insert": "extensions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " value: "
+        },
+        {
+          "insert": "true",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " keeps all, a string list keeps matches, "
+        },
+        {
+          "insert": "false",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " drops all."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-scoping-w": {
+      "id": "b-10-sp-scoping-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Tools arrive from several factories: shared tools, private tools, the domain guard, and the state extension. Only the finished roster shows all of them, so one filter there covers every source. The subagent tool ban is D77; see "
+        },
+        {
+          "insert": "Subagents",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/20-kernel/40-subagents",
+              "label": "Subagents"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-scoping-a": {
+      "id": "b-10-sp-scoping-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "pi-session-factory/tool-scoping.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "pi-session-factory/create-session.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and every future tool source: a new source registers normally and is scoped by this filter, never by its own allowlist check."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-resume": {
+      "id": "b-10-sp-resume",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Resume branches the stored session at the ask call"
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-resume-d": {
+      "id": "b-10-sp-resume-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "resumeFromToolResult",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " reopens the stored Pi session under "
+        },
+        {
+          "insert": "<piSessionsDir>/<containerId>/<agent>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", finds the assistant entry carrying the ask "
+        },
+        {
+          "insert": "toolCall",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", branches there, and appends the real "
+        },
+        {
+          "insert": "toolResult",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". A real result already on the branch makes the append a no-op; the "
+        },
+        {
+          "insert": "[awaiting user answer]",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " placeholder does not count. "
+        },
+        {
+          "insert": "session/turn-trigger.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " then starts the turn with a hidden custom message ("
+        },
+        {
+          "insert": "kernel:ask-resume",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " by default) instead of a user prompt."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-resume-w": {
+      "id": "b-10-sp-resume-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "The answer lands where the question was asked, so the call and its result stay a valid pair and the model continues its turn instead of reading a new user message. The duplicate check makes a retried resume safe."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-resume-a": {
+      "id": "b-10-sp-resume-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "session/branch-based-resume.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "session/ask-call-entry-lookup.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "session/session-manager-builder.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "session/turn-trigger.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any future resume source."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-turns": {
+      "id": "b-10-sp-turns",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Turn limits steer first, then abort"
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-turns-d": {
+      "id": "b-10-sp-turns-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "The limit resolves from the spawn's "
+        },
+        {
+          "insert": "maxTurns",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", then the manifest's "
+        },
+        {
+          "insert": "maxTurns",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", then the process default in "
+        },
+        {
+          "insert": "config/turn-limits.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; "
+        },
+        {
+          "insert": "0",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or unset means no limit. When the count reaches the limit, "
+        },
+        {
+          "insert": "streaming/session-event-subscriber.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " steers the session once with a wrap-up instruction. After the grace turns (default 5) it aborts, and the run closes with status "
+        },
+        {
+          "insert": "turn-limit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-turns-w": {
+      "id": "b-10-sp-turns-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "The steer gives the model a turn to return a final answer. The abort bounds a model that ignores it."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-turns-a": {
+      "id": "b-10-sp-turns-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "config/turn-limits.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "streaming/session-event-subscriber.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The process defaults are module state set through "
+        },
+        {
+          "insert": "setDefaultMaxTurns",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "setGraceTurns",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", not "
+        },
+        {
+          "insert": "CreateKernelConfig",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " fields; nothing in the workspace calls the setters today."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-snapshot": {
+      "id": "b-10-sp-snapshot",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "The request snapshot recorder observes each event first"
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-snapshot-d": {
+      "id": "b-10-sp-snapshot-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "The recorder is the first consumer in the single session subscription, ahead of the kernel emitter and the turn-limit control. Its "
+        },
+        {
+          "insert": "handleEvent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is synchronous and never throws; hashing, blob writes, and emission run on its own serialized tail, flushed before "
+        },
+        {
+          "insert": "agent_run_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". When a state extension is active the recorder is built with "
+        },
+        {
+          "insert": "builderOwnsCapture",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and records each built request through "
+        },
+        {
+          "insert": "onRequestBuilt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " instead of reading the transcript at "
+        },
+        {
+          "insert": "turn_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-snapshot-w": {
+      "id": "b-10-sp-snapshot-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Capture must predate any emitter or control side effect on the session. Pi fires "
+        },
+        {
+          "insert": "turn_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " before the "
+        },
+        {
+          "insert": "context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " hook, so a lazy switch to the builder path would emit one extra untagged snapshot and shift every later "
+        },
+        {
+          "insert": "turn_number",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-10-sp-snapshot-a": {
+      "id": "b-10-sp-snapshot-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "streaming/request-snapshot.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "streaming/session-event-subscriber.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the recorder wiring in "
+        },
+        {
+          "insert": "spawn-agent.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any future per-event observer: it joins the same subscription and stays synchronous and non-throwing."
+        }
+      ],
+      "children": []
+    }
+  }
+}

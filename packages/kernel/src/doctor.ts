@@ -1,7 +1,7 @@
 /**
  * Trace doctor — executable linkage-invariant checker for one kernel database.
  *
- * Implements invariants 1-7 from docs/10-system-design/15-identity-model.md:
+ * Implements invariants 1-7 from docs/10-system-design/15-identity-model/:
  *
  *   1. Every trace_events.container_id exists in containers
  *   2. Every agent_runs.container_id and .pi_session_id resolve

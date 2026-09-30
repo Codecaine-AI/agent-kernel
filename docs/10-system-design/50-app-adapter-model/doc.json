@@ -1,0 +1,1699 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-50-app-adapter-model",
+  "title": "App Adapter Model",
+  "root": "b-50-app-adapter-model-root-50",
+  "blocks": {
+    "b-50-app-adapter-model-root-50": {
+      "id": "b-50-app-adapter-model-root-50",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "app-adapter",
+          "host-app",
+          "spectre-adapter",
+          "custom-loader",
+          "custom-tool",
+          "container-mapping",
+          "tool-sidecar",
+          "models-process",
+          "transcript-recovery",
+          "read-api",
+          "viewer"
+        ],
+        "covers": "App adapter design: how host applications compose kernel packages while keeping workflow state, tools, loaders, routes, and panels app-owned — the adapter surface, container mapping, app-side loaders and events, transcript recovery, read API and viewer integration, and the models-process access pattern.",
+        "depends-on": [
+          "00-foundation/30-boundaries",
+          "10-system-design/10-runtime-model",
+          "10-system-design/40-viewer-model"
+        ]
+      },
+      "children": [
+        "b-50-app-adapter-model-an-app-adapter-turns-the-2",
+        "b-50-app-adapter-model-divider-3",
+        "b-50-app-adapter-model-adapter-responsibilities-4",
+        "b-50-app-adapter-model-an-app-adapter-typically-5",
+        "b-50-app-adapter-model-kernel-instance-configur-6",
+        "b-50-app-adapter-model-app-domain-to-kernel-con-7",
+        "b-50-app-adapter-model-shared-tool-factories-an-8",
+        "b-50-app-adapter-model-custom-context-loaders-9",
+        "b-50-app-adapter-model-run-context-app-state-th-10",
+        "b-50-app-adapter-model-app-specific-event-emiss-11",
+        "b-50-app-adapter-model-read-api-mount-and-respo-12",
+        "b-50-app-adapter-model-tools-preview-duty",
+        "b-50-app-adapter-model-viewer-plugins-and-custo-13",
+        "b-50-app-adapter-model-the-adapter-surface-14",
+        "b-50-app-adapter-model-the-adapter-creates-the-15",
+        "b-50-app-adapter-model-adapter-slots-table",
+        "b-50-app-adapter-model-host-boot-heading",
+        "b-50-app-adapter-model-host-boot-lead",
+        "b-50-app-adapter-model-host-boot-sequence",
+        "b-50-app-adapter-model-container-mapping-19",
+        "b-50-app-adapter-model-the-kernel-uses-containe-20",
+        "b-50-app-adapter-model-ts-21",
+        "b-50-app-adapter-model-the-same-kind-and-key-al-22",
+        "b-50-app-adapter-model-app-side-tools-23",
+        "b-50-app-adapter-model-agent-specific-private-t-24",
+        "b-50-app-adapter-model-app-side-loaders-25",
+        "b-50-app-adapter-model-kernel-loaders-stay-gene-26",
+        "b-50-app-adapter-model-app-events-through-the-t-27",
+        "b-50-app-adapter-model-the-app-decides-when-dom-28",
+        "b-50-app-adapter-model-transcript-recovery-29",
+        "b-50-app-adapter-model-the-primary-trace-path-i-30",
+        "b-50-app-adapter-model-read-api-and-viewer-31",
+        "b-50-app-adapter-model-the-kernel-instance-ship-32",
+        "b-50-app-adapter-model-the-base-viewer-path-is-33",
+        "b-50-app-adapter-model-model-access-the-models-34",
+        "b-50-app-adapter-model-kernels-do-not-use-inter-35",
+        "b-50-app-adapter-model-json-36",
+        "b-50-app-adapter-model-auth-json-in-the-piag-37",
+        "b-50-app-adapter-model-the-apikey-is-a-token-38",
+        "b-50-app-adapter-model-agent-manifests-and-kern-39",
+        "b-50-app-adapter-model-kernels-stay-headless-sa-40",
+        "b-50-app-adapter-model-examples-simple-researc-41",
+        "b-50-app-adapter-model-the-boundary-as-a-contra-42",
+        "b-50-app-adapter-model-the-adapter-boundary-is-43",
+        "b-50-app-adapter-model-spectre-reference-mappin-44",
+        "b-50-app-adapter-model-reference-adapters-intro",
+        "b-50-app-adapter-model-reference-adapters-table",
+        "b-50-app-adapter-model-spectre-keeps-app-side-46",
+        "b-50-app-adapter-model-spectre-compatibility-no-47",
+        "b-50-app-adapter-model-spectre-still-has-backen-48",
+        "b-50-app-adapter-model-a-new-app-should-not-rec-49"
+      ]
+    },
+    "b-50-app-adapter-model-an-app-adapter-turns-the-2": {
+      "id": "b-50-app-adapter-model-an-app-adapter-turns-the-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An app adapter turns the generic kernel into a product-specific agent system. It should be explicit, testable, and mostly one-way: app code depends on kernel packages, kernel packages know nothing about the app. That dependency direction is the important contract; git topology and package linking are delivery mechanisms."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-divider-3": {
+      "id": "b-50-app-adapter-model-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-50-app-adapter-model-adapter-responsibilities-4": {
+      "id": "b-50-app-adapter-model-adapter-responsibilities-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Adapter Responsibilities"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-an-app-adapter-typically-5": {
+      "id": "b-50-app-adapter-model-an-app-adapter-typically-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An app adapter typically provides:"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-kernel-instance-configur-6": {
+      "id": "b-50-app-adapter-model-kernel-instance-configur-6",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "kernel instance configuration ("
+        },
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " config: catalog roots, db handle, model aliases and prices, tool profiles)"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-app-domain-to-kernel-con-7": {
+      "id": "b-50-app-adapter-model-app-domain-to-kernel-con-7",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app domain to kernel container mapping (kind + key vocabulary)"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-shared-tool-factories-an-8": {
+      "id": "b-50-app-adapter-model-shared-tool-factories-an-8",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "shared tool factories and an app tool runtime for private sidecars"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-custom-context-loaders-9": {
+      "id": "b-50-app-adapter-model-custom-context-loaders-9",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "custom context loaders"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-run-context-app-state-th-10": {
+      "id": "b-50-app-adapter-model-run-context-app-state-th-10",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "run-context app state through "
+        },
+        {
+          "insert": "appContext",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-app-specific-event-emiss-11": {
+      "id": "b-50-app-adapter-model-app-specific-event-emiss-11",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "app-specific "
+        },
+        {
+          "insert": "app:",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " events through "
+        },
+        {
+          "insert": "createAppEvent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and the trace writer"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-read-api-mount-and-respo-12": {
+      "id": "b-50-app-adapter-model-read-api-mount-and-respo-12",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "read and catalog API mounts ("
+        },
+        {
+          "insert": "createKernelTraceReadApi",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "createKernelCatalogApi",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " including its prompt-edit session routes) and response mapping"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-tools-preview-duty": {
+      "id": "b-50-app-adapter-model-tools-preview-duty",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "a "
+        },
+        {
+          "insert": "toolsPreview",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " hook passed to "
+        },
+        {
+          "insert": "catalogApiService",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so the catalog can preview an agent's tools for a fixture"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-viewer-plugins-and-custo-13": {
+      "id": "b-50-app-adapter-model-viewer-plugins-and-custo-13",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "viewer mounts: "
+        },
+        {
+          "insert": "KernelTraceWorkspace",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with a "
+        },
+        {
+          "insert": "detailBlockProvider",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for app payloads, and "
+        },
+        {
+          "insert": "AgentCatalogViewer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for the catalog"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-the-adapter-surface-14": {
+      "id": "b-50-app-adapter-model-the-adapter-surface-14",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Adapter Surface"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-the-adapter-creates-the-15": {
+      "id": "b-50-app-adapter-model-the-adapter-creates-the-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The adapter builds one "
+        },
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " config and keeps the returned kernel instance; "
+        },
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model",
+              "label": "Runtime Model"
+            }
+          }
+        },
+        {
+          "insert": " defines both contracts. Most config fields are data. App-shaped behavior enters through a few slots, and these are the ones an adapter fills:"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-adapter-slots-table": {
+      "id": "b-50-app-adapter-model-adapter-slots-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Slot",
+          "Adapter supplies",
+          "Example"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "loaders",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "{ kind, resolve(decl, ctx) }",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " objects for context that reads app tables, artifacts, or workflow state"
+              }
+            ],
+            [
+              {
+                "insert": "canvas-agent: "
+              },
+              {
+                "insert": "stateGrammarLoader",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "styleGuideLoader",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "; simple-research: "
+              },
+              {
+                "insert": "workingMemoryLoader",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "toolRuntime",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The handle each bundle's private tools receive; the only way sidecar tools reach app state",
+            [
+              {
+                "insert": "canvas-agent: a "
+              },
+              {
+                "insert": "LayoutToolRuntime",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "; simple-research: "
+              },
+              {
+                "insert": "createToolRuntime()",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "sharedTools",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Tool factories appended to every spawned session",
+            [
+              {
+                "insert": "canvas-agent, prompt-kit-agent, core-harness: "
+              },
+              {
+                "insert": "promptEditSharedTools",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", which binds prompt-edit session tools onto prompt-editor spawns"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "appContext",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Per-spawn "
+              },
+              {
+                "insert": "{ stateManager, sessionData }",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " for the run context"
+              }
+            ],
+            [
+              {
+                "insert": "simple-research: "
+              },
+              {
+                "insert": "sessionData.workingMemoryDir",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "catalog.roots",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Bundle roots; "
+              },
+              {
+                "insert": "{ path, listed: false }",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " keeps agents spawnable but hidden from catalog browsing"
+              }
+            ],
+            "core-harness: the shared prompt-editor bundle root, unlisted"
+          ],
+          [
+            [
+              {
+                "insert": "createSessionBinding",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Optional JSONL session-binding marker factory; the default marker carries sessionDir and phase",
+            "No reference adapter overrides it"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-50-app-adapter-model-host-boot-heading": {
+      "id": "b-50-app-adapter-model-host-boot-heading",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Host Boot"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-host-boot-lead": {
+      "id": "b-50-app-adapter-model-host-boot-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every host boots in the same order. Hosts that own their kernel manifest write it after the schema check. core-harness reads its repo-owned "
+        },
+        {
+          "insert": ".agent-kernel/kernel.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " first and never writes it. The sequence follows "
+        },
+        {
+          "insert": "examples/simple-research-kernel/src/server.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "packages/core-harness/src/kernel.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-host-boot-sequence": {
+      "id": "b-50-app-adapter-model-host-boot-sequence",
+      "type": "sequence",
+      "props": {
+        "src": "./assets/sequences/host-boot.sequence.json",
+        "title": "Host boot"
+      },
+      "children": []
+    },
+    "b-50-app-adapter-model-container-mapping-19": {
+      "id": "b-50-app-adapter-model-container-mapping-19",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Container Mapping"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-the-kernel-uses-containe-20": {
+      "id": "b-50-app-adapter-model-the-kernel-uses-containe-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel uses containers as the portable grouping primitive. The app keeps its own workflow tables wherever it likes and links them to kernel rows by container "
+        },
+        {
+          "insert": "kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " + "
+        },
+        {
+          "insert": "key",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ":"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-ts-21": {
+      "id": "b-50-app-adapter-model-ts-21",
+      "type": "code",
+      "props": {
+        "language": "ts"
+      },
+      "text": [
+        {
+          "insert": "const container = await kernel.container({\n  kind: \"session\",\n  key: [appSessionRowId],\n  label: topic,\n  metadata: { app: \"my-app\" },\n});"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-the-same-kind-and-key-al-22": {
+      "id": "b-50-app-adapter-model-the-same-kind-and-key-al-22",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The same kind and key always resolve to the same container id, so the mapping needs no join table and the app never stores hashed grouping ids of its own. App workflow tables carry product semantics; kernel rows carry runtime and observability."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-app-side-tools-23": {
+      "id": "b-50-app-adapter-model-app-side-tools-23",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "App-Side Tools"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-agent-specific-private-t-24": {
+      "id": "b-50-app-adapter-model-agent-specific-private-t-24",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Agent-specific private tools live in the bundle's tools sidecar beside the agent manifest ("
+        },
+        {
+          "insert": "defineTools((pi, runtime) => …)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from "
+        },
+        {
+          "insert": "@agent-kernel/kernel/agent-definition",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "); the kernel binds the sidecar to the config "
+        },
+        {
+          "insert": "toolRuntime",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " at spawn time, and the registry harvests tool names at boot so they enter the allowlist automatically. Tools that many agents need come from the "
+        },
+        {
+          "insert": "sharedTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " config slot instead. The runtime object is the app's callback surface: it is how sidecar tools reach app-owned state without the kernel learning app concepts."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-app-side-loaders-25": {
+      "id": "b-50-app-adapter-model-app-side-loaders-25",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "App-Side Loaders"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-kernel-loaders-stay-gene-26": {
+      "id": "b-50-app-adapter-model-kernel-loaders-stay-gene-26",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernel loaders stay generic. A loader that reads app tables, app artifacts, or product workflow state belongs in the host app and enters through the "
+        },
+        {
+          "insert": "loaders",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " config slot as a "
+        },
+        {
+          "insert": "{ kind, resolve(decl, ctx) }",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " object. canvas-agent registers its own, such as "
+        },
+        {
+          "insert": "styleGuideLoader",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "stateGrammarLoader",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-app-events-through-the-t-27": {
+      "id": "b-50-app-adapter-model-app-events-through-the-t-27",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "App Events Through The Trace Writer"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-the-app-decides-when-dom-28": {
+      "id": "b-50-app-adapter-model-the-app-decides-when-dom-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The app decides when domain-level events happen; the event protocol gives them a portable shape. App code builds events with "
+        },
+        {
+          "insert": "@agent-kernel/protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " factories (identity first, as a single "
+        },
+        {
+          "insert": "ids",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " object inside a run scope, "
+        },
+        {
+          "insert": "currentTraceIds()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and submits them through "
+        },
+        {
+          "insert": "kernel.traceWriter",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Host-defined events use "
+        },
+        {
+          "insert": "createAppEvent(\"app:…\", ids, eventData)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; the factory rejects a type without the "
+        },
+        {
+          "insert": "app:",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " prefix. Runtime events (messages, tools, turns, usage) are emitted by the kernel's in-process emitter automatically; the adapter never synthesizes those."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-transcript-recovery-29": {
+      "id": "b-50-app-adapter-model-transcript-recovery-29",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Transcript Recovery"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-the-primary-trace-path-i-30": {
+      "id": "b-50-app-adapter-model-the-primary-trace-path-i-30",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The primary trace path is in-process emission. There is no tailer daemon. The kernel's transcript-recovery module ("
+        },
+        {
+          "insert": "@agent-kernel/kernel/transcript-recovery",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") is a recovery tool, not a running process: "
+        },
+        {
+          "insert": "runBackfill",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " re-imports Pi JSONL transcripts idempotently after a crash, or imports sessions that ran outside the kernel. Marker custom types are configurable where compatibility names are needed."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-read-api-and-viewer-31": {
+      "id": "b-50-app-adapter-model-read-api-and-viewer-31",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Read API And Viewer"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-the-kernel-instance-ship-32": {
+      "id": "b-50-app-adapter-model-the-kernel-instance-ship-32",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernel read and catalog routes mount as the boot sequence shows. Product routes stay separate: they may join app workflow state, while kernel read routes return viewer-core DTOs."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-the-base-viewer-path-is-33": {
+      "id": "b-50-app-adapter-model-the-base-viewer-path-is-33",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Viewer Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/40-viewer-model",
+              "label": "Viewer Model"
+            }
+          }
+        },
+        {
+          "insert": " covers the viewer side: hosts mount "
+        },
+        {
+          "insert": "KernelTraceWorkspace",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "AgentCatalogViewer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and extend them only through its host seams. The host app owns surrounding navigation, headers, filters, and workflow panels; generic trace-tree behavior belongs in viewer packages, domain interpretation in the host app."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-model-access-the-models-34": {
+      "id": "b-50-app-adapter-model-model-access-the-models-34",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Model Access: The Models Process, Not Auth"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-kernels-do-not-use-inter-35": {
+      "id": "b-50-app-adapter-model-kernels-do-not-use-inter-35",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernels do not use interactive provider auth. Every kernel points at the local "
+        },
+        {
+          "insert": "models process",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " (a proxy/load-balancer endpoint that owns the real provider credentials) through a custom provider in the "
+        },
+        {
+          "insert": "piAgentDir",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "models.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ":"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-json-36": {
+      "id": "b-50-app-adapter-model-json-36",
+      "type": "code",
+      "props": {
+        "language": "json"
+      },
+      "text": [
+        {
+          "insert": "{\n  \"providers\": {\n    \"codex-lb\": {\n      \"baseUrl\": \"http://127.0.0.1:2455/backend-api/codex\",\n      \"api\": \"openai-responses\",\n      \"apiKey\": \"<local proxy token>\",\n      \"models\": [{ \"id\": \"gpt-5.5\", \"reasoning\": true, \"input\": [\"text\", \"image\"] }]\n    }\n  }\n}"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-auth-json-in-the-piag-37": {
+      "id": "b-50-app-adapter-model-auth-json-in-the-piag-37",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "auth.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in the "
+        },
+        {
+          "insert": "piAgentDir",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " stays an empty object: no "
+        },
+        {
+          "insert": "/login",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " flow, no provider keys on disk in any kernel."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-the-apikey-is-a-token-38": {
+      "id": "b-50-app-adapter-model-the-apikey-is-a-token-38",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "apiKey",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is a token for the local proxy, not an upstream secret; the proxy holds upstream credentials in one place for all kernels."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-agent-manifests-and-kern-39": {
+      "id": "b-50-app-adapter-model-agent-manifests-and-kern-39",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Agent manifests and kernel "
+        },
+        {
+          "insert": "models.aliases",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " resolve to model ids served by the proxy provider, so retargeting a fleet is one config edit."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-kernels-stay-headless-sa-40": {
+      "id": "b-50-app-adapter-model-kernels-stay-headless-sa-40",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Kernels stay headless-safe (no interactive auth on boot) and model routing is observable at a single endpoint."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-examples-simple-researc-41": {
+      "id": "b-50-app-adapter-model-examples-simple-researc-41",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "examples/simple-research-kernel/.pi-agent/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the reference shape: a "
+        },
+        {
+          "insert": "codex-lb",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " provider in "
+        },
+        {
+          "insert": "models.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", an empty "
+        },
+        {
+          "insert": "auth.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-the-boundary-as-a-contra-42": {
+      "id": "b-50-app-adapter-model-the-boundary-as-a-contra-42",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Boundary As A Contract"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-the-adapter-boundary-is-43": {
+      "id": "b-50-app-adapter-model-the-adapter-boundary-is-43",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The adapter boundary is testable, not conventional. Beyond the package-dependency direction (enforced structurally; see the implementation entries), a host app's checks should assert the behavioral half: trace writes carry container ids, subagents carry parent tool-use ids, custom loaders live in the app, and viewer pages consume viewer-core DTOs rather than database schema."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-spectre-reference-mappin-44": {
+      "id": "b-50-app-adapter-model-spectre-reference-mappin-44",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Reference Adapters"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-reference-adapters-intro": {
+      "id": "b-50-app-adapter-model-reference-adapters-intro",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The live reference adapters are canvas-agent ("
+        },
+        {
+          "insert": "../canvas/packages/canvas-agent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), prompt-kit-agent, and core-harness ("
+        },
+        {
+          "insert": "packages/core-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). The in-repo example is "
+        },
+        {
+          "insert": "examples/simple-research-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Spectre was the first host, and the kernel was extracted from it. Spectre now runs its own copy of the kernel; its column is history."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-reference-adapters-table": {
+      "id": "b-50-app-adapter-model-reference-adapters-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Kernel concept",
+          "canvas-agent",
+          "prompt-kit-agent",
+          "core-harness",
+          "Spectre (historical)"
+        ],
+        "rows": [
+          [
+            "Container kind + key",
+            [
+              {
+                "insert": "layout-session",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " keyed "
+              },
+              {
+                "insert": "[canvasId, sessionId]",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "; prompt edits use "
+              },
+              {
+                "insert": "session",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " keyed "
+              },
+              {
+                "insert": "[\"prompt-edit\", id]",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "session",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " keyed "
+              },
+              {
+                "insert": "[\"prompt-edit\", id]",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "session",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " keyed "
+              },
+              {
+                "insert": "[\"prompt-edit\", id]",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Spectre session id through "
+              },
+              {
+                "insert": "kernel.container({ kind: \"session\", key })",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "; app state in Spectre tables"
+              }
+            ]
+          ],
+          [
+            "Phase label",
+            [
+              {
+                "insert": "prompt-edit",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " on prompt-edit containers"
+              }
+            ],
+            [
+              {
+                "insert": "prompt-edit",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "prompt-edit",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "spec",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "plan",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "build",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "docs",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", or other workflow labels"
+              }
+            ]
+          ],
+          [
+            "Custom loader",
+            [
+              {
+                "insert": "stateGrammarLoader",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "styleGuideLoader",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", authoring loaders"
+              }
+            ],
+            "None",
+            "None",
+            [
+              {
+                "insert": "checkpoint-slice",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", which reads Spectre plan/build state"
+              }
+            ]
+          ],
+          [
+            "App state",
+            [
+              {
+                "insert": "appContext",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " not set"
+              }
+            ],
+            [
+              {
+                "insert": "appContext",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " not set"
+              }
+            ],
+            [
+              {
+                "insert": "appContext",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " not set"
+              }
+            ],
+            [
+              {
+                "insert": "SessionStateManager",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " passed through run context"
+              }
+            ]
+          ],
+          [
+            "Tools",
+            [
+              {
+                "insert": "LayoutToolRuntime",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " for layout sidecar tools; "
+              },
+              {
+                "insert": "promptEditSharedTools",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "promptEditSharedTools",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "promptEditSharedTools",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Spectre tools that mutate spec, plan, build, docs, projects, or asks"
+          ],
+          [
+            "Viewer",
+            [
+              {
+                "insert": "KernelTraceWorkspace",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with a "
+              },
+              {
+                "insert": "detailBlockProvider",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "None; serves read and catalog APIs under "
+              },
+              {
+                "insert": "/kernel",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "None; serves read and catalog APIs under "
+              },
+              {
+                "insert": "/kernel",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Spectre session header and phase-specific panels"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-50-app-adapter-model-spectre-keeps-app-side-46": {
+      "id": "b-50-app-adapter-model-spectre-keeps-app-side-46",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spectre kept app-side: session rows and phase state, "
+        },
+        {
+          "insert": "SessionStateManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the spec/plan/build/docs/intake/onboarding services, project/worktree/git behavior, the "
+        },
+        {
+          "insert": "checkpoint-slice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " loader, domain tools that write Spectre state, durable ask tables, and phase-specific UI panels. It consumed from the kernel: protocol event types and factories, kernel DB tables and query helpers, the spawn pipeline and run context, registry mechanics and prompt revisions, transcript recovery, the read API route factory, and the viewer packages."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-spectre-compatibility-no-47": {
+      "id": "b-50-app-adapter-model-spectre-compatibility-no-47",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Spectre Compatibility Note"
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-spectre-still-has-backen-48": {
+      "id": "b-50-app-adapter-model-spectre-still-has-backen-48",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spectre still has backend files named "
+        },
+        {
+          "insert": "apps/backend/src/agent-kernel/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " because the kernel was extracted from that path. Spectre now runs its own copy of the kernel there. That copy is not the portable kernel source of truth."
+        }
+      ],
+      "children": []
+    },
+    "b-50-app-adapter-model-a-new-app-should-not-rec-49": {
+      "id": "b-50-app-adapter-model-a-new-app-should-not-rec-49",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A new app should not recreate the Spectre backend tree. It should create a small app-specific adapter and import kernel package exports directly. Start from a live adapter: canvas-agent for a product app, core-harness for a repo-owned kernel, or "
+        },
+        {
+          "insert": "examples/simple-research-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for the smallest working shape."
+        }
+      ],
+      "children": []
+    }
+  }
+}

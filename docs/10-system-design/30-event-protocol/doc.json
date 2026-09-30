@@ -1,0 +1,2472 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-30-event-protocol",
+  "title": "Event Protocol",
+  "root": "b-30-event-protocol-root-35",
+  "blocks": {
+    "b-30-event-protocol-root-35": {
+      "id": "b-30-event-protocol-root-35",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/protocol/src/envelope.ts, packages/protocol/src/types.ts, packages/protocol/src/factories.ts, packages/protocol/src/ids.ts, packages/protocol/src/usage.ts, packages/protocol/src/kernel-messages.ts",
+        "concepts": [
+          "event-protocol",
+          "trace-event",
+          "event-type",
+          "trace-level",
+          "trace-source",
+          "deterministic-ids",
+          "turn-usage",
+          "kernel-messages",
+          "app-events"
+        ],
+        "covers": "Event protocol design: TraceEvent envelope, core event types, trace levels, sources, deterministic event ids, kernel-authored message markers, and app extension behavior.",
+        "depends-on": [
+          "10-system-design/20-observability-model",
+          "10-system-design/15-identity-model"
+        ]
+      },
+      "children": [
+        "b-30-event-protocol-agent-kernel-protocol-2",
+        "b-30-event-protocol-divider-3",
+        "b-30-event-protocol-envelope-4",
+        "b-30-event-protocol-every-trace-event-has-th-5",
+        "b-30-event-protocol-envelope-shape",
+        "b-30-event-protocol-core-event-families-9",
+        "b-30-event-protocol-the-core-catalog-covers-10",
+        "b-30-event-protocol-catalog-table",
+        "b-30-event-protocol-pi-request-snapshot-pa-21",
+        "b-30-event-protocol-kernel-authored-message-22",
+        "b-30-event-protocol-the-kernel-s-built-reque-23",
+        "b-30-event-protocol-wire-markers-table",
+        "b-30-event-protocol-open-strings-26",
+        "b-30-event-protocol-eventtype-and-traceso-27",
+        "b-30-event-protocol-unknown-event-types-shou-28",
+        "b-30-event-protocol-app-events",
+        "b-30-event-protocol-factories-29",
+        "b-30-event-protocol-factories-in-src-factor-30"
+      ]
+    },
+    "b-30-event-protocol-agent-kernel-protocol-2": {
+      "id": "b-30-event-protocol-agent-kernel-protocol-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "@agent-kernel/protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " defines the event contract shared by the runtime, DB helpers, transcript recovery, read API, and viewer packages."
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-divider-3": {
+      "id": "b-30-event-protocol-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-30-event-protocol-envelope-4": {
+      "id": "b-30-event-protocol-envelope-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Envelope"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-every-trace-event-has-th-5": {
+      "id": "b-30-event-protocol-every-trace-event-has-th-5",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every trace event has the same envelope:"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-envelope-shape": {
+      "id": "b-30-event-protocol-envelope-shape",
+      "type": "state-shape",
+      "props": {
+        "description": "The envelope every trace event carries. eventData holds the type-specific payload.",
+        "example": "{\n  \"eventId\": \"9c4e1a7b-2d3f-4a8e-b150-6f2d8c9e0a14\",\n  \"containerId\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n  \"type\": \"tool_call_start\",\n  \"source\": \"agent\",\n  \"traceLevel\": 1,\n  \"eventData\": {\n    \"tool_use_id\": \"call_7Qm2xRk4\",\n    \"tool_name\": \"dispatch_worker\",\n    \"tool_input\": {\n      \"agent\": \"docs-writer\",\n      \"task\": \"Refresh the read API page\"\n    },\n    \"toolKind\": \"spawner\",\n    \"spawns\": [\n      \"docs-writer\"\n    ]\n  },\n  \"runId\": \"e2a4c6d8-1f3b-4c5d-9e7f-8a0b1c2d3e4f\",\n  \"spanId\": \"call_7Qm2xRk4\",\n  \"timestamp\": \"2026-09-29T14:03:12.481Z\",\n  \"piSessionUuid\": \"0199a1b2-7c3d-7e4f-8a5b-6c7d8e9f0a1b\"\n}",
+        "fields": [
+          {
+            "name": "eventId",
+            "type": "string",
+            "description": "Primary key of the trace_events row. Pi-derived events get a deterministic id; other factory events get a random UUID."
+          },
+          {
+            "name": "containerId",
+            "type": "string",
+            "description": "The single required grouping identity. There is no app-session field."
+          },
+          {
+            "name": "type",
+            "type": "EventType",
+            "description": "Open string union. Unknown types still store, stream, and render as generic rows."
+          },
+          {
+            "name": "source",
+            "type": "\"kernel\" | \"app\" | \"agent\"",
+            "description": "Names the emitter; open to other strings. The in-process emitter and the backfill mapper re-stamp Pi-derived events as agent."
+          },
+          {
+            "name": "traceLevel",
+            "type": "0 | 1 | 2 | 3",
+            "description": "Viewer filtering hint, set by the factory."
+          },
+          {
+            "name": "eventData",
+            "type": "EventData",
+            "description": "Payload whose shape the type selects."
+          },
+          {
+            "name": "agentId",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "runId",
+            "type": "string",
+            "required": false,
+            "description": "Stamped at emit time when the run is known. Run lifecycle factories require it."
+          },
+          {
+            "name": "spanId",
+            "type": "string",
+            "required": false,
+            "description": "Tool events use the tool call id, pairing start and end."
+          },
+          {
+            "name": "parentEventId",
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "userId",
+            "type": "string",
+            "required": false,
+            "description": "Optional actor correlation only."
+          },
+          {
+            "name": "timestamp",
+            "type": "string",
+            "description": "ISO 8601."
+          },
+          {
+            "name": "piSessionUuid",
+            "type": "string",
+            "required": false,
+            "description": "Transport-only. The Pi session UUID from JSONL line 1. The write path stores it in trace_events.pi_session_id; no column keeps this name."
+          }
+        ],
+        "name": "TraceEvent",
+        "source": {
+          "path": "packages/protocol/src/envelope.ts",
+          "symbol": "TraceEvent"
+        }
+      },
+      "children": []
+    },
+    "b-30-event-protocol-core-event-families-9": {
+      "id": "b-30-event-protocol-core-event-families-9",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Event Catalog"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-the-core-catalog-covers-10": {
+      "id": "b-30-event-protocol-the-core-catalog-covers-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The core catalog has 26 types, and "
+        },
+        {
+          "insert": "app:",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " types extend it. Level is a viewer filtering hint that each factory assigns: 0 Summary, 1 Processing, 2 Debug, 3 Internal."
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-catalog-table": {
+      "id": "b-30-event-protocol-catalog-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Type",
+          "Family",
+          "Factory",
+          "Level",
+          "Payload type",
+          "Key fields"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "agent_session_start",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Agent lifecycle",
+            [
+              {
+                "insert": "createAgentSessionStartEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "2 Debug",
+            [
+              {
+                "insert": "AgentSessionStartData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "agent_type",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "model",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "model_alias?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "agent_session_end",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Agent lifecycle",
+            [
+              {
+                "insert": "createAgentSessionEndEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "2 Debug",
+            [
+              {
+                "insert": "AgentSessionEndData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "status",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "input_tokens?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "output_tokens?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "cost?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "error_message?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "agent_run_start",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Agent lifecycle",
+            [
+              {
+                "insert": "createAgentRunStartEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "2 Debug",
+            [
+              {
+                "insert": "AgentRunStartData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "run_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "agent_name",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "parent_run_id?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "parent_tool_use_id?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "phase?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "display_label?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "agent_run_end",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Agent lifecycle",
+            [
+              {
+                "insert": "createAgentRunEndEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "2 Debug",
+            [
+              {
+                "insert": "AgentRunEndData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "run_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "status",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " ("
+              },
+              {
+                "insert": "ok",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " or "
+              },
+              {
+                "insert": "error",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "), "
+              },
+              {
+                "insert": "usage?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": the run's "
+              },
+              {
+                "insert": "TurnUsage",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " rollup"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "run_steered",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Agent lifecycle",
+            [
+              {
+                "insert": "createRunSteeredEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "1 Processing",
+            [
+              {
+                "insert": "RunSteeredData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "run_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "message",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "delivery",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " ("
+              },
+              {
+                "insert": "delivered",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " to a live session or "
+              },
+              {
+                "insert": "queued",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " until it exists)"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "pi_agent_start",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Pi lifecycle",
+            [
+              {
+                "insert": "createPiAgentStartEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "3 Internal",
+            [
+              {
+                "insert": "PiAgentStartData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "prompt_summary?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "pi_agent_end",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Pi lifecycle",
+            [
+              {
+                "insert": "createPiAgentEndEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "3 Internal",
+            [
+              {
+                "insert": "PiAgentEndData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "status",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "error_message?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "input_tokens?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "output_tokens?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "pi_turn_start",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Pi lifecycle",
+            [
+              {
+                "insert": "createPiTurnStartEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "3 Internal",
+            [
+              {
+                "insert": "PiTurnStartData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "turn_number?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "pi_turn_end",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Pi lifecycle",
+            [
+              {
+                "insert": "createPiTurnEndEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "3 Internal",
+            [
+              {
+                "insert": "PiTurnEndData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "turn_number?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "stop_reason?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "usage?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": per-model-call "
+              },
+              {
+                "insert": "TurnUsage",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (tokens, serving model, "
+              },
+              {
+                "insert": "costEstimate?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "pi_request_snapshot",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Snapshots",
+            [
+              {
+                "insert": "createPiRequestSnapshotEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "2 Debug",
+            [
+              {
+                "insert": "PiRequestSnapshotData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "turn_number",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "system_prompt_blob_hash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "message_refs",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "sections?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "tools_blob_hash?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "system_prompt_resolved",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Spawn lifecycle",
+            [
+              {
+                "insert": "createSystemPromptResolvedEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "1 Processing",
+            [
+              {
+                "insert": "SystemPromptResolvedData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "agent_name",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "prompt_hash?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (the "
+              },
+              {
+                "insert": "pk1-",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " revision rendered), "
+              },
+              {
+                "insert": "rendered_prompt",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "tools_allowlist",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "context_build_started",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Spawn lifecycle",
+            [
+              {
+                "insert": "createContextBuildStartedEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "1 Processing",
+            [
+              {
+                "insert": "ContextBuildStartedData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "agent_name",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "declared_inputs",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "context_input_resolved",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Spawn lifecycle",
+            [
+              {
+                "insert": "createContextInputResolvedEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "3 Internal",
+            [
+              {
+                "insert": "ContextInputResolvedData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "loader_kind",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "input_ref",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "status",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "bytes",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "from_cache",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "content_hash?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "context_build_completed",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Spawn lifecycle",
+            [
+              {
+                "insert": "createContextBuildCompletedEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "1 Processing",
+            [
+              {
+                "insert": "ContextBuildCompletedData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "inputs",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "rendered_context",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "total_bytes",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "user_message",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Conversation",
+            [
+              {
+                "insert": "createUserMessageEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "0 Summary",
+            [
+              {
+                "insert": "UserMessageData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "content",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "phase",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "assistant_message",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Conversation",
+            [
+              {
+                "insert": "createAssistantMessageEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "0 Summary",
+            [
+              {
+                "insert": "AssistantMessageData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "content",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "block_type",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "tool_call_start",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Tools",
+            [
+              {
+                "insert": "createToolCallStartEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "1 Processing",
+            [
+              {
+                "insert": "ToolCallStartData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "tool_use_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "tool_name",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "tool_input?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "toolKind?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " ("
+              },
+              {
+                "insert": "spawner",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "), "
+              },
+              {
+                "insert": "spawns?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "tool_call_end",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Tools",
+            [
+              {
+                "insert": "createToolCallEndEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "1 Processing",
+            [
+              {
+                "insert": "ToolCallEndData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "tool_use_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "tool_name",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "tool_output?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "duration_ms?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "is_error?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "toolKind?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "spawns?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "pre_tool_hook",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Tools",
+            [
+              {
+                "insert": "createPreToolHookEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "2 Debug",
+            [
+              {
+                "insert": "PreToolHookData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "tool_name",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "tool_input?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "post_tool_hook",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Tools",
+            [
+              {
+                "insert": "createPostToolHookEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "2 Debug",
+            [
+              {
+                "insert": "PostToolHookData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "tool_name",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "tool_output?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "phase_start",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Grouping",
+            [
+              {
+                "insert": "createPhaseStartEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "2 Debug",
+            [
+              {
+                "insert": "PhaseStartData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "phase",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "phase_end",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Grouping",
+            [
+              {
+                "insert": "createPhaseEndEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "2 Debug",
+            [
+              {
+                "insert": "PhaseEndData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "phase",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "container_start",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Grouping",
+            [
+              {
+                "insert": "createContainerStartEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "1 Processing",
+            [
+              {
+                "insert": "ContainerStartData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "container_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "level",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "label",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "producer_stage",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "parent_container_id?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "container_end",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Grouping",
+            [
+              {
+                "insert": "createContainerEndEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "1 Processing",
+            [
+              {
+                "insert": "ContainerEndData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "container_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "status",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "error_message?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "error",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Diagnostics",
+            [
+              {
+                "insert": "createErrorEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "2 Debug",
+            [
+              {
+                "insert": "ErrorData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "error_type?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "error_message?",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "stack_trace?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "warning",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Diagnostics",
+            [
+              {
+                "insert": "createWarningEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "2 Debug",
+            [
+              {
+                "insert": "WarningData",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "message",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "warning_type?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "app:<name>",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "App",
+            [
+              {
+                "insert": "createAppEvent",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "1 Processing by default; "
+              },
+              {
+                "insert": "opts.traceLevel",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " overrides"
+              }
+            ],
+            [
+              {
+                "insert": "Host-defined ("
+              },
+              {
+                "insert": "UnknownEventData",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            "Host-defined"
+          ]
+        ],
+        "title": "Event catalog"
+      },
+      "children": []
+    },
+    "b-30-event-protocol-pi-request-snapshot-pa-21": {
+      "id": "b-30-event-protocol-pi-request-snapshot-pa-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "pi_request_snapshot",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " carries "
+        },
+        {
+          "insert": "PiRequestSnapshotData",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". It is a protocol type because kernel capture, storage, the read API, and the viewer all type against it. Its fields and capture behavior are defined in "
+        },
+        {
+          "insert": "Observability Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-observability-model",
+              "label": "Observability Model"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-kernel-authored-message-22": {
+      "id": "b-30-event-protocol-kernel-authored-message-22",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Wire Markers and Event Ids"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-the-kernel-s-built-reque-23": {
+      "id": "b-30-event-protocol-the-kernel-s-built-reque-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These values cross package boundaries as literal strings, so they live in this package. Kernel-authored lines reach the provider as ordinary user turns, and the marker is the only thing that tells them apart. The markers survive into request-snapshot blobs, where the viewer reads them back to badge those lines "
+        },
+        {
+          "insert": "KERNEL",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " instead of "
+        },
+        {
+          "insert": "USER",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " (D99, "
+        },
+        {
+          "insert": "State Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/30-state-model",
+              "label": "State Model"
+            }
+          }
+        },
+        {
+          "insert": ") and to draw elided images. The event-id helpers in "
+        },
+        {
+          "insert": "src/ids.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " let the in-process emitter and the backfill mapper derive the same id for the same Pi entry, so a backfill after live emission inserts zero duplicate rows."
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-wire-markers-table": {
+      "id": "b-30-event-protocol-wire-markers-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Symbol",
+          "Value or seed",
+          "Producer",
+          "Consumer"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "KERNEL_CONTEXT_MESSAGE_CUSTOM_TYPE",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "\"kernel:context\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " as the "
+              },
+              {
+                "insert": "customType",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " of a "
+              },
+              {
+                "insert": "role: \"custom\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " message"
+              }
+            ],
+            [
+              {
+                "insert": "Three-section builder, section ② context message ("
+              },
+              {
+                "insert": "kernelContextMessage",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            [
+              {
+                "insert": "Viewer detail renderers, through "
+              },
+              {
+                "insert": "isKernelAuthoredMessage()",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": badge the line KERNEL"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "KERNEL_STATE_MESSAGE_CUSTOM_TYPE",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "\"kernel:state\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " as the "
+              },
+              {
+                "insert": "customType",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " of a "
+              },
+              {
+                "insert": "role: \"custom\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " message"
+              }
+            ],
+            [
+              {
+                "insert": "State renderer, section ③ lines: a state block or an elision marker ("
+              },
+              {
+                "insert": "kernelStateMessage",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            [
+              {
+                "insert": "Viewer detail renderers, through "
+              },
+              {
+                "insert": "isKernelAuthoredMessage()",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": badge the line KERNEL"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "IMAGE_ELISION_MARKER_PREFIX",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "\"[image elided — \"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "; "
+              },
+              {
+                "insert": "imageElisionMarkerText()",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " builds the whole text block, for example "
+              },
+              {
+                "insert": "[image elided — image/png, 412.3 KB]",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Kernel window policy when it replaces an old image block",
+            [
+              {
+                "insert": "Viewer detail renderers, through "
+              },
+              {
+                "insert": "isImageElisionMarker()",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": render a placeholder instead of text"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "APP_EVENT_TYPE_PREFIX",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "\"app:\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " at the start of the event type"
+              }
+            ],
+            [
+              {
+                "insert": "Host code through "
+              },
+              {
+                "insert": "createAppEvent",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", which throws without the prefix"
+              }
+            ],
+            "Viewer trace builder: nests the event under the turn of the run that emitted it and orders it after that turn's emitter events"
+          ],
+          [
+            [
+              {
+                "insert": "piEntryEventId(piSessionUuid, entryId, ordinal, type)",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Seed "
+              },
+              {
+                "insert": "${piSessionUuid}\\n${entryId}\\n${ordinal}\\n${type}",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "; "
+              },
+              {
+                "insert": "ordinal",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " counts events derived from one JSONL entry"
+              }
+            ],
+            "Kernel emitter when it observes the JSONL entry id, and the backfill mapper for every entry",
+            [
+              {
+                "insert": "trace_events",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " insert: the second write of the same entry is ignored"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "liveFallbackEventId(piSessionUuid, turnOrdinal, type, indexWithinTurn)",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Seed "
+              },
+              {
+                "insert": "${piSessionUuid}\\nlive-turn:${turnOrdinal}:${indexWithinTurn}\\n0\\n${type}",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Kernel emitter when the JSONL entry id is not observable at emit time",
+            [
+              {
+                "insert": "trace_events",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " insert. The id never matches the backfill id, so a later backfill can add a second row for that event"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "deterministicEventId(seed)",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "SHA-256 of the seed; the first 32 hex characters, shaped as a UUID",
+            "Base of the two helpers above; the backfill mapper re-exports it",
+            "Any caller that needs a stable id from a seed string"
+          ]
+        ],
+        "title": "Wire markers and event-id helpers"
+      },
+      "children": []
+    },
+    "b-30-event-protocol-open-strings-26": {
+      "id": "b-30-event-protocol-open-strings-26",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Open Strings"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-eventtype-and-traceso-27": {
+      "id": "b-30-event-protocol-eventtype-and-traceso-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "EventType",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "TraceSource",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are open string unions. That lets apps register or pass through app-specific event types without blocking storage, ingestion, streaming, or generic viewing."
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-unknown-event-types-shou-28": {
+      "id": "b-30-event-protocol-unknown-event-types-shou-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Unknown event types should still flow end to end and render as generic trace rows."
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-app-events": {
+      "id": "b-30-event-protocol-app-events",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Host-defined events go through "
+        },
+        {
+          "insert": "createAppEvent(type, ids, eventData, opts)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The type must start with "
+        },
+        {
+          "insert": "app:",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or the factory throws, so host events cannot collide with or spoof kernel types. The factory sets source "
+        },
+        {
+          "insert": "app",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-factories-29": {
+      "id": "b-30-event-protocol-factories-29",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Factories"
+        }
+      ],
+      "children": []
+    },
+    "b-30-event-protocol-factories-in-src-factor-30": {
+      "id": "b-30-event-protocol-factories-in-src-factor-30",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Factories in "
+        },
+        {
+          "insert": "src/factories.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " follow one signature convention: identity comes first as a single "
+        },
+        {
+          "insert": "ids",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " parameter ("
+        },
+        {
+          "insert": "TraceEventIds",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": "
+        },
+        {
+          "insert": "containerId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " required; "
+        },
+        {
+          "insert": "runId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "/"
+        },
+        {
+          "insert": "userId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "/"
+        },
+        {
+          "insert": "agentId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "/"
+        },
+        {
+          "insert": "piSessionUuid",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " optional), followed by the event's semantic arguments, followed by an optional "
+        },
+        {
+          "insert": "opts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " object for span linkage and extras. Run lifecycle factories require "
+        },
+        {
+          "insert": "runId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on "
+        },
+        {
+          "insert": "ids",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    }
+  }
+}

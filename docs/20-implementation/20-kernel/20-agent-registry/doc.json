@@ -1,0 +1,1074 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-20d0989f52fd884a3c9a64cedb6d274e",
+  "title": "Agent Registry",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/kernel/src/agent-registry/",
+        "concepts": [
+          "agent-registry",
+          "bundle-layout",
+          "sidecar-harvest",
+          "registry-errors",
+          "fixtures",
+          "annotation-sidecar"
+        ],
+        "covers": "Structural decisions in the agent registry: bundle layout resolution (D98), sidecar tool harvest, boot error aggregation, shared prompt validation, on-demand fixtures, and the annotation sidecar.",
+        "depends-on": [
+          "20-implementation/20-kernel",
+          "10-system-design/60-prompt-system-model/10-documents-and-bundles",
+          "10-system-design/10-runtime-model"
+        ]
+      },
+      "children": [
+        "b-20-ar-role",
+        "b-20-ar-gov",
+        "b-20-ar-div",
+        "b-20-ar-layout",
+        "b-20-ar-tree-lead",
+        "b-20-ar-tree",
+        "b-20-ar-decisions",
+        "b-20-ar-d98",
+        "b-20-ar-d98-d",
+        "b-20-ar-d98-w",
+        "b-20-ar-d98-a",
+        "b-20-ar-harvest",
+        "b-20-ar-harvest-d",
+        "b-20-ar-harvest-w",
+        "b-20-ar-harvest-a",
+        "b-20-ar-aggregate",
+        "b-20-ar-aggregate-d",
+        "b-20-ar-aggregate-w",
+        "b-20-ar-aggregate-a",
+        "b-20-ar-shared",
+        "b-20-ar-shared-d",
+        "b-20-ar-shared-w",
+        "b-20-ar-shared-a",
+        "b-20-ar-fixtures",
+        "b-20-ar-fixtures-d",
+        "b-20-ar-fixtures-w",
+        "b-20-ar-fixtures-a",
+        "b-20-ar-annotations",
+        "b-20-ar-annotations-d",
+        "b-20-ar-annotations-w",
+        "b-20-ar-annotations-a"
+      ]
+    },
+    "b-20-ar-role": {
+      "id": "b-20-ar-role",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "packages/kernel/src/agent-registry/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " turns catalog roots into validated agent definitions. It resolves each bundle's layout, validates the manifest and prompt, imports the sidecars, and fails boot with every bundle error at once. It also writes prompt renders, registers prompt revisions, and stores prompt annotations. Manifest types and the JSON Schema check come from "
+        },
+        {
+          "insert": "agent-definition/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-gov": {
+      "id": "b-20-ar-gov",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Governed by: "
+        },
+        {
+          "insert": "Prompt System Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model",
+              "label": "Prompt System Model"
+            }
+          }
+        },
+        {
+          "insert": " (the agent bundle, prompt documents, revisions) and "
+        },
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model",
+              "label": "Runtime Model"
+            }
+          }
+        },
+        {
+          "insert": " § The Registry (what boot validates and when it runs). The boot-error catalog lives in "
+        },
+        {
+          "insert": "Validation",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "30-authoring/40-validation",
+              "label": "Validation"
+            }
+          }
+        },
+        {
+          "insert": "; fixture file shapes live in "
+        },
+        {
+          "insert": "Author a Context Sidecar",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "30-authoring/10-context-sidecar",
+              "label": "Author a Context Sidecar"
+            }
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "State Sidecar",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "30-authoring/20-state-sidecar",
+              "label": "State Sidecar"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-div": {
+      "id": "b-20-ar-div",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-20-ar-layout": {
+      "id": "b-20-ar-layout",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Layout"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-tree-lead": {
+      "id": "b-20-ar-tree-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Test files omitted. "
+        },
+        {
+          "insert": "context-fixtures.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sits at the package root but follows the same fixture rule as "
+        },
+        {
+          "insert": "registry/state-fixtures.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-tree": {
+      "id": "b-20-ar-tree",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "packages/kernel/src/agent-registry/registry/registry.ts",
+            "note": "buildRegistry, per-bundle load, prompt hot-swap"
+          },
+          {
+            "path": "packages/kernel/src/agent-registry/registry/bundle-layout.ts",
+            "note": "file-or-folder section resolution (D98)"
+          },
+          {
+            "path": "packages/kernel/src/agent-registry/registry/harvest-private-tool-names.ts",
+            "note": "dry-runs tools.ts against a stub Pi"
+          },
+          {
+            "path": "packages/kernel/src/agent-registry/registry/state-fixtures.ts",
+            "note": "state/fixtures/*.json for previews"
+          },
+          {
+            "path": "packages/kernel/src/agent-registry/registry/validate-variables.ts",
+            "note": "{{var}} references vs declarations"
+          },
+          {
+            "path": "packages/kernel/src/agent-registry/registry/registry-singleton.ts",
+            "note": "process-wide init and get"
+          },
+          {
+            "path": "packages/kernel/src/agent-registry/registry/types.ts",
+            "note": "AgentDefinition, AgentRegistry, RegistryError"
+          },
+          {
+            "path": "packages/kernel/src/agent-registry/prompt-snapshot.ts",
+            "note": "writes the generated prompt markdown"
+          },
+          {
+            "path": "packages/kernel/src/agent-registry/register-prompt-revisions.ts",
+            "note": "boot and disk-sync revision rows"
+          },
+          {
+            "path": "packages/kernel/src/agent-registry/annotation-sidecar.ts",
+            "note": "annotations.json: lock, hash, atomic write"
+          },
+          {
+            "path": "packages/kernel/src/agent-registry/index.ts",
+            "note": "barrel"
+          },
+          {
+            "path": "packages/kernel/src/context-fixtures.ts",
+            "note": "context/fixtures/*.json for previews"
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-20-ar-decisions": {
+      "id": "b-20-ar-decisions",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-d98": {
+      "id": "b-20-ar-d98",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Agent bundle sections are file-or-folder, resolved file-first (D98)"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-d98-d": {
+      "id": "b-20-ar-d98-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Every bundle section has exactly two legal on-disk shapes: a single file ("
+        },
+        {
+          "insert": "prompt.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "context.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "tools.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "state.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") or a folder with a fixed entry point ("
+        },
+        {
+          "insert": "prompt/prompt.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "<kind>/index.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). Resolution tries the file first, then the folder; when both exist the file wins silently, and "
+        },
+        {
+          "insert": "doctor --catalog",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " reports the shadowed path. Discovery imports only the entry point; every other file in a section folder is invisible to it."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-d98-w": {
+      "id": "b-20-ar-d98-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Silent file-wins lets a migration leave a re-export shim at the old path without a boot error, while the doctor keeps shadowing visible. The rejected alternatives (one blessed shape or arbitrary per-section file names) either force catalog-wide migrations or make discovery guess."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-d98-a": {
+      "id": "b-20-ar-d98-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "registry/bundle-layout.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; every agent bundle in every catalog, including sections and section kinds not yet written. A new section kind must define its file form, its folder entry point, and nothing else."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-harvest": {
+      "id": "b-20-ar-harvest",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Sidecars attach by convention and are harvested at boot against a stub"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-harvest-d": {
+      "id": "b-20-ar-harvest-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Context, tools, and state sidecars are discovered by filename convention, never declared in the manifest. The registry runs each tools sidecar at boot against a stub Pi object that records every "
+        },
+        {
+          "insert": "registerTool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " declaration (name, label, description, parameters) and the "
+        },
+        {
+          "insert": "spawns",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " allowlist of each spawner tool; hooks registered through "
+        },
+        {
+          "insert": "on",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " never run. The expanded tool allowlist and spawner map are therefore known and validated against the catalog without app dependencies. At spawn the same register function runs against the real session with the kernel's "
+        },
+        {
+          "insert": "toolRuntime",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-harvest-w": {
+      "id": "b-20-ar-harvest-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Declaring tool names in the manifest was rejected: it duplicates what the code already says and drifts. Boot-time harvest keeps "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " pure data while still failing fast on unknown spawn targets."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-harvest-a": {
+      "id": "b-20-ar-harvest-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "registry/harvest-private-tool-names.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", sidecar loading in "
+        },
+        {
+          "insert": "registry/registry.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and every future sidecar kind. A new sidecar must be discoverable by convention and boot-checkable without a live runtime."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-aggregate": {
+      "id": "b-20-ar-aggregate",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Boot collects every bundle error before failing"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-aggregate-d": {
+      "id": "b-20-ar-aggregate-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "buildRegistry",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " loads every manifest under every root, turns each failure into a "
+        },
+        {
+          "insert": "RegistryError",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " naming the bundle, then adds name collisions and unknown spawner targets. It throws one "
+        },
+        {
+          "insert": "AggregateError",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " when any error exists; it never stops at the first bad bundle and never returns a partial registry. The hot-reload paths ("
+        },
+        {
+          "insert": "reloadAgentPrompt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "reloadAgentManifest",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") run the same checks and swap the cached definition only after all pass; "
+        },
+        {
+          "insert": "refreshAgentPromptFromDisk",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " keeps the cached definition when the new file fails."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-aggregate-w": {
+      "id": "b-20-ar-aggregate-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "One boot shows a catalog author every broken bundle. A partial registry would move the failure to the first spawn of the missing agent."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-aggregate-a": {
+      "id": "b-20-ar-aggregate-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "registry/registry.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "registry/types.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and every future validation step: it reports through "
+        },
+        {
+          "insert": "RegistryError",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " into the same aggregate."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-shared": {
+      "id": "b-20-ar-shared",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Boot and save validate a prompt with one function"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-shared-d": {
+      "id": "b-20-ar-shared-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "buildAgentPromptState",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " validates a "
+        },
+        {
+          "insert": "PromptDocument",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " against its manifest and derives the rendered body, "
+        },
+        {
+          "insert": "promptHash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and warnings. Registry boot, the prompt reload paths, and the catalog save path all call it."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-shared-w": {
+      "id": "b-20-ar-shared-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "A document a save accepts is exactly a document the next boot accepts. Two validators would drift, and a saved prompt could then fail the next boot."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-shared-a": {
+      "id": "b-20-ar-shared-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "registry/registry.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "buildAgentPromptState",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), the catalog save path in "
+        },
+        {
+          "insert": "catalog-service.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any future prompt write path."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-fixtures": {
+      "id": "b-20-ar-fixtures",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Fixtures are preview data, read on demand"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-fixtures-d": {
+      "id": "b-20-ar-fixtures-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "State fixtures ("
+        },
+        {
+          "insert": "state/fixtures/*.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", read by "
+        },
+        {
+          "insert": "registry/state-fixtures.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and context fixtures ("
+        },
+        {
+          "insert": "context/fixtures/*.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", read by "
+        },
+        {
+          "insert": "context-fixtures.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") are discovered per request, not cached at boot. A file that fails to parse or has the wrong shape is skipped. The spawn pipeline never reads fixtures."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-fixtures-w": {
+      "id": "b-20-ar-fixtures-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Reading per request keeps a fixture edit visible without a restart. Skipping a bad file keeps one broken fixture from taking down the catalog detail route."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-fixtures-a": {
+      "id": "b-20-ar-fixtures-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "registry/state-fixtures.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "packages/kernel/src/context-fixtures.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any future fixture kind."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-annotations": {
+      "id": "b-20-ar-annotations",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Annotations live in a per-bundle sidecar and hold only live entries"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-annotations-d": {
+      "id": "b-20-ar-annotations-d",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Each bundle keeps its prompt annotations in "
+        },
+        {
+          "insert": "annotations.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " beside "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", for both prompt forms. Every read-check-write runs under an in-process mutex keyed on the sidecar path. Mutations take an optional "
+        },
+        {
+          "insert": "expectedHash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " of the file bytes, revalidate the full document against the prompt-kit annotation schema, and write through a temp file and rename. A missing file is an empty document."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-annotations-w": {
+      "id": "b-20-ar-annotations-w",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "Annotations target the current prompt; run history already lives in traces and the "
+        },
+        {
+          "insert": "prompt_revisions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " chain, so resolved entries are prunable rather than kept as an audit log. The mutex, hash check, and atomic write come from the docs-system document operations and prevent lost updates between concurrent editors."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ar-annotations-a": {
+      "id": "b-20-ar-annotations-a",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "annotation-sidecar.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the catalog annotation operations in "
+        },
+        {
+          "insert": "catalog-annotations.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and any future bundle-level sidecar that editors write."
+        }
+      ],
+      "children": []
+    }
+  }
+}

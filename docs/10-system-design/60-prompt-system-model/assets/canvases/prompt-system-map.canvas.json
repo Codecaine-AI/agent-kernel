@@ -1,0 +1,373 @@
+{
+  "schemaVersion": 1,
+  "id": "prompt-system-map",
+  "title": "Prompt system map",
+  "mode": "diagram",
+  "objects": [
+    {
+      "id": "group-prompt-kit",
+      "type": "section",
+      "text": "prompt-kit repo (generic, no kernel imports)",
+      "parentId": null,
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 1120,
+        "height": 760
+      }
+    },
+    {
+      "id": "group-kernel",
+      "type": "section",
+      "text": "agent-kernel repo",
+      "parentId": null,
+      "geometry": {
+        "x": 1300,
+        "y": 0,
+        "width": 1120,
+        "height": 760
+      }
+    },
+    {
+      "id": "pk-core",
+      "type": "rectangle",
+      "text": "@codecaine-ai/prompt-kit\nPromptDocument model, canonicalize + hash, renderXmlMarkdown, validatePrompt, archetypes",
+      "color": "green",
+      "parentId": "group-prompt-kit",
+      "geometry": {
+        "x": 60,
+        "y": 100,
+        "width": 460,
+        "height": 160
+      }
+    },
+    {
+      "id": "pk-authoring",
+      "type": "rectangle",
+      "text": "prompt-kit/authoring\nedit-op compiler",
+      "color": "green",
+      "parentId": "group-prompt-kit",
+      "geometry": {
+        "x": 600,
+        "y": 100,
+        "width": 460,
+        "height": 160
+      }
+    },
+    {
+      "id": "pk-lab",
+      "type": "rectangle",
+      "text": "PromptInlineLab\neditor UI: system, context, state, tools views",
+      "color": "green",
+      "parentId": "group-prompt-kit",
+      "geometry": {
+        "x": 60,
+        "y": 320,
+        "width": 460,
+        "height": 160
+      }
+    },
+    {
+      "id": "pk-store",
+      "type": "rectangle",
+      "text": "@codecaine-ai/prompt-kit-server\ncreatePromptStore: per-file lock, CAS on expectedHash, change journal",
+      "color": "green",
+      "parentId": "group-prompt-kit",
+      "geometry": {
+        "x": 600,
+        "y": 320,
+        "width": 460,
+        "height": 160
+      }
+    },
+    {
+      "id": "pk-mcp",
+      "type": "rectangle",
+      "text": "Prompt MCP\nprompts_* tools for coding agents",
+      "color": "orange",
+      "parentId": "group-prompt-kit",
+      "geometry": {
+        "x": 600,
+        "y": 540,
+        "width": 460,
+        "height": 160
+      }
+    },
+    {
+      "id": "k-registry",
+      "type": "rectangle",
+      "text": "Agent registry\nbundle-layout, manifest schema, loads prompt.json, renders the system prompt",
+      "color": "blue",
+      "parentId": "group-kernel",
+      "geometry": {
+        "x": 1360,
+        "y": 100,
+        "width": 460,
+        "height": 160
+      }
+    },
+    {
+      "id": "k-catalog",
+      "type": "rectangle",
+      "text": "catalog-service\nsavePrompt, saveManifest, catalog routes",
+      "color": "blue",
+      "parentId": "group-kernel",
+      "geometry": {
+        "x": 1900,
+        "y": 100,
+        "width": 460,
+        "height": 160
+      }
+    },
+    {
+      "id": "k-spawn",
+      "type": "rectangle",
+      "text": "Spawn pipeline\nPi session frozen on the rendered system prompt",
+      "color": "blue",
+      "parentId": "group-kernel",
+      "geometry": {
+        "x": 1360,
+        "y": 320,
+        "width": 460,
+        "height": 160
+      }
+    },
+    {
+      "id": "k-edit-session",
+      "type": "rectangle",
+      "text": "prompt-edit-session\nprompt-editor agent turns annotations into staged proposals",
+      "color": "blue",
+      "parentId": "group-kernel",
+      "geometry": {
+        "x": 1900,
+        "y": 320,
+        "width": 460,
+        "height": 160
+      }
+    },
+    {
+      "id": "k-revisions",
+      "type": "rectangle",
+      "text": "prompt_revisions table\ntrace.db, keyed by prompt hash",
+      "color": "violet",
+      "parentId": "group-kernel",
+      "geometry": {
+        "x": 1360,
+        "y": 540,
+        "width": 460,
+        "height": 160
+      }
+    },
+    {
+      "id": "k-viewer",
+      "type": "rectangle",
+      "text": "AgentCatalogViewer (viewer-ui)\nhosts PromptInlineLab",
+      "color": "teal",
+      "parentId": "group-kernel",
+      "geometry": {
+        "x": 1900,
+        "y": 540,
+        "width": 460,
+        "height": 160
+      }
+    },
+    {
+      "id": "bundle",
+      "type": "rectangle",
+      "text": "catalog/<agent>/ bundle on disk\nagent.json, prompt.json, rendered markdown, annotations.json",
+      "color": "gray",
+      "parentId": null,
+      "geometry": {
+        "x": 860,
+        "y": 880,
+        "width": 700,
+        "height": 150
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "lab-to-viewer",
+      "from": {
+        "objectId": "pk-lab",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "k-viewer",
+        "anchor": "left"
+      },
+      "label": "hosted by",
+      "style": "dashed",
+      "arrow": "forward"
+    },
+    {
+      "id": "viewer-to-catalog",
+      "from": {
+        "objectId": "k-viewer",
+        "anchor": "top"
+      },
+      "to": {
+        "objectId": "k-catalog",
+        "anchor": "bottom"
+      },
+      "label": "PUT .../prompt { document, expectedHash }",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "edit-session-to-catalog",
+      "from": {
+        "objectId": "k-edit-session",
+        "anchor": "top"
+      },
+      "to": {
+        "objectId": "k-catalog",
+        "anchor": "bottom"
+      },
+      "label": "savePrompt on accept (agent-run)",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "edit-session-to-authoring",
+      "from": {
+        "objectId": "k-edit-session",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "pk-authoring",
+        "anchor": "right"
+      },
+      "label": "compiles edit ops",
+      "style": "dashed",
+      "arrow": "forward"
+    },
+    {
+      "id": "mcp-to-authoring",
+      "from": {
+        "objectId": "pk-mcp",
+        "anchor": "top"
+      },
+      "to": {
+        "objectId": "pk-authoring",
+        "anchor": "bottom"
+      },
+      "label": "compiles edit ops",
+      "style": "dashed",
+      "arrow": "forward"
+    },
+    {
+      "id": "catalog-to-store",
+      "from": {
+        "objectId": "k-catalog",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "pk-store",
+        "anchor": "right"
+      },
+      "label": "save: shared lock + CAS",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "mcp-to-store",
+      "from": {
+        "objectId": "pk-mcp",
+        "anchor": "top"
+      },
+      "to": {
+        "objectId": "pk-store",
+        "anchor": "bottom"
+      },
+      "label": "applyOps: same lock + CAS",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "store-to-bundle",
+      "from": {
+        "objectId": "pk-store",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "bundle",
+        "anchor": "top"
+      },
+      "label": "prompt.json + rendered markdown",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "bundle-to-registry",
+      "from": {
+        "objectId": "bundle",
+        "anchor": "top"
+      },
+      "to": {
+        "objectId": "k-registry",
+        "anchor": "bottom"
+      },
+      "label": "discover, validate, load",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "core-to-registry",
+      "from": {
+        "objectId": "pk-core",
+        "anchor": "top"
+      },
+      "to": {
+        "objectId": "k-registry",
+        "anchor": "top"
+      },
+      "label": "renderXmlMarkdown, validatePrompt",
+      "style": "dashed",
+      "arrow": "forward"
+    },
+    {
+      "id": "catalog-to-registry",
+      "from": {
+        "objectId": "k-catalog",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "k-registry",
+        "anchor": "right"
+      },
+      "label": "reloadAgentPrompt",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "catalog-to-revisions",
+      "from": {
+        "objectId": "k-catalog",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "k-revisions",
+        "anchor": "right"
+      },
+      "label": "upsert revision",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "registry-to-spawn",
+      "from": {
+        "objectId": "k-registry",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "k-spawn",
+        "anchor": "top"
+      },
+      "label": "① system prompt + promptHash",
+      "style": "solid",
+      "arrow": "forward"
+    }
+  ],
+  "annotations": []
+}

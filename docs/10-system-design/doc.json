@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-00-overview",
+  "title": "System Design",
+  "root": "b-00-overview-root-21",
+  "blocks": {
+    "b-00-overview-root-21": {
+      "id": "b-00-overview-root-21",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "system-design",
+          "runtime-model",
+          "observability-model",
+          "event-protocol",
+          "viewer-model",
+          "app-adapter",
+          "prompt-system",
+          "state-model"
+        ],
+        "covers": "System design overview for the Pi Agent Kernel platform: runtime, observability, protocol, viewer, app adapter, and prompt/state models.",
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-the-kernel-is-organized-2",
+        "8d494376-dee8-4197-9e7c-ab1a86e76d6d",
+        "b-00-overview-divider-3",
+        "b-00-overview-child-nodes-4",
+        "b-00-overview-10-runtime-model-md-10-5",
+        "b-00-overview-how-agents-context-sub-6",
+        "b-00-overview-15-identity-model-md-1-7",
+        "b-00-overview-containers-with-kinds-as-8",
+        "b-00-overview-20-observability-model-9",
+        "b-00-overview-how-containers-pi-sessi-10",
+        "b-00-overview-30-event-protocol-md-3-11",
+        "b-00-overview-the-event-envelope-core-12",
+        "b-00-overview-40-viewer-model-md-40-13",
+        "b-00-overview-how-viewer-core-viewer-14",
+        "b-00-overview-50-app-adapter-model-md-15",
+        "b-00-overview-how-apps-such-as-spectre-16",
+        "b-00-overview-60-prompt-system-model-17",
+        "b-00-overview-how-prompt-authoring-sho-18",
+        "b-00-overview-70-harness-model-md-70-19",
+        "b-00-overview-how-agents-run-outside-t-20"
+      ]
+    },
+    "b-00-overview-the-kernel-is-organized-2": {
+      "id": "b-00-overview-the-kernel-is-organized-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel is organized around a small set of system concepts: agents are spawned inside app-provided context, execution emits protocol events, events are stored and read through kernel contracts, and the viewer renders those contracts with optional app plugins."
+        }
+      ],
+      "children": []
+    },
+    "8d494376-dee8-4197-9e7c-ab1a86e76d6d": {
+      "id": "8d494376-dee8-4197-9e7c-ab1a86e76d6d",
+      "type": "canvas",
+      "props": {
+        "src": "./assets/canvases/system-map.canvas.json",
+        "title": "System map"
+      },
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-child-nodes-4": {
+      "id": "b-00-overview-child-nodes-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Child Nodes"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-10-runtime-model-md-10-5": {
+      "id": "b-00-overview-10-runtime-model-md-10-5",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Runtime Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/10-runtime-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-agents-context-sub-6": {
+      "id": "b-00-overview-how-agents-context-sub-6",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How agents, context, subagents, run context, and app adapters compose at runtime."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-15-identity-model-md-1-7": {
+      "id": "b-00-overview-15-identity-model-md-1-7",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Identity Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/15-identity-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-containers-with-kinds-as-8": {
+      "id": "b-00-overview-containers-with-kinds-as-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Containers with kinds as the single grouping primitive, sessions, runs, turns, and the linkage invariants."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-20-observability-model-9": {
+      "id": "b-00-overview-20-observability-model-9",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Observability Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-observability-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-containers-pi-sessi-10": {
+      "id": "b-00-overview-how-containers-pi-sessi-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How containers, Pi sessions, runs, events, and explicit linkages form the trace graph."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-30-event-protocol-md-3-11": {
+      "id": "b-00-overview-30-event-protocol-md-3-11",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Event Protocol",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/30-event-protocol"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-event-envelope-core-12": {
+      "id": "b-00-overview-the-event-envelope-core-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The event envelope, core event catalog, trace levels, and open extension model."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-40-viewer-model-md-40-13": {
+      "id": "b-00-overview-40-viewer-model-md-40-13",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Viewer Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/40-viewer-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-viewer-core-viewer-14": {
+      "id": "b-00-overview-how-viewer-core-viewer-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How viewer-core, viewer-ui, and viewer-shell turn trace data into a base UI."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-50-app-adapter-model-md-15": {
+      "id": "b-00-overview-50-app-adapter-model-md-15",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "App Adapter Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/50-app-adapter-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-apps-such-as-spectre-16": {
+      "id": "b-00-overview-how-apps-such-as-spectre-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How host apps such as "
+        },
+        {
+          "insert": "examples/simple-research-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " mount and extend the kernel without moving workflow semantics into it."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-60-prompt-system-model-17": {
+      "id": "b-00-overview-60-prompt-system-model-17",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Prompt System Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-prompt-authoring-sho-18": {
+      "id": "b-00-overview-how-prompt-authoring-sho-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How agents are defined, edited, and given state: documents and bundles (the bundle layout, the "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " manifest, and the prompt document), editing and revisions (the shared prompt store, saves, annotations, and prompt-edit sessions), and the state model with its decision record (D81–D99)."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-70-harness-model-md-70-19": {
+      "id": "b-00-overview-70-harness-model-md-70-19",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Harness Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/70-harness-model"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-agents-run-outside-t-20": {
+      "id": "b-00-overview-how-agents-run-outside-t-20",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How agents run outside their owning apps: app harnesses vs the terminal harness ("
+        },
+        {
+          "insert": "@agent-kernel/tui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), catalog precedence, "
+        },
+        {
+          "insert": "host",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "/tool-policy classification, the core harness ("
+        },
+        {
+          "insert": "packages/core-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), TUI session tracing, the reference app harness, and the checklist any kernel follows to join the Observatory."
+        }
+      ],
+      "children": []
+    }
+  }
+}

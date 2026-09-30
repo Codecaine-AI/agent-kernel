@@ -1,0 +1,3007 @@
+{
+  "schemaVersion": 1,
+  "id": "10-system-design-40-viewer-model",
+  "title": "Viewer Model",
+  "root": "b-40-viewer-model-root-140",
+  "blocks": {
+    "b-40-viewer-model-root-140": {
+      "id": "b-40-viewer-model-root-140",
+      "type": "paragraph",
+      "props": {
+        "code-ref": "packages/viewer-core/src/, packages/viewer-ui/src/, packages/viewer-shell/src/",
+        "concepts": [
+          "viewer",
+          "trace-spans",
+          "trace-cards",
+          "detail-panel",
+          "renderer-contract",
+          "prompt-lab",
+          "workspace-shell",
+          "plugin-slots",
+          "style-system"
+        ],
+        "covers": "Viewer model: trace data flow and ordering semantics, the trace tree and card standard, the detail panel layout standard and renderer contract, the prompt lab surfaces, the base shell behavior, and the app plugin seams.",
+        "depends-on": [
+          "10-system-design/20-observability-model",
+          "10-system-design/30-event-protocol",
+          "10-system-design/60-prompt-system-model"
+        ]
+      },
+      "children": [
+        "b-40-viewer-model-the-viewer-is-part-of-th-2",
+        "b-40-viewer-model-this-page-owns-the-viewe-3",
+        "b-40-viewer-model-divider-4",
+        "b-40-viewer-model-data-flow-5",
+        "b-40-viewer-model-architecture-canvas",
+        "b-40-viewer-model-app-embedded-viewers-and-7",
+        "b-40-viewer-model-event-ordering-9",
+        "b-40-viewer-model-trace-builder-lead",
+        "b-40-viewer-model-trace-builder-outline",
+        "b-40-viewer-model-the-trace-tree-14",
+        "b-40-viewer-model-every-span-in-the-trace-15",
+        "b-40-viewer-model-card-size-table",
+        "b-40-viewer-model-there-is-exactly-one-r-17",
+        "b-40-viewer-model-box-caps-always-anchor-18",
+        "b-40-viewer-model-caps-are-square-22p-19",
+        "b-40-viewer-model-color-bands-four-categ-20",
+        "b-40-viewer-model-a-span-s-display-type-an-21",
+        "b-40-viewer-model-color-category-table",
+        "b-40-viewer-model-loudness-is-monotonic-23",
+        "b-40-viewer-model-amber-and-red-are-rese-24",
+        "b-40-viewer-model-violet-means-context-25",
+        "b-40-viewer-model-selection-treatment-li-26",
+        "b-40-viewer-model-connector-geometry-27",
+        "b-40-viewer-model-the-tree-s-indent-guides-28",
+        "b-40-viewer-model-icons-29",
+        "b-40-viewer-model-one-glyph-per-meaning-d-30",
+        "b-40-viewer-model-gears-mean-lifecycle-p-31",
+        "b-40-viewer-model-typography-32",
+        "b-40-viewer-model-card-text-is-mono-in-ex-33",
+        "b-40-viewer-model-width-34",
+        "b-40-viewer-model-there-is-no-fixed-widt-35",
+        "b-40-viewer-model-user-facing-knobs-36",
+        "b-40-viewer-model-presentation-options-use-37",
+        "b-40-viewer-model-the-detail-panel-38",
+        "b-40-viewer-model-the-detail-panel-renders-39",
+        "b-40-viewer-model-the-layout-standard-40",
+        "b-40-viewer-model-two-parts-no-exceptions-41",
+        "b-40-viewer-model-header-kind-tinted-42",
+        "b-40-viewer-model-body-always-non-em-43",
+        "b-40-viewer-model-there-is-no-summary-tier-44",
+        "b-40-viewer-model-simplicity-in-the-main-45",
+        "b-40-viewer-model-the-renderer-contract-46",
+        "b-40-viewer-model-a-per-type-renderer-is-a-47",
+        "b-40-viewer-model-detail-view-shape",
+        "b-40-viewer-model-blocks-and-tabs-are-49",
+        "b-40-viewer-model-slot-table",
+        "b-40-viewer-model-bodies-compose-from-an-e-52",
+        "b-40-viewer-model-detail-block-spec-shape",
+        "b-40-viewer-model-enforcement-a-confo-53",
+        "b-40-viewer-model-per-kind-bodies-54",
+        "b-40-viewer-model-purpose-built-bodies-und-55",
+        "b-40-viewer-model-renderer-registry-table",
+        "b-40-viewer-model-one-code-block-component-61",
+        "b-40-viewer-model-a-single-data-block-subs-62",
+        "b-40-viewer-model-byte-exact-unwrapped-63",
+        "b-40-viewer-model-the-one-deliberate-car-64",
+        "b-40-viewer-model-natural-language-messa-65",
+        "b-40-viewer-model-caption-rows-carry-the-66",
+        "b-40-viewer-model-clamping-always-renders-67",
+        "b-40-viewer-model-clamp-policies-68",
+        "b-40-viewer-model-clamp-policy-table",
+        "b-40-viewer-model-the-primary-figure-pol-70",
+        "b-40-viewer-model-the-turn-body-71",
+        "b-40-viewer-model-four-shell-owned-tabs-in-72",
+        "b-40-viewer-model-tools-is-last-the-r-73",
+        "b-40-viewer-model-the-state-tab-carrie-74",
+        "b-40-viewer-model-the-state-zone-renders-75",
+        "b-40-viewer-model-the-outline-that-supplie-76",
+        "b-40-viewer-model-root-identity-the-snaps-77",
+        "b-40-viewer-model-the-message-stream-78",
+        "b-40-viewer-model-message-cards-are-the-sa-79",
+        "b-40-viewer-model-kernel-authored-lines-ar-80",
+        "b-40-viewer-model-details-takeover-81",
+        "b-40-viewer-model-the-details-control-repl-82",
+        "b-40-viewer-model-details-is-complete-ide-83",
+        "b-40-viewer-model-focus-moves-into-details-84",
+        "b-40-viewer-model-the-escape-ladder-85",
+        "b-40-viewer-model-escape-resolution-is-a-p-86",
+        "b-40-viewer-model-selection-state-does-not-87",
+        "b-40-viewer-model-rejected-on-review-90",
+        "b-40-viewer-model-load-bearing-alternative-91",
+        "b-40-viewer-model-direction-a-the-read-92",
+        "b-40-viewer-model-direction-c-the-inspe-93",
+        "b-40-viewer-model-the-index-rail-a-s-94",
+        "b-40-viewer-model-the-focus-posture-95",
+        "b-40-viewer-model-per-field-state-figure-96",
+        "b-40-viewer-model-subtab-counts-and-meta-97",
+        "b-40-viewer-model-deliberately-deferred-n-98",
+        "b-40-viewer-model-the-prompt-lab-99",
+        "b-40-viewer-model-the-viewer-also-fronts-t-100",
+        "b-40-viewer-model-the-agent-viewer-is-stri-120",
+        "b-40-viewer-model-the-ordering-reads-as-th-126",
+        "b-40-viewer-model-the-base-shell-127",
+        "b-40-viewer-model-viewer-shell-ships-the-128",
+        "b-40-viewer-model-the-workspace-is-one-129",
+        "b-40-viewer-model-the-drill-in-body-is-130",
+        "b-40-viewer-model-the-style-system-shi-131",
+        "b-40-viewer-model-app-plugins-132",
+        "b-40-viewer-model-apps-extend-the-viewer-t-133",
+        "b-40-viewer-model-host-seams-surface",
+        "b-40-viewer-model-spectre-examples-134",
+        "b-40-viewer-model-if-a-workflow-needs-more-139"
+      ]
+    },
+    "b-40-viewer-model-the-viewer-is-part-of-th-2": {
+      "id": "b-40-viewer-model-the-viewer-is-part-of-th-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The viewer is part of the kernel, not an optional demo. A new app should be able to render useful trace views before it builds custom workflow UI."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-this-page-owns-the-viewe-3": {
+      "id": "b-40-viewer-model-this-page-owns-the-viewe-3",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This page owns the viewer's behavior: how trace data becomes a tree, the layout standards every surface must satisfy, and the contracts that keep app extensions inside the system."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-divider-4": {
+      "id": "b-40-viewer-model-divider-4",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-40-viewer-model-data-flow-5": {
+      "id": "b-40-viewer-model-data-flow-5",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Data Flow"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-architecture-canvas": {
+      "id": "b-40-viewer-model-architecture-canvas",
+      "type": "canvas",
+      "props": {
+        "src": "./assets/canvases/viewer-architecture.canvas.json",
+        "title": "Viewer architecture"
+      },
+      "children": []
+    },
+    "b-40-viewer-model-app-embedded-viewers-and-7": {
+      "id": "b-40-viewer-model-app-embedded-viewers-and-7",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "App-embedded viewers and a future central observer both read through APIs that return viewer-core DTOs. Browser code never connects directly to the kernel database."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-event-ordering-9": {
+      "id": "b-40-viewer-model-event-ordering-9",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Trace builder stages"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-trace-builder-lead": {
+      "id": "b-40-viewer-model-trace-builder-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "buildTraceSpans",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " turns one container's trace into the span tree. Relationships the emitter stamped explicitly are never re-derived from timestamps; time windows are only the fallback for events that carry no identity."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-trace-builder-outline": {
+      "id": "b-40-viewer-model-trace-builder-outline",
+      "type": "process-outline",
+      "props": {
+        "steps": [
+          {
+            "text": "`buildTraceSpans` builds the span tree",
+            "steps": [
+              {
+                "text": "Sort events into canonical emission order (`eventOrder`)",
+                "steps": [
+                  {
+                    "kind": "note",
+                    "text": "The read API orders by (timestamp, eventId); same-millisecond events tie, then order by arbitrary id."
+                  },
+                  {
+                    "text": "Compare timestamps first"
+                  },
+                  {
+                    "text": "Compare turn numbers when both events carry one"
+                  },
+                  {
+                    "text": "Compare causal type rank, the emitter's firing order within a cycle"
+                  },
+                  {
+                    "text": "Break remaining ties by event id"
+                  },
+                  {
+                    "kind": "note",
+                    "text": "Every later sort is a stable startTime sort, so this order survives the pipeline."
+                  }
+                ]
+              },
+              {
+                "text": "Pair start and end events (`pairEvents`)",
+                "steps": [
+                  {
+                    "kind": "note",
+                    "text": "Tool calls pair by protocol spanId, runs by run_id, context builds by spanId, UI asks by tool_use_id."
+                  }
+                ]
+              },
+              {
+                "text": "Convert pairs to spans, bucketed per Pi session",
+                "steps": [
+                  {
+                    "kind": "note",
+                    "text": "Phase and container start/end events skip this step; they become grouping spans later."
+                  },
+                  {
+                    "kind": "note",
+                    "text": "Events with no Pi session become root spans."
+                  }
+                ]
+              },
+              {
+                "text": "Nest each Pi session's spans (`nesting`)",
+                "steps": [
+                  {
+                    "text": "Fold context inputs under their context build"
+                  },
+                  {
+                    "text": "Wrap the system prompt and context build in a provisioning span"
+                  },
+                  {
+                    "text": "Fold `pi_turn_end` usage onto the matching Turn span",
+                    "steps": [
+                      {
+                        "kind": "note",
+                        "text": "The debug event stays in the tree."
+                      }
+                    ]
+                  },
+                  {
+                    "text": "Fold tool calls, UI asks, replies, and `app:` events under the preceding Turn span",
+                    "steps": [
+                      {
+                        "kind": "note",
+                        "text": "Ownership is causal: tool events carry no turn number."
+                      },
+                      {
+                        "kind": "note",
+                        "text": "User message, run, and session boundaries close the open turn."
+                      },
+                      {
+                        "kind": "note",
+                        "text": "A span stamped with a different runId never folds into the turn."
+                      },
+                      {
+                        "kind": "note",
+                        "text": "Traces without `pi_request_snapshot` spans keep the flat shape."
+                      }
+                    ]
+                  },
+                  {
+                    "text": "Fold each turn under the user message that started it"
+                  }
+                ]
+              },
+              {
+                "text": "Build the agent forest",
+                "steps": [
+                  {
+                    "text": "Bucket spans into runs when a session has more than one run (`runBucketing`)",
+                    "steps": [
+                      {
+                        "kind": "note",
+                        "text": "The envelope runId wins; the run's time window is the fallback for events without one."
+                      }
+                    ]
+                  },
+                  {
+                    "text": "Nest each subagent session under its spawner's tool call",
+                    "steps": [
+                      {
+                        "kind": "note",
+                        "text": "Matched by parent tool-use id, never by timestamp containment."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "text": "Group roots under phase spans (`phaseGrouping`)"
+              },
+              {
+                "text": "Group roots under container spans (`containerGrouping`)",
+                "steps": [
+                  {
+                    "kind": "note",
+                    "text": "Container events define ranges; persisted container summaries fill in the rest."
+                  },
+                  {
+                    "kind": "note",
+                    "text": "An agent span with an explicit containerId renders under that container even when timestamps tie."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-40-viewer-model-the-trace-tree-14": {
+      "id": "b-40-viewer-model-the-trace-tree-14",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Trace Tree"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-every-span-in-the-trace-15": {
+      "id": "b-40-viewer-model-every-span-in-the-trace-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every span in the trace tree renders as one object: a "
+        },
+        {
+          "insert": "TraceCard",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": a card frame with an integrated icon cap whose divider is part of the frame. The cap is connected to the card, never floating."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-card-size-table": {
+      "id": "b-40-viewer-model-card-size-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Size",
+          "Used for",
+          "Cap placement"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "line",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "single-line spans (tool, agent, turn, lifecycle…)",
+            "full-height end cell, flush left or right"
+          ],
+          [
+            [
+              {
+                "insert": "box",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "multi-line messages (user, assistant)",
+            [
+              {
+                "insert": "pinned top-left corner "
+              },
+              {
+                "insert": "inside",
+                "attributes": {
+                  "italic": true
+                }
+              },
+              {
+                "insert": " the border"
+              }
+            ]
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-40-viewer-model-there-is-exactly-one-r-17": {
+      "id": "b-40-viewer-model-there-is-exactly-one-r-17",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "There is exactly one row size.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The old reduced "
+        },
+        {
+          "insert": "meta",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " variant was removed so it cannot regress: info/debug rows wear the same cap size and type scale as every other row. The meta type style survives only for secondary chips "
+        },
+        {
+          "insert": "inside",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " a row, never as a row's own size."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-box-caps-always-anchor-18": {
+      "id": "b-40-viewer-model-box-caps-always-anchor-18",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Box caps always anchor top-left",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ", even when the icon side is set to \"right\". A top-right cap makes the eye hit wrapped body text before the type marker; the side option only steers the inline end caps."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-caps-are-square-22p-19": {
+      "id": "b-40-viewer-model-caps-are-square-22p-19",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Caps are square",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " (22px). Don't stretch a cap to solve an alignment problem; fix the text side instead. The corner cap centers its glyph at y=11, so message bodies carry no top padding: the first line sits flush to the frame and centers on the glyph. Stable under any mono font "
+        },
+        {
+          "insert": "family",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": "; only a font-"
+        },
+        {
+          "insert": "size",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " change could break it, and the type scale forbids that."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-color-bands-four-categ-20": {
+      "id": "b-40-viewer-model-color-bands-four-categ-20",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Color: bands, four categories, reserved status"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-a-span-s-display-type-an-21": {
+      "id": "b-40-viewer-model-a-span-s-display-type-an-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A span's display type and status resolve to an icon kind, a semantic "
+        },
+        {
+          "insert": "group",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ", and the accent the card wears. Kind-colored cards are doc-style "
+        },
+        {
+          "insert": "bands",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": the entire card border in the kind hue at reduced alpha, plus a subtle wash (~10%) of the same hue."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-color-category-table": {
+      "id": "b-40-viewer-model-color-category-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Category",
+          "Group(s)",
+          "Treatment"
+        ],
+        "rows": [
+          [
+            "Conversation",
+            [
+              {
+                "insert": "user",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (blue), "
+              },
+              {
+                "insert": "assistant",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (green)"
+              }
+            ],
+            "band"
+          ],
+          [
+            "Tool",
+            [
+              {
+                "insert": "tool",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": tool calls/results and spawner dispatch (orange)"
+              }
+            ],
+            "band"
+          ],
+          [
+            "Context",
+            [
+              {
+                "insert": "context",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": turn snapshots, context build, system prompt (violet)"
+              }
+            ],
+            "band"
+          ],
+          [
+            "Lifecycle",
+            [
+              {
+                "insert": "orchestration",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "lifecycle",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "meta",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": agents, runs/sessions, containers, provisioning, info/debug"
+              }
+            ],
+            [
+              {
+                "insert": "neutral hairline, "
+              },
+              {
+                "insert": "no wash",
+                "attributes": {
+                  "bold": true
+                }
+              }
+            ]
+          ],
+          [
+            "Status",
+            [
+              {
+                "insert": "warning",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (amber), "
+              },
+              {
+                "insert": "error",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (red)"
+              }
+            ],
+            "full-strength border + wash"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-40-viewer-model-loudness-is-monotonic-23": {
+      "id": "b-40-viewer-model-loudness-is-monotonic-23",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Loudness is monotonic and must stay that way",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": neutral plumbing < kind band < selection < status. Status is the loudest thing in the tree."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-amber-and-red-are-rese-24": {
+      "id": "b-40-viewer-model-amber-and-red-are-rese-24",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Amber and red are reserved for diagnostics.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Status overrides type, and those are the only paths that reach them."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-violet-means-context-25": {
+      "id": "b-40-viewer-model-violet-means-context-25",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Violet means context, exclusively.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Orchestration cards are neutral, so the token is reused rather than the meaning shared."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-selection-treatment-li-26": {
+      "id": "b-40-viewer-model-selection-treatment-li-26",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Selection treatment lives on the card",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": an inset ring plus a light fill that overrides any band wash. The row contributes only the gutter bar."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-connector-geometry-27": {
+      "id": "b-40-viewer-model-connector-geometry-27",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Connector geometry"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-tree-s-indent-guides-28": {
+      "id": "b-40-viewer-model-the-tree-s-indent-guides-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The tree's indent guides are deliberately quiet: hairline width, softened tint, always below the cards in the hierarchy. Every guide cell is a "
+        },
+        {
+          "insert": "fixed 24px column",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ", the same 24px step the content indent derives from, so line positions and content offsets come from one formula. A stretching cell would drift lines off-grid on rows whose toggle slot is empty; that bug class is pinned by test."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-icons-29": {
+      "id": "b-40-viewer-model-icons-29",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Icons"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-one-glyph-per-meaning-d-30": {
+      "id": "b-40-viewer-model-one-glyph-per-meaning-d-30",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "One glyph per meaning, distinguishable at 13px by shape alone: "
+        },
+        {
+          "insert": "window",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " = a turn's context window · "
+        },
+        {
+          "insert": "layers",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " = context assembly (build / system prompt) · wrench = tool · person = user · chat = assistant · robot = agent · paper-plane = dispatch · play = run · flag = phase · cube = container · database = provisioning. Each glyph ships an outline and a fill variant so the cap treatment (outline cap / solid cap) switches without swapping metaphors."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-gears-mean-lifecycle-p-31": {
+      "id": "b-40-viewer-model-gears-mean-lifecycle-p-31",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Gears mean lifecycle/plumbing only",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": nothing content-bearing wears a gear. Lifecycle spans get finer glyphs from their label; error and warning status override everything for scannability."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-typography-32": {
+      "id": "b-40-viewer-model-typography-32",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Typography"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-card-text-is-mono-in-ex-33": {
+      "id": "b-40-viewer-model-card-text-is-mono-in-ex-33",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Card text is mono, in exactly three type styles: a 13px label style (every tree row, one size), a 13px relaxed body style (multi-line message bodies), and an 11px meta style (secondary inline chips inside a row). Nothing else in the trace viewer sets a size on card text. Prose/sans stacks sneaking in at ad-hoc sizes is the failure mode this exists to prevent."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-width-34": {
+      "id": "b-40-viewer-model-width-34",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Width"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-there-is-no-fixed-widt-35": {
+      "id": "b-40-viewer-model-there-is-no-fixed-widt-35",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "There is "
+        },
+        {
+          "insert": "no fixed width budget",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ". An earlier design clamped card content to 320px minus 24px per tree depth, starving deep spans while the panel sat empty; it was removed deliberately. don't reintroduce one. Line cards grow to fit content and truncating detail chips ellipsize at the panel edge; box cards hug short messages ("
+        },
+        {
+          "insert": "w-fit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and bound long ones ("
+        },
+        {
+          "insert": "max-w-[90%]",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), with message content truncated upstream and a line-clamp visual guard."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-user-facing-knobs-36": {
+      "id": "b-40-viewer-model-user-facing-knobs-36",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "User-facing knobs"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-presentation-options-use-37": {
+      "id": "b-40-viewer-model-presentation-options-use-37",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Presentation options users may reasonably disagree on are "
+        },
+        {
+          "insert": "rail knobs, not code forks",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": icon side and style, band wash/border alphas, caret and connector opacities, selection color/opacity/ring width, code-block zebra color and opacity. Icon style changes only the cap fill, not the card frame: a deliberately subtle toggle."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-detail-panel-38": {
+      "id": "b-40-viewer-model-the-detail-panel-38",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Detail Panel"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-detail-panel-renders-39": {
+      "id": "b-40-viewer-model-the-detail-panel-renders-39",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The detail panel renders one selected span. Every event type gets the same structure: a fixed header over a body composed only from a standard block vocabulary, and per-type renderers can only choose and fill blocks."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-layout-standard-40": {
+      "id": "b-40-viewer-model-the-layout-standard-40",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "The layout standard"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-two-parts-no-exceptions-41": {
+      "id": "b-40-viewer-model-two-parts-no-exceptions-41",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two parts, no exceptions, for every event type:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-header-kind-tinted-42": {
+      "id": "b-40-viewer-model-header-kind-tinted-42",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Header",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": kind-tinted glyph, title, and a quiet Details control, at fixed "
+        },
+        {
+          "insert": "h-12",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on the shared panel-header surface. Geometry is identical for every type; the tint and glyph match the tree row for the same span, resolved through the same icon resolver rather than duplicated hues. Event type and duration live in Details, not the header. The header does not move when Details opens: only the control swaps for an accessible close button."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-body-always-non-em-43": {
+      "id": "b-40-viewer-model-body-always-non-em-43",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Body",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": always non-empty, composed only from the standard block vocabulary, in a fixed slot order. Non-Turn bodies are untabbed. Turn bodies use shell-owned tabs."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-there-is-no-summary-tier-44": {
+      "id": "b-40-viewer-model-there-is-no-summary-tier-44",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "There is no summary tier and no dead end: a type that carries only attributes renders a compact facts block: the fact card, not a special case, so the plain-language information stays in the main read. \"No input or output\" is never an acceptable body."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-simplicity-in-the-main-45": {
+      "id": "b-40-viewer-model-simplicity-in-the-main-45",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Simplicity in the main read",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": tokens, hashes, and technical extras do not appear in the main read. They live in Details."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-renderer-contract-46": {
+      "id": "b-40-viewer-model-the-renderer-contract-46",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "The renderer contract"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-a-per-type-renderer-is-a-47": {
+      "id": "b-40-viewer-model-a-per-type-renderer-is-a-47",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A per-type renderer is a function from renderer props to a "
+        },
+        {
+          "insert": "DetailView",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": it returns "
+        },
+        {
+          "insert": "data, not JSX",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ". The shell owns the header, the Details button and takeover state, tab and subtab chrome, block ordering, framing, disclosures, clamping, modal expansion, and Escape precedence. A renderer therefore physically cannot emit chrome, reorder slots, or open a second panel."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-detail-view-shape": {
+      "id": "b-40-viewer-model-detail-view-shape",
+      "type": "state-shape",
+      "props": {
+        "example": "{\n  \"tabs\": [\n    {\n      \"id\": \"state\",\n      \"name\": \"State\",\n      \"blocks\": [\n        { \"id\": \"turn:state\", \"slot\": \"content\", \"caption\": \"State\", \"language\": \"xml\", \"body\": \"<state version=\\\"3\\\" turn=\\\"2\\\">...</state>\", \"turnSection\": \"state\" },\n        { \"id\": \"turn:recent-messages\", \"slot\": \"content\", \"caption\": \"Messages\", \"node\": \"(message cards)\", \"selfFramed\": true }\n      ],\n      \"zones\": [\n        { \"id\": \"state\", \"name\": \"State\", \"blockIds\": [\"turn:state\"] },\n        { \"id\": \"messages\", \"name\": \"Messages\", \"blockIds\": [\"turn:recent-messages\"] }\n      ]\n    },\n    { \"id\": \"context\", \"name\": \"Context\", \"blocks\": [{ \"id\": \"turn:context\", \"slot\": \"content\", \"caption\": \"Context window\", \"language\": \"text\", \"body\": \"...\" }] },\n    { \"id\": \"system\", \"name\": \"System prompt\", \"blocks\": [{ \"id\": \"turn:system\", \"slot\": \"content\", \"caption\": \"System prompt\", \"language\": \"prompt\", \"body\": \"...\", \"turnSection\": \"system\" }] },\n    { \"id\": \"tools\", \"name\": \"Tools\", \"blocks\": [{ \"id\": \"turn:tool:read\", \"slot\": \"content\", \"caption\": \"read\", \"language\": \"json\", \"body\": \"{ \\\"name\\\": \\\"read\\\" }\", \"turnSection\": \"tools\" }] }\n  ]\n}",
+        "fields": [
+          {
+            "name": "blocks",
+            "type": "DetailBlockSpec[]",
+            "required": false,
+            "description": "Untabbed body. Mutually exclusive with tabs."
+          },
+          {
+            "name": "tabs",
+            "type": "DetailTab[]",
+            "required": false,
+            "description": "Tabbed body. The first tab is the default, and host extension blocks merge into it.",
+            "fields": [
+              {
+                "name": "id",
+                "type": "string",
+                "description": "Keys the shell's active-tab state."
+              },
+              {
+                "name": "name",
+                "type": "string"
+              },
+              {
+                "name": "blocks",
+                "type": "DetailBlockSpec[]"
+              },
+              {
+                "name": "zones",
+                "type": "DetailZone[]",
+                "required": false,
+                "description": "Surfaces shown one at a time through the shell's subtab row. Blocks no zone names follow the surfaces, so a zone list is never a filter.",
+                "fields": [
+                  {
+                    "name": "id",
+                    "type": "string"
+                  },
+                  {
+                    "name": "name",
+                    "type": "string",
+                    "description": "The whole subtab label: no count, no meta line."
+                  },
+                  {
+                    "name": "blockIds",
+                    "type": "string[]",
+                    "description": "This tab's blocks on the surface, in stream order."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "detailsExtras",
+            "type": "ReactNode",
+            "required": false,
+            "description": "Appended below the standard content of the shell-owned Details view."
+          }
+        ],
+        "name": "DetailView",
+        "source": {
+          "path": "packages/viewer-ui/src/trace-viewer/detail-panel/contract.ts",
+          "symbol": "DetailView"
+        }
+      },
+      "children": []
+    },
+    "b-40-viewer-model-blocks-and-tabs-are-49": {
+      "id": "b-40-viewer-model-blocks-and-tabs-are-49",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "blocks",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "tabs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are mutually exclusive. Blocks fill four slots, and the shell sorts by this slot order with "
+        },
+        {
+          "insert": "order",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as the intra-slot tie-break: a renderer's own array order is not respected across slots, deliberately:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-slot-table": {
+      "id": "b-40-viewer-model-slot-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Slot",
+          "Holds"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "input",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "params, declared inputs, the instruction"
+          ],
+          [
+            [
+              {
+                "insert": "content",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "turn sections, rendered context, message content"
+          ],
+          [
+            [
+              {
+                "insert": "output",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "result, delta, lints"
+          ],
+          [
+            [
+              {
+                "insert": "media",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "standalone renders and images"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-40-viewer-model-bodies-compose-from-an-e-52": {
+      "id": "b-40-viewer-model-bodies-compose-from-an-e-52",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every block in a body is a "
+        },
+        {
+          "insert": "DetailBlockSpec",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and source text renders through the shared "
+        },
+        {
+          "insert": "DocFigure",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The shell implements every capability a block declares. A body that needs something outside this vocabulary is a review conversation, not a local addition."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-detail-block-spec-shape": {
+      "id": "b-40-viewer-model-detail-block-spec-shape",
+      "type": "state-shape",
+      "props": {
+        "example": "{\n  \"id\": \"canvas:thinking\",\n  \"slot\": \"input\",\n  \"caption\": \"Thinking\",\n  \"body\": \"The header should move above the hero image.\",\n  \"language\": \"text\",\n  \"collapsible\": true,\n  \"defaultOpen\": false,\n  \"order\": -1\n}",
+        "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "description": "Unique within one view. Extensions namespace theirs, such as canvas:thinking; renderer ids win collisions."
+          },
+          {
+            "name": "slot",
+            "type": "\"input\" | \"content\" | \"output\" | \"media\"",
+            "description": "The shell sorts by slot, then order, then id."
+          },
+          {
+            "name": "caption",
+            "type": "string",
+            "description": "An uncaptioned block is not in the vocabulary."
+          },
+          {
+            "name": "body",
+            "type": "string",
+            "required": false,
+            "description": "Source text rendered through DocFigure. Mutually exclusive with node."
+          },
+          {
+            "name": "language",
+            "type": "\"xml\" | \"json\" | \"prompt\" | \"text\"",
+            "required": false
+          },
+          {
+            "name": "node",
+            "type": "ReactNode",
+            "required": false,
+            "description": "Escape hatch for content that is not source text. The shell still frames it."
+          },
+          {
+            "name": "selfFramed",
+            "type": "boolean",
+            "required": false,
+            "description": "The node is already a stream of cards, so the shell renders it bare. Only meaningful with node."
+          },
+          {
+            "name": "inlineRows",
+            "type": "DocInlineRow[]",
+            "required": false,
+            "description": "Presentation-only rows placed at reference lines inside the body; they add no bytes."
+          },
+          {
+            "name": "attachments",
+            "type": "ReactNode",
+            "required": false,
+            "description": "Non-source content placed right after the body figure."
+          },
+          {
+            "name": "gutter",
+            "type": "boolean",
+            "required": false,
+            "description": "Line-number gutter and zebra substrate. Source bodies default to true."
+          },
+          {
+            "name": "clamp",
+            "type": "ClampPolicy",
+            "required": false,
+            "description": "Max height and label; a windowed policy scrolls the whole body instead of fading it."
+          },
+          {
+            "name": "expandable",
+            "type": "boolean",
+            "required": false,
+            "description": "Clamped content may open in the shell modal. Default true."
+          },
+          {
+            "name": "collapsible",
+            "type": "boolean",
+            "required": false,
+            "description": "Renders inside a shell-owned disclosure. Absent means always open."
+          },
+          {
+            "name": "defaultOpen",
+            "type": "boolean",
+            "required": false,
+            "description": "Initial disclosure state when collapsible. Default true."
+          },
+          {
+            "name": "order",
+            "type": "number",
+            "required": false,
+            "description": "Tie-break within a slot, lower first. Default 0."
+          },
+          {
+            "name": "turnSection",
+            "type": "\"system\" | \"context\" | \"state\" | \"tools\"",
+            "required": false,
+            "description": "Compatibility marker for the request snapshot's DOM contract; no layout effect."
+          }
+        ],
+        "name": "DetailBlockSpec",
+        "source": {
+          "path": "packages/viewer-ui/src/trace-viewer/detail-panel/contract.ts",
+          "symbol": "DetailBlockSpec"
+        }
+      },
+      "children": []
+    },
+    "b-40-viewer-model-enforcement-a-confo-53": {
+      "id": "b-40-viewer-model-enforcement-a-confo-53",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Enforcement",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": a conformance test iterates every registered renderer plus the fallback over representative real spans and asserts the standard: header present, real Details button with correct ARIA, at least one standard block, exactly one body form, standard block markers with non-decreasing slot order per tab, first tab active, no drawer chrome, no renderer-owned chrome outside the vocabulary, and renders the exported Details view for each span. Because the test reads the registry programmatically, a renderer added later is covered without touching the test."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-per-kind-bodies-54": {
+      "id": "b-40-viewer-model-per-kind-bodies-54",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Per-kind bodies"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-purpose-built-bodies-und-55": {
+      "id": "b-40-viewer-model-purpose-built-bodies-und-55",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The renderer registry maps each event or span type to a purpose-built body under the one thin shell, all from the same vocabulary. A type without a registration gets the fact card:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-renderer-registry-table": {
+      "id": "b-40-viewer-model-renderer-registry-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Event/span type",
+          "Renderer",
+          "Body shape"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "pi_request_snapshot",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "TurnBody",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The reading layout: identity line, lineage strip, full-bleed state, renders, tail, response. The state block wins the panel; identity and lineage compress to a line and a strip."
+          ],
+          [
+            [
+              {
+                "insert": "tool_call_start",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "tool_call_end",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "ToolBody",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "A call and its result side by side, because reading a tool span is a comparison. Typed args table, thinking lead-in."
+          ],
+          [
+            [
+              {
+                "insert": "context_build_started",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "context_build_completed",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "ContextBuildBody",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Lineage: declared, then loaded (per-input bytes, cache, hash), then rendered and attached. Per-input loader kind, status, and bytes on the event make this possible without child spans."
+          ],
+          [
+            [
+              {
+                "insert": "user_message",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "assistant_message",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "MessageBody",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "A plain box."
+          ],
+          [
+            [
+              {
+                "insert": "system_prompt_resolved",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "FactCard",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The fact card."
+          ],
+          [
+            [
+              {
+                "insert": "warning",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "error",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "WarningRenderer",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "A diagnostic body."
+          ],
+          [
+            [
+              {
+                "insert": "container_container",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "phase_container",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "pi_agent_container",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "run_container",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "UsageAggregateRenderer",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "A usage aggregate for the grouping span."
+          ],
+          [
+            "Any other type",
+            [
+              {
+                "insert": "FactCard",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The fact card: facts from the span's attributes, never a dead end."
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-40-viewer-model-one-code-block-component-61": {
+      "id": "b-40-viewer-model-one-code-block-component-61",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "One code-block component"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-a-single-data-block-subs-62": {
+      "id": "b-40-viewer-model-a-single-data-block-subs-62",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A single data-block substrate serves the whole app: non-selectable line-number gutter, theme-aware zebra striping, lossless syntax coloring."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-byte-exact-unwrapped-63": {
+      "id": "b-40-viewer-model-byte-exact-unwrapped-63",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Byte-exact, unwrapped, one mode.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Long logical lines scroll horizontally inside the figure and never widen the panel. Tokenization is lossless: concatenating token values reproduces the input exactly, including malformed input."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-one-deliberate-car-64": {
+      "id": "b-40-viewer-model-the-one-deliberate-car-64",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The one deliberate carve-out",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " is JSON data blocks. Providers serialize tool arguments and results minified, so whitespace, and only whitespace, is canonicalized to a 2-space indent; every value and the parsed key order is preserved, and non-JSON passes through untouched."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-natural-language-messa-65": {
+      "id": "b-40-viewer-model-natural-language-messa-65",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Natural-language message prose",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " is the other deliberate exception: conversation text stays wrapped prose. Everything structured or data-bearing uses the figure."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-caption-rows-carry-the-66": {
+      "id": "b-40-viewer-model-caption-rows-carry-the-66",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Caption rows carry the caption and the expand control only",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": no counts, no metadata. Short blocks get no expansion control. Expandable figures put a keyboard-reachable ⤢ at the far right that opens the shell-owned modal: the only enlargement path. The modal is a near-full-viewport overlay with a dimmed backdrop, closes on Escape and click-out, and renders byte-identically to the inline figure."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-clamping-always-renders-67": {
+      "id": "b-40-viewer-model-clamping-always-renders-67",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Clamping always renders the complete child tree and collapses with "
+        },
+        {
+          "insert": "max-height",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " plus a fade, so SSR markup, search, and copy retain the full source."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-clamp-policies-68": {
+      "id": "b-40-viewer-model-clamp-policies-68",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Clamp policies:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-clamp-policy-table": {
+      "id": "b-40-viewer-model-clamp-policy-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Policy",
+          "Budget",
+          "Used for"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "tight",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "140px",
+            "short previews"
+          ],
+          [
+            [
+              {
+                "insert": "block",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "420px",
+            "ordinary data blocks"
+          ],
+          [
+            [
+              {
+                "insert": "tall",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "720px",
+            "long secondary documents"
+          ],
+          [
+            [
+              {
+                "insert": "scroll",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "min(70vh, 900px)",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", windowed"
+              }
+            ],
+            [
+              {
+                "insert": "primary figures",
+                "attributes": {
+                  "bold": true
+                }
+              },
+              {
+                "insert": ": full render, scrolls in place"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "none",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "unbounded",
+            "content that must never clamp"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-40-viewer-model-the-primary-figure-pol-70": {
+      "id": "b-40-viewer-model-the-primary-figure-pol-70",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The primary-figure policy",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": the document a surface exists to show is never a clamped preview. State, Context, and System prompt render in full inside a window that scrolls in place. The Turn body stamps the policy onto every tab's source figures, so a new tab renderer inherits it without knowing it exists; blocks that declare their own clamp, and non-source "
+        },
+        {
+          "insert": "node",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " blocks, are left alone. Sections that also open standalone name the constant directly so the same document reads identically wherever it is opened. Figures nested inside message cards are tier-2, not primary, and keep their previews."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-turn-body-71": {
+      "id": "b-40-viewer-model-the-turn-body-71",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "The Turn body"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-four-shell-owned-tabs-in-72": {
+      "id": "b-40-viewer-model-four-shell-owned-tabs-in-72",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Four shell-owned tabs in fixed order: "
+        },
+        {
+          "insert": "State · Context · System prompt · Tools",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ", with State first and therefore the default. Tabs are one segmented control; slot order is enforced separately inside each tab. Tab labels carry no counts."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-tools-is-last-the-r-73": {
+      "id": "b-40-viewer-model-tools-is-last-the-r-73",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Tools",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " is last: the roster the agent could reach on "
+        },
+        {
+          "insert": "this",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " request, one standard JSON data block per tool in the order the provider received them, each carrying the full definition from the snapshot's captured roster. Presence is a read, not a length check: a pre-capture snapshot gets an honest \"not captured\" block, a captured-but-empty roster says so, and offline mode distinguishes unreadable from never-captured."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-state-tab-carrie-74": {
+      "id": "b-40-viewer-model-the-state-tab-carrie-74",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "State tab",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " carries two zones: "
+        },
+        {
+          "insert": "State | Messages",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ", shown one at a time through a quieter shell-owned subtab row. Exactly one surface is on screen; zones are alternatives, never a stack. The subtab label is the whole control: no counts, no meta line. The zone contract deliberately carries "
+        },
+        {
+          "insert": "n",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " surfaces, so a tab can grow subtabs, or a stacked or split posture can return, without reshaping the data."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-state-zone-renders-75": {
+      "id": "b-40-viewer-model-the-state-zone-renders-75",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The State zone renders "
+        },
+        {
+          "insert": "one continuous figure",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ". Authorship is positional: everything inside the snapshot's "
+        },
+        {
+          "insert": "state",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " range is output of "
+        },
+        {
+          "insert": "render(state)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", even when a provider transported an attached-render message as "
+        },
+        {
+          "insert": "role: \"user\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; only the "
+        },
+        {
+          "insert": "tail",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is conversation. Attached renders are embedded "
+        },
+        {
+          "insert": "inside",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": " the figure as a presentation-only inline row at the "
+        },
+        {
+          "insert": "<views>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " line: no line number, gutter and substrate running unbroken past it, rather than cut out into a second card. "
+        },
+        {
+          "insert": "One source",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": the figure's source is the captured payload, everything derives from line offsets into that string, and nothing reserializes a parsed tree; the inline rows contribute no bytes, so byte-exactness is unchanged."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-outline-that-supplie-76": {
+      "id": "b-40-viewer-model-the-outline-that-supplie-76",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The outline that supplies those offsets is deliberately not an XML parser: the payload is not well-formed XML (the board digest contains bare "
+        },
+        {
+          "insert": "<",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": ">",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", quotes and arrows, and its indentation is load-bearing), so a top-level sub-block is a line that is nothing but an opening tag, closed by a later line that is nothing but its matching closing tag. Parse failure is first-class: no offsets means the caller degrades to the undivided figure, and when the payload cannot be indexed the renders settle at the document's foot. Zones, the raw figure, and the message rows all survive degradation; raw is always one affordance away."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-root-identity-the-snaps-77": {
+      "id": "b-40-viewer-model-root-identity-the-snaps-77",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Root identity (the snapshot's version/turn/board line) is promoted as a readable line; the board digest is a first-class affordance; lints are scannable: lead with counts, one row per warning."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-message-stream-78": {
+      "id": "b-40-viewer-model-the-message-stream-78",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "The message stream"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-message-cards-are-the-sa-79": {
+      "id": "b-40-viewer-model-message-cards-are-the-sa-79",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Message cards are the same conversation read at a different zoom, so each role maps to the tree's display type and resolves its glyph and color group through the one icon resolver. A user message is the blue person card, an assistant reply the green chat card, a tool result the orange wrench card, in the tree and in the panel, by construction rather than by duplicated hues, and stable across every Messages treatment. Messages stay visibly outside the State field hierarchy."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-kernel-authored-lines-ar-80": {
+      "id": "b-40-viewer-model-kernel-authored-lines-ar-80",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Kernel-authored lines are plumbing, not conversation: they resolve through "
+        },
+        {
+          "insert": "lifecycle",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to the neutral card and wear a KERNEL badge instead of USER. The badge is driven by the protocol-owned marker, not by heuristics, see "
+        },
+        {
+          "insert": "State Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/30-state-model",
+              "label": "State Model"
+            }
+          }
+        },
+        {
+          "insert": ". An image the kernel replaced with a text placeholder is recognized through the same shared envelope and rendered as a placeholder rather than as source data. Turn images render in place: context images with their context message, attached renders at their State-sequence position, never a trailing media strip."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-details-takeover-81": {
+      "id": "b-40-viewer-model-details-takeover-81",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Details takeover"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-details-control-repl-82": {
+      "id": "b-40-viewer-model-the-details-control-repl-82",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The Details control replaces the "
+        },
+        {
+          "insert": "body",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " with a shell-owned full-panel Details view. The earlier always-collapsed bottom drawer is gone: no disclosure row, no bottom border, no drawer spacer."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-details-is-complete-ide-83": {
+      "id": "b-40-viewer-model-details-is-complete-ide-83",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Details is complete: identity (span id, event type, every attribute with per-row copy), timing (start, end, duration, span type, status), usage when present (input/output/cache-read/cache-write tokens, model, cost, stop reason), and the raw span JSON without children. Multi-line strings become real indented blocks for display while Copy JSON preserves the exact round-trippable JSON. Raw uses the standard figure with its gutter, zebra, byte-exact rendering, and ⤢ expansion."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-focus-moves-into-details-84": {
+      "id": "b-40-viewer-model-focus-moves-into-details-84",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Focus moves into Details on open and returns to the Details button on close. Closing restores the body exactly as it was, including the active Turn tab."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-escape-ladder-85": {
+      "id": "b-40-viewer-model-the-escape-ladder-85",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "The Escape ladder"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-escape-resolution-is-a-p-86": {
+      "id": "b-40-viewer-model-escape-resolution-is-a-p-86",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Escape resolution is a pure two-layer ladder: "
+        },
+        {
+          "insert": "modal → Details",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ". One press closes exactly one layer, and Details closes only when nothing sits above it."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-selection-state-does-not-87": {
+      "id": "b-40-viewer-model-selection-state-does-not-87",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Selection state does not persist across events: the panel is keyed by span id and remounts on event change. The active Turn tab persists."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-rejected-on-review-90": {
+      "id": "b-40-viewer-model-rejected-on-review-90",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Rejected on review"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-load-bearing-alternative-91": {
+      "id": "b-40-viewer-model-load-bearing-alternative-91",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Load-bearing alternatives, kept so they are not re-derived:"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-direction-a-the-read-92": {
+      "id": "b-40-viewer-model-direction-a-the-read-92",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Direction A, \"the read\"",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": one scroll with an outline rail. Rejected: a tool call is a comparison wanting adjacency, not sequence. Its single-scroll spine survives in the non-Turn bodies."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-direction-c-the-inspe-93": {
+      "id": "b-40-viewer-model-direction-c-the-inspe-93",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Direction C, the inspector",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": content-derived facets. Rejected: it fixes tab membership, not the tab premise. Its register-named-blocks seam and wide-expand survived into the standard."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-index-rail-a-s-94": {
+      "id": "b-40-viewer-model-the-index-rail-a-s-94",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The index rail",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": a scroll-spy sidebar for the State tab. Rejected: it ate a fifth of the reading width. The only wayfinding is subtabs: surfaces plus per-piece focus, not a sidebar."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-focus-posture-95": {
+      "id": "b-40-viewer-model-the-focus-posture-95",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The focus posture",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ": a breadcrumb/back layer between modal and Details. Cut on review and deleted rather than left dormant, along with its whole spec surface."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-per-field-state-figure-96": {
+      "id": "b-40-viewer-model-per-field-state-figure-96",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Per-field state figures",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " (nine always-expanded blocks): too heavy; the continuous figure won."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-subtab-counts-and-meta-97": {
+      "id": "b-40-viewer-model-subtab-counts-and-meta-97",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Subtab counts and meta lines",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": "; "
+        },
+        {
+          "insert": "the bottom Details drawer",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": "; "
+        },
+        {
+          "insert": "wrap-on-by-default",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": "; "
+        },
+        {
+          "insert": "expand-in-place",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": ", all superseded by the standard above."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-deliberately-deferred-n-98": {
+      "id": "b-40-viewer-model-deliberately-deferred-n-98",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Deliberately deferred, not rejected: the stacked and split State/Messages postures (the zone model carries them), per-field focus re-entry (three candidates, undecided), and exposed cross-links between Turn, system prompt, context build, and tool spans (the joins exist in the builder's index; none are exposed yet)."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-prompt-lab-99": {
+      "id": "b-40-viewer-model-the-prompt-lab-99",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Prompt Lab"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-viewer-also-fronts-t-100": {
+      "id": "b-40-viewer-model-the-viewer-also-fronts-t-100",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The viewer also fronts the kernel catalog API: registry listing, agent detail, prompt saves and manifest edits (both answer 403 unless the host enables writes), model aliases, revision history, and per-revision run stats. Prompt comparison is a block-level structural diff keyed by stable node ids: no text diffing."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-agent-viewer-is-stri-120": {
+      "id": "b-40-viewer-model-the-agent-viewer-is-stri-120",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The prompt editor is prompt-kit's PromptInlineLab. prompt-kit owns its views, glass panel, editing surface, and interaction contract; they are documented in the prompt-kit repo's Prompt Editor docs (docs/10-system-design/60-editor), and this page covers only how the kernel hosts the lab."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-ordering-reads-as-th-126": {
+      "id": "b-40-viewer-model-the-ordering-reads-as-th-126",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "AgentCatalogViewer (packages/viewer-ui/src/agent-viewer/) mounts an agent list beside the lab for the selected agent. A host passes the agents and, optionally, a baseUrl, a toolsZone, and a configZone. AgentPromptLabContainer loads the agent's catalog detail and feeds the lab through props: the prompt document and its save callback, the manifest, revision history, context and state fixtures, a tools preview, and the prompt-edit session, whose agent proposals the user accepts, rejects, or undoes while session events stream over SSE. The lab edits only the authored system prompt. The composed prompt a run used is a runtime artifact, inspected on system_prompt_resolved trace events."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-base-shell-127": {
+      "id": "b-40-viewer-model-the-base-shell-127",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Base Shell"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-viewer-shell-ships-the-128": {
+      "id": "b-40-viewer-model-viewer-shell-ships-the-128",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "viewer-shell ships the whole trace-viewing instrument, not a demo. Its entry point is "
+        },
+        {
+          "insert": "KernelTraceWorkspace",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": a host passes rows, the open detail, and spans, and extends it through the seams under App Plugins."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-workspace-is-one-129": {
+      "id": "b-40-viewer-model-the-workspace-is-one-129",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "workspace",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " is one component with two modes. List mode: full-width trace/session rows (title, status badge, meta, optional per-row delete) with an app slot below the header. Drill-in mode: a minimal header: back affordance · trace title · quiet status badge · overflow delete when the host allows deletes, and nothing else, over 100% of the width serving the span tree and detail panel. There is deliberately "
+        },
+        {
+          "insert": "no workspace-level usage affordance",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " in drill-in: usage and runtime information live on the detail side, in the Details view of the event that carries them, and container / phase / session / run spans render a usage aggregate instead of dead-ending."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-drill-in-body-is-130": {
+      "id": "b-40-viewer-model-the-drill-in-body-is-130",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "drill-in body",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " is a tree + detail split with a draggable divider bounded to sane limits; reading happens on the detail side, so it gets the majority by default. The tree toolbar and the detail header share one "
+        },
+        {
+          "insert": "h-12",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " panel-header surface, which is what makes the two columns read as one instrument."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-the-style-system-shi-131": {
+      "id": "b-40-viewer-model-the-style-system-shi-131",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "style system",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " ships two palettes driving the same semantic tokens: light (the doc-paper look, the default) and dark, with the warning and destructive tokens marked "
+        },
+        {
+          "insert": "reserved · diagnostics",
+          "attributes": {
+            "italic": true
+          }
+        },
+        {
+          "insert": ". Every value is emitted as a CSS variable that the viewer classes consume with baked fallbacks, so a host that mounts nothing still gets the default look. Rail controls group into panel tabs a host can restrict: colors, tree chrome, selection, code blocks, trace icons, layout/effects."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-app-plugins-132": {
+      "id": "b-40-viewer-model-app-plugins-132",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "App Plugins"
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-apps-extend-the-viewer-t-133": {
+      "id": "b-40-viewer-model-apps-extend-the-viewer-t-133",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Apps extend the viewer through these seams, not by forking the kernel viewer packages. Every seam is optional; a host that sets none gets the standard viewer."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-host-seams-surface": {
+      "id": "b-40-viewer-model-host-seams-surface",
+      "type": "interaction-surface",
+      "props": {
+        "operations": [
+          {
+            "name": "KernelTraceWorkspace",
+            "kind": "action",
+            "description": "Mounts the trace workspace: list mode, then the drill-in tree and detail split. The optional props are the seams.",
+            "params": [
+              {
+                "name": "rows",
+                "type": "TraceWorkspaceRow[]"
+              },
+              {
+                "name": "selectedRowId",
+                "type": "string | null"
+              },
+              {
+                "name": "detail",
+                "type": "TraceWorkspaceDetail | null",
+                "description": "Drill-in header metadata. Span and usage state reset when its id changes."
+              },
+              {
+                "name": "spans",
+                "type": "TraceSpan[]",
+                "description": "The buildTraceSpans output for the open trace."
+              },
+              {
+                "name": "onSelect",
+                "type": "(rowId: string) => void"
+              },
+              {
+                "name": "onBack",
+                "type": "() => void",
+                "required": false,
+                "description": "Called on drill-out. Hosts that route the open trace clear it here."
+              },
+              {
+                "name": "onDelete",
+                "type": "(rowId: string) => void",
+                "required": false,
+                "description": "Omit to hide every delete affordance."
+              },
+              {
+                "name": "statusClass",
+                "type": "(status: string) => string",
+                "required": false,
+                "description": "Status to badge classes. Defaults to the shared mapping."
+              },
+              {
+                "name": "usageData",
+                "type": "TraceWorkspaceUsageData",
+                "required": false,
+                "description": "Feeds the usage aggregates on container, phase, agent, and run spans. Omit to hide usage.",
+                "fields": [
+                  {
+                    "name": "container",
+                    "type": "KernelContainerSummary | null"
+                  },
+                  {
+                    "name": "runs",
+                    "type": "AgentRun[]"
+                  },
+                  {
+                    "name": "sessions",
+                    "type": "PiAgentSession[]",
+                    "required": false
+                  }
+                ]
+              },
+              {
+                "name": "labels",
+                "type": "TraceWorkspaceLabels",
+                "required": false,
+                "fields": [
+                  {
+                    "name": "listTitle",
+                    "type": "string",
+                    "required": false,
+                    "description": "Default \"Traces\"."
+                  },
+                  {
+                    "name": "countNoun",
+                    "type": "string",
+                    "required": false,
+                    "description": "Singular. Default \"trace\"."
+                  },
+                  {
+                    "name": "rowColumnLabel",
+                    "type": "string",
+                    "required": false,
+                    "description": "Default \"Trace\"."
+                  },
+                  {
+                    "name": "backLabel",
+                    "type": "string",
+                    "required": false,
+                    "description": "Default \"All traces\"."
+                  }
+                ]
+              },
+              {
+                "name": "listExtras",
+                "type": "ReactNode",
+                "required": false,
+                "description": "Rendered below the list header, such as the research example's Doctor panel."
+              },
+              {
+                "name": "overlays",
+                "type": "ReactNode",
+                "required": false,
+                "description": "Rendered inside the workspace root."
+              },
+              {
+                "name": "apiBase",
+                "type": "string",
+                "required": false,
+                "description": "Read API base. Without it, snapshot renderers cannot fetch blobs or per-turn context and show offline summaries."
+              },
+              {
+                "name": "renderSpanDetail",
+                "type": "(span: TraceSpan, usageContext?: UsageContext) => ReactNode | null",
+                "required": false,
+                "description": "Forwarded to the viewer's renderSpanDetail plugin."
+              },
+              {
+                "name": "detailBlockProvider",
+                "type": "DetailBlockProvider",
+                "required": false
+              }
+            ],
+            "returns": "JSX.Element"
+          },
+          {
+            "name": "KernelTraceViewer",
+            "kind": "action",
+            "description": "The tree and detail split without the workspace's list and header. The workspace forwards only renderSpanDetail; the other plugins serve hosts that mount the viewer directly.",
+            "params": [
+              {
+                "name": "spans",
+                "type": "TraceSpan[]"
+              },
+              {
+                "name": "plugins",
+                "type": "KernelViewerPlugins",
+                "required": false,
+                "fields": [
+                  {
+                    "name": "containerHeader",
+                    "type": "ReactNode",
+                    "required": false,
+                    "description": "Above the tree, in both the empty and populated states."
+                  },
+                  {
+                    "name": "treeToolbarTrailing",
+                    "type": "ReactNode",
+                    "required": false
+                  },
+                  {
+                    "name": "emptyState",
+                    "type": "ReactNode",
+                    "required": false,
+                    "description": "Replaces the default message when there are no spans."
+                  },
+                  {
+                    "name": "detailPlaceholder",
+                    "type": "ReactNode",
+                    "required": false,
+                    "description": "Detail column while no span is selected."
+                  },
+                  {
+                    "name": "detailOverride",
+                    "type": "ReactNode",
+                    "required": false,
+                    "description": "Wins over detailPlaceholder while no span is selected. Selecting a span returns to span detail."
+                  },
+                  {
+                    "name": "renderSpanDetail",
+                    "type": "(span: TraceSpan) => ReactNode | null",
+                    "required": false
+                  }
+                ]
+              },
+              {
+                "name": "detailBlockProvider",
+                "type": "DetailBlockProvider",
+                "required": false
+              }
+            ],
+            "returns": "JSX.Element"
+          },
+          {
+            "name": "DetailBlockProvider",
+            "kind": "query",
+            "description": "Adds data-only blocks to the selected span's standard body. Blocks merge into the untabbed body or the first tab and sort by slot; later tabs stay as the renderer declared them. Renderer ids win collisions, duplicate provider ids keep the first block, and a thrown error yields no blocks.",
+            "params": [
+              {
+                "name": "span",
+                "type": "TraceSpan"
+              }
+            ],
+            "returns": "DetailBlockSpec[]"
+          },
+          {
+            "name": "renderSpanDetail",
+            "kind": "query",
+            "description": "A non-null node takes over the detail column for the selected span. Null falls back to the standard panel.",
+            "params": [
+              {
+                "name": "span",
+                "type": "TraceSpan"
+              },
+              {
+                "name": "usageContext",
+                "type": "UsageContext",
+                "required": false,
+                "description": "Supplied by the workspace form only."
+              }
+            ],
+            "returns": "ReactNode | null"
+          }
+        ],
+        "title": "Viewer host seams"
+      },
+      "children": []
+    },
+    "b-40-viewer-model-spectre-examples-134": {
+      "id": "b-40-viewer-model-spectre-examples-134",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "canvas-agent's traces page ("
+        },
+        {
+          "insert": "src/viewer/pages/TracesPage.tsx",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") is the reference host. It mounts "
+        },
+        {
+          "insert": "KernelTraceWorkspace",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with its own labels, and its "
+        },
+        {
+          "insert": "detailBlockProvider",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " adds a board-render body to "
+        },
+        {
+          "insert": "app:board-render",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " spans and transcript blocks (thinking, program source, render thumbnails) to tool-call spans."
+        }
+      ],
+      "children": []
+    },
+    "b-40-viewer-model-if-a-workflow-needs-more-139": {
+      "id": "b-40-viewer-model-if-a-workflow-needs-more-139",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "If a workflow needs more control than these seams give, it can compose viewer-ui directly while still using viewer-core transforms and DTOs."
+        }
+      ],
+      "children": []
+    }
+  }
+}

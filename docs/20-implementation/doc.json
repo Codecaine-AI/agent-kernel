@@ -1,0 +1,1207 @@
+{
+  "schemaVersion": 1,
+  "id": "20-implementation-00-overview",
+  "title": "Implementation Overview",
+  "root": "b-00-overview-root-34",
+  "blocks": {
+    "b-00-overview-root-34": {
+      "id": "b-00-overview-root-34",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "implementation",
+          "packages",
+          "protocol",
+          "db",
+          "kernel",
+          "prompt-system",
+          "read-api",
+          "viewer",
+          "dependency-direction",
+          "workspace-linking"
+        ],
+        "covers": "Implementation overview of the kernel monorepo: the package map, the structural decisions that govern it, and the per-area implementation records.",
+        "depends-on": [
+          "10-system-design"
+        ],
+        "type": "overview"
+      },
+      "children": [
+        "b-00-overview-this-repository-is-a-bun-2",
+        "b-00-overview-divider-3",
+        "b-00-overview-package-map-4",
+        "b-00-overview-package-tree",
+        "b-00-overview-external-note",
+        "b-00-overview-decisions-6",
+        "b-00-overview-dependency-direction-7",
+        "b-00-overview-decision-packages-l-8",
+        "b-00-overview-dependency-canvas",
+        "b-00-overview-dependency-canvas-caption",
+        "b-00-overview-why-the-protocol-is-9",
+        "b-00-overview-applies-to-package-10",
+        "b-00-overview-package-source-of-truth-11",
+        "b-00-overview-decision-this-repos-12",
+        "b-00-overview-why-the-extraction-13",
+        "b-00-overview-applies-to-package-14",
+        "b-00-overview-consumption-mechanism-pr-15",
+        "b-00-overview-decision-while-pack-16",
+        "b-00-overview-why-registry-pinnin-17",
+        "b-00-overview-applies-to-the-publ-18",
+        "b-00-overview-child-nodes-19",
+        "b-00-overview-10-protocol-md-10-prot-20",
+        "b-00-overview-area-page-for-packages-21",
+        "b-00-overview-20-kernel-20-kernel-0-22",
+        "b-00-overview-runtime-package-kernel-23",
+        "b-00-overview-30-db-md-30-db-md-24",
+        "b-00-overview-area-page-for-packages-25",
+        "b-00-overview-40-prompt-system-md-40-26",
+        "b-00-overview-structural-decisions-for-27",
+        "b-00-overview-50-read-api-md-50-read-28",
+        "b-00-overview-area-page-for-the-kernel-29",
+        "b-00-overview-60-viewer-60-viewer-0-30",
+        "b-00-overview-the-viewer-packages-dto-31",
+        "b-00-overview-70-app-adapters-md-70-32",
+        "b-00-overview-how-host-apps-such-as-sp-33",
+        "b-00-overview-80-core-harness-h",
+        "b-00-overview-80-core-harness-p",
+        "b-00-overview-85-tui-h",
+        "b-00-overview-85-tui-p"
+      ]
+    },
+    "b-00-overview-this-repository-is-a-bun-2": {
+      "id": "b-00-overview-this-repository-is-a-bun-2",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This repository is a Bun workspace containing the portable kernel packages extracted from Spectre. This page records the structural decisions that govern the workspace: how the packages are organized and why, so additions conform. Behavior and schemas live in "
+        },
+        {
+          "insert": "system design",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design",
+              "label": "system design"
+            }
+          }
+        },
+        {
+          "insert": "; dev commands live in the repo "
+        },
+        {
+          "insert": "README.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-divider-3": {
+      "id": "b-00-overview-divider-3",
+      "type": "divider",
+      "props": {},
+      "children": []
+    },
+    "b-00-overview-package-map-4": {
+      "id": "b-00-overview-package-map-4",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Package Map"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-package-tree": {
+      "id": "b-00-overview-package-tree",
+      "type": "file-tree",
+      "props": {
+        "entries": [
+          {
+            "path": "packages/protocol/",
+            "note": "TraceEvent envelope, event catalog, factories"
+          },
+          {
+            "path": "packages/db/",
+            "note": "SQLite store, schema, pg mirror, manifest"
+          },
+          {
+            "path": "packages/kernel/",
+            "note": "runtime, registry, read and catalog APIs"
+          },
+          {
+            "path": "packages/core-harness/",
+            "note": "reference kernel boot and HTTP server"
+          },
+          {
+            "path": "packages/tui/",
+            "note": "Pi extension: /kernel command, bundle boot"
+          },
+          {
+            "path": "packages/viewer-core/",
+            "note": "DTOs, path constants, span transforms"
+          },
+          {
+            "path": "packages/viewer-ui/",
+            "note": "trace tree, detail, prompt lab components"
+          },
+          {
+            "path": "packages/viewer-shell/",
+            "note": "mountable KernelTraceViewer shell"
+          },
+          {
+            "path": "catalog/",
+            "note": "agent bundles for this repo's kernel"
+          },
+          {
+            "path": "catalog/context-editor/",
+            "note": "edits context and state sidecars"
+          },
+          {
+            "path": "catalog/docs-writer/",
+            "note": "runs docs-system documentation tasks"
+          },
+          {
+            "path": "examples/simple-research-kernel/",
+            "note": "example host app; workspace member"
+          },
+          {
+            "path": "scripts/check-package-boundaries.ts",
+            "note": "rejects Spectre strings in packages"
+          },
+          {
+            "path": "scripts/dev-services.ts",
+            "note": "starts local Postgres via docker compose"
+          },
+          {
+            "path": "scripts/render-prompts-to-json.ts",
+            "note": "writes prompt.json and prompt renders"
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-00-overview-external-note": {
+      "id": "b-00-overview-external-note",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two packages come from the sibling prompt-kit repo, linked as workspace members: "
+        },
+        {
+          "insert": "@codecaine-ai/prompt-kit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (prompt document model, canonical hash, renderers) and "
+        },
+        {
+          "insert": "@codecaine-ai/prompt-kit-server",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (the prompt store behind the kernel's catalog save path)."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decisions-6": {
+      "id": "b-00-overview-decisions-6",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decisions"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-dependency-direction-7": {
+      "id": "b-00-overview-dependency-direction-7",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Dependency direction"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-packages-l-8": {
+      "id": "b-00-overview-decision-packages-l-8",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Packages layer one way. "
+        },
+        {
+          "insert": "protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the base and has no workspace dependencies. "
+        },
+        {
+          "insert": "db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " depends on "
+        },
+        {
+          "insert": "protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " depends on "
+        },
+        {
+          "insert": "protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the external "
+        },
+        {
+          "insert": "prompt-kit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "prompt-kit-server",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "core-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " depends on "
+        },
+        {
+          "insert": "kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; "
+        },
+        {
+          "insert": "tui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " depends on "
+        },
+        {
+          "insert": "kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". On the viewer side, "
+        },
+        {
+          "insert": "viewer-core",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " depends on "
+        },
+        {
+          "insert": "protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "prompt-kit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; "
+        },
+        {
+          "insert": "viewer-ui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on "
+        },
+        {
+          "insert": "viewer-core",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "prompt-kit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "; "
+        },
+        {
+          "insert": "viewer-shell",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on "
+        },
+        {
+          "insert": "viewer-core",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "viewer-ui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The kernel depends on no viewer package: where it serves a viewer contract, it duplicates the route paths and matches the DTO shapes structurally instead of importing them. No kernel package imports Spectre packages, Spectre paths, or Spectre naming; apps consume the kernel through package exports and adapters, never through package internals."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-dependency-canvas": {
+      "id": "b-00-overview-dependency-canvas",
+      "type": "canvas",
+      "props": {
+        "src": "./assets/canvases/package-dependencies.canvas.json",
+        "title": "Package dependency direction"
+      },
+      "children": []
+    },
+    "b-00-overview-dependency-canvas-caption": {
+      "id": "b-00-overview-dependency-canvas-caption",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Arrows point from a package to its dependency. The graph shows runtime "
+        },
+        {
+          "insert": "dependencies",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " only: "
+        },
+        {
+          "insert": "viewer-ui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " also lists "
+        },
+        {
+          "insert": "db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as "
+        },
+        {
+          "insert": "devDependencies",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for one end-to-end test."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-why-the-protocol-is-9": {
+      "id": "b-00-overview-why-the-protocol-is-9",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The protocol is the shared vocabulary, so everything meets there; one-way layering keeps the viewer embeddable without the runtime and the kernel free of UI dependencies. The rejected alternative (letting the kernel reach into viewer packages, or hosts import internals directly) is how Spectre's original entanglement happened and what the extraction undid."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-applies-to-package-10": {
+      "id": "b-00-overview-applies-to-package-10",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and any future package added to the workspace. "
+        },
+        {
+          "insert": "scripts/check-package-boundaries.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " enforces only the Spectre rule: it fails when package source contains an app-specific string such as "
+        },
+        {
+          "insert": "@spectre/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "apps/backend",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". No script checks the package graph, so review each "
+        },
+        {
+          "insert": "package.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " dependency against this layering."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-package-source-of-truth-11": {
+      "id": "b-00-overview-package-source-of-truth-11",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Package source of truth"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-this-repos-12": {
+      "id": "b-00-overview-decision-this-repos-12",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " This repository is the sole source of the "
+        },
+        {
+          "insert": "@agent-kernel/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " packages. Consumers link them as workspace members (Core's "
+        },
+        {
+          "insert": "agent-kernel/packages/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " plus "
+        },
+        {
+          "insert": "examples/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") or as a git-submodule workspace (Spectre's "
+        },
+        {
+          "insert": "packages/pi-agent-kernel/packages/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") with "
+        },
+        {
+          "insert": "workspace:*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " dependencies. No consumer keeps local copies."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-why-the-extraction-13": {
+      "id": "b-00-overview-why-the-extraction-13",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The extraction left Spectre with a parallel in-app copy of every package; two copies under one name drift immediately, and the boundary tests guard only one of them. Vendoring per host (the rejected alternative) is how Spectre's compat-shim debt accumulated."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-applies-to-package-14": {
+      "id": "b-00-overview-applies-to-package-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " "
+        },
+        {
+          "insert": "packages/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", consumer workspace manifests (Spectre root "
+        },
+        {
+          "insert": "package.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", Core root "
+        },
+        {
+          "insert": "package.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), and any future host linking the kernel."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-consumption-mechanism-pr-15": {
+      "id": "b-00-overview-consumption-mechanism-pr-15",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Consumption mechanism progression"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-decision-while-pack-16": {
+      "id": "b-00-overview-decision-while-pack-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " While package contracts are unstable, consumption is linked workspace source (submodule or meta-workspace member) with "
+        },
+        {
+          "insert": "workspace:*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Published, version-pinned registry packages replace "
+        },
+        {
+          "insert": "workspace:*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " only after the APIs stabilize."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-why-registry-pinnin-17": {
+      "id": "b-00-overview-why-registry-pinnin-17",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Why.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " Registry pinning during churn forces a publish per cross-repo change; linked source keeps multi-repo development live. Publishing to a private registry now was considered and rejected."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-applies-to-the-publ-18": {
+      "id": "b-00-overview-applies-to-the-publ-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Applies to.",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " The publishing state of "
+        },
+        {
+          "insert": "packages/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and every consumer dependency on "
+        },
+        {
+          "insert": "@agent-kernel/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-child-nodes-19": {
+      "id": "b-00-overview-child-nodes-19",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Child Nodes"
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-10-protocol-md-10-prot-20": {
+      "id": "b-00-overview-10-protocol-md-10-prot-20",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Protocol Package",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/10-protocol",
+              "label": "Protocol Package"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-area-page-for-packages-21": {
+      "id": "b-00-overview-area-page-for-packages-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Area page for "
+        },
+        {
+          "insert": "packages/protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": trace protocol types and event factories."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-20-kernel-20-kernel-0-22": {
+      "id": "b-00-overview-20-kernel-20-kernel-0-22",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Kernel Package",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/20-kernel",
+              "label": "Kernel Package"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-runtime-package-kernel-23": {
+      "id": "b-00-overview-runtime-package-kernel-23",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Runtime package: kernel instance, containers, registry, spawn pipeline, emitter, context, agent state, subagents, run context, doctor, transcript recovery."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-30-db-md-30-db-md-24": {
+      "id": "b-00-overview-30-db-md-30-db-md-24",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Database Package",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/30-db",
+              "label": "Database Package"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-area-page-for-packages-25": {
+      "id": "b-00-overview-area-page-for-packages-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Area page for "
+        },
+        {
+          "insert": "packages/db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": SQLite client, kernel manifest, and schema/query helpers."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-40-prompt-system-md-40-26": {
+      "id": "b-00-overview-40-prompt-system-md-40-26",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Prompt System",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/40-prompt-system",
+              "label": "Prompt System"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-structural-decisions-for-27": {
+      "id": "b-00-overview-structural-decisions-for-27",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Structural decisions for the prompt system's code layout across "
+        },
+        {
+          "insert": "packages/kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and agent bundles."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-50-read-api-md-50-read-28": {
+      "id": "b-00-overview-50-read-api-md-50-read-28",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Read API",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/50-read-api",
+              "label": "Read API"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-area-page-for-the-kernel-29": {
+      "id": "b-00-overview-area-page-for-the-kernel-29",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Area page for the kernel read API consumed by viewer-core."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-60-viewer-60-viewer-0-30": {
+      "id": "b-00-overview-60-viewer-60-viewer-0-30",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Viewer Packages",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/60-viewer",
+              "label": "Viewer Packages"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-the-viewer-packages-dto-31": {
+      "id": "b-00-overview-the-viewer-packages-dto-31",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The viewer packages: DTOs and transforms, the tree/card/detail surface, and the workspace shell."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-70-app-adapters-md-70-32": {
+      "id": "b-00-overview-70-app-adapters-md-70-32",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "App Adapters",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/70-app-adapters",
+              "label": "App Adapters"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-how-host-apps-such-as-sp-33": {
+      "id": "b-00-overview-how-host-apps-such-as-sp-33",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How host apps and harnesses (the simple-research example, "
+        },
+        {
+          "insert": "core-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "tui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") connect domain state to kernel packages."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-80-core-harness-h": {
+      "id": "b-00-overview-80-core-harness-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Core Harness Package",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/80-core-harness",
+              "label": "Core Harness Package"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-80-core-harness-p": {
+      "id": "b-00-overview-80-core-harness-p",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Area page for "
+        },
+        {
+          "insert": "packages/core-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": this repo's kernel boot, configuration sources, prompt-edit wiring, and HTTP server."
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-85-tui-h": {
+      "id": "b-00-overview-85-tui-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "TUI Package",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/85-tui",
+              "label": "TUI Package"
+            }
+          }
+        }
+      ],
+      "children": []
+    },
+    "b-00-overview-85-tui-p": {
+      "id": "b-00-overview-85-tui-p",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Area page for "
+        },
+        {
+          "insert": "packages/tui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": the pi extension's layered catalog, thin-spawn boot, tool policy, and session markers."
+        }
+      ],
+      "children": []
+    }
+  }
+}

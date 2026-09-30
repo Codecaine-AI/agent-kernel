@@ -4,7 +4,7 @@ The kernel's terminal harness: a pi extension that boots any agent bundle as
 an interactive pi session. A peer of the app harnesses (canvas-agent,
 prompt-kit-agent) — kernels do not require it.
 
-Model and rationale: [`docs/10-system-design/70-harness-model.md`](../../docs/10-system-design/70-harness-model.md).
+Model and rationale: [`docs/10-system-design/70-harness-model/`](../../docs/10-system-design/70-harness-model/).
 
 ## Setup
 
@@ -51,7 +51,7 @@ owning app harness; they are never evaluated here.
 ## Adding an agent
 
 Author a folder-form bundle (see
-[`docs/30-authoring/`](../../docs/30-authoring/00-overview.md)):
+[`docs/30-authoring/`](../../docs/30-authoring/)):
 
 - **Generic** (available everywhere): under this repo's `catalog/`. Declare
   `host: "any"` and keep every sidecar Node-portable.

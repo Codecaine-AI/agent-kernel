@@ -1,0 +1,275 @@
+{
+  "version": 1,
+  "id": "prompt-save",
+  "title": "Prompt save",
+  "participants": [
+    {
+      "id": "p1",
+      "name": "lab",
+      "kind": "participant",
+      "label": "Prompt lab"
+    },
+    {
+      "id": "p2",
+      "name": "mcp",
+      "kind": "participant",
+      "label": "Prompt MCP"
+    },
+    {
+      "id": "p3",
+      "name": "catalog",
+      "kind": "participant",
+      "label": "Catalog service"
+    },
+    {
+      "id": "p4",
+      "name": "store",
+      "kind": "participant",
+      "label": "Shared prompt store"
+    },
+    {
+      "id": "p5",
+      "name": "bundle",
+      "kind": "participant",
+      "label": "Bundle files"
+    },
+    {
+      "id": "p6",
+      "name": "registry",
+      "kind": "participant",
+      "label": "Agent registry"
+    },
+    {
+      "id": "p7",
+      "name": "revisions",
+      "kind": "participant",
+      "label": "prompt_revisions"
+    }
+  ],
+  "items": [
+    {
+      "kind": "message",
+      "id": "m1",
+      "from": "p1",
+      "to": "p3",
+      "line": "sync",
+      "text": "PUT /kernel/catalog/agents/:name/prompt { document, expectedHash }"
+    },
+    {
+      "kind": "message",
+      "id": "m2",
+      "from": "p3",
+      "to": "p4",
+      "line": "sync",
+      "text": "save(target, { document, expectedHash, validate })"
+    },
+    {
+      "kind": "note",
+      "id": "n1",
+      "anchor": "p4",
+      "side": "over",
+      "text": "per-file lock held until save returns"
+    },
+    {
+      "kind": "message",
+      "id": "m3",
+      "from": "p4",
+      "to": "p5",
+      "line": "sync",
+      "text": "read prompt.json and hash it"
+    },
+    {
+      "kind": "fragment",
+      "id": "f1",
+      "op": "alt",
+      "operands": [
+        {
+          "guard": "disk hash != expectedHash",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m4",
+              "from": "p4",
+              "to": "p3",
+              "line": "return",
+              "text": "conflict { currentHash }"
+            },
+            {
+              "kind": "message",
+              "id": "m5",
+              "from": "p3",
+              "to": "p1",
+              "line": "return",
+              "text": "409 { currentHash }"
+            }
+          ]
+        },
+        {
+          "items": [
+            {
+              "kind": "message",
+              "id": "m6",
+              "from": "p4",
+              "to": "p3",
+              "line": "sync",
+              "text": "validate: re-read manifest variables, render"
+            },
+            {
+              "kind": "message",
+              "id": "m7",
+              "from": "p3",
+              "to": "p4",
+              "line": "return",
+              "text": "ok + rendered body, or errors"
+            },
+            {
+              "kind": "fragment",
+              "id": "f2",
+              "op": "alt",
+              "operands": [
+                {
+                  "guard": "invalid",
+                  "items": [
+                    {
+                      "kind": "message",
+                      "id": "m8",
+                      "from": "p4",
+                      "to": "p3",
+                      "line": "return",
+                      "text": "validation_failed { errors }"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m9",
+                      "from": "p3",
+                      "to": "p1",
+                      "line": "return",
+                      "text": "400 { errors }"
+                    }
+                  ]
+                },
+                {
+                  "items": [
+                    {
+                      "kind": "message",
+                      "id": "m10",
+                      "from": "p4",
+                      "to": "p5",
+                      "line": "sync",
+                      "text": "write canonical prompt.json, then rendered markdown"
+                    },
+                    {
+                      "kind": "note",
+                      "id": "n2",
+                      "anchor": "p4",
+                      "side": "over",
+                      "text": "change journal records each phase"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m11",
+                      "from": "p4",
+                      "to": "p3",
+                      "line": "return",
+                      "text": "ok { hash }"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m12",
+                      "from": "p3",
+                      "to": "p6",
+                      "line": "sync",
+                      "text": "reloadAgentPrompt(name)"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m13",
+                      "from": "p3",
+                      "to": "p7",
+                      "line": "sync",
+                      "text": "upsert revision (source lab-save)"
+                    },
+                    {
+                      "kind": "fragment",
+                      "id": "f3",
+                      "op": "alt",
+                      "operands": [
+                        {
+                          "guard": "reload or upsert throws",
+                          "items": [
+                            {
+                              "kind": "message",
+                              "id": "m14",
+                              "from": "p3",
+                              "to": "p1",
+                              "line": "return",
+                              "text": "500 { committed: true, hash }"
+                            },
+                            {
+                              "kind": "note",
+                              "id": "n3",
+                              "anchor": "p3",
+                              "side": "over",
+                              "text": "revision retried on the next read or save of the agent"
+                            }
+                          ]
+                        },
+                        {
+                          "items": [
+                            {
+                              "kind": "message",
+                              "id": "m15",
+                              "from": "p3",
+                              "to": "p1",
+                              "line": "return",
+                              "text": "200 { hash }"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "fragment",
+      "id": "f4",
+      "op": "opt",
+      "operands": [
+        {
+          "guard": "edit through the Prompt MCP",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m16",
+              "from": "p2",
+              "to": "p4",
+              "line": "sync",
+              "text": "applyOps(target, expectedHash, ops)"
+            },
+            {
+              "kind": "note",
+              "id": "n4",
+              "anchor": "p4",
+              "side": "over",
+              "text": "same lock, CAS check, validation, and journal"
+            },
+            {
+              "kind": "note",
+              "id": "n5",
+              "anchor": "p3",
+              "side": "over",
+              "text": "next catalog read syncs from disk: revision source prompt-kit-mcp"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "style": {}
+}

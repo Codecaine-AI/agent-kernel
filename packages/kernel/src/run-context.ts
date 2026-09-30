@@ -3,7 +3,7 @@
  *
  * The kernel owns the scope shape and stamps envelope identity from it:
  * `containerId` is the primary grouping identity (see
- * docs/10-system-design/15-identity-model.md), `runId` links every event to
+ * docs/10-system-design/15-identity-model/), `runId` links every event to
  * the run that emitted it. Emit sites build TraceEventIds through
  * `currentTraceIds()` / `traceIdsOf()` — never by hand.
  */

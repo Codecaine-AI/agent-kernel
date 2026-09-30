@@ -1,0 +1,440 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-77463f9a3decc726e6d36d4468a506fa",
+  "title": "Editing and Revisions",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {
+        "concepts": [
+          "prompt-revisions",
+          "prompt-store",
+          "prompt-mcp",
+          "annotations",
+          "prompt-edit-session"
+        ],
+        "covers": "Prompt revisions, the shared prompt store, revision sources, annotations, prompt-edit sessions, and manifest field editing.",
+        "depends-on": [
+          "10-system-design/60-prompt-system-model/10-documents-and-bundles"
+        ]
+      },
+      "children": [
+        "b-20-ear-lead",
+        "b-20-ear-h-revisions",
+        "b-20-ear-every-prompt-state-is-co-33",
+        "b-20-ear-h-shared-store",
+        "b-20-ear-the-prompt-ui-reads-and-34",
+        "b-20-ear-prompt-save-seq",
+        "b-20-ear-h-revision-sources",
+        "b-20-ear-revision-sources-205",
+        "b-20-ear-h-annotations",
+        "b-20-ear-editor-35",
+        "b-20-ear-h-manifest-editing",
+        "b-20-ear-operational-manifest-fie-36"
+      ]
+    },
+    "b-20-ear-lead": {
+      "id": "b-20-ear-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Prompts change through one path whatever the writer: a shared store that serializes saves, records a content-addressed revision, and tags it with its source. This page covers revisions, the shared store, revision sources, annotations and prompt-edit sessions, and manifest field editing."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ear-h-revisions": {
+      "id": "b-20-ear-h-revisions",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Revisions"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ear-every-prompt-state-is-co-33": {
+      "id": "b-20-ear-every-prompt-state-is-co-33",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every prompt state is content-addressed. The canonical document is hashed ("
+        },
+        {
+          "insert": "\"pk1-\" + sha256(canonicalBytes)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and stored as a "
+        },
+        {
+          "insert": "prompt_revisions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " row with the document and rendered text. Agent sessions record the hash at creation time, the system prompt is frozen at Pi session creation, so revisions bind to sessions, not runs. Each agent bundle also commits a derived rendered-markdown snapshot, enforced by test, so PR diffs show the rendered contract."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ear-h-shared-store": {
+      "id": "b-20-ear-h-shared-store",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Shared Store"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ear-the-prompt-ui-reads-and-34": {
+      "id": "b-20-ear-the-prompt-ui-reads-and-34",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The prompt UI reads and writes "
+        },
+        {
+          "insert": "prompt.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " directly. There is no codegen back into TypeScript. Every writer goes through the shared prompt store, "
+        },
+        {
+          "insert": "createPromptStore",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from "
+        },
+        {
+          "insert": "@codecaine-ai/prompt-kit-server",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": the lab through "
+        },
+        {
+          "insert": "savePrompt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "packages/kernel/src/catalog-service.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the Prompt MCP directly. Both share one per-file lock, one change journal, and one compare-and-swap base."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ear-prompt-save-seq": {
+      "id": "b-20-ear-prompt-save-seq",
+      "type": "sequence",
+      "props": {
+        "src": "./assets/sequences/prompt-save.sequence.json",
+        "title": "Prompt save"
+      },
+      "children": []
+    },
+    "b-20-ear-h-revision-sources": {
+      "id": "b-20-ear-h-revision-sources",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Revision Sources"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ear-revision-sources-205": {
+      "id": "b-20-ear-revision-sources-205",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Each revision records its source: "
+        },
+        {
+          "insert": "registry-boot",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "lab-save",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "disk-sync",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "prompt-kit-mcp",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "migration",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or "
+        },
+        {
+          "insert": "agent-run",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "packages/db/src/schema/prompt-revisions.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). When the kernel finds a prompt changed on disk out of band, it records the new hash as "
+        },
+        {
+          "insert": "disk-sync",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". If the store's journal ("
+        },
+        {
+          "insert": "readLatestPromptChange",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") shows the Prompt MCP made the change, the source is "
+        },
+        {
+          "insert": "prompt-kit-mcp",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "agent-registry/register-prompt-revisions.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ")."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ear-h-annotations": {
+      "id": "b-20-ear-h-annotations",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Annotations and Prompt-Edit Sessions"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ear-editor-35": {
+      "id": "b-20-ear-editor-35",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The editor, "
+        },
+        {
+          "insert": "PromptInlineLab",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", is owned by prompt-kit and hosted in the agent viewer; prompt-kit's docs describe it at "
+        },
+        {
+          "insert": "docs/10-system-design/60-editor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Reviewers leave annotations on prompt nodes, stored in "
+        },
+        {
+          "insert": "annotations.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " at the bundle root ("
+        },
+        {
+          "insert": "agent-registry/annotation-sidecar.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). A prompt-edit session hands a set of annotations to the "
+        },
+        {
+          "insert": "prompt-editor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " agent, which turns them into staged proposals ("
+        },
+        {
+          "insert": "packages/kernel/src/prompt-edit-session/service.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "). Accepting or undoing a proposal saves a revision with source "
+        },
+        {
+          "insert": "agent-run",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Rejecting one discards it without a write."
+        }
+      ],
+      "children": []
+    },
+    "b-20-ear-h-manifest-editing": {
+      "id": "b-20-ear-h-manifest-editing",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Manifest Field Editing"
+        }
+      ],
+      "children": []
+    },
+    "b-20-ear-operational-manifest-fie-36": {
+      "id": "b-20-ear-operational-manifest-fie-36",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Operational manifest fields, currently "
+        },
+        {
+          "insert": "description",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "model",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", are editable from the agent viewer through a dev-gated "
+        },
+        {
+          "insert": "PUT /kernel/catalog/agents/:name/manifest",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", following the prompt-save pattern: schema-validated merge, canonical "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " rewrite, registry hot-reload so the next spawn uses the new values, old entry and file preserved on failure. This is field-level editing of operational configuration, not a general manifest editor: variables, tools, spawner declarations, and renames stay file-edited, and renames are rejected by hot-reload. Widening the editable set is a future decision, not a default."
+        }
+      ],
+      "children": []
+    }
+  }
+}

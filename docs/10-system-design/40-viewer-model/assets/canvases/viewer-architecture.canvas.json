@@ -1,0 +1,273 @@
+{
+  "schemaVersion": 1,
+  "id": "viewer-architecture",
+  "title": "Viewer architecture",
+  "mode": "diagram",
+  "annotations": [],
+  "objects": [
+    {
+      "id": "sec-server",
+      "type": "section",
+      "text": "Kernel host server",
+      "parentId": null,
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 600,
+        "height": 880
+      }
+    },
+    {
+      "id": "read-api",
+      "type": "rectangle",
+      "text": "Trace read API\ncreateKernelTraceReadApi",
+      "color": "gray",
+      "parentId": "sec-server",
+      "geometry": {
+        "x": 60,
+        "y": 120,
+        "width": 480,
+        "height": 130
+      }
+    },
+    {
+      "id": "catalog-api",
+      "type": "rectangle",
+      "text": "Catalog API\ncreateKernelCatalogApi",
+      "color": "gray",
+      "parentId": "sec-server",
+      "geometry": {
+        "x": 60,
+        "y": 700,
+        "width": 480,
+        "height": 130
+      }
+    },
+    {
+      "id": "sec-core",
+      "type": "section",
+      "text": "viewer-core",
+      "parentId": null,
+      "geometry": {
+        "x": 700,
+        "y": 0,
+        "width": 560,
+        "height": 300
+      }
+    },
+    {
+      "id": "trace-builder",
+      "type": "rectangle",
+      "text": "buildTraceSpans\nevents to TraceSpan tree",
+      "color": "blue",
+      "parentId": "sec-core",
+      "geometry": {
+        "x": 740,
+        "y": 120,
+        "width": 480,
+        "height": 130
+      }
+    },
+    {
+      "id": "sec-shell",
+      "type": "section",
+      "text": "viewer-shell",
+      "parentId": null,
+      "geometry": {
+        "x": 1360,
+        "y": 0,
+        "width": 560,
+        "height": 300
+      }
+    },
+    {
+      "id": "workspace",
+      "type": "rectangle",
+      "text": "KernelTraceWorkspace\nwraps KernelTraceViewer",
+      "color": "teal",
+      "parentId": "sec-shell",
+      "geometry": {
+        "x": 1400,
+        "y": 120,
+        "width": 480,
+        "height": 130
+      }
+    },
+    {
+      "id": "sec-ui",
+      "type": "section",
+      "text": "viewer-ui",
+      "parentId": null,
+      "geometry": {
+        "x": 700,
+        "y": 380,
+        "width": 1220,
+        "height": 500
+      }
+    },
+    {
+      "id": "tree-detail",
+      "type": "rectangle",
+      "text": "TreeView + SpanDetailPanel\nrenderer registry, DetailView blocks",
+      "color": "teal",
+      "parentId": "sec-ui",
+      "geometry": {
+        "x": 1400,
+        "y": 460,
+        "width": 480,
+        "height": 130
+      }
+    },
+    {
+      "id": "catalog-viewer",
+      "type": "rectangle",
+      "text": "AgentCatalogViewer\nagent list beside the prompt lab",
+      "color": "teal",
+      "parentId": "sec-ui",
+      "geometry": {
+        "x": 1400,
+        "y": 700,
+        "width": 480,
+        "height": 130
+      }
+    },
+    {
+      "id": "sec-prompt-kit",
+      "type": "section",
+      "text": "prompt-kit",
+      "parentId": null,
+      "geometry": {
+        "x": 2000,
+        "y": 620,
+        "width": 600,
+        "height": 260
+      }
+    },
+    {
+      "id": "prompt-lab",
+      "type": "rectangle",
+      "text": "PromptInlineLab\n@codecaine-ai/prompt-kit/ui/lab",
+      "color": "violet",
+      "parentId": "sec-prompt-kit",
+      "geometry": {
+        "x": 2060,
+        "y": 700,
+        "width": 480,
+        "height": 130
+      }
+    },
+    {
+      "id": "host",
+      "type": "rectangle",
+      "text": "Host app\nfetches traces, supplies seams",
+      "color": "orange",
+      "parentId": null,
+      "geometry": {
+        "x": 2060,
+        "y": 380,
+        "width": 480,
+        "height": 160
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "read-api-to-builder",
+      "from": {
+        "objectId": "read-api",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "trace-builder",
+        "anchor": "left"
+      },
+      "label": "container trace: events, pi_sessions, agent_runs",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "builder-to-workspace",
+      "from": {
+        "objectId": "trace-builder",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "workspace",
+        "anchor": "left"
+      },
+      "label": "TraceSpan[] as spans",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "workspace-to-tree-detail",
+      "from": {
+        "objectId": "workspace",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "tree-detail",
+        "anchor": "top"
+      },
+      "label": "renders tree + detail; KernelViewerPlugins",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "host-to-workspace",
+      "from": {
+        "objectId": "host",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "workspace",
+        "anchor": "right"
+      },
+      "label": "seams: detailBlockProvider, renderSpanDetail, usageData, listExtras, overlays, labels",
+      "style": "dashed",
+      "arrow": "forward"
+    },
+    {
+      "id": "catalog-api-to-viewer",
+      "from": {
+        "objectId": "catalog-api",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "catalog-viewer",
+        "anchor": "left"
+      },
+      "label": "registry, agent detail, prompt saves, edit sessions",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "catalog-viewer-to-lab",
+      "from": {
+        "objectId": "catalog-viewer",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "prompt-lab",
+        "anchor": "left"
+      },
+      "label": "selected agent's prompt document",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "host-to-catalog-viewer",
+      "from": {
+        "objectId": "host",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "catalog-viewer",
+        "anchor": "right"
+      },
+      "label": "seams: baseUrl, agents, toolsZone, configZone",
+      "style": "dashed",
+      "arrow": "forward"
+    }
+  ]
+}
