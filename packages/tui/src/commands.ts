@@ -24,6 +24,8 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { Container, Text } from "@earendil-works/pi-tui";
 
+import { AgentVariableError } from "@agent-kernel/kernel/spawn-pipeline/system-prompt-resolver";
+
 import { bootAgent, type BootedAgent } from "./boot";
 import {
 	listAgentsDetailed,
@@ -350,10 +352,18 @@ export function registerAgentCommands(pi: ExtensionAPI): void {
 			return;
 		}
 
-		const booted = await bootAgent(resolved.def, resolved.source, {
-			cwd: ctx.cwd,
-			fixtureId,
-		});
+		let booted: BootedAgent;
+		try {
+			booted = await bootAgent(resolved.def, resolved.source, {
+				cwd: ctx.cwd,
+				fixtureId,
+			});
+		} catch (err) {
+			// A missing required variable refuses the boot, as a kernel spawn would.
+			if (!(err instanceof AgentVariableError)) throw err;
+			ctx.ui.notify(`${name} (${resolved.source}) — ${err.message}`, "error");
+			return;
+		}
 		const tools = await bindBundleTools(pi, resolved.def);
 		active = booted;
 		activeName = booted.name;

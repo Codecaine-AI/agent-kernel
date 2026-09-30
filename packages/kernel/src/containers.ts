@@ -6,7 +6,7 @@
  * minted: the same (kernelId, kind, key) always yields the same container id,
  * so host apps never hash or persist their own grouping ids.
  *
- *   containerId = uuidv5(kernelNamespace(kernelId), `${kind}\n${key.join("\n")}`)
+ *   containerId = uuidv5(kernelNamespace(kernelId), JSON.stringify([kind, ...key]))
  *   kernelNamespace(kernelId) = uuidv5(AGENT_KERNEL_ROOT_NAMESPACE, kernelId)
  */
 

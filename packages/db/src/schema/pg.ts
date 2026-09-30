@@ -162,6 +162,7 @@ export const traceEvents = pgTable(
   (table) => [
     index("idx_events_container_ts").on(table.containerId, table.timestamp),
     index("idx_events_run").on(table.runId),
+    index("idx_events_pi_session").on(table.piSessionId),
   ],
 );
 

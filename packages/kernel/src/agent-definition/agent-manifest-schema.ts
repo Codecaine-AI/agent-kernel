@@ -95,6 +95,14 @@ export const agentManifestJsonSchema = {
 					optional: { type: "boolean" },
 					required: { type: "boolean" },
 				},
+				// `required: true` and `optional: true` contradict each other.
+				not: {
+					required: ["optional", "required"],
+					properties: {
+						optional: { const: true },
+						required: { const: true },
+					},
+				},
 			},
 		},
 		variants: {
@@ -301,6 +309,9 @@ function validateVariableDeclaration(
 	}
 	if (value.required !== undefined && typeof value.required !== "boolean") {
 		errors.push(`${path}.required: expected a boolean, got ${describe(value.required)}`);
+	}
+	if (value.required === true && value.optional === true) {
+		errors.push(`${path}: "required" and "optional" cannot both be true`);
 	}
 }
 

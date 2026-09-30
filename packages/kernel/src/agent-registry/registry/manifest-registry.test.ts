@@ -321,6 +321,49 @@ describe("manifest agent registry (agent.json)", () => {
 		}
 	});
 
+	test("boot fails when a variable is declared both required and optional", async () => {
+		const root = tempRoot();
+		try {
+			writeAgentDir(join(root, "manifest-agent"), {
+				manifest: {
+					...AGENT_MANIFEST,
+					variables: {
+						userPrompt: { required: true, optional: true },
+					},
+				},
+			});
+
+			await expectBootFailure(
+				root,
+				/manifest\.variables\.userPrompt: "required" and "optional" cannot both be true/,
+			);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	test("boot accepts a required variable and an optional variable side by side", async () => {
+		const root = tempRoot();
+		try {
+			writeAgentDir(join(root, "manifest-agent"), {
+				manifest: {
+					...AGENT_MANIFEST,
+					variables: {
+						userPrompt: { required: true, optional: false },
+						tone: { optional: true },
+					},
+				},
+			});
+
+			const registry = await buildRegistry({ roots: [root] });
+			const { variables } = registry.get("manifest-agent").manifest;
+			expect(variables.userPrompt?.required).toBe(true);
+			expect(variables.tone?.optional).toBe(true);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
 	test("boot fails when agent.json is not valid JSON", async () => {
 		const root = tempRoot();
 		try {

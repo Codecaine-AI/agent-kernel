@@ -7,7 +7,9 @@
  *   - ① variable substitution mirrors
  *     spawn-pipeline/system-prompt-resolver/resolve-system-prompt.ts, except
  *     an unresolved placeholder degrades to a warning (interactive session)
- *     instead of throwing.
+ *     instead of throwing. Variables resolve through the kernel's own
+ *     resolveVariables, so a `required: true` variable with no value and no
+ *     default throws AgentVariableError MISSING_REQUIRED_VARIABLES here too.
  *   - ③ mirrors catalog-service.ts buildStatePreview: fixture state (or
  *     module.seed) → module.render → normalizeRenderOutput, with the
  *     pseudo-XML pretty-print as the degradation path.
@@ -33,6 +35,9 @@ import {
 	createSpawnContext,
 	type SpawnContext,
 } from "@agent-kernel/kernel/context";
+// db-free: this barrel is resolve-variables + resolve-system-prompt, whose
+// other imports are type-only.
+import { resolveVariables } from "@agent-kernel/kernel/spawn-pipeline/system-prompt-resolver";
 import {
 	messageText,
 	normalizeRenderOutput,
@@ -93,18 +98,6 @@ function substitutePrompt(
 		);
 	}
 	return substituted.trim();
-}
-
-function resolveBootVariables(
-	def: AgentDefinition,
-	overrides: Record<string, unknown>,
-): Record<string, unknown> {
-	const variables: Record<string, unknown> = {};
-	for (const [name, declaration] of Object.entries(def.manifest.variables)) {
-		variables[name] = declaration.default;
-	}
-	Object.assign(variables, overrides);
-	return variables;
 }
 
 function bootSpawnContext(
@@ -217,7 +210,9 @@ export async function bootAgent(
 		}
 	}
 
-	const variables = resolveBootVariables(def, {
+	// Throws AgentVariableError when a required variable has no value — the
+	// same rule, and the same message, as a kernel spawn.
+	const variables = resolveVariables(def.manifest.variables, {
 		...fixture?.variables,
 		...opts.variables,
 	});

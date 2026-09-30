@@ -31,9 +31,9 @@ const agentDirs = readdirSync(CATALOG_DIR, { withFileTypes: true })
 describe("agent catalog prompt snapshots", () => {
 	test("catalog contains the three research agents", () => {
 		expect(agentDirs).toEqual([
+			"report-writer",
 			"research-coordinator",
 			"source-scout",
-			"synthesis-writer",
 		]);
 	});
 

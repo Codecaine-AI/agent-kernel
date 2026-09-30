@@ -191,7 +191,7 @@ describe("DocFigure", () => {
 			"workflow",
 		]) {
 			expect(markup).toContain(
-				`<span style="color:${EDITOR_COLORS.syntaxTag};font-weight:500">${tagName}</span>`,
+				`<span style="color:${EDITOR_COLORS.syntaxTag};font-weight:var(--prompt-editor-tag-weight, 500)">${tagName}</span>`,
 			);
 		}
 	});

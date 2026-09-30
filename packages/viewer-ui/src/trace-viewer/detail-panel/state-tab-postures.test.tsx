@@ -18,7 +18,6 @@
  */
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
@@ -26,6 +25,10 @@ import type { TraceSpan } from "@evilmartians/agent-prism-types";
 import { DetailShellFrame, shouldCloseDetailsOnEscape } from "./DetailShell";
 import { partitionZoneBlocks } from "./DetailStream";
 import { resolveEscapeLayer } from "./escape";
+import {
+	REVIEWED_EVENT_SQL,
+	hasCapturedRows,
+} from "./reviewed-capture.test-helper";
 import { buildSnapshotContextView } from "./renderers/TurnBody";
 import type {
 	RunTurnContextResponse,
@@ -47,7 +50,13 @@ const CONTAINER_ID = "f172afdc-b39e-5d9d-b62a-729f8e29b2af";
 const SESSION_ID = "019fa4f0-b02d-7f54-b007-5a4887e22543";
 const TURN_EVENT_ID = "89e7644e-4923-4c62-b9c6-6eb699d827d1";
 const API_BASE = "http://localhost:4319";
-const hasCapture = existsSync(TRACE_DB_PATH);
+/** The DB file alone is not the capture: the reviewed turn must be in it. */
+const hasCapture = hasCapturedRows(TRACE_DB_PATH, [
+	{
+		sql: REVIEWED_EVENT_SQL,
+		params: [TURN_EVENT_ID, CONTAINER_ID, SESSION_ID],
+	},
+]);
 
 // ─── Interaction contract (R2.2), asserted as pure rules ────────────────────
 

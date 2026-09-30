@@ -75,6 +75,37 @@ describe("bootAgent assembly", () => {
 		expect(booted.warnings.join("\n")).toContain('fixture "nope" not found');
 	});
 
+	test("required variable with no value or default refuses the boot, like a kernel spawn", async () => {
+		const cwd = cleanCwd();
+		const resolved = await resolveAgent("state-echo", cwd, {
+			genericRoot: fixturesCatalog,
+		});
+		const def = {
+			...resolved!.def,
+			manifest: {
+				...resolved!.def.manifest,
+				variables: {
+					topic: { required: true },
+					tone: { required: true, default: "plain" },
+				},
+			},
+		};
+
+		await expect(bootAgent(def, resolved!.source, { cwd })).rejects.toMatchObject({
+			name: "AgentVariableError",
+			code: "MISSING_REQUIRED_VARIABLES",
+			missing: ["topic"],
+			message: "Missing required variables: topic",
+		});
+
+		// A caller value satisfies it; a declared default already does.
+		const booted = await bootAgent(def, resolved!.source, {
+			cwd,
+			variables: { topic: "kernels" },
+		});
+		expect(booted.sections.prompt).toContain("state-echo agent");
+	});
+
 	test("research-coordinator: ① substituted + ② assembled from its own kernel.json", async () => {
 		// cwd inside the example resolves through its .agent-kernel/kernel.json.
 		const resolved = await resolveAgent("research-coordinator", exampleDir);

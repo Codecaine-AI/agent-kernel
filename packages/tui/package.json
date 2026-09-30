@@ -19,6 +19,8 @@
 		"@earendil-works/pi-tui": "^0.82.1"
 	},
 	"devDependencies": {
+		"@codecaine-ai/docs-cli": "workspace:*",
+		"@codecaine-ai/docs-model": "workspace:*",
 		"@types/bun": "latest"
 	}
 }

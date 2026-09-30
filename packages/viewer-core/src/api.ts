@@ -25,9 +25,10 @@ export const KERNEL_TRACE_READ_PATHS = {
 /**
  * Routes owned by the kernel catalog API (Phase 5): registry listing, agent
  * detail (manifest + prompt + validation), prompt writes, revision history,
- * and per-revision run stats. The write route (`PUT .../prompt`) is only
- * mounted when the kernel runs in dev mode; the paths are defined here so
- * browser hosts and the server agree on the URL shape.
+ * and per-revision run stats. The write route (`PUT .../prompt`) is always
+ * mounted and answers 403 unless the kernel allows catalog writes
+ * (`allowWrites`, i.e. dev mode); the paths are defined here so browser hosts
+ * and the server agree on the URL shape.
  */
 export const KERNEL_CATALOG_PATHS = {
 	listAgents: "/kernel/catalog/agents",

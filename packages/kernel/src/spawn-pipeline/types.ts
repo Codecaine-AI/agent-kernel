@@ -3,7 +3,12 @@ import type { RuntimeState } from "../context";
 export interface VariableDeclaration {
 	default?: unknown;
 	description?: string;
+	/** Documentation flag only: a variable is optional unless `required`. */
 	optional?: boolean;
+	/**
+	 * Enforced at spawn: with no caller value and no `default`, resolution
+	 * throws AgentVariableError("MISSING_REQUIRED_VARIABLES").
+	 */
 	required?: boolean;
 }
 

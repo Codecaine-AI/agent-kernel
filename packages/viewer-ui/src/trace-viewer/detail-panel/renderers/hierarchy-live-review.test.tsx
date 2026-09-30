@@ -5,13 +5,16 @@
  */
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 
 import { GROUP_ACCENT } from "../../icons";
 import { DetailShell } from "../DetailShell";
+import {
+	REVIEWED_EVENT_SQL,
+	hasCapturedRows,
+} from "../reviewed-capture.test-helper";
 import { SECTION_LABEL_CLASS, SUBORDINATE_SECTION_LABEL_CLASS } from "../section-label";
 import { buildSnapshotContextView } from "./TurnBody";
 import { ToolBody } from "./ToolBody";
@@ -39,6 +42,22 @@ const TURN_EVENT_ID = "89e7644e-4923-4c62-b9c6-6eb699d827d1";
 const TOOL_START_EVENT_ID = "805eba70-403d-17a1-fc55-81e5cd92e4df";
 const TOOL_END_EVENT_ID = "7ab7e394-6f31-9fee-2f91-9bcda22ea40d";
 const API_BASE = "http://localhost:4319";
+
+/** The DB file alone is not the capture: the reviewed events must be in it. */
+function hasReviewedEvents(...eventIds: string[]): boolean {
+	return hasCapturedRows(
+		TRACE_DB_PATH,
+		eventIds.map((eventId) => ({
+			sql: REVIEWED_EVENT_SQL,
+			params: [eventId, CONTAINER_ID, SESSION_ID],
+		})),
+	);
+}
+const hasReviewedTurn = hasReviewedEvents(TURN_EVENT_ID);
+const hasReviewedToolSpan = hasReviewedEvents(
+	TOOL_START_EVENT_ID,
+	TOOL_END_EVENT_ID,
+);
 
 interface EventRow {
 	event_id: string;
@@ -184,7 +203,7 @@ function detailBlockMarkup(markup: string, id: string): string {
 }
 
 describe("live-reviewed message hierarchy", () => {
-	test.skipIf(!existsSync(TRACE_DB_PATH))(
+	test.skipIf(!hasReviewedTurn)(
 		"SSR nests the real Turn 4 assistant and image-elided result as bounded messages",
 		() => {
 			const db = new Database(TRACE_DB_PATH, { readonly: true });
@@ -250,7 +269,7 @@ describe("live-reviewed message hierarchy", () => {
 		},
 	);
 
-	test.skipIf(!existsSync(TRACE_DB_PATH))(
+	test.skipIf(!hasReviewedToolSpan)(
 		"SSR keeps the real add_connection Call and Result captions at the top tier",
 		() => {
 			const db = new Database(TRACE_DB_PATH, { readonly: true });

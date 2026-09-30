@@ -5,12 +5,12 @@
  */
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { DetailShell } from "./DetailShell";
+import { hasCapturedRows } from "./reviewed-capture.test-helper";
 import { buildSnapshotContextView } from "./renderers/TurnBody";
 import type {
 	RunTurnContextResponse,
@@ -26,6 +26,18 @@ const REVIEWED_STATE_BLOB =
 	"b1-50962fcffffb649fd58df1cca0ae7fd72978e0bc15bbf81325c04178de658b10";
 const REVIEWED_PROMPT_BLOB =
 	"b1-fe6f8cc5ac213753a991e46f45e7ff2867078b7594f79de0b4578f02fa328201";
+
+/** The DB file alone is not the capture: the reviewed Turn must be in it. */
+const hasReviewedTurn = hasCapturedRows(TRACE_DB_PATH, [
+	{
+		sql: "select 1 from trace_events where type = ? and event_data like ? and event_data like ?",
+		params: [
+			"pi_request_snapshot",
+			`%${REVIEWED_STATE_BLOB}%`,
+			`%${REVIEWED_PROMPT_BLOB}%`,
+		],
+	},
+]);
 
 const SPAN: TraceSpan = {
 	id: "reviewed-turn",
@@ -117,7 +129,7 @@ function openingTag(markup: string, attribute: string, value = ""): string {
 }
 
 describe("reviewed Turn overflow chain", () => {
-	test.skipIf(!existsSync(TRACE_DB_PATH))(
+	test.skipIf(!hasReviewedTurn)(
 		"keeps the real 303-line prompt and 471-character state line reachable",
 		() => {
 			const context = reviewedTurn();

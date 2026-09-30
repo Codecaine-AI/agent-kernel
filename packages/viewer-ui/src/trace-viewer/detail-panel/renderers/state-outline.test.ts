@@ -7,9 +7,12 @@
  */
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
+import {
+	REVIEWED_EVENT_SQL,
+	hasCapturedRows,
+} from "../reviewed-capture.test-helper";
 import { parseStateOutline, sliceLines } from "./state-outline";
 
 const TRACE_DB_PATH = resolve(
@@ -58,7 +61,13 @@ export function realStatePayload(): string {
 	}
 }
 
-export const hasRealCapture: boolean = existsSync(TRACE_DB_PATH);
+/** The DB file alone is not the capture: the reviewed turn must be in it. */
+export const hasRealCapture: boolean = hasCapturedRows(TRACE_DB_PATH, [
+	{
+		sql: REVIEWED_EVENT_SQL,
+		params: [TURN_EVENT_ID, CONTAINER_ID, SESSION_ID],
+	},
+]);
 
 /**
  * The nine top-level fields and their line ranges, copied from the R2.1

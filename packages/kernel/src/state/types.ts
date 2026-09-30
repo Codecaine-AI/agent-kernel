@@ -128,7 +128,8 @@ export interface WindowPolicy {
 	imageTokens?: number;
 	/**
 	 * Newest-K image cap. Image blocks inside the window beyond the K newest
-	 * become one-line text stubs. `0` stubs every image; omit to keep all.
+	 * become one-line text stubs. Omitted defaults to 4; `0` stubs every image;
+	 * a negative value (or `null` from an untyped caller) keeps all.
 	 */
 	maxImages?: number;
 	/** Emit the "[turns 1–5 elided]" marker when history was cut. Default true. */
