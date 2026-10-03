@@ -241,7 +241,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Host correlation happens through containers, not through any app's own session identity. There is no separate app-session concept in the kernel, and nothing in the kernel may imply one host app's database structure. The container mechanics (kinds, keys, derived ids, linkage invariants) are design contracts in the "
+          "insert": "Host correlation occurs through containers, not through any app's own session identity. There is no separate app-session concept in the kernel, and nothing in the kernel may imply one host app's database structure. The container mechanics (kinds, keys, derived ids, linkage invariants) are design contracts in the "
         },
         {
           "insert": "Identity Model",
@@ -277,7 +277,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The kernel stays neutral; adapters are where specificity belongs. Everything a host app wires into the kernel (identity mapping, custom loaders, injected services, mounted APIs, viewer plugins) lives in an explicit adapter layer small enough to audit. The contract is the "
+          "insert": "The kernel stays neutral. Adapters are where specificity belongs. Everything a host app wires into the kernel (identity mapping, custom loaders, injected services, mounted APIs, viewer plugins) lives in an explicit adapter layer small enough to audit. The contract is the "
         },
         {
           "insert": "App Adapter Model",

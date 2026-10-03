@@ -272,7 +272,7 @@
           }
         },
         {
-          "insert": " is the typed generator and validator for these files. Code sidecars attach by filename convention; frontmatter and a separate "
+          "insert": " is the typed generator and validator for these files. Code sidecars attach by filename convention. Frontmatter and a separate "
         },
         {
           "insert": "config.ts",
@@ -728,7 +728,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Sections are omitted when they do not earn their token cost. The design principle is \"typed spine, flexible sections\": archetypes define the expected shape, common primitives handle repeated structure, and escape hatches allow custom XML sections when a prompt genuinely needs something unusual. Validation catches broken references and malformed sections; it does not force every prompt into the same maximum template."
+          "insert": "Sections are omitted when they do not earn their token cost. The design principle is \"typed spine, flexible sections\": archetypes define the expected shape, common primitives handle repeated structure, and escape hatches allow custom XML sections when a prompt genuinely needs something unusual. Validation catches broken references and malformed sections. It does not force every prompt into the same maximum template."
         }
       ],
       "children": []
@@ -934,7 +934,7 @@
           }
         },
         {
-          "insert": " the injected context, it may reference a context block by id/tag with usage rules, but it never redeclares the schema "
+          "insert": " the injected context. The prompt may reference a context block by id/tag with usage rules, but it never redeclares the schema "
         },
         {
           "insert": "context.ts",
@@ -995,7 +995,7 @@
       },
       "text": [
         {
-          "insert": "Context is structured-first with a raw-string escape hatch: typed helper builders sit on top of generic loader declarations, and the kernel operates on the generic form."
+          "insert": "Context is structured-first with a raw-string escape hatch. Typed helper builders sit on top of generic loader declarations, and the kernel operates on the generic form."
         }
       ],
       "children": []
@@ -1359,7 +1359,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Spawning is granted per tool, not per agent; there is no manifest-level "
+          "insert": "Spawning is granted per tool, not per agent. There is no manifest-level "
         },
         {
           "insert": "canSpawnSubagent",
@@ -1386,7 +1386,7 @@
           }
         },
         {
-          "insert": "; the kernel injects a scoped "
+          "insert": ". The kernel injects a scoped "
         },
         {
           "insert": "dispatch",
@@ -1424,7 +1424,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Agent platforms default to \"everything can spawn general subagents\"; this kernel does not. A permission boolean says an agent may spawn, but not what, through which tool, or with what identity plumbing. Spawner declarations are harvested at registry boot, every non-"
+          "insert": "Agent platforms default to \"everything can spawn general subagents\". This kernel does not. A permission boolean says an agent may spawn, but not what, through which tool, or with what identity plumbing. Spawner declarations are harvested at registry boot. Every non-"
         },
         {
           "insert": "\"*\"",
@@ -1433,7 +1433,7 @@
           }
         },
         {
-          "insert": " target must exist in the catalog or boot fails, and the harvested map rides on the runtime config. A deliberately general spawner remains possible via "
+          "insert": " target must exist in the catalog or boot fails. The harvested map rides on the runtime config. A deliberately general spawner remains possible via "
         },
         {
           "insert": "spawns: [\"*\"]",
@@ -1513,7 +1513,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Run invocations casually override only the dynamic inputs. Prompt structure, tool access, variable schema, context shape, spawn declarations, model, thinking level, max turns, and background behavior are configuration and cost/control semantics, differing values are an explicit variant or an administrative override, not ordinary run input."
+          "insert": "Run invocations casually override only the dynamic inputs. Prompt structure, tool access, variable schema, context shape, spawn declarations, model, thinking level, max turns, and background behavior are configuration and cost/control semantics. Differing values are an explicit variant or an administrative override, not ordinary run input."
         }
       ],
       "children": []

@@ -207,7 +207,7 @@
           }
         },
         {
-          "insert": "); everything else is data."
+          "insert": "). Everything else is data."
         }
       ],
       "children": []
@@ -676,7 +676,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The manifest is pure data. There is no code entry point and no Markdown/frontmatter path; the manifest file itself is the registry entry, JSON-Schema validated. Spawning is granted per tool, not by a manifest flag (D77)."
+          "insert": "The manifest is pure data. There is no code entry point and no Markdown/frontmatter path. The manifest file itself is the registry entry, JSON-Schema validated. Spawning is granted per tool, not by a manifest flag (D77)."
         }
       ],
       "children": []
@@ -771,7 +771,7 @@
           }
         },
         {
-          "insert": "; an unlisted root still participates in validation, prompt-revision registration, direct detail lookup, prompt editing, and spawn-by-name. It is omitted only from browse-oriented agent lists, because the flag controls discovery, not authorization."
+          "insert": ". An unlisted root still participates in validation, prompt-revision registration, direct detail lookup, prompt editing, and spawn-by-name. It is omitted only from browse-oriented agent lists, because the flag controls discovery, not authorization."
         }
       ],
       "children": []
@@ -1647,7 +1647,7 @@
           }
         },
         {
-          "insert": " config slot; declarations beyond "
+          "insert": " config slot. Declarations beyond "
         },
         {
           "insert": "kind",
@@ -1774,7 +1774,7 @@
           }
         },
         {
-          "insert": " custom message into the transcript, guarded by agent name so reusing a Pi session cannot duplicate context blocks."
+          "insert": " custom message into the transcript. The injection is guarded by agent name so reusing a Pi session cannot duplicate context blocks."
         }
       ],
       "children": []
@@ -1928,7 +1928,7 @@
           }
         },
         {
-          "insert": " is the typed identity helper). The kernel owns when each function runs; the agent owns what it means. A module may also set "
+          "insert": " is the typed identity helper). The kernel owns when each function runs. The agent owns what it means. A module may also set "
         },
         {
           "insert": "window",
@@ -2065,7 +2065,7 @@
           }
         },
         {
-          "insert": " is the agent's own type; the kernel never inspects it. It must be JSON-serializable because it snapshots to "
+          "insert": " is the agent's own type. The kernel never inspects it. It must be JSON-serializable because it snapshots to "
         },
         {
           "insert": "state.json",
@@ -2789,7 +2789,7 @@
           }
         },
         {
-          "insert": " (everything after). Empty sections are omitted, sections are emitted in order and never overlap, and section ① never appears in the list because the system prompt is Pi's, captured separately by the snapshot recorder. A built request's section ranges stamp straight onto its request snapshot ("
+          "insert": " (everything after). Empty sections are omitted, and sections are emitted in order and never overlap. Section ① never appears in the list because the system prompt is Pi's, captured separately by the snapshot recorder. A built request's section ranges stamp straight onto its request snapshot ("
         },
         {
           "insert": "Observability Model",
@@ -2843,7 +2843,7 @@
           }
         },
         {
-          "insert": ": a spawn whose state extension is active always snapshots; spawn options ("
+          "insert": ": a spawn whose state extension is active always snapshots. Spawn options ("
         },
         {
           "insert": "stateRoot",
@@ -3096,7 +3096,7 @@
           }
         },
         {
-          "insert": " for a held message; queued emissions wait for the run's trace identity and flush with it."
+          "insert": " for a held message. Queued emissions wait for the run's trace identity and flush with it."
         }
       ],
       "children": []

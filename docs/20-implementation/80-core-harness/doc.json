@@ -672,7 +672,7 @@
           }
         },
         {
-          "insert": " The repo owns the manifest as its own authoring surface. The app harnesses write theirs at boot; a boot here that did the same would replace the repo's authored roots and paths with computed ones."
+          "insert": " The repo owns the manifest as its own authoring surface. The app harnesses write theirs at boot. A boot here that did the same would replace the repo's authored roots and paths with computed ones."
         }
       ],
       "children": []
@@ -799,7 +799,7 @@
           }
         },
         {
-          "insert": " A standalone checkout without the sibling prompt-kit repo must still boot; only prompt-edit sessions lose their agent. The unlisted flag keeps the shared bundle spawnable without adding it to this kernel's catalog listing, the same shape as canvas-agent's "
+          "insert": " A standalone checkout without the sibling prompt-kit repo must still boot. Only prompt-edit sessions lose their agent. The unlisted flag keeps the shared bundle spawnable without adding it to this kernel's catalog listing, the same shape as canvas-agent's "
         },
         {
           "insert": "KERNEL_CATALOG_ROOTS",
@@ -1362,7 +1362,7 @@
           }
         },
         {
-          "insert": " spawn it shifts one queued launch off a module-level array and returns that launch's tools; every other agent gets none."
+          "insert": " spawn it shifts one queued launch off a module-level array and returns that launch's tools. Every other agent gets none."
         }
       ],
       "children": []
@@ -1379,7 +1379,7 @@
           }
         },
         {
-          "insert": " The session service owns the edit queue and staged proposals; the kernel owns spawning. The FIFO bridges a launch's per-session tools to the per-spawn hook, the same seam as the prompt-kit and canvas harnesses. It pairs launches with spawns by order alone, so it holds only while launches are serialized. A multi-user host replaces it with keyed binding."
+          "insert": " The session service owns the edit queue and staged proposals. The kernel owns spawning. The FIFO bridges a launch's per-session tools to the per-spawn hook, the same seam as the prompt-kit and canvas harnesses. It pairs launches with spawns by order alone, so it holds only while launches are serialized. A multi-user host replaces it with keyed binding."
         }
       ],
       "children": []

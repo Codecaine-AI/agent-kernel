@@ -178,7 +178,7 @@
           }
         },
         {
-          "insert": ". Events still pending at the end of a file never saw a binding marker; the run drops them and adds a warning."
+          "insert": ". Events still pending at the end of a file never saw a binding marker. The run drops them and adds a warning."
         }
       ],
       "children": []
@@ -371,7 +371,7 @@
           }
         },
         {
-          "insert": " The backfill mapper is a kernel module, co-located with the in-process emitter it must stay in parity with; both derive ids and usage through "
+          "insert": " The backfill mapper is a kernel module, co-located with the in-process emitter it must stay in parity with. Both derive ids and usage through "
         },
         {
           "insert": "@agent-kernel/protocol",
@@ -380,7 +380,7 @@
           }
         },
         {
-          "insert": ", and the emitter's id-parity test imports "
+          "insert": ". The emitter's id-parity test imports "
         },
         {
           "insert": "EventMapper",
@@ -450,7 +450,7 @@
           }
         },
         {
-          "insert": ": any change to either path's id derivation or event mapping must keep the parity test passing, and new emission paths join the same package under the same guard."
+          "insert": ": any change to either path's id derivation or event mapping must keep the parity test passing. New emission paths join the same package under the same guard."
         }
       ],
       "children": []
@@ -553,7 +553,7 @@
           }
         },
         {
-          "insert": " The primary trace path is the in-process emitter; a watcher daemon duplicated it badly and needed its own lifecycle. A tool that reads the durable JSONL on demand covers disaster rebuild and import without a second always-on writer."
+          "insert": " The primary trace path is the in-process emitter. A watcher daemon duplicated it badly and needed its own lifecycle. A tool that reads the durable JSONL on demand covers disaster rebuild and import without a second always-on writer."
         }
       ],
       "children": []

@@ -218,7 +218,7 @@
           }
         },
         {
-          "insert": " turns one container's trace into the span tree. Relationships the emitter stamped explicitly are never re-derived from timestamps; time windows are only the fallback for events that carry no identity."
+          "insert": " turns one container's trace into the span tree. Relationships the emitter stamped explicitly are never re-derived from timestamps. Time windows are only the fallback for events that carry no identity."
         }
       ],
       "children": []
@@ -395,7 +395,16 @@
           }
         },
         {
-          "insert": ": a card frame with an integrated icon cap whose divider is part of the frame. The cap is connected to the card, never floating."
+          "insert": ". A "
+        },
+        {
+          "insert": "TraceCard",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": " is a card frame with an integrated icon cap whose divider is part of the frame. The cap is connected to the card, never floating."
         }
       ],
       "children": []
@@ -825,7 +834,7 @@
           }
         },
         {
-          "insert": ", the same 24px step the content indent derives from, so line positions and content offsets come from one formula. A stretching cell would drift lines off-grid on rows whose toggle slot is empty; that bug class is pinned by test."
+          "insert": ", the same 24px step the content indent derives from, so line positions and content offsets come from one formula. A stretching cell would drift lines off-grid on rows whose toggle slot is empty. That bug class is pinned by test."
         }
       ],
       "children": []
@@ -884,7 +893,7 @@
           }
         },
         {
-          "insert": ": nothing content-bearing wears a gear. Lifecycle spans get finer glyphs from their label; error and warning status override everything for scannability."
+          "insert": ": nothing content-bearing wears a gear. Lifecycle spans get finer glyphs from their label. Error and warning status override everything for scannability."
         }
       ],
       "children": []
@@ -1016,7 +1025,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The detail panel renders one selected span. Every event type gets the same structure: a fixed header over a body composed only from a standard block vocabulary, and per-type renderers can only choose and fill blocks."
+          "insert": "The detail panel renders one selected span. Every event type gets the same structure: a fixed header over a body composed only from a standard block vocabulary. Per-type renderers can only choose and fill blocks."
         }
       ],
       "children": []
@@ -1068,7 +1077,7 @@
           }
         },
         {
-          "insert": " on the shared panel-header surface. Geometry is identical for every type; the tint and glyph match the tree row for the same span, resolved through the same icon resolver rather than duplicated hues. Event type and duration live in Details, not the header. The header does not move when Details opens: only the control swaps for an accessible close button."
+          "insert": " on the shared panel-header surface. Geometry is identical for every type. The tint and glyph match the tree row for the same span, resolved through the same icon resolver rather than duplicated hues. Event type and duration live in Details, not the header. The header does not move when Details opens. Only the control swaps for an accessible close button."
         }
       ],
       "children": []
@@ -1148,7 +1157,7 @@
           }
         },
         {
-          "insert": ": it returns "
+          "insert": ". A per-type renderer returns "
         },
         {
           "insert": "data, not JSX",
@@ -1840,7 +1849,7 @@
           }
         },
         {
-          "insert": " plus a fade, so SSR markup, search, and copy retain the full source."
+          "insert": " plus a fade, so SSR markup, search, and copy keep the full source."
         }
       ],
       "children": []
@@ -1962,7 +1971,7 @@
           }
         },
         {
-          "insert": ": the document a surface exists to show is never a clamped preview. State, Context, and System prompt render in full inside a window that scrolls in place. The Turn body stamps the policy onto every tab's source figures, so a new tab renderer inherits it without knowing it exists; blocks that declare their own clamp, and non-source "
+          "insert": ": the document a surface exists to show is never a clamped preview. State, Context, and System prompt render in full inside a window that scrolls in place. The Turn body stamps the policy onto every tab's source figures, so a new tab renderer inherits it without knowing it exists. Blocks that declare their own clamp, and non-source "
         },
         {
           "insert": "node",
@@ -2004,7 +2013,7 @@
           }
         },
         {
-          "insert": ", with State first and therefore the default. Tabs are one segmented control; slot order is enforced separately inside each tab. Tab labels carry no counts."
+          "insert": ", with State first and therefore the default. Tabs are one segmented control. Slot order is enforced separately inside each tab. Tab labels carry no counts."
         }
       ],
       "children": []
@@ -2191,7 +2200,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Root identity (the snapshot's version/turn/board line) is promoted as a readable line; the board digest is a first-class affordance; lints are scannable: lead with counts, one row per warning."
+          "insert": "Root identity (the snapshot's version/turn/board line) is promoted as a readable line. The board digest is a first-class affordance. Lints are scannable: lead with counts, one row per warning."
         }
       ],
       "children": []
@@ -2466,7 +2475,7 @@
           }
         },
         {
-          "insert": " (nine always-expanded blocks): too heavy; the continuous figure won."
+          "insert": " (nine always-expanded blocks): too heavy. The continuous figure won."
         }
       ],
       "children": []
@@ -2485,7 +2494,7 @@
           }
         },
         {
-          "insert": "; "
+          "insert": ", "
         },
         {
           "insert": "the bottom Details drawer",
@@ -2494,7 +2503,7 @@
           }
         },
         {
-          "insert": "; "
+          "insert": ", "
         },
         {
           "insert": "wrap-on-by-default",
@@ -2503,7 +2512,7 @@
           }
         },
         {
-          "insert": "; "
+          "insert": ", "
         },
         {
           "insert": "expand-in-place",
@@ -2558,7 +2567,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The prompt editor is prompt-kit's PromptInlineLab. prompt-kit owns its views, glass panel, editing surface, and interaction contract; they are documented in the prompt-kit repo's Prompt Editor docs (docs/10-system-design/60-editor), and this page covers only how the kernel hosts the lab."
+          "insert": "The prompt editor is prompt-kit's PromptInlineLab. prompt-kit owns its views, glass panel, editing surface, and interaction contract. The views, glass panel, editing surface, and interaction contract are documented in the prompt-kit repo's Prompt Editor docs (docs/10-system-design/60-editor). This page covers only how the kernel hosts the lab."
         }
       ],
       "children": []
@@ -2651,7 +2660,7 @@
           }
         },
         {
-          "insert": " is a tree + detail split with a draggable divider bounded to sane limits; reading happens on the detail side, so it gets the majority by default. The tree toolbar and the detail header share one "
+          "insert": " is a tree + detail split with a draggable divider bounded to sane limits. Reading occurs on the detail side, so it gets the majority by default. The tree toolbar and the detail header share one "
         },
         {
           "insert": "h-12",
@@ -2680,7 +2689,7 @@
           }
         },
         {
-          "insert": " ships two palettes driving the same semantic tokens: light (the doc-paper look, the default) and dark, with the warning and destructive tokens marked "
+          "insert": " ships two palettes driving the same semantic tokens: light (the doc-paper look, the default) and dark. The warning and destructive tokens are marked "
         },
         {
           "insert": "reserved · diagnostics",
@@ -2713,7 +2722,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Apps extend the viewer through these seams, not by forking the kernel viewer packages. Every seam is optional; a host that sets none gets the standard viewer."
+          "insert": "Apps extend the viewer through these seams, not by forking the kernel viewer packages. Every seam is optional. A host that sets none gets the standard viewer."
         }
       ],
       "children": []

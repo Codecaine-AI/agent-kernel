@@ -512,7 +512,7 @@
           }
         },
         {
-          "insert": "; use "
+          "insert": ". Use "
         },
         {
           "insert": "[\"*\"]",
@@ -675,7 +675,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Do not create a tools section in the agent prompt. Put standing guidance about when or how to use tools in context section ②; keep tool names, descriptions, parameter schemas, and executable handlers in the tool layer. For prompt design, see the prompt-kit repo, "
+          "insert": "Do not create a tools section in the agent prompt. Put standing guidance about when or how to use tools in context section ②. Keep tool names, descriptions, parameter schemas, and executable handlers in the tool layer. For prompt design, see the prompt-kit repo, "
         },
         {
           "insert": "docs/30-prompt-structure/",
@@ -785,7 +785,7 @@
           }
         },
         {
-          "insert": "; execution checks for what it needs."
+          "insert": ". Execution checks for what it needs."
         }
       ],
       "children": []

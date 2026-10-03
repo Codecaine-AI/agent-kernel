@@ -85,7 +85,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The kernel observability model answers a simple question: what work ran, where did it belong, who spawned it, what did it cost, and what happened inside it?"
+          "insert": "The kernel observability model answers a simple question: what work ran, where did it belong, who spawned it, what did it cost, and what occurred inside it?"
         }
       ],
       "children": []
@@ -954,7 +954,7 @@
           }
         },
         {
-          "insert": " on disk; "
+          "insert": " on disk. "
         },
         {
           "insert": "stateRoot",
@@ -998,7 +998,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Identity is container-first; see "
+          "insert": "Identity is container-first. See "
         },
         {
           "insert": "Identity Model",
@@ -1036,7 +1036,7 @@
           }
         },
         {
-          "insert": ", and host correlation happens through container kind + app key. "
+          "insert": ", and host correlation occurs through container kind + app key. "
         },
         {
           "insert": "kernel.container({ kind, key })",
@@ -1079,7 +1079,7 @@
           }
         },
         {
-          "insert": " links events to the Pi session row. Live emission resolves it directly; backfill resolves the JSONL transport session id at write time."
+          "insert": " links events to the Pi session row. Live emission resolves it directly. Backfill resolves the JSONL transport session id at write time."
         }
       ],
       "children": []
@@ -1636,7 +1636,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Kernel-side and app-side events flow through the same trace writer. The viewer treats everything as one trace stream; source is used for display and debugging, not for splitting the mental model."
+          "insert": "Kernel-side and app-side events flow through the same trace writer. The viewer treats everything as one trace stream. Source is used for display and debugging, not for splitting the mental model."
         }
       ],
       "children": []
@@ -1996,7 +1996,7 @@
           }
         },
         {
-          "insert": " means untagged: transcript-captured turns and every snapshot written before section tags existed. Readers render an untagged request flat, and the whole downstream chain follows that rule, the viewer included ("
+          "insert": " means untagged: transcript-captured turns and every snapshot written before section tags existed. Readers render an untagged request flat. The whole downstream chain follows that rule, the viewer included ("
         },
         {
           "insert": "Viewer Model",

@@ -1762,7 +1762,7 @@
           }
         },
         {
-          "insert": "; "
+          "insert": ". "
         },
         {
           "insert": "AgentPromptLabContainer",
@@ -1780,7 +1780,7 @@
           }
         },
         {
-          "insert": " when set; otherwise "
+          "insert": " when set. Otherwise "
         },
         {
           "insert": "render-tools.ts",

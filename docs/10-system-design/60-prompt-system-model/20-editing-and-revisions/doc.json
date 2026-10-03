@@ -317,7 +317,7 @@
           }
         },
         {
-          "insert": ", is owned by prompt-kit and hosted in the agent viewer; prompt-kit's docs describe it at "
+          "insert": ", is owned by prompt-kit and hosted in the agent viewer. prompt-kit's docs describe it at "
         },
         {
           "insert": "docs/10-system-design/60-editor",
@@ -431,7 +431,7 @@
           }
         },
         {
-          "insert": " rewrite, registry hot-reload so the next spawn uses the new values, old entry and file preserved on failure. This is field-level editing of operational configuration, not a general manifest editor: variables, tools, spawner declarations, and renames stay file-edited, and renames are rejected by hot-reload. Widening the editable set is a future decision, not a default."
+          "insert": " rewrite, registry hot-reload so the next spawn uses the new values, old entry and file preserved on failure. This is field-level editing of operational configuration, not a general manifest editor. Variables, tools, spawner declarations, and renames stay file-edited, and renames are rejected by hot-reload. Widening the editable set is a future decision, not a default."
         }
       ],
       "children": []

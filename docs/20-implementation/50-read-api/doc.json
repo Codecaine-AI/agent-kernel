@@ -235,7 +235,7 @@
           }
         },
         {
-          "insert": ": it mounts both factories with writes enabled and passes a prompt-edit session service."
+          "insert": ". The reference mount mounts both factories with writes enabled and passes a prompt-edit session service."
         }
       ],
       "children": []
@@ -1323,7 +1323,7 @@
           }
         },
         {
-          "insert": " for a cross-kernel observer plane; no server implements it yet."
+          "insert": " for a cross-kernel observer plane. No server implements it yet."
         }
       ],
       "children": []

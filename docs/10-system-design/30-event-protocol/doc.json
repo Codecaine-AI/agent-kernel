@@ -2400,7 +2400,7 @@
           }
         },
         {
-          "insert": " required; "
+          "insert": " required, "
         },
         {
           "insert": "runId",

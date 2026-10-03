@@ -75,7 +75,7 @@
           }
         },
         {
-          "insert": " holds the sequence; each subfolder owns one stage of it. "
+          "insert": " holds the sequence. Each subfolder owns one stage of it. "
         },
         {
           "insert": "createKernel",
@@ -379,10 +379,7 @@
           }
         },
         {
-          "insert": " "
-        },
-        {
-          "insert": "The trace observes the run; it is not a dependency of it. A throwing sink would turn a finished run into an error, or skip the status writes that close it."
+          "insert": " The trace observes the run. The trace is not a dependency of it. A throwing sink would turn a finished run into an error, or skip the status writes that close it."
         }
       ],
       "children": []
@@ -563,10 +560,7 @@
           }
         },
         {
-          "insert": " "
-        },
-        {
-          "insert": "Tools arrive from several factories: shared tools, private tools, the domain guard, and the state extension. Only the finished roster shows all of them, so one filter there covers every source. The subagent tool ban is D77; see "
+          "insert": " Tools arrive from several factories: shared tools, private tools, the domain guard, and the state extension. Only the finished roster shows all of them, so one filter there covers every source. The subagent tool ban is D77 (see "
         },
         {
           "insert": "Subagents",
@@ -579,7 +573,7 @@
           }
         },
         {
-          "insert": "."
+          "insert": ")."
         }
       ],
       "children": []

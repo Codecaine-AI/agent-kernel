@@ -51,7 +51,7 @@
           }
         },
         {
-          "insert": " is a generic authoring and rendering layer; the kernel owns the runtime-facing agent model and depends on prompt-kit, never the reverse."
+          "insert": " is a generic authoring and rendering layer. The kernel owns the runtime-facing agent model and depends on prompt-kit, never the reverse."
         }
       ],
       "children": []
@@ -62,7 +62,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Decisions D1–D80 from the earlier design interviews are folded into the prose of the child docs; their numbering is retained where later entries cite them. D81–D99 stay a decision record with rationale."
+          "insert": "Decisions D1–D80 from the earlier design interviews are folded into the prose of the child docs. The decisions' numbering is kept where later entries cite them. D81–D99 stay a decision record with rationale."
         }
       ],
       "children": []

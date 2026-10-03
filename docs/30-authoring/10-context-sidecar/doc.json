@@ -109,7 +109,7 @@
           }
         },
         {
-          "insert": ". Both forms are permanent; choose the folder form when loader declarations or render helpers need separate files. If both forms exist, the registry uses "
+          "insert": ". Both forms are permanent. Choose the folder form when loader declarations or render helpers need separate files. If both forms exist, the registry uses "
         },
         {
           "insert": "context.ts",
@@ -858,7 +858,7 @@
       },
       "text": [
         {
-          "insert": "Section ② contains standing reference only; live work renders from section ③."
+          "insert": "Section ② contains standing reference only. Live work renders from section ③."
         }
       ],
       "children": []

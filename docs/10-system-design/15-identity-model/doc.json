@@ -523,7 +523,7 @@
       "props": {},
       "text": [
         {
-          "insert": "A run is one processing loop: a message goes in, the agent works, a response\ncomes out. A session holds many runs. The system prompt is frozen when the\nsession is created, so "
+          "insert": "A run is one processing loop: a message goes in, the agent works, a response comes out. A session holds many runs. The system prompt is frozen when the session is created, so "
         },
         {
           "insert": "promptHash",
@@ -532,7 +532,7 @@
           }
         },
         {
-          "insert": " lives on the session; every run inherits\nit."
+          "insert": " lives on the session. Every run inherits it."
         }
       ],
       "children": []

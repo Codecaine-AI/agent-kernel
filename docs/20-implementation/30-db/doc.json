@@ -245,7 +245,7 @@
           }
         },
         {
-          "insert": " adds each turn's usage to the run row; "
+          "insert": " adds each turn's usage to the run row. "
         },
         {
           "insert": "incrementSessionUsage",

@@ -449,7 +449,7 @@
           }
         },
         {
-          "insert": ": Reading happens on the detail side, so it gets the majority by default; an even split, the rejected default, starves the surface the panel exists to serve.\n"
+          "insert": ": Reading occurs on the detail side, so it gets the majority by default; an even split, the rejected default, starves the surface the panel exists to serve.\n"
         },
         {
           "insert": "Applies to",

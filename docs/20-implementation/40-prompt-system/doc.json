@@ -256,7 +256,7 @@
           }
         },
         {
-          "insert": " inside\nthis repo. That coupled a generic, reusable prompt standard to kernel\nreleases and kernel tooling; the peer repo lets other harnesses consume it\nwithout pulling the kernel workspace. The dependency direction is the design\ninvariant either way: kernel → prompt-kit, never the reverse."
+          "insert": " inside this repo. That coupled a generic, reusable prompt standard to kernel releases and kernel tooling. The peer repo lets other harnesses consume it without pulling the kernel workspace. The dependency direction is the design invariant either way: kernel → prompt-kit, never the reverse."
         }
       ],
       "children": []
@@ -537,7 +537,7 @@
           }
         },
         {
-          "insert": " The rejected alternative was pointing at section files from\n"
+          "insert": " The rejected alternative was pointing at section files from "
         },
         {
           "insert": "agent.json",
@@ -546,7 +546,7 @@
           }
         },
         {
-          "insert": ". Path fields would make the manifest a build config instead of\ndata, and every migration would need a manifest edit; the convention keeps\nmanifests schema-validated data and makes re-export shims safe mid-move."
+          "insert": ". Path fields would make the manifest a build config instead of data, and every migration would need a manifest edit. The convention keeps manifests schema-validated data and makes re-export shims safe mid-move."
         }
       ],
       "children": []
@@ -617,7 +617,7 @@
           }
         },
         {
-          "insert": " owns the\n"
+          "insert": " owns the "
         },
         {
           "insert": "agent-kernel/agent-v1",
@@ -635,7 +635,7 @@
           }
         },
         {
-          "insert": "), the\n"
+          "insert": "), the "
         },
         {
           "insert": "defineAgent",
@@ -653,7 +653,7 @@
           }
         },
         {
-          "insert": ". The registry\nvalidates every "
+          "insert": ". The registry validates every "
         },
         {
           "insert": "agent.json",
@@ -662,7 +662,7 @@
           }
         },
         {
-          "insert": " against this one schema; no other module\ndefines manifest fields."
+          "insert": " against this one schema. No other module defines manifest fields."
         }
       ],
       "children": []
@@ -744,7 +744,7 @@
           }
         },
         {
-          "insert": " Everything the state model ships (the extension, the\nthree-section builder, window policies, the context set, the snapshot store,\nand the kernel-side message helpers) lives in "
+          "insert": " Everything the state model ships (the extension, the three-section builder, window policies, the context set, the snapshot store, and the kernel-side message helpers) lives in "
         },
         {
           "insert": "packages/kernel/src/state/",
@@ -753,7 +753,7 @@
           }
         },
         {
-          "insert": ".\nRegistration is gated on "
+          "insert": ". Registration is gated on "
         },
         {
           "insert": "stateExtensionEnabled",
@@ -771,7 +771,7 @@
           }
         },
         {
-          "insert": " sidecar or a\n"
+          "insert": " sidecar or a "
         },
         {
           "insert": "state.window",
@@ -780,7 +780,7 @@
           }
         },
         {
-          "insert": " manifest block); with neither, nothing is registered."
+          "insert": " manifest block). With neither, nothing is registered."
         }
       ],
       "children": []
@@ -877,7 +877,7 @@
           }
         },
         {
-          "insert": " customType constants,\n"
+          "insert": " customType constants, "
         },
         {
           "insert": "isKernelAuthoredMessage",
@@ -886,7 +886,7 @@
           }
         },
         {
-          "insert": ", and the image-elision envelope are defined in\n"
+          "insert": ", and the image-elision envelope are defined in "
         },
         {
           "insert": "packages/protocol/src/kernel-messages.ts",
@@ -895,7 +895,7 @@
           }
         },
         {
-          "insert": ". The kernel and the viewer both\nimport them; neither defines its own copy."
+          "insert": ". The kernel and the viewer both import them. Neither defines its own copy."
         }
       ],
       "children": []

@@ -255,7 +255,7 @@
           }
         },
         {
-          "insert": " Idempotent inserts only dedupe if all paths derive identical ids from the same inputs; per-path id generation (or random ids) was rejected because it makes live emission and backfill double-write the same session."
+          "insert": " Idempotent inserts only dedupe if all paths derive identical ids from the same inputs. Per-path id generation (or random ids) was rejected because it makes live emission and backfill double-write the same session."
         }
       ],
       "children": []
@@ -338,7 +338,7 @@
           }
         },
         {
-          "insert": " required; "
+          "insert": " required, "
         },
         {
           "insert": "runId",
@@ -418,7 +418,7 @@
           }
         },
         {
-          "insert": " Identity threaded as loose positional arguments is how envelopes get mislabeled; one required parameter shape makes a missing "
+          "insert": " Identity threaded as loose positional arguments is how envelopes get mislabeled. One required parameter shape makes a missing "
         },
         {
           "insert": "containerId",
@@ -510,7 +510,7 @@
           }
         },
         {
-          "insert": " are protocol exports, even though only the kernel's state layer writes them. The image-elision marker follows the same rule: "
+          "insert": " are protocol exports, even though only the kernel's state layer writes them. The image-elision marker follows the same rule. "
         },
         {
           "insert": "IMAGE_ELISION_MARKER_PREFIX",

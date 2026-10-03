@@ -1154,7 +1154,7 @@
           }
         },
         {
-          "insert": " reads it; "
+          "insert": " reads it. "
         },
         {
           "insert": "Transcript Recovery",
@@ -1393,7 +1393,7 @@
           }
         },
         {
-          "insert": " is not a workspace member, and the root "
+          "insert": " is not a workspace member. The root "
         },
         {
           "insert": "test:packages",

@@ -159,7 +159,7 @@
           }
         },
         {
-          "insert": ": "
+          "insert": " ("
         },
         {
           "insert": "spawn-pipeline/",
@@ -168,7 +168,7 @@
           }
         },
         {
-          "insert": "; run trace emission, tool scoping, resume, turn limits, and request snapshot capture."
+          "insert": "): run trace emission, tool scoping, resume, turn limits, and request snapshot capture."
         }
       ],
       "children": []
@@ -189,7 +189,7 @@
           }
         },
         {
-          "insert": ": "
+          "insert": " ("
         },
         {
           "insert": "agent-registry/",
@@ -198,7 +198,7 @@
           }
         },
         {
-          "insert": "; bundle layout (D98), sidecar harvest, boot error aggregation, fixtures, and annotations."
+          "insert": "): bundle layout (D98), sidecar harvest, boot error aggregation, fixtures, and annotations."
         }
       ],
       "children": []
@@ -219,7 +219,7 @@
           }
         },
         {
-          "insert": ": "
+          "insert": " ("
         },
         {
           "insert": "state/",
@@ -228,7 +228,7 @@
           }
         },
         {
-          "insert": "; extension gating, the context set, state persistence (D88, D92), and fail-open hooks."
+          "insert": "): extension gating, the context set, state persistence (D88, D92), and fail-open hooks."
         }
       ],
       "children": []
@@ -249,7 +249,7 @@
           }
         },
         {
-          "insert": ": "
+          "insert": " ("
         },
         {
           "insert": "subagents/",
@@ -258,7 +258,7 @@
           }
         },
         {
-          "insert": "; per-tool spawn grants (D77) and the "
+          "insert": "): per-tool spawn grants (D77) and the "
         },
         {
           "insert": "AgentManager",
@@ -288,7 +288,7 @@
           }
         },
         {
-          "insert": ": "
+          "insert": " ("
         },
         {
           "insert": "transcript-recovery/",
@@ -297,7 +297,7 @@
           }
         },
         {
-          "insert": "; JSONL backfill, TUI ingest, and emitter id parity."
+          "insert": "): JSONL backfill, TUI ingest, and emitter id parity."
         }
       ],
       "children": []
@@ -521,7 +521,7 @@
           }
         },
         {
-          "insert": "; "
+          "insert": ". "
         },
         {
           "insert": "Runtime Model",

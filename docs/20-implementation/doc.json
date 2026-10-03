@@ -87,7 +87,7 @@
           }
         },
         {
-          "insert": "; dev commands live in the repo "
+          "insert": ". Dev commands live in the repo "
         },
         {
           "insert": "README.md",
@@ -488,7 +488,7 @@
           }
         },
         {
-          "insert": " only: "
+          "insert": " only. "
         },
         {
           "insert": "viewer-ui",
@@ -541,7 +541,7 @@
           }
         },
         {
-          "insert": " The protocol is the shared vocabulary, so everything meets there; one-way layering keeps the viewer embeddable without the runtime and the kernel free of UI dependencies. The rejected alternative (letting the kernel reach into viewer packages, or hosts import internals directly) is how Spectre's original entanglement happened and what the extraction undid."
+          "insert": " The protocol is the shared vocabulary, so everything meets there. One-way layering keeps the viewer embeddable without the runtime and the kernel free of UI dependencies. The rejected alternative (letting the kernel reach into viewer packages, or hosts import internals directly) is how Spectre's original entanglement occurred and what the extraction undid."
         }
       ],
       "children": []
@@ -695,7 +695,7 @@
           }
         },
         {
-          "insert": " The extraction left Spectre with a parallel in-app copy of every package; two copies under one name drift immediately, and the boundary tests guard only one of them. Vendoring per host (the rejected alternative) is how Spectre's compat-shim debt accumulated."
+          "insert": " The extraction left Spectre with a parallel in-app copy of every package. Two copies under one name drift immediately, and the boundary tests guard only one of them. Vendoring per host (the rejected alternative) is how Spectre's compat-shim debt accumulated."
         }
       ],
       "children": []
@@ -804,7 +804,7 @@
           }
         },
         {
-          "insert": " Registry pinning during churn forces a publish per cross-repo change; linked source keeps multi-repo development live. Publishing to a private registry now was considered and rejected."
+          "insert": " Registry pinning during churn forces a publish per cross-repo change. Linked source keeps multi-repo development live. Publishing to a private registry now was considered and rejected."
         }
       ],
       "children": []

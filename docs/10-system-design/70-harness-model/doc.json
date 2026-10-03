@@ -129,7 +129,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Ports are the ones the Observatory registry uses. canvas-agent defaults to :4820 in code; the registry launches it on :4822. The docs-system repo runs its own kernel service, "
+          "insert": "Ports are the ones the Observatory registry uses. canvas-agent defaults to :4820 in code. The registry launches it on :4822. The docs-system repo runs its own kernel service, "
         },
         {
           "insert": "docs-kernel",
@@ -149,7 +149,7 @@
       "props": {},
       "text": [
         {
-          "insert": "App harnesses embed the kernel as a service inside a product (session stores,\nSSE, viewers). The terminal harness is the opposite trade: it borrows pi's\nexisting front-end: loop, streaming, tools, transcript, and only supplies\nwhat pi cannot: find the bundle, assemble the request, bind its tools."
+          "insert": "App harnesses embed the kernel as a service inside a product (session stores, SSE, viewers). The terminal harness is the opposite trade. The terminal harness borrows pi's existing front-end (loop, streaming, tools, transcript), and only supplies what pi cannot: find the bundle, assemble the request, bind its tools."
         }
       ],
       "children": []
@@ -456,7 +456,7 @@
           }
         },
         {
-          "insert": " pi executes extensions, and therefore bundle sidecars, under Node via jiti, while the kernel ecosystem is bun-first. Anything the extension's import graph or a "
+          "insert": " pi runs extensions, and therefore bundle sidecars, under Node via jiti, while the kernel ecosystem is bun-first. Anything the extension's import graph or a "
         },
         {
           "insert": "host:\"any\"",
@@ -610,7 +610,7 @@
           }
         },
         {
-          "insert": " (default) bundles are classified from the manifest alone and never evaluated or booted here; "
+          "insert": " (default) bundles are classified from the manifest alone and never evaluated or booted here. "
         },
         {
           "insert": "\"any\"",
@@ -725,7 +725,7 @@
           }
         },
         {
-          "insert": " but never writes it; the repo owns the manifest. When the sibling prompt-kit repo exists, its "
+          "insert": " but never writes it. The repo owns the manifest. When the sibling prompt-kit repo exists, its "
         },
         {
           "insert": "prompt-editor",
@@ -770,7 +770,7 @@
           }
         },
         {
-          "insert": " record under the prompt-kit kernel (trace ownership: prompt editing is prompt-kit's domain); catalog writes stay on the core kernel."
+          "insert": " record under the prompt-kit kernel (trace ownership: prompt editing is prompt-kit's domain). Catalog writes stay on the core kernel."
         }
       ],
       "children": []

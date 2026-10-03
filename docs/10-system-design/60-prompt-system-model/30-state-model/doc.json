@@ -256,7 +256,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Rationale: v1 optimizes for context control. Every request is deliberately\nconstructed and nothing accumulates, so there is no compaction step to\ndesign and no ever-growing transcript to compress. Restart stays the honesty\ntest, a state that cannot restart the work is not the state, and the\ninterface falls out of getting the representation right."
+          "insert": "Rationale: v1 optimizes for context control. Every request is deliberately constructed and nothing accumulates, so there is no compaction step to design and no ever-growing transcript to compress. Restart stays the honesty test, a state that cannot restart the work is not the state. The interface falls out of getting the representation right."
         }
       ],
       "children": []
@@ -313,7 +313,7 @@
           }
         },
         {
-          "insert": ", the agent's instructions in XML tags; effectively fixed for the session (frozen at Pi session creation, per D72)."
+          "insert": ", the agent's instructions in XML tags. The system prompt is effectively fixed for the session (frozen at Pi session creation, per D72)."
         }
       ],
       "children": []
@@ -377,7 +377,7 @@
       "props": {},
       "text": [
         {
-          "insert": "D27 modeled dynamic material as one \"runtime input packet\" and accepted a\ndeliberately blurry boundary between context, conversation history, and the\ncurrent turn. That boundary is now drawn: reference material is ②,\neverything that moves is ③, and the conversation lives inside ③ because it is\npart of the state (D81)."
+          "insert": "D27 modeled dynamic material as one \"runtime input packet\" and accepted a deliberately blurry boundary between context, conversation history, and the current turn. That boundary is now drawn. Reference material is ②, and everything that moves is ③. The conversation lives inside ③ because it is part of the state (D81)."
         }
       ],
       "children": []
@@ -490,7 +490,7 @@
       "props": {},
       "text": [
         {
-          "insert": "\"Normal agent\" comes in two flavors, pass-through and base module, and a rich agent adds its own "
+          "insert": "\"Normal agent\" comes in two flavors, pass-through and base module. A rich agent adds its own "
         },
         {
           "insert": "state.ts",
@@ -628,7 +628,7 @@
       "props": {},
       "text": [
         {
-          "insert": "This is the load-bearing piece of the model. The schema-free base case is\nwhat lets one kernel serve a plain conversational agent and a board editor\nwith the same contract and no special cases, the difference is which\ncomponents the agent's state has, not which code path runs."
+          "insert": "This is the load-bearing piece of the model. The schema-free base case is what lets one kernel serve a plain conversational agent and a board editor with the same contract and no special cases. The difference is which components the agent's state has, not which code path runs."
         }
       ],
       "children": []
@@ -748,7 +748,7 @@
           }
         },
         {
-          "insert": ", exporting three functions: "
+          "insert": ". The sidecar exports three functions: "
         },
         {
           "insert": "seed",
@@ -816,7 +816,7 @@
           }
         },
         {
-          "insert": " these run; the agent decides "
+          "insert": " these run. The agent decides "
         },
         {
           "insert": "what",
@@ -834,7 +834,7 @@
           }
         },
         {
-          "insert": "\nis the agent's own type and the kernel never inspects it. One requirement\nholds over it: "
+          "insert": " is the agent's own type and the kernel never inspects it. One requirement holds over it: "
         },
         {
           "insert": "S",
@@ -843,7 +843,7 @@
           }
         },
         {
-          "insert": " must be JSON-serializable, because it snapshots to\n"
+          "insert": " must be JSON-serializable, because it snapshots to "
         },
         {
           "insert": "state.json",
@@ -1385,7 +1385,7 @@
           }
         },
         {
-          "insert": "\nfrom day one, and what makes state inspectable as an ordinary file while the\nmodel is being piloted."
+          "insert": " from day one. The snapshot also makes state inspectable as an ordinary file while the model is being piloted."
         }
       ],
       "children": []
@@ -1458,7 +1458,7 @@
           }
         },
         {
-          "insert": "-style tool\nconsidered during the interview. Such a tool would put a second writer on\nstate the kernel is not allowed to look inside, and would add a capability to\nevery agent's tool surface that most agents do not want. "
+          "insert": "-style tool considered during the interview. Such a tool would put a second writer on state the kernel is not allowed to look inside, and would add a capability to every agent's tool surface that most agents do not want. "
         },
         {
           "insert": "update",
@@ -1467,7 +1467,7 @@
           }
         },
         {
-          "insert": " is already\nthe single writer; keeping it the only one is what makes state transitions\nexplainable from the event stream."
+          "insert": " is already the single writer. Keeping it the only one is what makes state transitions explainable from the event stream."
         }
       ],
       "children": []
@@ -1549,7 +1549,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Demoting snapshots to a hash receipt, store the hash, drop the bytes, was\nconsidered and rejected. The point of the pilot is being able to read the\nwindow the model actually saw; a receipt only proves that two windows\ndiffered, at exactly the moment the question is "
+          "insert": "Demoting snapshots to a hash receipt, store the hash, drop the bytes, was considered and rejected. The point of the pilot is being able to read the window the model actually saw. A receipt only proves that two windows differed, at exactly the moment the question is "
         },
         {
           "insert": "how",
@@ -1722,7 +1722,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Two channels ride the seams: the state channel is acked and deduped on the\nstate version; the observability channel is droppable under backpressure. Ack\nand backpressure specifics are decided at the sandbox stage."
+          "insert": "Two channels ride the seams. The state channel is acked and deduped on the state version. The observability channel is droppable under backpressure. Ack and backpressure specifics are decided at the sandbox stage."
         }
       ],
       "children": []
@@ -1733,7 +1733,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Rationale: getting runs, traces, and state out of a sandbox is designed with\nv1 and built at stage 5 (D97). Designing it later is what produces a fork\nbetween local and sandbox emission; building it later against a seam that\nalready exists does not."
+          "insert": "Rationale: getting runs, traces, and state out of a sandbox is designed with v1 and built at stage 5 (D97). Designing it later is what produces a fork between local and sandbox emission. Building it later against a seam that already exists does not."
         }
       ],
       "children": []
@@ -1844,7 +1844,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Decision: The canvas layout-editor is the pilot agent for the state model.\nThe core code lives in the kernel; the pilot only supplies its own "
+          "insert": "Decision: The canvas layout-editor is the pilot agent for the state model. The core code lives in the kernel. The pilot only supplies its own "
         },
         {
           "insert": "state.ts",
@@ -2058,7 +2058,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Rationale: three stores meant three places a fact could live and sync rules\nbetween them. The unfolded-diff store existed only because folding was\nassumed too expensive to run on the critical path; the 0.82.1 measurements\nremoved that assumption, and with it the store."
+          "insert": "Rationale: three stores meant three places a fact could live and sync rules between them. The unfolded-diff store existed only because folding was assumed too expensive to run on the critical path. The 0.82.1 measurements removed that assumption, and with it the store."
         }
       ],
       "children": []
@@ -2150,7 +2150,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Rationale: a derived cache has to answer what happens when it disagrees with\nits source, and the answer is always \"rebuild it\", which brings replay,\ninvalidation, and versioning along behind it. It also inverts what the model\nis for: a board's current geometry is not a compression of the conversation\nthat produced it, and domain state that no message contains would have no\nhome at all."
+          "insert": "Rationale: a derived cache has to answer what occurs when it disagrees with\nits source, and the answer is always \"rebuild it\", which brings replay,\ninvalidation, and versioning along behind it. It also inverts what the model\nis for: a board's current geometry is not a compression of the conversation\nthat produced it, and domain state that no message contains would have no\nhome at all."
         }
       ],
       "children": []
@@ -2342,7 +2342,7 @@
           }
         },
         {
-          "insert": " plus four sections, prompt, context, tools, state, and each section has two legal shapes: a single file, or a folder with an "
+          "insert": " plus four sections: prompt, context, tools, state. Each section has two legal shapes: a single file, or a folder with an "
         },
         {
           "insert": "index.ts",
@@ -2499,7 +2499,7 @@
       },
       "text": [
         {
-          "insert": "Declarations live in bundles; loader implementations stay app-registered.",
+          "insert": "Declarations live in bundles. Loader implementations stay app-registered.",
           "attributes": {
             "bold": true
           }
@@ -2636,7 +2636,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Rationale: the four sections were already the runtime's real decomposition ,\nD82 named them in the request, D84 gave three of them a contract, but the\nbundle still expressed them as four flat files, which caps an agent at\nhowever much fits in one file per section. A rich agent's context inventory,\nper-event update rules, and per-block renderers each want their own files;\nwithout folders they either sprawl into one unreadable module or leak\nsideways into shared repo layers where they stop being attributable to an\nagent. Folders make the slice hold at any size, and the file-first rule means\nnothing about the simple case changes."
+          "insert": "Rationale: the four sections were already the runtime's real decomposition , D82 named them in the request, D84 gave three of them a contract, but the bundle still expressed them as four flat files, which caps an agent at however much fits in one file per section. A rich agent's context inventory, per-event update rules, and per-block renderers each want their own files. Without folders they either sprawl into one unreadable module or leak sideways into shared repo layers where they stop being attributable to an agent. Folders make the slice hold at any size, and the file-first rule means nothing about the simple case changes."
         }
       ],
       "children": []
@@ -2767,7 +2767,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The trace viewer was reworked across roughly twenty review rounds with Ford. Almost all of it is UX and belongs to the viewer's design record: the layout standard, the rejected alternatives, and the review outcomes live in the "
+          "insert": "The trace viewer was reworked across roughly twenty review rounds with Ford. Almost all of it is UX and belongs to the viewer's design record. The layout standard, the rejected alternatives, and the review outcomes live in the "
         },
         {
           "insert": "Viewer Model",
@@ -2953,7 +2953,7 @@
           }
         },
         {
-          "insert": ". When the window replaces\nan old image block with a text placeholder (D85), the replacement is plain\ntext with no structural marker of its own, so producer and consumer must share\nthe exact envelope: "
+          "insert": ". When the window replaces an old image block with a text placeholder (D85), the replacement is plain text with no structural marker of its own, so producer and consumer must share the exact envelope. "
         },
         {
           "insert": "imageElisionMarkerText(description)",
@@ -2962,7 +2962,7 @@
           }
         },
         {
-          "insert": " builds it and\n"
+          "insert": " builds it and "
         },
         {
           "insert": "isImageElisionMarker(value)",
@@ -2971,7 +2971,7 @@
           }
         },
         {
-          "insert": " recognizes it. The description is deliberately\nopaque, so adding an image MIME type or a byte-size unit does not require a\nviewer release."
+          "insert": " recognizes it. The description is deliberately opaque, so adding an image MIME type or a byte-size unit does not require a viewer release."
         }
       ],
       "children": []

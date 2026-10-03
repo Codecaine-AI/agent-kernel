@@ -88,7 +88,7 @@
       "props": {},
       "text": [
         {
-          "insert": "An app adapter turns the generic kernel into a product-specific agent system. It should be explicit, testable, and mostly one-way: app code depends on kernel packages, kernel packages know nothing about the app. That dependency direction is the important contract; git topology and package linking are delivery mechanisms."
+          "insert": "An app adapter turns the generic kernel into a product-specific agent system. It should be explicit, testable, and mostly one-way: app code depends on kernel packages, kernel packages know nothing about the app. That dependency direction is the important contract. Git topology and package linking are delivery mechanisms."
         }
       ],
       "children": []
@@ -364,7 +364,7 @@
           }
         },
         {
-          "insert": " config and keeps the returned kernel instance; "
+          "insert": " config and keeps the returned kernel instance. "
         },
         {
           "insert": "Runtime Model",
@@ -695,7 +695,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The same kind and key always resolve to the same container id, so the mapping needs no join table and the app never stores hashed grouping ids of its own. App workflow tables carry product semantics; kernel rows carry runtime and observability."
+          "insert": "The same kind and key always resolve to the same container id, so the mapping needs no join table and the app never stores hashed grouping ids of its own. App workflow tables carry product semantics. Kernel rows carry runtime and observability."
         }
       ],
       "children": []
@@ -737,7 +737,7 @@
           }
         },
         {
-          "insert": "); the kernel binds the sidecar to the config "
+          "insert": "). The kernel binds the sidecar to the config "
         },
         {
           "insert": "toolRuntime",
@@ -779,7 +779,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Kernel loaders stay generic. A loader that reads app tables, app artifacts, or product workflow state belongs in the host app and enters through the "
+          "insert": "Kernel loaders stay generic. A loader that reads app tables, app artifacts, or product workflow state belongs in the host app. The loader enters through the "
         },
         {
           "insert": "loaders",
@@ -839,7 +839,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The app decides when domain-level events happen; the event protocol gives them a portable shape. App code builds events with "
+          "insert": "The app decides when domain-level events occur; the event protocol gives them a portable shape. App code builds events with "
         },
         {
           "insert": "@agent-kernel/protocol",
@@ -959,7 +959,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Kernel read and catalog routes mount as the boot sequence shows. Product routes stay separate: they may join app workflow state, while kernel read routes return viewer-core DTOs."
+          "insert": "Kernel read and catalog routes mount as the boot sequence shows. Product routes stay separate. Product routes may join app workflow state, while kernel read routes return viewer-core DTOs."
         }
       ],
       "children": []
@@ -998,7 +998,7 @@
           }
         },
         {
-          "insert": " and extend them only through its host seams. The host app owns surrounding navigation, headers, filters, and workflow panels; generic trace-tree behavior belongs in viewer packages, domain interpretation in the host app."
+          "insert": " and extend them only through its host seams. The host app owns surrounding navigation, headers, filters, and workflow panels. Generic trace-tree behavior belongs in viewer packages, domain interpretation in the host app."
         }
       ],
       "children": []
@@ -1121,7 +1121,7 @@
           }
         },
         {
-          "insert": " is a token for the local proxy, not an upstream secret; the proxy holds upstream credentials in one place for all kernels."
+          "insert": " is a token for the local proxy, not an upstream secret. The proxy holds upstream credentials in one place for all kernels."
         }
       ],
       "children": []
@@ -1224,7 +1224,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The adapter boundary is testable, not conventional. Beyond the package-dependency direction (enforced structurally; see the implementation entries), a host app's checks should assert the behavioral half: trace writes carry container ids, subagents carry parent tool-use ids, custom loaders live in the app, and viewer pages consume viewer-core DTOs rather than database schema."
+          "insert": "The adapter boundary is testable, not conventional. Beyond the package-dependency direction (enforced structurally, see the implementation entries), a host app's checks should assert the behavioral half: trace writes carry container ids, subagents carry parent tool-use ids, custom loaders live in the app, and viewer pages consume viewer-core DTOs rather than database schema."
         }
       ],
       "children": []

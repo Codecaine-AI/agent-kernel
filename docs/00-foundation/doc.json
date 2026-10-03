@@ -51,7 +51,7 @@
           }
         },
         {
-          "insert": " on the Pi agent SDK. It runs agents, captures exactly what happened, and provides the viewer primitives needed to inspect agent work, without inheriting any one application's workflow model."
+          "insert": " on the Pi agent SDK. It runs agents, captures exactly what occurred, and provides the viewer primitives needed to inspect agent work, without inheriting any one application's workflow model."
         }
       ],
       "children": []

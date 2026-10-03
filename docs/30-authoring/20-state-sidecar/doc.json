@@ -71,7 +71,7 @@
           }
         },
         {
-          "insert": " when the implementation needs supporting modules. Both forms are permanent; when both entry points exist, the file form wins."
+          "insert": " when the implementation needs supporting modules. Both forms are permanent. When both entry points exist, the file form wins."
         }
       ],
       "children": []
@@ -100,7 +100,7 @@
           }
         },
         {
-          "insert": "; window config alone enables the state extension. Omit both the sidecar and window config for pass-through behavior. The rationale and rejected alternatives are D81–D99 in the "
+          "insert": ". Window config alone enables the state extension. Omit both the sidecar and window config for pass-through behavior. The rationale and rejected alternatives are D81–D99 in the "
         },
         {
           "insert": "State Model",
@@ -341,7 +341,7 @@
           }
         },
         {
-          "insert": " with the number of leading state messages, as the example does."
+          "insert": " with the number of leading state messages. The example does the same."
         }
       ],
       "children": []
@@ -645,7 +645,7 @@
           }
         },
         {
-          "insert": " throws, the preview pretty-prints the fixture's state instead. Files that fail to parse or have the wrong shape are skipped silently. Fixtures feed previews and tests only; the spawn pipeline never reads them."
+          "insert": " throws, the preview pretty-prints the fixture's state instead. Files that fail to parse or have the wrong shape are skipped silently. Fixtures feed previews and tests only. The spawn pipeline never reads them."
         }
       ],
       "children": []

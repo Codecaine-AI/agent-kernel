@@ -595,7 +595,7 @@
           }
         },
         {
-          "insert": ". Nothing loads a snapshot automatically; "
+          "insert": ". Nothing loads a snapshot automatically. "
         },
         {
           "insert": "readStateSnapshot",
@@ -716,10 +716,7 @@
           }
         },
         {
-          "insert": " "
-        },
-        {
-          "insert": "The state extension writes snapshots through a "
+          "insert": " The state extension writes snapshots through a "
         },
         {
           "insert": "StateSink",
@@ -746,7 +743,7 @@
           }
         },
         {
-          "insert": " shape and serialized-tail pattern as the trace writer's sink. The file sink is the default implementation, "
+          "insert": " shape and serialized-tail pattern as the trace writer's sink. The file sink is the default implementation. "
         },
         {
           "insert": "createMemoryStateSink",

@@ -438,7 +438,20 @@
           }
         },
         {
-          "insert": " owns the durable manifest. Its fields, defaults, and nested "
+          "insert": " owns the durable manifest. The manifest state shape in "
+        },
+        {
+          "insert": "Documents and Bundles",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/60-prompt-system-model/10-documents-and-bundles",
+              "label": "Documents and Bundles"
+            }
+          }
+        },
+        {
+          "insert": " defines the durable manifest's fields, defaults, and nested "
         },
         {
           "insert": "variables",
@@ -465,20 +478,7 @@
           }
         },
         {
-          "insert": " shapes are defined by the manifest state shape in "
-        },
-        {
-          "insert": "Documents and Bundles",
-          "attributes": {
-            "reference": {
-              "kind": "doc",
-              "path": "10-system-design/60-prompt-system-model/10-documents-and-bundles",
-              "label": "Documents and Bundles"
-            }
-          }
-        },
-        {
-          "insert": ". Add only the fields the agent needs: unknown keys fail validation at every level ("
+          "insert": " shapes. Add only the fields the agent needs: unknown keys fail validation at every level ("
         },
         {
           "insert": "packages/kernel/src/agent-definition/agent-manifest-schema.ts",
@@ -561,7 +561,7 @@
           }
         },
         {
-          "insert": " is enforced in every runtime: the spawn pipeline applies it\nas the session tool disallowlist, and the pi TUI blocks the listed built-ins\nat "
+          "insert": " is enforced in every runtime: the spawn pipeline applies it as the session tool disallowlist, and the pi TUI blocks the listed built-ins at "
         },
         {
           "insert": "tool_call",
@@ -570,7 +570,7 @@
           }
         },
         {
-          "insert": " while the agent is active (interactive sessions keep their\nbuilt-in tools, so blocking is the enforcement). Use it to force an agent's\nmutations through its own typed tools sidecar while leaving reads open: e.g.\n"
+          "insert": " while the agent is active (interactive sessions keep their built-in tools, so blocking is the enforcement). Use it to force an agent's mutations through its own typed tools sidecar while leaving reads open. For example, "
         },
         {
           "insert": "docs-writer",
@@ -597,7 +597,7 @@
           }
         },
         {
-          "insert": " and writes docs only through its\nvalidated "
+          "insert": " and writes docs only through its validated "
         },
         {
           "insert": "docs_write",
@@ -635,7 +635,7 @@
           }
         },
         {
-          "insert": " is obsolete; those responsibilities belong to "
+          "insert": " is obsolete. Those responsibilities belong to "
         },
         {
           "insert": "agent.json",
@@ -820,7 +820,7 @@
           }
         },
         {
-          "insert": "; every declaration must match actual prompt usage. Keep PromptKit generic: kernel runtime configuration, context loading, private tool implementation, and state transitions stay outside the prompt document."
+          "insert": ". Every declaration must match actual prompt usage. Keep PromptKit generic: kernel runtime configuration, context loading, private tool implementation, and state transitions stay outside the prompt document."
         }
       ],
       "children": []

@@ -48,7 +48,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Run static checks after every bundle change, then inspect one representative runtime trace. Static validation can prove the bundle is loadable; only a spawn can exercise dynamic data and tool behavior."
+          "insert": "Run static checks after every bundle change, then inspect one representative runtime trace. Static validation can prove the bundle is loadable. Only a spawn can exercise dynamic data and tool behavior."
         }
       ],
       "children": []
@@ -211,7 +211,7 @@
           }
         },
         {
-          "insert": "; this guide validates the kernel bundle around it."
+          "insert": ". This guide validates the kernel bundle around it."
         }
       ],
       "children": []
@@ -742,7 +742,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Keep static failures at the boot boundary instead of converting them into runtime warnings. Make the assembler's treatment of each loader status explicit, and test any path that must stop the run instead of rendering degraded context. The "
+          "insert": "Keep static failures at the boot boundary instead of converting them into runtime warnings. Make the assembler's treatment of each loader status explicit. Test any path that must stop the run instead of rendering degraded context. The "
         },
         {
           "insert": "Runtime Model",
@@ -839,7 +839,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Do not author a combined/effective prompt file. The agent lab intentionally has no combined System + Context editing view; inspect composed runtime input on trace events and captured Turns."
+          "insert": "Do not author a combined/effective prompt file. The agent lab intentionally has no combined System + Context editing view. Inspect composed runtime input on trace events and captured Turns."
         }
       ],
       "children": []

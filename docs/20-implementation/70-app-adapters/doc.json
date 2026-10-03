@@ -126,7 +126,7 @@
           }
         },
         {
-          "insert": "; harness taxonomy and runtime constraints by the "
+          "insert": ". The "
         },
         {
           "insert": "Harness Model",
@@ -139,7 +139,7 @@
           }
         },
         {
-          "insert": "."
+          "insert": " governs harness taxonomy and runtime constraints."
         }
       ],
       "children": []
@@ -469,7 +469,7 @@
           }
         },
         {
-          "insert": " Tools for one agent live in that bundle's tools sidecar beside its manifest; tools shared across agents come from the "
+          "insert": " Tools for one agent live in that bundle's tools sidecar beside its manifest. Tools shared across agents come from the "
         },
         {
           "insert": "sharedTools",
@@ -478,7 +478,7 @@
           }
         },
         {
-          "insert": " config slot; app capabilities reach sidecars only through the config "
+          "insert": " config slot. App capabilities reach sidecars only through the config "
         },
         {
           "insert": "toolRuntime",
@@ -504,7 +504,7 @@
           }
         },
         {
-          "insert": " Colocated sidecars keep implementation, prompt, and manifest together, and the registry harvests tool names at boot so allowlists stay automatic. The rejected alternative (a central app tool registry) separates a tool from the one agent that uses it and hides the allowlist wiring."
+          "insert": " Colocated sidecars keep implementation, prompt, and manifest together. The registry harvests tool names at boot so allowlists stay automatic. The rejected alternative (a central app tool registry) separates a tool from the one agent that uses it and hides the allowlist wiring."
         }
       ],
       "children": []
@@ -669,7 +669,7 @@
           }
         },
         {
-          "insert": " sidecar import deep, dependency-light kernel subpaths (e.g. "
+          "insert": " sidecar import deep, dependency-light kernel subpaths (for example "
         },
         {
           "insert": "@agent-kernel/kernel/agent-registry/registry",
@@ -832,7 +832,7 @@
           }
         },
         {
-          "insert": "); this repo's service leg is "
+          "insert": "). This repo's service leg is "
         },
         {
           "insert": "packages/core-harness",
@@ -841,7 +841,7 @@
           }
         },
         {
-          "insert": "; app harnesses live in their owning repos, not here."
+          "insert": ". App harnesses live in their owning repos, not here."
         }
       ],
       "children": []

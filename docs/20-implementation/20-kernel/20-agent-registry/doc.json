@@ -129,7 +129,7 @@
           }
         },
         {
-          "insert": "; fixture file shapes live in "
+          "insert": ". Fixture file shapes live in "
         },
         {
           "insert": "Author a Context Sidecar",
