@@ -35,6 +35,7 @@
       },
       "children": [
         "b-baml-proposal-01",
+        "b-baml-model-nodes-context",
         "b-baml-proposal-02",
         "b-baml-proposal-03",
         "57f160e0-4167-4a21-bed5-54783068d645",
@@ -105,6 +106,38 @@
           "insert": "spawnAgent",
           "attributes": {
             "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-baml-model-nodes-context": {
+      "id": "b-baml-model-nodes-context",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Calls are one of three node types that share one identity and trace model. Decisions ("
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") are specified in "
+        },
+        {
+          "insert": "Decision Nodes",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/20-decision-nodes"
+            }
           }
         },
         {
@@ -220,7 +253,7 @@
             ],
             [
               {
-                "insert": "baml_call_*",
+                "insert": "call_*",
                 "attributes": {
                   "code": true
                 }
@@ -440,10 +473,10 @@
                 ]
               },
               {
-                "text": "Kernel mints identity: one function session (kind `\"function\"`, `promptHash` of the `.baml` source) and one run (`agentName = fnName`, `containerId`, `parentRunId`, `trigger`)"
+                "text": "Kernel mints identity: one call session (kind `\"call\"`, `promptHash` of the `.baml` source) and one run (`agentName = fnName`, `containerId`, `parentRunId`, `trigger`)"
               },
               {
-                "text": "Kernel emits `baml_call_start` (input blob, resolved model, `promptHash`)",
+                "text": "Kernel emits `call_start` (input blob, engine, resolved model, `promptHash`)",
                 "trace": true
               },
               {
@@ -460,7 +493,7 @@
                 "trace": true
               },
               {
-                "text": "Kernel emits `baml_call_end` (output blob, status, rolled-up usage), then closes the run and session",
+                "text": "Kernel emits `call_end` (output blob, status, rolled-up usage), then closes the run and session",
                 "trace": true
               },
               {
@@ -497,7 +530,16 @@
       "props": {},
       "text": [
         {
-          "insert": "No new table. A call is a session of kind function, one run, and one or more turns, so the usage rollup path (turn, run, session, container) is unchanged."
+          "insert": "No new table. A call is a session of kind "
+        },
+        {
+          "insert": "call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", one run, and one or more turns, so the usage rollup path (turn, run, session, container) is unchanged."
         }
       ],
       "children": []
@@ -535,10 +577,10 @@
             ],
             [
               {
-                "insert": "One function session, kind "
+                "insert": "One call session, kind "
               },
               {
-                "insert": "\"function\"",
+                "insert": "\"call\"",
                 "attributes": {
                   "code": true
                 }
@@ -756,7 +798,7 @@
             "kind": "action"
           },
           {
-            "name": "baml_call_start",
+            "name": "call_start",
             "params": [
               {
                 "name": "payload",
@@ -767,6 +809,12 @@
                     "name": "functionName",
                     "type": "string",
                     "required": true
+                  },
+                  {
+                    "name": "engine",
+                    "type": "\"baml\" | \"pi-ai\"",
+                    "required": true,
+                    "description": "The engine behind kernel.call."
                   },
                   {
                     "name": "inputBlobHash",
@@ -789,7 +837,7 @@
             "kind": "event"
           },
           {
-            "name": "baml_call_end",
+            "name": "call_end",
             "params": [
               {
                 "name": "payload",
@@ -825,13 +873,13 @@
       "id": "e0326560-c311-414c-a2ed-5638406a962b",
       "type": "state-shape",
       "props": {
-        "example": "{\n  \"$schema\": \"agent-kernel/function-v1\",\n  \"name\": \"SummarizeWorkerRun\",\n  \"description\": \"Narrate one worker run into a typed summary.\",\n  \"model\": \"summarizer\",\n  \"exposeAsTool\": false\n}",
+        "example": "{\n  \"$schema\": \"agent-kernel/call-v1\",\n  \"name\": \"SummarizeWorkerRun\",\n  \"description\": \"Narrate one worker run into a typed summary.\",\n  \"model\": \"summarizer\",\n  \"exposeAsTool\": false\n}",
         "fields": [
           {
             "name": "$schema",
             "type": "string",
             "required": true,
-            "description": "Must be \"agent-kernel/function-v1\"."
+            "description": "Must be \"agent-kernel/call-v1\"."
           },
           {
             "name": "name",
@@ -941,16 +989,25 @@
           }
         },
         {
-          "insert": " or "
+          "insert": ", "
         },
         {
-          "insert": "\"function\"",
+          "insert": "\"call\"",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": "), so runs keep their session foreign key."
+          "insert": ", or "
+        },
+        {
+          "insert": "\"decision\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), so runs keep their session foreign key. The decision kind is defined in the Decision Nodes page."
         }
       ],
       "children": []
@@ -966,7 +1023,7 @@
           "insert": "Two new core events, "
         },
         {
-          "insert": "baml_call_start",
+          "insert": "call_start",
           "attributes": {
             "code": true
           }
@@ -975,13 +1032,13 @@
           "insert": " and "
         },
         {
-          "insert": "baml_call_end",
+          "insert": "call_end",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": ", the call's counterpart to the agent run events. Turns reuse "
+          "insert": ", the call's counterpart to the agent run events. They are named for the primitive, not the engine, because a pi-ai engine can sit behind the same surface and decisions reuse them. Turns reuse "
         },
         {
           "insert": "pi_turn_start",
@@ -1027,7 +1084,16 @@
           }
         },
         {
-          "insert": ". Today it is a closed TypeScript union ("
+          "insert": ", alongside "
+        },
+        {
+          "insert": "judge",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", which the feature adds for decision nodes. Today it is a closed TypeScript union ("
         },
         {
           "insert": "operator",
@@ -1085,7 +1151,7 @@
       },
       "text": [
         {
-          "insert": "One doctor check: a function run has zero tool-call events and at least one turn."
+          "insert": "One doctor check: a call run has zero tool-call events and at least one turn."
         }
       ],
       "children": []
@@ -1299,7 +1365,20 @@
                 "insert": " is a closed union with no SQL constraint"
               }
             ],
-            "Add it"
+            [
+              {
+                "insert": "Add it, with "
+              },
+              {
+                "insert": "judge",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " for decision nodes"
+              }
+            ]
           ],
           [
             "Generated client",
@@ -1316,7 +1395,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Deferred: streaming partials, TypeBuilder passthrough for dynamic enums, and the TUI command."
+          "insert": "Deferred: streaming partials and the TUI command. TypeBuilder dynamic enums moved into the phase 0 spike, because decision nodes need runtime branch labels."
         }
       ],
       "children": []
@@ -1355,7 +1434,7 @@
                 }
               },
               {
-                "insert": ": runtime install, one function through codex-lb, Collector and ClientRegistry exercised, "
+                "insert": ": runtime install, one function through codex-lb, Collector and ClientRegistry exercised, TypeBuilder dynamic enums for runtime branch labels, "
               },
               {
                 "insert": "RESULTS.md",
@@ -1374,7 +1453,7 @@
                 "insert": "Config slot, manifests with boot validation, identity, "
               },
               {
-                "insert": "baml_call_*",
+                "insert": "call_*",
                 "attributes": {
                   "code": true
                 }

@@ -1,0 +1,777 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-e96c6c06bda3f7dcdba5d37785bc0365",
+  "title": "Walkthrough: One Worker Job",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "wt-intro",
+        "wt-status",
+        "wt-h-code",
+        "wt-code-lead",
+        "wt-code",
+        "wt-h-step",
+        "wt-step-lead",
+        "wt-step-why",
+        "wt-step-example",
+        "wt-h-who",
+        "wt-who-lead",
+        "wt-who-table",
+        "wt-h-branch",
+        "wt-branch-lead",
+        "wt-canvas",
+        "wt-h-run",
+        "wt-run-lead",
+        "wt-h-a1",
+        "wt-a1-1",
+        "wt-a1-2",
+        "wt-a1-3",
+        "wt-a1-4",
+        "wt-a1-5",
+        "wt-h-a2",
+        "wt-a2-1",
+        "wt-a2-2",
+        "wt-a2-3",
+        "wt-a2-4"
+      ]
+    },
+    "wt-intro": {
+      "id": "wt-intro",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "This page follows one worker job from claim to summary. It shows harness code that mixes code steps with model nodes, and who decides each branch. The job is "
+        },
+        {
+          "insert": "worker-job/fn_8003A1C4",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the GameCube decomp target "
+        },
+        {
+          "insert": "fn_8003A1C4",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "d_a_player.cpp",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "wt-status": {
+      "id": "wt-status",
+      "type": "callout",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: proposal. The code below is pseudocode, not a real API. "
+        },
+        {
+          "insert": "spawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " exists today. "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "kernel.step",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " do not."
+        }
+      ],
+      "children": []
+    },
+    "wt-h-code": {
+      "id": "wt-h-code",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Harness Code"
+        }
+      ],
+      "children": []
+    },
+    "wt-code-lead": {
+      "id": "wt-code-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "runWorkerJob(target)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " runs one claimed target. Every branch has a comment that names who decides it: code, a model, or a human. The tags R1 to R7 and S1 to S3 match the steps in What This Run Did. The "
+        },
+        {
+          "insert": "noul",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "choice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " helpers build Jev questions, as defined in "
+        },
+        {
+          "insert": "Decision Nodes",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/20-decision-nodes"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "wt-code": {
+      "id": "wt-code",
+      "type": "code",
+      "props": {
+        "language": "typescript"
+      },
+      "text": [
+        {
+          "insert": "// Pseudocode for a proposed API. Not runnable.\nasync function runWorkerJob(target: Target) {\n  const ids = { containerId: `worker-job/${target.fn}` }; // worker-job/fn_8003A1C4\n  const claim = await claimTarget(target);\n  let attempt = 0;\n  let session: string | undefined;\n  let lastRunId: string | undefined;\n  let hint: string | undefined;\n  let stopReason: string | undefined;\n\n  // code decides: no attempt starts after the claim deadline or budget\n  while (!claim.deadlinePassed() && attempt < claim.attemptBudget) {\n    attempt += 1;\n\n    // agent does the work (R1, then R5 in the same session)\n    const run = await spawnAgent(\"worker\", {\n      ...ids, session, trigger: attempt === 1 ? \"system\" : \"steer\",\n      prompt: workerPrompt(target, hint),\n    });\n    session = run.sessionId;\n    lastRunId = run.id;\n    const under = { ...ids, parentRunId: run.id };\n\n    // call extracts a typed note from the transcript (R2, R6)\n    const note = await kernel.call(\"ExtractCheckpointNote\", run.transcript, {\n      ...under, trigger: \"post-run\",\n    });\n\n    // code step: objdiff, micro-gates, review_lint (S1, S2)\n    const v = await kernel.step(\"validate\", under, () => validate(target, run.diff));\n\n    // code decides: exact match, gates pass, lint clean ends the job\n    if (v.objdiff === 100 && v.gatesPassed && v.lint.length === 0) {\n      stopReason = \"exact_match\";\n      break;\n    }\n\n    // model decides: is each kept advisory justified? (R3)\n    for (const adv of note.keptAdvisories) {\n      const { justified } = await kernel.decide(\"JudgeAdvisory\", adv, {\n        ...under, trigger: \"judge\", engine: \"jev\", model: \"jev-1.13.0\",\n        questions: { justified: noul(\"The original asm needs this hunk as written.\") },\n      });\n      const p = justified.distribution.true;\n      if (p >= 0.85) continue; // code decides: accepted\n      if (p < 0.4) { hint = repairInstruction(adv); continue; } // code decides: rejected\n\n      // call decides: the unsure band gets a BAML judge with a rationale\n      const second = await kernel.call(\"JudgeAdvisoryWithRationale\", adv, { ...under, trigger: \"judge\" });\n      if (second.verdict === \"rejected\") hint = repairInstruction(adv, second.rationale);\n      if (second.verdict === \"needs_info\") {\n        await operatorQueue.push(adv, second.rationale); // human decides\n        stopReason = \"operator_review\";\n      }\n    }\n    if (stopReason) break;\n\n    // model decides: retry, change strategy, or stop (R4)\n    const { next } = await kernel.decide(\"ContinueOrStop\", { note, validation: v }, {\n      ...under, trigger: \"judge\", engine: \"jev\", abstainBelow: 0.5,\n      questions: { next: choice([\"retry_same_approach\", \"retry_new_strategy\", \"stop_blocked\"]) },\n    });\n    if (next.abstained) continue; // code decides: the attempt budget takes over\n    if (next.choice === \"stop_blocked\") { stopReason = \"blocked\"; break; }\n    if (next.choice === \"retry_new_strategy\") hint = strategyHint(note);\n  }\n\n  // code step: record why the job ended (S3). No model involved.\n  await kernel.step(\"stop\", ids, () => ({ reason: stopReason ?? \"deadline_or_budget\" }));\n  // call writes the narrative to the knowledge DB (R7)\n  await kernel.call(\"SummarizeWorkerRun\", { session }, {\n    ...ids, parentRunId: lastRunId, trigger: \"post-run\",\n  });\n}"
+        }
+      ],
+      "children": []
+    },
+    "wt-h-step": {
+      "id": "wt-h-step",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Code Steps in the Trace"
+        }
+      ],
+      "children": []
+    },
+    "wt-step-lead": {
+      "id": "wt-step-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "kernel.step(name, opts, fn)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " wraps a deterministic code step and records it as a span: "
+        },
+        {
+          "insert": "step_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", then "
+        },
+        {
+          "insert": "step_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with a small summary output."
+        }
+      ],
+      "children": []
+    },
+    "wt-step-why": {
+      "id": "wt-step-why",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Without it, the trace shows the model nodes but not the code checks between them. The branching is invisible."
+        }
+      ],
+      "children": []
+    },
+    "wt-step-example": {
+      "id": "wt-step-example",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "With it, a reader sees "
+        },
+        {
+          "insert": "validate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " report objdiff 97.4% right before "
+        },
+        {
+          "insert": "JudgeAdvisory",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " starts. That number is why the job did not stop."
+        }
+      ],
+      "children": []
+    },
+    "wt-h-who": {
+      "id": "wt-h-who",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Who Decides What"
+        }
+      ],
+      "children": []
+    },
+    "wt-who-lead": {
+      "id": "wt-who-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Code decides anything that is a fact or a count. A model decides only where the answer needs judgment. A human gets the case only when both the decision node and the BAML judge are unsure."
+        }
+      ],
+      "children": []
+    },
+    "wt-who-table": {
+      "id": "wt-who-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Branch point",
+          "Decided by",
+          "Why"
+        ],
+        "rows": [
+          [
+            "Exact match stop",
+            "Code",
+            "Objdiff 100%, micro-gates 5/5, and a clean lint are facts. A model adds cost and a chance to be wrong."
+          ],
+          [
+            "Deadline stop",
+            "Code",
+            "The claim deadline and the attempt budget are a clock check and a counter."
+          ],
+          [
+            "Advisory justified?",
+            [
+              {
+                "insert": "Decision node "
+              },
+              {
+                "insert": "JudgeAdvisory",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Reading a justification against a hunk is judgment. Jev returns a native probability that code can threshold at 0.85."
+          ],
+          [
+            "Continue or stop",
+            [
+              {
+                "insert": "Decision node "
+              },
+              {
+                "insert": "ContinueOrStop",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Whether a new strategy can close a 97.4% match is judgment. Today a fixed counter makes this call."
+          ],
+          [
+            "Low-confidence escalation",
+            [
+              {
+                "insert": "Call "
+              },
+              {
+                "insert": "JudgeAdvisoryWithRationale",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", then a human"
+              }
+            ],
+            "A p between 0.4 and 0.85 is too unsure to act on. The BAML judge adds a rationale. Its confidence is self-reported, so code does not threshold it."
+          ],
+          [
+            "Abstained",
+            "Code routes it, a human or the budget decides",
+            "Abstained is a normal result, not an error. An advisory goes to the operator review queue. A ContinueOrStop abstain falls back to the attempt budget counter."
+          ]
+        ]
+      },
+      "children": []
+    },
+    "wt-h-branch": {
+      "id": "wt-h-branch",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Branching Logic"
+        }
+      ],
+      "children": []
+    },
+    "wt-branch-lead": {
+      "id": "wt-branch-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Green solid edges are the path this run took. Gray dashed edges are paths it did not take. Shape and color give the node type: see the legend on the right."
+        }
+      ],
+      "children": []
+    },
+    "wt-canvas": {
+      "id": "wt-canvas",
+      "type": "canvas",
+      "props": {
+        "src": "./assets/canvases/worker-job-branching.canvas.json",
+        "title": "One worker job: who decides each branch"
+      },
+      "children": []
+    },
+    "wt-h-run": {
+      "id": "wt-h-run",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "What This Run Did"
+        }
+      ],
+      "children": []
+    },
+    "wt-run-lead": {
+      "id": "wt-run-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The job took two attempts. Attempt 1 missed an exact match, so two decision nodes ran. Attempt 2 matched exactly, so code stopped the job with no model involved. "
+        },
+        {
+          "insert": "Trace Layout",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/50-trace-layout"
+            }
+          }
+        },
+        {
+          "insert": " shows how this run is traced."
+        }
+      ],
+      "children": []
+    },
+    "wt-h-a1": {
+      "id": "wt-h-a1",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Attempt 1"
+        }
+      ],
+      "children": []
+    },
+    "wt-a1-1": {
+      "id": "wt-a1-1",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "R1 "
+        },
+        {
+          "insert": "worker",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (agent run, trigger "
+        },
+        {
+          "insert": "system",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "): 14 turns, 31 tool calls, 4m12s, $0.38."
+        }
+      ],
+      "children": []
+    },
+    "wt-a1-2": {
+      "id": "wt-a1-2",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "R2 "
+        },
+        {
+          "insert": "ExtractCheckpointNote",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (call, BAML, 1.8s, $0.004): status "
+        },
+        {
+          "insert": "partial",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", one kept advisory "
+        },
+        {
+          "insert": "type_erasing_cast",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on "
+        },
+        {
+          "insert": "(u32)this->mpActor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "wt-a1-3": {
+      "id": "wt-a1-3",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "S1 "
+        },
+        {
+          "insert": "validate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (code step, 6.3s): objdiff 97.4%, micro-gates 5/5, one "
+        },
+        {
+          "insert": "llm_review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " warning. Not exact, so the job goes on."
+        }
+      ],
+      "children": []
+    },
+    "wt-a1-4": {
+      "id": "wt-a1-4",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "R3 "
+        },
+        {
+          "insert": "JudgeAdvisory",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (decision, Jev "
+        },
+        {
+          "insert": "jev-1.13.0",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", 110 ms): justified p=0.91, native. At or above 0.85, so accepted."
+        }
+      ],
+      "children": []
+    },
+    "wt-a1-5": {
+      "id": "wt-a1-5",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "R4 "
+        },
+        {
+          "insert": "ContinueOrStop",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (decision, Jev, 95 ms): "
+        },
+        {
+          "insert": "retry_new_strategy",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " 0.71, confidence 0.64 native. Above the 0.5 floor, so code retries with a strategy hint."
+        }
+      ],
+      "children": []
+    },
+    "wt-h-a2": {
+      "id": "wt-h-a2",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Attempt 2"
+        }
+      ],
+      "children": []
+    },
+    "wt-a2-1": {
+      "id": "wt-a2-1",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "R5 "
+        },
+        {
+          "insert": "worker",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (agent run, same session, trigger "
+        },
+        {
+          "insert": "steer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", with the strategy hint): 9 turns, 18 tool calls, 2m40s, $0.24."
+        }
+      ],
+      "children": []
+    },
+    "wt-a2-2": {
+      "id": "wt-a2-2",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "R6 "
+        },
+        {
+          "insert": "ExtractCheckpointNote",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (call, 1.8s) and S2 "
+        },
+        {
+          "insert": "validate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (code step, 5.4s): objdiff 100% exact, gates 5/5, lint clean."
+        }
+      ],
+      "children": []
+    },
+    "wt-a2-3": {
+      "id": "wt-a2-3",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "S3 "
+        },
+        {
+          "insert": "stop",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (code step, 20 ms): exact match and gates pass, so code stops the job. No model runs here."
+        }
+      ],
+      "children": []
+    },
+    "wt-a2-4": {
+      "id": "wt-a2-4",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "R7 "
+        },
+        {
+          "insert": "SummarizeWorkerRun",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (call, trigger "
+        },
+        {
+          "insert": "post-run",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", parent R5, 1.4s): writes the narrative to the knowledge DB."
+        }
+      ],
+      "children": []
+    }
+  }
+}

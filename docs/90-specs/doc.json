@@ -88,12 +88,12 @@
       },
       "text": [
         {
-          "insert": "Structured Calls (BAML)",
+          "insert": "Model Nodes",
           "attributes": {
             "reference": {
               "kind": "doc",
-              "path": "90-specs/10-structured-calls-baml",
-              "label": "Structured Calls (BAML)"
+              "path": "90-specs/10-model-nodes",
+              "label": "Model Nodes"
             }
           }
         }
@@ -106,7 +106,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Structured calls: a proposed single-shot, typed LLM primitive, built on BAML, that sits beside agents in the kernel. Motivated by the \"worker finishes, a second agent extracts a summary object\" pattern."
+          "insert": "Three kernel node types that share one identity and trace model: agent runs, single-shot calls for extraction, and model-backed decisions for judging and routing. Motivated by the GameCube orchestrator, where extraction and judgment are hand-parsed JSON and regex today."
         }
       ],
       "children": []

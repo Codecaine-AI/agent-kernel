@@ -10,13 +10,13 @@
 		{
 			"name": "canvas-harness",
 			"runtimeExecutable": "bun",
-			"runtimeArgs": ["run", "--cwd", "/Users/Ford/Github Repos/Codecaine/Core/canvas/packages/canvas-agent", "harness"],
+			"runtimeArgs": ["run", "--cwd", "/Users/Ford/workspace/codecaine/core/canvas/packages/canvas-agent", "harness"],
 			"port": 4820
 		},
 		{
 			"name": "canvas-agent-viewer",
 			"runtimeExecutable": "bun",
-			"runtimeArgs": ["run", "--cwd", "/Users/Ford/Github Repos/Codecaine/Core/canvas/packages/canvas-agent", "viewer"],
+			"runtimeArgs": ["run", "--cwd", "/Users/Ford/workspace/codecaine/core/canvas/packages/canvas-agent", "viewer"],
 			"port": 4830
 		}
 	]

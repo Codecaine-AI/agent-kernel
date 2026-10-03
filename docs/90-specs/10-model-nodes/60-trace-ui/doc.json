@@ -1,0 +1,588 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-241ac8838e9b9b89fa9f361fc7db240c",
+  "title": "Trace UI",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "tu-intro",
+        "tu-status",
+        "tu-h-main",
+        "tu-main-lead",
+        "tu-mock-main",
+        "tu-read-lead",
+        "tu-read-1",
+        "tu-read-2",
+        "tu-read-3",
+        "tu-read-4",
+        "tu-read-5",
+        "tu-h-second",
+        "tu-second-lead",
+        "tu-mock-cards",
+        "tu-h-changes",
+        "tu-changes-lead",
+        "tu-change-1",
+        "tu-change-2",
+        "tu-change-3",
+        "tu-change-4",
+        "tu-change-5"
+      ]
+    },
+    "tu-intro": {
+      "id": "tu-intro",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The trace viewer shows a blended job as one tree on one timeline. Agent runs, calls, decisions, and code steps each get their own color and badge, and they nest under the worker run they serve."
+        }
+      ],
+      "children": []
+    },
+    "tu-status": {
+      "id": "tu-status",
+      "type": "callout",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: mockup of the proposed UI, not built. Today the viewer renders every session as "
+        },
+        {
+          "insert": "agent_invocation",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and has no call, decision, or step kinds. The timeline column is also new."
+        }
+      ],
+      "children": []
+    },
+    "tu-h-main": {
+      "id": "tu-h-main",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "A Decision Selected"
+        }
+      ],
+      "children": []
+    },
+    "tu-main-lead": {
+      "id": "tu-main-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The job is "
+        },
+        {
+          "insert": "worker-job/fn_8003A1C4",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ": two worker attempts on "
+        },
+        {
+          "insert": "d_a_player.cpp",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", about 7m10s and $0.63 in total. R3 "
+        },
+        {
+          "insert": "JudgeAdvisory",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is selected. Click any row in the mockup to select it."
+        }
+      ],
+      "children": []
+    },
+    "tu-mock-main": {
+      "id": "tu-mock-main",
+      "type": "html",
+      "props": {
+        "allowScripts": true,
+        "height": 900,
+        "html": "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Trace viewer mockup: worker-job/fn_8003A1C4</title>\n<style>\n:root{\n--bg:#F9F9F7; --panel:#FAFAF8; --fg:#1A1A19; --muted-fg:#6B6A64; --faint:#9A988F;\n--border:#DFDED7; --border-soft:#E9E8E2; --muted:#F1F0EB; --hover:#F4F3EE;\n--sel:42 120 214;\n--c-agent:82 81 78; --c-call:13 116 144; --c-decision:190 24 93; --c-step:71 85 105;\n--c-turn:124 58 237; --c-ok:21 125 89; --c-warn:180 83 9; --c-tool:194 65 12;\n--mono:\"JetBrains Mono\",\"IBM Plex Mono\",\"Geist Mono\",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;\n--sans:\"TX-02\",ui-sans-serif,system-ui,-apple-system,\"Segoe UI\",sans-serif;\n}\n*{box-sizing:border-box}\nhtml,body{margin:0;width:1440px;height:900px}\nbody{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}\n#stage{width:1440px;height:900px;display:flex;transform-origin:0 0}\nbutton{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}\n.side{width:210px;flex:none;border-right:1px solid var(--border);display:flex;flex-direction:column}\n.side h1{margin:0;height:46px;display:flex;align-items:center;justify-content:center;font:600 13px var(--mono);letter-spacing:.22em;border-bottom:1px solid var(--border)}\n.nav{padding:8px 7px;display:flex;flex-direction:column;gap:3px}\n.nav a{display:flex;align-items:center;gap:10px;height:38px;padding:0 12px;border-radius:3px;font:500 12px var(--mono);letter-spacing:.12em;color:#4A4944;text-decoration:none;border:1px solid transparent}\n.nav a i{width:5px;height:5px;border-radius:50%;background:#C9C8C0}\n.nav a.on{background:#EEF5F0;border-color:#BFDCCB;color:#1A1A19}\n.nav a.on i{background:#2F7D57}\n.rail{width:46px;flex:none;border-left:1px solid var(--border);display:flex;align-items:center;justify-content:center}\n.rail span{writing-mode:vertical-rl;font:600 10px var(--mono);letter-spacing:.22em;color:#4A4944}\n.main{flex:1;min-width:0;padding:14px}\n.card{height:100%;border:1px solid var(--border);border-radius:8px;background:var(--panel);display:flex;flex-direction:column;overflow:hidden}\n.hdr{border-bottom:1px solid var(--border);padding:9px 12px 8px;display:flex;flex-direction:column;gap:7px}\n.hrow{display:flex;align-items:center;gap:12px;min-width:0}\n.back{height:26px;padding:0 10px;border:1px solid var(--border);border-radius:3px;font:600 10.5px var(--mono);letter-spacing:.14em;color:#3D3C38;display:flex;align-items:center;gap:6px;background:#fff}\n.title{font-weight:600;font-size:15px;letter-spacing:-.005em}\n.badge{font:600 9.5px var(--mono);letter-spacing:.12em;padding:2px 6px;border-radius:2px;border:1px solid;text-transform:uppercase}\n.badge.done{color:rgb(var(--c-ok));border-color:rgb(var(--c-ok)/.4);background:rgb(var(--c-ok)/.08)}\n.meta{font:12px var(--mono);color:var(--muted-fg)}\n.meta b{color:var(--fg);font-weight:500}\n.totals{margin-left:auto;display:flex;gap:6px}\n.tile{border:1px solid var(--border);border-radius:3px;padding:3px 9px 4px;background:#fff;min-width:64px}\n.tile .k{font:600 9px var(--mono);letter-spacing:.14em;color:var(--muted-fg)}\n.tile .v{font:600 13px var(--mono)}\n.more{width:28px;height:22px;border:1px solid var(--border);border-radius:3px;display:grid;place-items:center;font:12px var(--mono);background:#fff}\n.legend{margin-left:auto;display:flex;align-items:center;gap:12px;font:500 10.5px var(--mono);letter-spacing:.06em;color:#4A4944}\n.legend .lk{font:600 9px var(--mono);letter-spacing:.16em;color:var(--faint)}\n.legend span.it{display:flex;align-items:center;gap:5px}\n.sw{width:11px;height:11px;border-radius:2px;border:1px solid}\n.body{flex:1;min-height:0;display:flex}\n.treepane{width:692px;flex:none;border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0}\n.toolbar{height:46px;flex:none;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid var(--border)}\n.levels{display:flex;border:1px solid var(--border);border-radius:3px;overflow:hidden;background:#fff}\n.levels span{font:500 11px var(--mono);padding:6px 9px;color:#4A4944;border-right:1px solid var(--border)}\n.levels span:last-child{border-right:0}\n.levels span b{font-weight:700;margin-right:3px}\n.levels span.on{background:#EEF5F0;color:#2F7D57}\n.tb-btn{font:600 9.5px var(--mono);letter-spacing:.14em;border:1px solid var(--border);border-radius:3px;padding:6px 9px;background:#fff;color:#4A4944}\n.axis{margin-left:auto;width:190px;margin-right:0;position:relative;height:100%;border-left:1px solid var(--border-soft)}\n.axis .t{position:absolute;bottom:7px;font:10px var(--mono);color:var(--faint);transform:translateX(-50%)}\n.axis .lbl{position:absolute;top:7px;left:8px;font:600 9px var(--mono);letter-spacing:.14em;color:var(--faint)}\n.rows{flex:1;min-height:0;overflow:hidden;padding:10px 0 10px;position:relative}\n.gridlines{position:absolute;top:0;bottom:0;right:12px;width:190px;pointer-events:none}\n.gridlines i{position:absolute;top:0;bottom:0;border-left:1px dashed #ECEBE5}\n.row{display:flex;align-items:center;height:35px;position:relative;cursor:pointer}\n.row:hover .cardx{background-color:rgb(0 0 0/.02)}\n.row.sel::before{content:\"\";position:absolute;left:0;top:5px;bottom:5px;width:3px;background:rgb(var(--sel))}\n.tcell{width:490px;flex:none;position:relative;height:100%;display:flex;align-items:center;min-width:0}\n.wcell{margin-left:auto;width:190px;margin-right:12px;position:relative;height:100%;border-left:1px solid var(--border-soft)}\n.ln{position:absolute;border-color:#C9C8C0;border-style:solid;border-width:0}\n.chev{position:absolute;width:18px;height:18px;display:grid;place-items:center;color:#55544F}\n.cardx{display:inline-flex;align-items:stretch;height:24px;border:1px solid;border-radius:2px;overflow:hidden;white-space:nowrap;flex:none;position:relative}\n.cap{width:23px;flex:none;display:grid;place-items:center;border-right:1px solid}\n.cap svg{width:13px;height:13px}\n.lab{display:flex;align-items:center;gap:7px;padding:0 8px 0 7px;font:500 12.5px var(--mono)}\n.rid{font:500 10.5px var(--mono);color:var(--faint)}\n.kb{font:700 8.5px var(--mono);letter-spacing:.1em;padding:1px 3px;border-radius:2px;border:1px solid}\n.chips{display:flex;gap:5px;margin-left:7px;min-width:0;overflow:hidden}\n.chip{font:500 10.5px var(--mono);padding:2px 5px;border-radius:2px;border:1px solid var(--border);background:#fff;color:#3D3C38;white-space:nowrap;flex:none}\n.chip.dec{color:rgb(var(--c-decision));border-color:rgb(var(--c-decision)/.4);background:rgb(var(--c-decision)/.07);font-weight:600}\n.chip.ok{color:rgb(var(--c-ok));border-color:rgb(var(--c-ok)/.4);background:rgb(var(--c-ok)/.07)}\n.chip.warn{color:rgb(var(--c-warn));border-color:rgb(var(--c-warn)/.45);background:rgb(var(--c-warn)/.08)}\n.chip.dim{color:var(--muted-fg);background:transparent}\n.sel .cardx{box-shadow:inset 0 0 0 2px rgb(var(--sel));background:rgb(var(--sel)/.12)!important}\n.bar{position:absolute;top:12px;height:11px;border-radius:2px;border:1px solid}\n.bar.thin{top:15px;height:5px}\n.dia{position:absolute;top:12px;width:10px;height:10px;transform:translateX(-5px) rotate(45deg);border:1px solid}\n.dur{position:absolute;top:10px;font:10px var(--mono);color:var(--muted-fg);white-space:nowrap}\n.ticks{position:absolute;top:13px;height:9px}\n.ticks i{position:absolute;top:0;width:1px;height:9px}\n.detail{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}\n.dh{height:46px;flex:none;display:flex;align-items:center;gap:9px;padding:0 16px;border-bottom:1px solid var(--border)}\n.dh .ic{width:15px;height:15px}\n.dh .nm{font:600 14px var(--mono)}\n.dh .det{margin-left:auto;font:600 10px var(--mono);letter-spacing:.14em;color:var(--muted-fg)}\n.db{flex:1;min-height:0;overflow:hidden;padding:12px 14px;display:flex;flex-direction:column;gap:10px}\n.box{border:1px solid var(--border);border-radius:3px;background:#fff;overflow:hidden;flex:none}\n.bh{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border-soft);background:#F7F6F2;font:600 10px var(--mono);letter-spacing:.14em;color:#3D3C38}\n.bh .r{margin-left:auto;font-weight:500;letter-spacing:.04em;color:var(--muted-fg);text-transform:none}\n.bb{padding:9px 10px}\n.q{font-size:13.5px;line-height:1.4}\n.qmeta{margin-top:5px;font:11px var(--mono);color:var(--muted-fg)}\n.prob{display:grid;grid-template-columns:150px 1fr 44px;align-items:center;gap:8px;margin:5px 0}\n.prob .o{font:500 11.5px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.prob .o.win{font-weight:700;color:rgb(var(--c-decision))}\n.prob .p{font:600 11.5px var(--mono);text-align:right}\n.track{position:relative;height:13px;background:#F1F0EB;border-radius:2px;border:1px solid #E6E5DF}\n.fill{position:absolute;left:0;top:0;bottom:0;border-radius:1px}\n.mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed #1A1A19}\n.marklbl{position:absolute;font:600 9.5px var(--mono);color:#1A1A19;white-space:nowrap;transform:translateX(-50%)}\n.kv{display:grid;grid-template-columns:118px 1fr;gap:6px 10px;align-items:center;font-size:12.5px}\n.kv .k{font:600 9.5px var(--mono);letter-spacing:.12em;color:var(--muted-fg)}\n.src{display:inline-flex;align-items:center;gap:6px;font:600 10.5px var(--mono);padding:2px 7px;border-radius:2px;border:1px solid rgb(var(--c-ok)/.45);background:rgb(var(--c-ok)/.08);color:rgb(var(--c-ok))}\n.src i{width:6px;height:6px;border-radius:50%;background:rgb(var(--c-ok))}\n.lnk{font:500 12px var(--mono);color:#6D28D9;text-decoration:none;border-bottom:1px dotted #A78BFA}\n.code{font:12px/1.65 var(--mono);display:grid;grid-template-columns:30px 1fr}\n.code .n{color:#A3A29A;text-align:right;padding-right:10px;user-select:none}\n.code .s{color:#15803D}.code .kk{color:#7C3AED}.code .num{color:#B45309}\n.code .hl{background:#F3F2EE}\n.ev{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed var(--border-soft);font-size:12px}\n.ev:first-child{border-top:0;padding-top:0}\n.ev:last-child{padding-bottom:0}\n.ev .what{color:var(--muted-fg);font:11px var(--mono);margin-left:auto}\n.tiles{display:flex;gap:6px}\n.tiles .tile{flex:1;min-width:0}\n.act{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid rgb(var(--c-ok)/.45);background:rgb(var(--c-ok)/.07);border-radius:3px;font:600 12.5px var(--mono);color:#14532D;flex:none}\n.act .k{white-space:nowrap;font:700 9.5px var(--mono);letter-spacing:.14em;color:rgb(var(--c-ok))}\n.act.steer{border-color:rgb(var(--c-turn)/.45);background:rgb(var(--c-turn)/.07);color:#4C1D95}\n.act.steer .k{color:rgb(var(--c-turn))}\n.typed{font:12px var(--mono);width:100%;border-collapse:collapse;table-layout:fixed}\n.typed col.c1{width:170px}\n.typed td{overflow-wrap:anywhere}\n.typed td{padding:5px 8px;border-top:1px solid var(--border-soft);vertical-align:top}\n.typed tr:first-child td{border-top:0}\n.typed .f{color:#7C3AED;white-space:nowrap}\n.typed .ty{color:#0E7490;white-space:nowrap}\n.typed .v{color:#15803D}\n.typed .ind{padding-left:24px}\n#stage.cards{width:1100px;height:730px;padding:14px;gap:14px;background:var(--bg)}\n.cardpanel{flex:1;min-width:0}\n.cardpanel .detail{height:100%}\n</style>\n</head>\n<body data-select=\"R3\">\n<div id=\"stage\">\n<aside class=\"side\">\n<h1>AGENT KERNEL</h1>\n<nav class=\"nav\">\n<a><i></i>JOBS</a>\n<a class=\"on\"><i></i>TRACE VIEWER</a>\n<a><i></i>AGENT VIEWER</a>\n</nav>\n</aside>\n<div class=\"main\">\n<section class=\"card\">\n<div class=\"hdr\">\n<div class=\"hrow\">\n<button class=\"back\">&#8249;&nbsp;ALL TRACES</button>\n<span class=\"title\">worker-job/fn_8003A1C4</span>\n<span class=\"badge done\">done</span>\n<div class=\"totals\">\n<div class=\"tile\"><div class=\"k\">DURATION</div><div class=\"v\">7m 10s</div></div>\n<div class=\"tile\"><div class=\"k\">COST</div><div class=\"v\">$0.63</div></div>\n<div class=\"tile\"><div class=\"k\">NODES</div><div class=\"v\">2 runs · 3 calls · 2 decisions · 3 steps</div></div>\n</div>\n<button class=\"more\" aria-label=\"Trace actions\">&#8230;</button>\n</div>\n<div class=\"hrow\">\n<span class=\"meta\">target <b>fn_8003A1C4</b> · <b>d_a_player.cpp</b> · harness gamecube-decomp</span>\n<div class=\"legend\">\n<span class=\"lk\">KINDS</span>\n<span class=\"it\"><span class=\"sw\" style=\"background:rgb(var(--c-agent)/.1);border-color:rgb(var(--c-agent)/.5)\"></span>agent run</span>\n<span class=\"it\"><span class=\"sw\" style=\"background:rgb(var(--c-call)/.12);border-color:rgb(var(--c-call)/.55)\"></span>call</span>\n<span class=\"it\"><span class=\"sw\" style=\"background:rgb(var(--c-decision)/.12);border-color:rgb(var(--c-decision)/.55)\"></span>decision</span>\n<span class=\"it\"><span class=\"sw\" style=\"background:rgb(var(--c-step)/.12);border-color:rgb(var(--c-step)/.55)\"></span>code step</span>\n<span class=\"it\"><span class=\"sw\" style=\"background:rgb(var(--c-turn)/.1);border-color:rgb(var(--c-turn)/.5)\"></span>turns</span>\n</div>\n</div>\n</div>\n<div class=\"body\">\n<div class=\"treepane\">\n<div class=\"toolbar\">\n<div class=\"levels\"><span><b>L0</b>Conversation</span><span><b>L1</b>Tools</span><span class=\"on\"><b>L2</b>Full</span><span><b>L3</b>Debug</span></div>\n<button class=\"tb-btn\">COLLAPSE ALL</button>\n<div class=\"axis\" id=\"axis\"><span class=\"lbl\">TIMELINE</span></div>\n</div>\n<div class=\"rows\" id=\"rows\"><div class=\"gridlines\" id=\"grid\"></div></div>\n</div>\n<div class=\"detail\" id=\"detail\"></div>\n</div>\n</section>\n</div>\n<aside class=\"rail\"><span>&#9703; STYLE</span></aside>\n</div>\n<script>\n(function(){\nconst TOTAL=430, WW=178;\nconst C={agent:'--c-agent',call:'--c-call',decision:'--c-decision',step:'--c-step',turn:'--c-turn',container:'--c-agent'};\nconst KB={agent:'AGENT',call:'CALL',decision:'DECIDE',step:'STEP'};\nconst IC={\ncontainer:'<path d=\"M21 8 12 3 3 8v8l9 5 9-5z\"/><path d=\"M3 8l9 5 9-5M12 13v8\"/>',\nagent:'<rect x=\"4\" y=\"8\" width=\"16\" height=\"12\" rx=\"2\"/><path d=\"M12 8V4M8 4h8\"/><circle cx=\"9\" cy=\"14\" r=\"1\"/><circle cx=\"15\" cy=\"14\" r=\"1\"/>',\ncall:'<path d=\"M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 0 2 2 2 2 0 0 0-2 2v5a2 2 0 0 1-2 2h-1\"/>',\ndecision:'<path d=\"M6 3v6a3 3 0 0 0 3 3h9M6 21v-6a3 3 0 0 1 3-3\"/><path d=\"M15 9l3 3-3 3\"/>',\nstep:'<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M7 10l3 2-3 2M13 15h4\"/>',\nturn:'<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M3 9h18\"/>'\n};\nconst svg=(k,c)=>`<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"${c||'currentColor'}\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\">${IC[k]}</svg>`;\nconst N=[\n{id:'C',depth:0,kind:'container',label:'worker-job/fn_8003A1C4',chips:[['fn_8003A1C4','dim']],s:0,e:430,dur:'7m10s'},\n{id:'R1',rid:'R1',depth:1,kind:'agent',label:'worker #1',chips:[['attempt 1 · system','dim']],s:0,e:252,dur:'4m12s · $0.38'},\n{id:'T1',depth:2,kind:'turn',label:'14 turns, 31 tools',collapsed:true,s:1,e:251,ticks:14},\n{id:'R2',rid:'R2',depth:2,kind:'call',label:'ExtractCheckpointNote',chips:[['partial · 1 advisory','']],s:252,e:253.8,dur:'1.8s'},\n{id:'S1',rid:'S1',depth:2,kind:'step',label:'validate',chips:[['objdiff 97.4%',''],['lint 1 warn','warn']],s:254,e:260.3,dur:'6.3s'},\n{id:'R3',rid:'R3',depth:2,kind:'decision',label:'JudgeAdvisory',chips:[['accepted p=0.91','dec']],s:260.4,e:260.51,dur:'110ms'},\n{id:'R4',rid:'R4',depth:2,kind:'decision',label:'ContinueOrStop',chips:[['retry_new_strategy 0.71','dec']],s:260.6,e:260.7,dur:'95ms',last:true},\n{id:'R5',rid:'R5',depth:1,kind:'agent',label:'worker #2',chips:[['attempt 2 · steer','dim']],s:261,e:421,dur:'2m40s · $0.24',last:true},\n{id:'T2',depth:2,kind:'turn',label:'9 turns, 18 tools',collapsed:true,s:262,e:420,ticks:9},\n{id:'R6',rid:'R6',depth:2,kind:'call',label:'ExtractCheckpointNote',chips:[['complete','']],s:421,e:422.8,dur:'1.8s'},\n{id:'S2',rid:'S2',depth:2,kind:'step',label:'validate',chips:[['objdiff 100% exact','ok'],['lint clean','ok']],s:423,e:428.4,dur:'5.4s'},\n{id:'S3',rid:'S3',depth:2,kind:'step',label:'stop',chips:[['exact + clean','ok']],s:428.5,e:428.52,dur:'20ms'},\n{id:'R7',rid:'R7',depth:2,kind:'call',label:'SummarizeWorkerRun',chips:[['→ knowledge DB','']],s:428.6,e:430,dur:'1.4s',last:true}\n];\nN[0].last=true;\nconst x0=12, IND=24;\nconst px=t=>8+t/TOTAL*WW;\nfunction ancestorsOpen(i){\nconst open=[]; const d=N[i].depth;\nfor(let lv=1;lv<d;lv++){\nlet a=i; while(a>=0 && N[a].depth!==lv) a--; open[lv]=a>=0 && !N[a].last;\n}\nreturn open;\n}\nconst VIEW=document.body.dataset.view||'full';\nlet selected=(location.hash.slice(1)||document.body.dataset.select||'R3');\nif(!N.find(n=>n.id===selected)) selected='R3';\nconst rowsEl=document.getElementById('rows');\nfunction renderGrid(){\nconst g=document.getElementById('grid'); const ax=document.getElementById('axis');\nlet gh='', ah='<span class=\"lbl\">TIMELINE</span>';\nfor(let m=0;m<=7;m++){ const x=px(m*60); gh+=`<i style=\"left:${x}px\"></i>`; ah+=`<span class=\"t\" style=\"left:${x}px\">${m===0?'0':m+'m'}</span>`; }\ng.innerHTML=gh; ax.innerHTML=ah;\n}\nfunction renderRows(){\nrowsEl.querySelectorAll('.row').forEach(r=>r.remove());\nN.forEach((n,i)=>{\nconst r=document.createElement('div'); r.className='row'+(n.id===selected?' sel':''); r.dataset.id=n.id;\nconst col=`var(${C[n.kind]})`;\nconst left=x0+n.depth*IND+22;\nlet lines='';\nconst open=ancestorsOpen(i);\nfor(let lv=1;lv<n.depth;lv++) if(open[lv]) lines+=`<span class=\"ln\" style=\"left:${x0+(lv-1)*IND+30}px;top:0;bottom:0;border-left-width:1px\"></span>`;\nif(n.depth>0){ const lx=x0+(n.depth-1)*IND+30;\nlines+=`<span class=\"ln\" style=\"left:${lx}px;top:0;height:${n.last?17:35}px;border-left-width:1px\"></span>`;\nlines+=`<span class=\"ln\" style=\"left:${lx}px;top:17px;width:${left-lx-(hasKids(i)?22:0)}px;border-top-width:1px\"></span>`; }\nconst chev = hasKids(i)? `<span class=\"chev\" style=\"left:${left-21}px;top:8px\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\"><path d=\"M6 9l6 6 6-6\"/></svg></span>` :\nn.collapsed? `<span class=\"chev\" style=\"left:${left-21}px;top:8px\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\"><path d=\"M9 6l6 6-6 6\"/></svg></span>`:'';\nconst neutral = n.kind==='container'||n.kind==='agent';\nconst cardStyle = neutral? `border-color:rgb(${n.kind==='agent'?'82 81 78/.55':'223 222 215'});background:${n.kind==='agent'?'rgb(82 81 78/.06)':'#fff'}` : `border-color:rgb(${col}/.45);background:rgb(${col}/.1)`;\nconst capStyle = `border-color:${neutral?'rgb(223 222 215)':'rgb('+col+'/.35)'};color:rgb(${col})`;\nconst kb = KB[n.kind]? `<span class=\"kb\" style=\"color:rgb(${col});border-color:rgb(${col}/.45);background:#fff\">${KB[n.kind]}</span>`:'';\nconst rid = n.rid? `<span class=\"rid\">${n.rid}</span>`:'';\nconst chips=(n.chips||[]).map(([t,c])=>`<span class=\"chip ${c}\">${t}</span>`).join('');\nlet wf='';\nconst bx=px(n.s), bw=Math.max(px(n.e-n.s)-8,2);\nif(n.kind==='decision'){ wf=`<span class=\"dia\" style=\"left:${bx}px;background:rgb(${col}/.85);border-color:rgb(${col})\"></span><span class=\"dur\" style=\"left:${bx+9}px\">${n.dur}</span>`; }\nelse if(n.kind==='turn'){ let t=''; for(let k=0;k<n.ticks;k++){ t+=`<i style=\"left:${(k/(n.ticks))*bw}px;background:rgb(${col}/.7)\"></i>`; }\nwf=`<span class=\"bar thin\" style=\"left:${bx}px;width:${bw}px;background:rgb(${col}/.12);border-color:rgb(${col}/.3)\"></span><span class=\"ticks\" style=\"left:${bx}px;width:${bw}px\">${t}</span>`; }\nelse { const fill = n.kind==='container'? 'rgb(82 81 78/.14)' : `rgb(${col}/${n.kind==='agent'?'.32':'.6'})`; const bc=n.kind==='container'?'rgb(82 81 78/.35)':`rgb(${col}/.85)`;\nconst lw=n.dur.length*6.2+6;\nlet lab;\nif(bx+bw+5+lw<=WW+10) lab=`<span class=\"dur\" style=\"left:${bx+bw+5}px\">${n.dur}</span>`;\nelse if(bw>lw+8) lab=`<span class=\"dur\" style=\"left:${bx+bw-lw-2}px;color:#2B2A27\">${n.dur}</span>`;\nelse lab=`<span class=\"dur\" style=\"left:${bx-lw-3}px\">${n.dur}</span>`;\nwf=`<span class=\"bar\" style=\"left:${bx}px;width:${bw}px;background:${fill};border-color:${bc}\"></span>`+lab; }\nr.innerHTML=`<div class=\"tcell\">${lines}${chev}<span style=\"position:absolute;left:${left}px;display:flex;align-items:center;max-width:${490-left}px\"><span class=\"cardx\" style=\"${cardStyle}\"><span class=\"cap\" style=\"${capStyle}\">${svg(n.kind)}</span><span class=\"lab\">${rid}<span>${n.label}</span>${kb}</span></span><span class=\"chips\">${chips}</span></span></div><div class=\"wcell\">${wf}</div>`;\nr.addEventListener('click',()=>{selected=n.id;renderRows();renderDetail();});\nrowsEl.appendChild(r);\n});\n}\nfunction hasKids(i){ return i+1<N.length && N[i+1].depth>N[i].depth && !N[i].collapsed; }\nconst codeJSON=(lines)=>`<div class=\"code\">${lines.map((l,i)=>`<span class=\"n\">${i+1}</span><span class=\"${l[1]||''}\">${l[0]}</span>`).join('')}</div>`;\nconst K=s=>`<span class=\"kk\">\"${s}\"</span>`, S=s=>`<span class=\"s\">\"${s}\"</span>`;\nfunction probRows(opts,mark,markLabel){\nreturn `<div style=\"position:relative;padding-top:14px\">${opts.map(([o,p,win])=>`<div class=\"prob\"><span class=\"o ${win?'win':''}\">${win?'&#9656; ':''}${o}</span><div class=\"track\"><div class=\"fill\" style=\"width:${p*100}%;background:rgb(var(--c-decision)/${win?'.85':'.28'})\"></div>${mark===null?'':`<div class=\"mark\" style=\"left:${mark*100}%\"></div>`}</div><span class=\"p\">${p.toFixed(2)}</span></div>`).join('')}\n<span class=\"marklbl\" style=\"top:0;left:calc(158px + (100% - 210px) * ${mark})\">${markLabel}</span></div>`;\n}\nfunction head(n){\nconst col=`var(${C[n.kind]})`;\nreturn `<div class=\"dh\"><span class=\"ic\" style=\"color:rgb(${col})\">${svg(n.kind)}</span><span class=\"nm\">${n.label}</span>${KB[n.kind]?`<span class=\"kb\" style=\"color:rgb(${col});border-color:rgb(${col}/.45)\">${KB[n.kind]}</span>`:''}<span class=\"rid\">${n.rid||''}</span><span class=\"det\">DETAILS</span></div>`;\n}\nconst D={\nR3:()=>`<div class=\"db\">\n<div class=\"box\"><div class=\"bh\">QUESTION<span class=\"r\">justified · binary · trigger judge</span></div><div class=\"bb\">\n<div class=\"q\">Is the <code style=\"font-family:var(--mono);font-size:12.5px\">type_erasing_cast</code> advisory justified by the original assembly?</div>\n${probRows([['justified',0.91,true],['not justified',0.09,false]],0.85,'threshold 0.85')}\n</div></div>\n<div class=\"box\"><div class=\"bb kv\">\n<span class=\"k\">VERDICT</span><span><span class=\"chip dec\" style=\"font-size:12px\">accepted</span> <span class=\"meta\">p=0.91 ≥ 0.85</span></span>\n<span class=\"k\">CONFIDENCE</span><span><span class=\"src\"><i></i>native (jev-1.13.0)</span></span>\n<span class=\"k\">DECIDED FOR</span><span><a class=\"lnk\">worker #1 (R1)</a> <span class=\"meta\">parentRunId</span></span>\n</div></div>\n<div class=\"box\"><div class=\"bh\">INPUT STATE<span class=\"r\">from R2 keptAdvisories[0]</span></div><div class=\"bb\" style=\"padding:7px 4px\">\n${codeJSON([['{'],['&nbsp;&nbsp;'+K('rule')+': '+S('type_erasing_cast')+','],['&nbsp;&nbsp;'+K('hunk')+': '+S('(u32)this->mpActor')+',','hl'],['&nbsp;&nbsp;'+K('justification')+': '+S('original asm loads the field as u32; only matches with the cast')],['}']])}\n</div></div>\n<div class=\"box\"><div class=\"bh\">EVIDENCE<span class=\"r\">2 links</span></div><div class=\"bb\">\n<div class=\"ev\"><span class=\"kb\" style=\"color:rgb(var(--c-call));border-color:rgb(var(--c-call)/.45)\">CALL</span><a class=\"lnk\">R2 ExtractCheckpointNote</a><span class=\"what\">output blob sha256:4be19a…</span></div>\n<div class=\"ev\"><span class=\"kb\" style=\"color:rgb(var(--c-step));border-color:rgb(var(--c-step)/.45)\">STEP</span><a class=\"lnk\">S1 validate</a><span class=\"what\">review_lint · llm_review warning</span></div>\n</div></div>\n<div class=\"tiles\">\n<div class=\"tile\"><div class=\"k\">LATENCY</div><div class=\"v\">110 ms</div></div>\n<div class=\"tile\"><div class=\"k\">INPUT</div><div class=\"v\">1,412 tok</div></div>\n<div class=\"tile\"><div class=\"k\">OUTPUT</div><div class=\"v\">0</div></div>\n<div class=\"tile\"><div class=\"k\">COST</div><div class=\"v\">$0.00006</div></div>\n</div>\n<div class=\"act\"><span class=\"k\">HARNESS ACTION</span><span>accepted advisory &#8594; hard gates pass</span></div>\n</div>`,\nR4:()=>`<div class=\"db\">\n<div class=\"box\"><div class=\"bh\">QUESTION<span class=\"r\">next · choice · trigger judge</span></div><div class=\"bb\">\n<div class=\"q\">The worker reached objdiff 97.4% with all gates passing. Retry the same approach, retry with a new strategy, or stop as blocked?</div>\n${probRows([['retry_same_approach',0.21,false],['retry_new_strategy',0.71,true],['stop_blocked',0.08,false]],null,'')}\n</div></div>\n<div class=\"box\"><div class=\"bh\">CONFIDENCE<span class=\"r\">abstainBelow 0.5</span></div><div class=\"bb\">\n<div style=\"position:relative;padding-top:14px\"><div class=\"prob\" style=\"grid-template-columns:150px 1fr 44px\"><span class=\"o\">confidence</span><div class=\"track\"><div class=\"fill\" style=\"width:64%;background:rgb(var(--c-ok)/.6)\"></div><div class=\"mark\" style=\"left:50%\"></div></div><span class=\"p\">0.64</span></div>\n<span class=\"marklbl\" style=\"top:0;left:calc(158px + (100% - 210px) * .5)\">floor 0.5</span></div>\n<div class=\"kv\" style=\"margin-top:8px\">\n<span class=\"k\">SOURCE</span><span><span class=\"src\"><i></i>native (jev)</span></span>\n<span class=\"k\">ABSTAINED</span><span class=\"meta\"><b>false</b> · 0.64 ≥ floor 0.5</span>\n<span class=\"k\">DECIDED FOR</span><span><a class=\"lnk\">worker #1 (R1)</a></span>\n</div>\n</div></div>\n<div class=\"box\"><div class=\"bh\">INPUT STATE<span class=\"r\">built in harness code</span></div><div class=\"bb\" style=\"padding:7px 4px\">\n${codeJSON([['{'],['&nbsp;&nbsp;'+K('attempt')+': <span class=\"num\">1</span>,'],['&nbsp;&nbsp;'+K('objdiff')+': <span class=\"num\">97.4</span>,','hl'],['&nbsp;&nbsp;'+K('gates')+': '+S('5/5')+','],['&nbsp;&nbsp;'+K('advisory')+': '+S('accepted (R3)')+','],['&nbsp;&nbsp;'+K('checkpoint')+': '+S('partial (R2)')],['}']])}\n</div></div>\n<div class=\"tiles\">\n<div class=\"tile\"><div class=\"k\">LATENCY</div><div class=\"v\">95 ms</div></div>\n<div class=\"tile\"><div class=\"k\">INPUT</div><div class=\"v\">968 tok</div></div>\n<div class=\"tile\"><div class=\"k\">OUTPUT</div><div class=\"v\">0</div></div>\n<div class=\"tile\"><div class=\"k\">COST</div><div class=\"v\">$0.00004</div></div>\n</div>\n<div class=\"act steer\"><span class=\"k\">HARNESS ACTION</span><span>steer session &#8594; worker #2 (R5)</span></div>\n</div>`,\nR2:()=>`<div class=\"db\">\n<div class=\"box\"><div class=\"bb kv\">\n<span class=\"k\">FUNCTION</span><span style=\"font:500 12.5px var(--mono)\">ExtractCheckpointNote</span>\n<span class=\"k\">ENGINE</span><span><span class=\"chip\" style=\"color:rgb(var(--c-call));border-color:rgb(var(--c-call)/.45)\">baml</span> <span class=\"meta\">trigger post-run</span></span>\n<span class=\"k\">PARENT RUN</span><span><a class=\"lnk\">worker #1 (R1)</a> <span class=\"meta\">14 turns, 31 tools</span></span>\n</div></div>\n<div class=\"box\"><div class=\"bh\">OUTPUT<span class=\"r\">typed · CheckpointNote</span></div>\n<table class=\"typed\"><colgroup><col class=\"c1\"><col></colgroup><tr><td class=\"\"><div class=\"f\">status</div><div class=\"ty\" style=\"font-size:10.5px\">enum CheckpointStatus</div></td><td class=\"v\">\"partial\"</td></tr><tr><td class=\"\"><div class=\"f\">keptAdvisories</div><div class=\"ty\" style=\"font-size:10.5px\">KeptAdvisory[]</div></td><td class=\"v\" style=\"color:var(--muted-fg)\">1 item</td></tr><tr><td class=\"ind\"><div class=\"f\">[0].rule</div><div class=\"ty\" style=\"font-size:10.5px\">string</div></td><td class=\"v\">\"type_erasing_cast\"</td></tr><tr><td class=\"ind\"><div class=\"f\">[0].hunk</div><div class=\"ty\" style=\"font-size:10.5px\">string</div></td><td class=\"v\">\"(u32)this-&gt;mpActor\"</td></tr><tr><td class=\"ind\"><div class=\"f\">[0].justification</div><div class=\"ty\" style=\"font-size:10.5px\">string</div></td><td class=\"v\">\"original asm loads the field as u32; only matches with the cast\"</td></tr></table>\n</div>\n<div class=\"box\"><div class=\"bh\">RAW JSON<span class=\"r\">blob sha256:4be19a…</span></div><div class=\"bb\" style=\"padding:7px 4px\">\n${codeJSON([['{'],['&nbsp;&nbsp;'+K('status')+': '+S('partial')+','],['&nbsp;&nbsp;'+K('keptAdvisories')+': [{'],['&nbsp;&nbsp;&nbsp;&nbsp;'+K('rule')+': '+S('type_erasing_cast')+','],['&nbsp;&nbsp;&nbsp;&nbsp;'+K('hunk')+': '+S('(u32)this->mpActor')+','],['&nbsp;&nbsp;&nbsp;&nbsp;'+K('justification')+': '+S('original asm loads the field as u32; only…')],['&nbsp;&nbsp;}]'],['}']])}\n</div></div>\n<div class=\"tiles\">\n<div class=\"tile\"><div class=\"k\">LATENCY</div><div class=\"v\">1.8 s</div></div>\n<div class=\"tile\"><div class=\"k\">INPUT</div><div class=\"v\">11,240 tok</div></div>\n<div class=\"tile\"><div class=\"k\">OUTPUT</div><div class=\"v\">96 tok</div></div>\n<div class=\"tile\"><div class=\"k\">COST</div><div class=\"v\">$0.004</div></div>\n</div>\n<div class=\"act\"><span class=\"k\">USED BY</span><span>R3 JudgeAdvisory input state</span></div>\n</div>`\n};\nfunction generic(n){\nconst rows=[['KIND',KB[n.kind]||n.kind],['NODE',n.rid||n.id],['DURATION',n.dur||'n/a'],['RESULT',(n.chips||[]).map(c=>c[0]).join(' · ')||'n/a']];\nreturn `<div class=\"db\"><div class=\"box\"><div class=\"bh\">SUMMARY</div><div class=\"bb kv\">${rows.map(([k,v])=>`<span class=\"k\">${k}</span><span style=\"font:12.5px var(--mono)\">${v}</span>`).join('')}</div></div><div class=\"meta\">Select R2, R3, or R4 for the full mockup cards.</div></div>`;\n}\nfunction renderDetail(){\nconst n=N.find(x=>x.id===selected);\ndocument.getElementById('detail').innerHTML=head(n)+(D[n.id]?D[n.id]():generic(n));\n}\nwindow.addEventListener('hashchange',()=>{const h=location.hash.slice(1); if(N.find(n=>n.id===h)){selected=h;renderRows();renderDetail();}});\nif(VIEW==='cards'){\nconst st=document.getElementById('stage'); st.className='cards';\nst.innerHTML=['R4','R2'].map(id=>{const n=N.find(x=>x.id===id);return `<section class=\"card cardpanel\"><div class=\"detail\">${head(n)}${D[id]()}</div></section>`;}).join('');\n} else { renderGrid(); renderRows(); renderDetail(); }\n})();\n</script>\n</body>\n</html>",
+        "title": "Trace viewer mockup with R3 JudgeAdvisory selected"
+      },
+      "children": []
+    },
+    "tu-read-lead": {
+      "id": "tu-read-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "How to read it:"
+        }
+      ],
+      "children": []
+    },
+    "tu-read-1": {
+      "id": "tu-read-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Each row is one node. Its badge names the kind: "
+        },
+        {
+          "insert": "AGENT",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "CALL",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "DECIDE",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or "
+        },
+        {
+          "insert": "STEP",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Purple rows are an agent run's turns, collapsed to a count such as \"14 turns, 31 tools\"."
+        }
+      ],
+      "children": []
+    },
+    "tu-read-2": {
+      "id": "tu-read-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Calls, decisions, and steps sit under the worker run they serve, R1 or R5. The link is "
+        },
+        {
+          "insert": "parentRunId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", not a tool call."
+        }
+      ],
+      "children": []
+    },
+    "tu-read-3": {
+      "id": "tu-read-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Chips show each result inline. A decision shows its choice, such as \"accepted p=0.91\". A code step shows its key number, such as \"objdiff 97.4%\"."
+        }
+      ],
+      "children": []
+    },
+    "tu-read-4": {
+      "id": "tu-read-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The timeline column places every node on the job clock. Decisions take about 100 ms, so they draw as diamonds."
+        }
+      ],
+      "children": []
+    },
+    "tu-read-5": {
+      "id": "tu-read-5",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The right panel is the decision card. It shows the probability bars against the 0.85 threshold, the native confidence source (jev-1.13.0), the run it decided for, the input state, evidence links, usage, and the harness action."
+        }
+      ],
+      "children": []
+    },
+    "tu-h-second": {
+      "id": "tu-h-second",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Other Node Cards"
+        }
+      ],
+      "children": []
+    },
+    "tu-second-lead": {
+      "id": "tu-second-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "R4 "
+        },
+        {
+          "insert": "ContinueOrStop",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " uses the same decision card with three options. Its marker is the 0.5 confidence floor, and 0.64 clears it. R2 "
+        },
+        {
+          "insert": "ExtractCheckpointNote",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " shows the call card: the typed output field by field, then the raw JSON."
+        }
+      ],
+      "children": []
+    },
+    "tu-mock-cards": {
+      "id": "tu-mock-cards",
+      "type": "html",
+      "props": {
+        "allowScripts": true,
+        "height": 730,
+        "html": "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Decision and call cards: R4 and R2</title>\n<style>\n:root{\n--bg:#F9F9F7; --panel:#FAFAF8; --fg:#1A1A19; --muted-fg:#6B6A64; --faint:#9A988F;\n--border:#DFDED7; --border-soft:#E9E8E2; --muted:#F1F0EB; --hover:#F4F3EE;\n--sel:42 120 214;\n--c-agent:82 81 78; --c-call:13 116 144; --c-decision:190 24 93; --c-step:71 85 105;\n--c-turn:124 58 237; --c-ok:21 125 89; --c-warn:180 83 9; --c-tool:194 65 12;\n--mono:\"JetBrains Mono\",\"IBM Plex Mono\",\"Geist Mono\",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;\n--sans:\"TX-02\",ui-sans-serif,system-ui,-apple-system,\"Segoe UI\",sans-serif;\n}\n*{box-sizing:border-box}\nhtml,body{margin:0;width:1100px;height:730px}\nbody{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased;overflow:hidden}\n#stage{width:1440px;height:900px;display:flex;transform-origin:0 0}\nbutton{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}\n.side{width:210px;flex:none;border-right:1px solid var(--border);display:flex;flex-direction:column}\n.side h1{margin:0;height:46px;display:flex;align-items:center;justify-content:center;font:600 13px var(--mono);letter-spacing:.22em;border-bottom:1px solid var(--border)}\n.nav{padding:8px 7px;display:flex;flex-direction:column;gap:3px}\n.nav a{display:flex;align-items:center;gap:10px;height:38px;padding:0 12px;border-radius:3px;font:500 12px var(--mono);letter-spacing:.12em;color:#4A4944;text-decoration:none;border:1px solid transparent}\n.nav a i{width:5px;height:5px;border-radius:50%;background:#C9C8C0}\n.nav a.on{background:#EEF5F0;border-color:#BFDCCB;color:#1A1A19}\n.nav a.on i{background:#2F7D57}\n.rail{width:46px;flex:none;border-left:1px solid var(--border);display:flex;align-items:center;justify-content:center}\n.rail span{writing-mode:vertical-rl;font:600 10px var(--mono);letter-spacing:.22em;color:#4A4944}\n.main{flex:1;min-width:0;padding:14px}\n.card{height:100%;border:1px solid var(--border);border-radius:8px;background:var(--panel);display:flex;flex-direction:column;overflow:hidden}\n.hdr{border-bottom:1px solid var(--border);padding:9px 12px 8px;display:flex;flex-direction:column;gap:7px}\n.hrow{display:flex;align-items:center;gap:12px;min-width:0}\n.back{height:26px;padding:0 10px;border:1px solid var(--border);border-radius:3px;font:600 10.5px var(--mono);letter-spacing:.14em;color:#3D3C38;display:flex;align-items:center;gap:6px;background:#fff}\n.title{font-weight:600;font-size:15px;letter-spacing:-.005em}\n.badge{font:600 9.5px var(--mono);letter-spacing:.12em;padding:2px 6px;border-radius:2px;border:1px solid;text-transform:uppercase}\n.badge.done{color:rgb(var(--c-ok));border-color:rgb(var(--c-ok)/.4);background:rgb(var(--c-ok)/.08)}\n.meta{font:12px var(--mono);color:var(--muted-fg)}\n.meta b{color:var(--fg);font-weight:500}\n.totals{margin-left:auto;display:flex;gap:6px}\n.tile{border:1px solid var(--border);border-radius:3px;padding:3px 9px 4px;background:#fff;min-width:64px}\n.tile .k{font:600 9px var(--mono);letter-spacing:.14em;color:var(--muted-fg)}\n.tile .v{font:600 13px var(--mono)}\n.more{width:28px;height:22px;border:1px solid var(--border);border-radius:3px;display:grid;place-items:center;font:12px var(--mono);background:#fff}\n.legend{margin-left:auto;display:flex;align-items:center;gap:12px;font:500 10.5px var(--mono);letter-spacing:.06em;color:#4A4944}\n.legend .lk{font:600 9px var(--mono);letter-spacing:.16em;color:var(--faint)}\n.legend span.it{display:flex;align-items:center;gap:5px}\n.sw{width:11px;height:11px;border-radius:2px;border:1px solid}\n.body{flex:1;min-height:0;display:flex}\n.treepane{width:692px;flex:none;border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0}\n.toolbar{height:46px;flex:none;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:1px solid var(--border)}\n.levels{display:flex;border:1px solid var(--border);border-radius:3px;overflow:hidden;background:#fff}\n.levels span{font:500 11px var(--mono);padding:6px 9px;color:#4A4944;border-right:1px solid var(--border)}\n.levels span:last-child{border-right:0}\n.levels span b{font-weight:700;margin-right:3px}\n.levels span.on{background:#EEF5F0;color:#2F7D57}\n.tb-btn{font:600 9.5px var(--mono);letter-spacing:.14em;border:1px solid var(--border);border-radius:3px;padding:6px 9px;background:#fff;color:#4A4944}\n.axis{margin-left:auto;width:190px;margin-right:0;position:relative;height:100%;border-left:1px solid var(--border-soft)}\n.axis .t{position:absolute;bottom:7px;font:10px var(--mono);color:var(--faint);transform:translateX(-50%)}\n.axis .lbl{position:absolute;top:7px;left:8px;font:600 9px var(--mono);letter-spacing:.14em;color:var(--faint)}\n.rows{flex:1;min-height:0;overflow:hidden;padding:10px 0 10px;position:relative}\n.gridlines{position:absolute;top:0;bottom:0;right:12px;width:190px;pointer-events:none}\n.gridlines i{position:absolute;top:0;bottom:0;border-left:1px dashed #ECEBE5}\n.row{display:flex;align-items:center;height:35px;position:relative;cursor:pointer}\n.row:hover .cardx{background-color:rgb(0 0 0/.02)}\n.row.sel::before{content:\"\";position:absolute;left:0;top:5px;bottom:5px;width:3px;background:rgb(var(--sel))}\n.tcell{width:490px;flex:none;position:relative;height:100%;display:flex;align-items:center;min-width:0}\n.wcell{margin-left:auto;width:190px;margin-right:12px;position:relative;height:100%;border-left:1px solid var(--border-soft)}\n.ln{position:absolute;border-color:#C9C8C0;border-style:solid;border-width:0}\n.chev{position:absolute;width:18px;height:18px;display:grid;place-items:center;color:#55544F}\n.cardx{display:inline-flex;align-items:stretch;height:24px;border:1px solid;border-radius:2px;overflow:hidden;white-space:nowrap;flex:none;position:relative}\n.cap{width:23px;flex:none;display:grid;place-items:center;border-right:1px solid}\n.cap svg{width:13px;height:13px}\n.lab{display:flex;align-items:center;gap:7px;padding:0 8px 0 7px;font:500 12.5px var(--mono)}\n.rid{font:500 10.5px var(--mono);color:var(--faint)}\n.kb{font:700 8.5px var(--mono);letter-spacing:.1em;padding:1px 3px;border-radius:2px;border:1px solid}\n.chips{display:flex;gap:5px;margin-left:7px;min-width:0;overflow:hidden}\n.chip{font:500 10.5px var(--mono);padding:2px 5px;border-radius:2px;border:1px solid var(--border);background:#fff;color:#3D3C38;white-space:nowrap;flex:none}\n.chip.dec{color:rgb(var(--c-decision));border-color:rgb(var(--c-decision)/.4);background:rgb(var(--c-decision)/.07);font-weight:600}\n.chip.ok{color:rgb(var(--c-ok));border-color:rgb(var(--c-ok)/.4);background:rgb(var(--c-ok)/.07)}\n.chip.warn{color:rgb(var(--c-warn));border-color:rgb(var(--c-warn)/.45);background:rgb(var(--c-warn)/.08)}\n.chip.dim{color:var(--muted-fg);background:transparent}\n.sel .cardx{box-shadow:inset 0 0 0 2px rgb(var(--sel));background:rgb(var(--sel)/.12)!important}\n.bar{position:absolute;top:12px;height:11px;border-radius:2px;border:1px solid}\n.bar.thin{top:15px;height:5px}\n.dia{position:absolute;top:12px;width:10px;height:10px;transform:translateX(-5px) rotate(45deg);border:1px solid}\n.dur{position:absolute;top:10px;font:10px var(--mono);color:var(--muted-fg);white-space:nowrap}\n.ticks{position:absolute;top:13px;height:9px}\n.ticks i{position:absolute;top:0;width:1px;height:9px}\n.detail{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}\n.dh{height:46px;flex:none;display:flex;align-items:center;gap:9px;padding:0 16px;border-bottom:1px solid var(--border)}\n.dh .ic{width:15px;height:15px}\n.dh .nm{font:600 14px var(--mono)}\n.dh .det{margin-left:auto;font:600 10px var(--mono);letter-spacing:.14em;color:var(--muted-fg)}\n.db{flex:1;min-height:0;overflow:hidden;padding:12px 14px;display:flex;flex-direction:column;gap:10px}\n.box{border:1px solid var(--border);border-radius:3px;background:#fff;overflow:hidden;flex:none}\n.bh{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border-soft);background:#F7F6F2;font:600 10px var(--mono);letter-spacing:.14em;color:#3D3C38}\n.bh .r{margin-left:auto;font-weight:500;letter-spacing:.04em;color:var(--muted-fg);text-transform:none}\n.bb{padding:9px 10px}\n.q{font-size:13.5px;line-height:1.4}\n.qmeta{margin-top:5px;font:11px var(--mono);color:var(--muted-fg)}\n.prob{display:grid;grid-template-columns:150px 1fr 44px;align-items:center;gap:8px;margin:5px 0}\n.prob .o{font:500 11.5px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.prob .o.win{font-weight:700;color:rgb(var(--c-decision))}\n.prob .p{font:600 11.5px var(--mono);text-align:right}\n.track{position:relative;height:13px;background:#F1F0EB;border-radius:2px;border:1px solid #E6E5DF}\n.fill{position:absolute;left:0;top:0;bottom:0;border-radius:1px}\n.mark{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed #1A1A19}\n.marklbl{position:absolute;font:600 9.5px var(--mono);color:#1A1A19;white-space:nowrap;transform:translateX(-50%)}\n.kv{display:grid;grid-template-columns:118px 1fr;gap:6px 10px;align-items:center;font-size:12.5px}\n.kv .k{font:600 9.5px var(--mono);letter-spacing:.12em;color:var(--muted-fg)}\n.src{display:inline-flex;align-items:center;gap:6px;font:600 10.5px var(--mono);padding:2px 7px;border-radius:2px;border:1px solid rgb(var(--c-ok)/.45);background:rgb(var(--c-ok)/.08);color:rgb(var(--c-ok))}\n.src i{width:6px;height:6px;border-radius:50%;background:rgb(var(--c-ok))}\n.lnk{font:500 12px var(--mono);color:#6D28D9;text-decoration:none;border-bottom:1px dotted #A78BFA}\n.code{font:12px/1.65 var(--mono);display:grid;grid-template-columns:30px 1fr}\n.code .n{color:#A3A29A;text-align:right;padding-right:10px;user-select:none}\n.code .s{color:#15803D}.code .kk{color:#7C3AED}.code .num{color:#B45309}\n.code .hl{background:#F3F2EE}\n.ev{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed var(--border-soft);font-size:12px}\n.ev:first-child{border-top:0;padding-top:0}\n.ev:last-child{padding-bottom:0}\n.ev .what{color:var(--muted-fg);font:11px var(--mono);margin-left:auto}\n.tiles{display:flex;gap:6px}\n.tiles .tile{flex:1;min-width:0}\n.act{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid rgb(var(--c-ok)/.45);background:rgb(var(--c-ok)/.07);border-radius:3px;font:600 12.5px var(--mono);color:#14532D;flex:none}\n.act .k{white-space:nowrap;font:700 9.5px var(--mono);letter-spacing:.14em;color:rgb(var(--c-ok))}\n.act.steer{border-color:rgb(var(--c-turn)/.45);background:rgb(var(--c-turn)/.07);color:#4C1D95}\n.act.steer .k{color:rgb(var(--c-turn))}\n.typed{font:12px var(--mono);width:100%;border-collapse:collapse;table-layout:fixed}\n.typed col.c1{width:170px}\n.typed td{overflow-wrap:anywhere}\n.typed td{padding:5px 8px;border-top:1px solid var(--border-soft);vertical-align:top}\n.typed tr:first-child td{border-top:0}\n.typed .f{color:#7C3AED;white-space:nowrap}\n.typed .ty{color:#0E7490;white-space:nowrap}\n.typed .v{color:#15803D}\n.typed .ind{padding-left:24px}\n#stage.cards{width:1100px;height:730px;padding:14px;gap:14px;background:var(--bg)}\n.cardpanel{flex:1;min-width:0}\n.cardpanel .detail{height:100%}\n</style>\n</head>\n<body data-view=\"cards\">\n<div id=\"stage\"></div>\n<script>\n(function(){\nconst TOTAL=430, WW=178;\nconst C={agent:'--c-agent',call:'--c-call',decision:'--c-decision',step:'--c-step',turn:'--c-turn',container:'--c-agent'};\nconst KB={agent:'AGENT',call:'CALL',decision:'DECIDE',step:'STEP'};\nconst IC={\ncontainer:'<path d=\"M21 8 12 3 3 8v8l9 5 9-5z\"/><path d=\"M3 8l9 5 9-5M12 13v8\"/>',\nagent:'<rect x=\"4\" y=\"8\" width=\"16\" height=\"12\" rx=\"2\"/><path d=\"M12 8V4M8 4h8\"/><circle cx=\"9\" cy=\"14\" r=\"1\"/><circle cx=\"15\" cy=\"14\" r=\"1\"/>',\ncall:'<path d=\"M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 0 2 2 2 2 0 0 0-2 2v5a2 2 0 0 1-2 2h-1\"/>',\ndecision:'<path d=\"M6 3v6a3 3 0 0 0 3 3h9M6 21v-6a3 3 0 0 1 3-3\"/><path d=\"M15 9l3 3-3 3\"/>',\nstep:'<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M7 10l3 2-3 2M13 15h4\"/>',\nturn:'<rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2\"/><path d=\"M3 9h18\"/>'\n};\nconst svg=(k,c)=>`<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"${c||'currentColor'}\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\">${IC[k]}</svg>`;\nconst N=[\n{id:'C',depth:0,kind:'container',label:'worker-job/fn_8003A1C4',chips:[['fn_8003A1C4','dim']],s:0,e:430,dur:'7m10s'},\n{id:'R1',rid:'R1',depth:1,kind:'agent',label:'worker #1',chips:[['attempt 1 · system','dim']],s:0,e:252,dur:'4m12s · $0.38'},\n{id:'T1',depth:2,kind:'turn',label:'14 turns, 31 tools',collapsed:true,s:1,e:251,ticks:14},\n{id:'R2',rid:'R2',depth:2,kind:'call',label:'ExtractCheckpointNote',chips:[['partial · 1 advisory','']],s:252,e:253.8,dur:'1.8s'},\n{id:'S1',rid:'S1',depth:2,kind:'step',label:'validate',chips:[['objdiff 97.4%',''],['lint 1 warn','warn']],s:254,e:260.3,dur:'6.3s'},\n{id:'R3',rid:'R3',depth:2,kind:'decision',label:'JudgeAdvisory',chips:[['accepted p=0.91','dec']],s:260.4,e:260.51,dur:'110ms'},\n{id:'R4',rid:'R4',depth:2,kind:'decision',label:'ContinueOrStop',chips:[['retry_new_strategy 0.71','dec']],s:260.6,e:260.7,dur:'95ms',last:true},\n{id:'R5',rid:'R5',depth:1,kind:'agent',label:'worker #2',chips:[['attempt 2 · steer','dim']],s:261,e:421,dur:'2m40s · $0.24',last:true},\n{id:'T2',depth:2,kind:'turn',label:'9 turns, 18 tools',collapsed:true,s:262,e:420,ticks:9},\n{id:'R6',rid:'R6',depth:2,kind:'call',label:'ExtractCheckpointNote',chips:[['complete','']],s:421,e:422.8,dur:'1.8s'},\n{id:'S2',rid:'S2',depth:2,kind:'step',label:'validate',chips:[['objdiff 100% exact','ok'],['lint clean','ok']],s:423,e:428.4,dur:'5.4s'},\n{id:'S3',rid:'S3',depth:2,kind:'step',label:'stop',chips:[['exact + clean','ok']],s:428.5,e:428.52,dur:'20ms'},\n{id:'R7',rid:'R7',depth:2,kind:'call',label:'SummarizeWorkerRun',chips:[['→ knowledge DB','']],s:428.6,e:430,dur:'1.4s',last:true}\n];\nN[0].last=true;\nconst x0=12, IND=24;\nconst px=t=>8+t/TOTAL*WW;\nfunction ancestorsOpen(i){\nconst open=[]; const d=N[i].depth;\nfor(let lv=1;lv<d;lv++){\nlet a=i; while(a>=0 && N[a].depth!==lv) a--; open[lv]=a>=0 && !N[a].last;\n}\nreturn open;\n}\nconst VIEW=document.body.dataset.view||'full';\nlet selected=(location.hash.slice(1)||document.body.dataset.select||'R3');\nif(!N.find(n=>n.id===selected)) selected='R3';\nconst rowsEl=document.getElementById('rows');\nfunction renderGrid(){\nconst g=document.getElementById('grid'); const ax=document.getElementById('axis');\nlet gh='', ah='<span class=\"lbl\">TIMELINE</span>';\nfor(let m=0;m<=7;m++){ const x=px(m*60); gh+=`<i style=\"left:${x}px\"></i>`; ah+=`<span class=\"t\" style=\"left:${x}px\">${m===0?'0':m+'m'}</span>`; }\ng.innerHTML=gh; ax.innerHTML=ah;\n}\nfunction renderRows(){\nrowsEl.querySelectorAll('.row').forEach(r=>r.remove());\nN.forEach((n,i)=>{\nconst r=document.createElement('div'); r.className='row'+(n.id===selected?' sel':''); r.dataset.id=n.id;\nconst col=`var(${C[n.kind]})`;\nconst left=x0+n.depth*IND+22;\nlet lines='';\nconst open=ancestorsOpen(i);\nfor(let lv=1;lv<n.depth;lv++) if(open[lv]) lines+=`<span class=\"ln\" style=\"left:${x0+(lv-1)*IND+30}px;top:0;bottom:0;border-left-width:1px\"></span>`;\nif(n.depth>0){ const lx=x0+(n.depth-1)*IND+30;\nlines+=`<span class=\"ln\" style=\"left:${lx}px;top:0;height:${n.last?17:35}px;border-left-width:1px\"></span>`;\nlines+=`<span class=\"ln\" style=\"left:${lx}px;top:17px;width:${left-lx-(hasKids(i)?22:0)}px;border-top-width:1px\"></span>`; }\nconst chev = hasKids(i)? `<span class=\"chev\" style=\"left:${left-21}px;top:8px\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\"><path d=\"M6 9l6 6 6-6\"/></svg></span>` :\nn.collapsed? `<span class=\"chev\" style=\"left:${left-21}px;top:8px\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\"><path d=\"M9 6l6 6-6 6\"/></svg></span>`:'';\nconst neutral = n.kind==='container'||n.kind==='agent';\nconst cardStyle = neutral? `border-color:rgb(${n.kind==='agent'?'82 81 78/.55':'223 222 215'});background:${n.kind==='agent'?'rgb(82 81 78/.06)':'#fff'}` : `border-color:rgb(${col}/.45);background:rgb(${col}/.1)`;\nconst capStyle = `border-color:${neutral?'rgb(223 222 215)':'rgb('+col+'/.35)'};color:rgb(${col})`;\nconst kb = KB[n.kind]? `<span class=\"kb\" style=\"color:rgb(${col});border-color:rgb(${col}/.45);background:#fff\">${KB[n.kind]}</span>`:'';\nconst rid = n.rid? `<span class=\"rid\">${n.rid}</span>`:'';\nconst chips=(n.chips||[]).map(([t,c])=>`<span class=\"chip ${c}\">${t}</span>`).join('');\nlet wf='';\nconst bx=px(n.s), bw=Math.max(px(n.e-n.s)-8,2);\nif(n.kind==='decision'){ wf=`<span class=\"dia\" style=\"left:${bx}px;background:rgb(${col}/.85);border-color:rgb(${col})\"></span><span class=\"dur\" style=\"left:${bx+9}px\">${n.dur}</span>`; }\nelse if(n.kind==='turn'){ let t=''; for(let k=0;k<n.ticks;k++){ t+=`<i style=\"left:${(k/(n.ticks))*bw}px;background:rgb(${col}/.7)\"></i>`; }\nwf=`<span class=\"bar thin\" style=\"left:${bx}px;width:${bw}px;background:rgb(${col}/.12);border-color:rgb(${col}/.3)\"></span><span class=\"ticks\" style=\"left:${bx}px;width:${bw}px\">${t}</span>`; }\nelse { const fill = n.kind==='container'? 'rgb(82 81 78/.14)' : `rgb(${col}/${n.kind==='agent'?'.32':'.6'})`; const bc=n.kind==='container'?'rgb(82 81 78/.35)':`rgb(${col}/.85)`;\nconst lw=n.dur.length*6.2+6;\nlet lab;\nif(bx+bw+5+lw<=WW+10) lab=`<span class=\"dur\" style=\"left:${bx+bw+5}px\">${n.dur}</span>`;\nelse if(bw>lw+8) lab=`<span class=\"dur\" style=\"left:${bx+bw-lw-2}px;color:#2B2A27\">${n.dur}</span>`;\nelse lab=`<span class=\"dur\" style=\"left:${bx-lw-3}px\">${n.dur}</span>`;\nwf=`<span class=\"bar\" style=\"left:${bx}px;width:${bw}px;background:${fill};border-color:${bc}\"></span>`+lab; }\nr.innerHTML=`<div class=\"tcell\">${lines}${chev}<span style=\"position:absolute;left:${left}px;display:flex;align-items:center;max-width:${490-left}px\"><span class=\"cardx\" style=\"${cardStyle}\"><span class=\"cap\" style=\"${capStyle}\">${svg(n.kind)}</span><span class=\"lab\">${rid}<span>${n.label}</span>${kb}</span></span><span class=\"chips\">${chips}</span></span></div><div class=\"wcell\">${wf}</div>`;\nr.addEventListener('click',()=>{selected=n.id;renderRows();renderDetail();});\nrowsEl.appendChild(r);\n});\n}\nfunction hasKids(i){ return i+1<N.length && N[i+1].depth>N[i].depth && !N[i].collapsed; }\nconst codeJSON=(lines)=>`<div class=\"code\">${lines.map((l,i)=>`<span class=\"n\">${i+1}</span><span class=\"${l[1]||''}\">${l[0]}</span>`).join('')}</div>`;\nconst K=s=>`<span class=\"kk\">\"${s}\"</span>`, S=s=>`<span class=\"s\">\"${s}\"</span>`;\nfunction probRows(opts,mark,markLabel){\nreturn `<div style=\"position:relative;padding-top:14px\">${opts.map(([o,p,win])=>`<div class=\"prob\"><span class=\"o ${win?'win':''}\">${win?'&#9656; ':''}${o}</span><div class=\"track\"><div class=\"fill\" style=\"width:${p*100}%;background:rgb(var(--c-decision)/${win?'.85':'.28'})\"></div>${mark===null?'':`<div class=\"mark\" style=\"left:${mark*100}%\"></div>`}</div><span class=\"p\">${p.toFixed(2)}</span></div>`).join('')}\n<span class=\"marklbl\" style=\"top:0;left:calc(158px + (100% - 210px) * ${mark})\">${markLabel}</span></div>`;\n}\nfunction head(n){\nconst col=`var(${C[n.kind]})`;\nreturn `<div class=\"dh\"><span class=\"ic\" style=\"color:rgb(${col})\">${svg(n.kind)}</span><span class=\"nm\">${n.label}</span>${KB[n.kind]?`<span class=\"kb\" style=\"color:rgb(${col});border-color:rgb(${col}/.45)\">${KB[n.kind]}</span>`:''}<span class=\"rid\">${n.rid||''}</span><span class=\"det\">DETAILS</span></div>`;\n}\nconst D={\nR3:()=>`<div class=\"db\">\n<div class=\"box\"><div class=\"bh\">QUESTION<span class=\"r\">justified · binary · trigger judge</span></div><div class=\"bb\">\n<div class=\"q\">Is the <code style=\"font-family:var(--mono);font-size:12.5px\">type_erasing_cast</code> advisory justified by the original assembly?</div>\n${probRows([['justified',0.91,true],['not justified',0.09,false]],0.85,'threshold 0.85')}\n</div></div>\n<div class=\"box\"><div class=\"bb kv\">\n<span class=\"k\">VERDICT</span><span><span class=\"chip dec\" style=\"font-size:12px\">accepted</span> <span class=\"meta\">p=0.91 ≥ 0.85</span></span>\n<span class=\"k\">CONFIDENCE</span><span><span class=\"src\"><i></i>native (jev-1.13.0)</span></span>\n<span class=\"k\">DECIDED FOR</span><span><a class=\"lnk\">worker #1 (R1)</a> <span class=\"meta\">parentRunId</span></span>\n</div></div>\n<div class=\"box\"><div class=\"bh\">INPUT STATE<span class=\"r\">from R2 keptAdvisories[0]</span></div><div class=\"bb\" style=\"padding:7px 4px\">\n${codeJSON([['{'],['&nbsp;&nbsp;'+K('rule')+': '+S('type_erasing_cast')+','],['&nbsp;&nbsp;'+K('hunk')+': '+S('(u32)this->mpActor')+',','hl'],['&nbsp;&nbsp;'+K('justification')+': '+S('original asm loads the field as u32; only matches with the cast')],['}']])}\n</div></div>\n<div class=\"box\"><div class=\"bh\">EVIDENCE<span class=\"r\">2 links</span></div><div class=\"bb\">\n<div class=\"ev\"><span class=\"kb\" style=\"color:rgb(var(--c-call));border-color:rgb(var(--c-call)/.45)\">CALL</span><a class=\"lnk\">R2 ExtractCheckpointNote</a><span class=\"what\">output blob sha256:4be19a…</span></div>\n<div class=\"ev\"><span class=\"kb\" style=\"color:rgb(var(--c-step));border-color:rgb(var(--c-step)/.45)\">STEP</span><a class=\"lnk\">S1 validate</a><span class=\"what\">review_lint · llm_review warning</span></div>\n</div></div>\n<div class=\"tiles\">\n<div class=\"tile\"><div class=\"k\">LATENCY</div><div class=\"v\">110 ms</div></div>\n<div class=\"tile\"><div class=\"k\">INPUT</div><div class=\"v\">1,412 tok</div></div>\n<div class=\"tile\"><div class=\"k\">OUTPUT</div><div class=\"v\">0</div></div>\n<div class=\"tile\"><div class=\"k\">COST</div><div class=\"v\">$0.00006</div></div>\n</div>\n<div class=\"act\"><span class=\"k\">HARNESS ACTION</span><span>accepted advisory &#8594; hard gates pass</span></div>\n</div>`,\nR4:()=>`<div class=\"db\">\n<div class=\"box\"><div class=\"bh\">QUESTION<span class=\"r\">next · choice · trigger judge</span></div><div class=\"bb\">\n<div class=\"q\">The worker reached objdiff 97.4% with all gates passing. Retry the same approach, retry with a new strategy, or stop as blocked?</div>\n${probRows([['retry_same_approach',0.21,false],['retry_new_strategy',0.71,true],['stop_blocked',0.08,false]],null,'')}\n</div></div>\n<div class=\"box\"><div class=\"bh\">CONFIDENCE<span class=\"r\">abstainBelow 0.5</span></div><div class=\"bb\">\n<div style=\"position:relative;padding-top:14px\"><div class=\"prob\" style=\"grid-template-columns:150px 1fr 44px\"><span class=\"o\">confidence</span><div class=\"track\"><div class=\"fill\" style=\"width:64%;background:rgb(var(--c-ok)/.6)\"></div><div class=\"mark\" style=\"left:50%\"></div></div><span class=\"p\">0.64</span></div>\n<span class=\"marklbl\" style=\"top:0;left:calc(158px + (100% - 210px) * .5)\">floor 0.5</span></div>\n<div class=\"kv\" style=\"margin-top:8px\">\n<span class=\"k\">SOURCE</span><span><span class=\"src\"><i></i>native (jev)</span></span>\n<span class=\"k\">ABSTAINED</span><span class=\"meta\"><b>false</b> · 0.64 ≥ floor 0.5</span>\n<span class=\"k\">DECIDED FOR</span><span><a class=\"lnk\">worker #1 (R1)</a></span>\n</div>\n</div></div>\n<div class=\"box\"><div class=\"bh\">INPUT STATE<span class=\"r\">built in harness code</span></div><div class=\"bb\" style=\"padding:7px 4px\">\n${codeJSON([['{'],['&nbsp;&nbsp;'+K('attempt')+': <span class=\"num\">1</span>,'],['&nbsp;&nbsp;'+K('objdiff')+': <span class=\"num\">97.4</span>,','hl'],['&nbsp;&nbsp;'+K('gates')+': '+S('5/5')+','],['&nbsp;&nbsp;'+K('advisory')+': '+S('accepted (R3)')+','],['&nbsp;&nbsp;'+K('checkpoint')+': '+S('partial (R2)')],['}']])}\n</div></div>\n<div class=\"tiles\">\n<div class=\"tile\"><div class=\"k\">LATENCY</div><div class=\"v\">95 ms</div></div>\n<div class=\"tile\"><div class=\"k\">INPUT</div><div class=\"v\">968 tok</div></div>\n<div class=\"tile\"><div class=\"k\">OUTPUT</div><div class=\"v\">0</div></div>\n<div class=\"tile\"><div class=\"k\">COST</div><div class=\"v\">$0.00004</div></div>\n</div>\n<div class=\"act steer\"><span class=\"k\">HARNESS ACTION</span><span>steer session &#8594; worker #2 (R5)</span></div>\n</div>`,\nR2:()=>`<div class=\"db\">\n<div class=\"box\"><div class=\"bb kv\">\n<span class=\"k\">FUNCTION</span><span style=\"font:500 12.5px var(--mono)\">ExtractCheckpointNote</span>\n<span class=\"k\">ENGINE</span><span><span class=\"chip\" style=\"color:rgb(var(--c-call));border-color:rgb(var(--c-call)/.45)\">baml</span> <span class=\"meta\">trigger post-run</span></span>\n<span class=\"k\">PARENT RUN</span><span><a class=\"lnk\">worker #1 (R1)</a> <span class=\"meta\">14 turns, 31 tools</span></span>\n</div></div>\n<div class=\"box\"><div class=\"bh\">OUTPUT<span class=\"r\">typed · CheckpointNote</span></div>\n<table class=\"typed\"><colgroup><col class=\"c1\"><col></colgroup><tr><td class=\"\"><div class=\"f\">status</div><div class=\"ty\" style=\"font-size:10.5px\">enum CheckpointStatus</div></td><td class=\"v\">\"partial\"</td></tr><tr><td class=\"\"><div class=\"f\">keptAdvisories</div><div class=\"ty\" style=\"font-size:10.5px\">KeptAdvisory[]</div></td><td class=\"v\" style=\"color:var(--muted-fg)\">1 item</td></tr><tr><td class=\"ind\"><div class=\"f\">[0].rule</div><div class=\"ty\" style=\"font-size:10.5px\">string</div></td><td class=\"v\">\"type_erasing_cast\"</td></tr><tr><td class=\"ind\"><div class=\"f\">[0].hunk</div><div class=\"ty\" style=\"font-size:10.5px\">string</div></td><td class=\"v\">\"(u32)this-&gt;mpActor\"</td></tr><tr><td class=\"ind\"><div class=\"f\">[0].justification</div><div class=\"ty\" style=\"font-size:10.5px\">string</div></td><td class=\"v\">\"original asm loads the field as u32; only matches with the cast\"</td></tr></table>\n</div>\n<div class=\"box\"><div class=\"bh\">RAW JSON<span class=\"r\">blob sha256:4be19a…</span></div><div class=\"bb\" style=\"padding:7px 4px\">\n${codeJSON([['{'],['&nbsp;&nbsp;'+K('status')+': '+S('partial')+','],['&nbsp;&nbsp;'+K('keptAdvisories')+': [{'],['&nbsp;&nbsp;&nbsp;&nbsp;'+K('rule')+': '+S('type_erasing_cast')+','],['&nbsp;&nbsp;&nbsp;&nbsp;'+K('hunk')+': '+S('(u32)this->mpActor')+','],['&nbsp;&nbsp;&nbsp;&nbsp;'+K('justification')+': '+S('original asm loads the field as u32; only…')],['&nbsp;&nbsp;}]'],['}']])}\n</div></div>\n<div class=\"tiles\">\n<div class=\"tile\"><div class=\"k\">LATENCY</div><div class=\"v\">1.8 s</div></div>\n<div class=\"tile\"><div class=\"k\">INPUT</div><div class=\"v\">11,240 tok</div></div>\n<div class=\"tile\"><div class=\"k\">OUTPUT</div><div class=\"v\">96 tok</div></div>\n<div class=\"tile\"><div class=\"k\">COST</div><div class=\"v\">$0.004</div></div>\n</div>\n<div class=\"act\"><span class=\"k\">USED BY</span><span>R3 JudgeAdvisory input state</span></div>\n</div>`\n};\nfunction generic(n){\nconst rows=[['KIND',KB[n.kind]||n.kind],['NODE',n.rid||n.id],['DURATION',n.dur||'n/a'],['RESULT',(n.chips||[]).map(c=>c[0]).join(' · ')||'n/a']];\nreturn `<div class=\"db\"><div class=\"box\"><div class=\"bh\">SUMMARY</div><div class=\"bb kv\">${rows.map(([k,v])=>`<span class=\"k\">${k}</span><span style=\"font:12.5px var(--mono)\">${v}</span>`).join('')}</div></div><div class=\"meta\">Select R2, R3, or R4 for the full mockup cards.</div></div>`;\n}\nfunction renderDetail(){\nconst n=N.find(x=>x.id===selected);\ndocument.getElementById('detail').innerHTML=head(n)+(D[n.id]?D[n.id]():generic(n));\n}\nwindow.addEventListener('hashchange',()=>{const h=location.hash.slice(1); if(N.find(n=>n.id===h)){selected=h;renderRows();renderDetail();}});\nif(VIEW==='cards'){\nconst st=document.getElementById('stage'); st.className='cards';\nst.innerHTML=['R4','R2'].map(id=>{const n=N.find(x=>x.id===id);return `<section class=\"card cardpanel\"><div class=\"detail\">${head(n)}${D[id]()}</div></section>`;}).join('');\n} else { renderGrid(); renderRows(); renderDetail(); }\n})();\n</script>\n</body>\n</html>",
+        "title": "Decision card for R4 ContinueOrStop and call card for R2 ExtractCheckpointNote"
+      },
+      "children": []
+    },
+    "tu-h-changes": {
+      "id": "tu-h-changes",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Viewer Changes Needed"
+        }
+      ],
+      "children": []
+    },
+    "tu-changes-lead": {
+      "id": "tu-changes-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Five changes in viewer-core and viewer-ui produce this view."
+        }
+      ],
+      "children": []
+    },
+    "tu-change-1": {
+      "id": "tu-change-1",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Register the "
+        },
+        {
+          "insert": "call_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "step_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " start and end pairs in "
+        },
+        {
+          "insert": "KEYED_PAIRINGS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "packages/viewer-core/src/trace-builder/pairEvents.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/viewer-core/src/trace-builder/pairEvents.ts",
+              "line": 34
+            }
+          }
+        },
+        {
+          "insert": ", lines 34 to 50). Today it pairs only agent runs, context builds, and UI asks."
+        }
+      ],
+      "children": []
+    },
+    "tu-change-2": {
+      "id": "tu-change-2",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Add "
+        },
+        {
+          "insert": "EVENT_SPECS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " entries with categories for call, decision, and step events ("
+        },
+        {
+          "insert": "packages/viewer-core/src/trace-builder/spanAttributes.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/viewer-core/src/trace-builder/spanAttributes.ts",
+              "line": 236
+            }
+          }
+        },
+        {
+          "insert": ", line 236). Without them, "
+        },
+        {
+          "insert": "categoryFor",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " (line 566) returns the generic "
+        },
+        {
+          "insert": "event",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " category."
+        }
+      ],
+      "children": []
+    },
+    "tu-change-3": {
+      "id": "tu-change-3",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Branch "
+        },
+        {
+          "insert": "toAgentSpan",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "packages/viewer-core/src/trace-builder/spanFactories.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/viewer-core/src/trace-builder/spanFactories.ts",
+              "line": 56
+            }
+          }
+        },
+        {
+          "insert": ", line 56) on the session "
+        },
+        {
+          "insert": "kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". It hardcodes "
+        },
+        {
+          "insert": "agent_invocation",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for every session today."
+        }
+      ],
+      "children": []
+    },
+    "tu-change-4": {
+      "id": "tu-change-4",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Add a decision detail card with probability bars, a threshold or floor marker, and the confidence source badge. Register it in "
+        },
+        {
+          "insert": "packages/viewer-ui/src/trace-viewer/detail-panel/rendererRegistry.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/viewer-ui/src/trace-viewer/detail-panel/rendererRegistry.ts",
+              "line": 11
+            }
+          }
+        },
+        {
+          "insert": " next to "
+        },
+        {
+          "insert": "ToolBody",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "TurnBody",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "tu-change-5": {
+      "id": "tu-change-5",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Nest post-run and judge runs under their parent run by "
+        },
+        {
+          "insert": "parentRunId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Today a child agent nests only under the "
+        },
+        {
+          "insert": "spawn_agent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tool call that started it, through "
+        },
+        {
+          "insert": "findToolCallSpanByToolUseId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "packages/viewer-core/src/trace-builder/nesting.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/viewer-core/src/trace-builder/nesting.ts",
+              "line": 419
+            }
+          }
+        },
+        {
+          "insert": ", line 419). Calls and decisions have no tool call to hang from."
+        }
+      ],
+      "children": []
+    }
+  }
+}

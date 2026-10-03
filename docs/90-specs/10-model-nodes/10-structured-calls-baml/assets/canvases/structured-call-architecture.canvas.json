@@ -306,7 +306,7 @@
         "objectId": "trace-db",
         "anchor": "top"
       },
-      "label": "baml_call_start/end, pi_turn_start/end, pi_request_snapshot",
+      "label": "call_start/end, pi_turn_start/end, pi_request_snapshot",
       "style": "solid",
       "arrow": "forward"
     },

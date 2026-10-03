@@ -1,0 +1,1044 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-82c6e3ca047aa294f1d35b87570f07ec",
+  "title": "Decision Nodes",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A decision node asks a model a closed question and gets back a choice with probabilities, not text. The API is "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Harness code uses it for questions such as \"did we accomplish this?\", \"which branch next?\", \"does this pass rule X?\", and \"keep trying or stop?\"."
+        }
+      ],
+      "children": [
+        "b-dn-02",
+        "b-dn-03",
+        "b-dn-04",
+        "b-dn-05",
+        "b-dn-06",
+        "b-dn-07",
+        "b-dn-08",
+        "b-dn-09",
+        "b-dn-10",
+        "b-dn-11",
+        "b-dn-13",
+        "b-dn-14",
+        "b-dn-15",
+        "b-dn-16",
+        "b-dn-17",
+        "b-dn-18",
+        "b-dn-19",
+        "b-dn-20",
+        "b-dn-21",
+        "b-dn-22",
+        "b-dn-23",
+        "b-dn-24",
+        "b-dn-25",
+        "b-dn-26",
+        "b-dn-27",
+        "b-dn-28",
+        "b-dn-29",
+        "b-dn-30",
+        "b-dn-31",
+        "b-dn-32",
+        "b-dn-33",
+        "b-dn-34",
+        "b-dn-35"
+      ]
+    },
+    "b-dn-02": {
+      "id": "b-dn-02",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A decision node is a specialization of "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from "
+        },
+        {
+          "insert": "Structured Calls (BAML)",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/10-structured-calls-baml"
+            }
+          }
+        },
+        {
+          "insert": ". It keeps the same identity (container, session, run, turn) and the same cost path. Its session kind is "
+        },
+        {
+          "insert": "decision",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". It has its own input contract, result type, "
+        },
+        {
+          "insert": "decision_made",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " event, and viewer card."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-03": {
+      "id": "b-dn-03",
+      "type": "callout",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: proposal, nothing built. Jev is usable today through early access. The OpenAI Decisions API is not usable yet."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-04": {
+      "id": "b-dn-04",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Why Not Just a BAML Enum"
+        }
+      ],
+      "children": []
+    },
+    "b-dn-05": {
+      "id": "b-dn-05",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A native engine returns a probability for every option. A BAML enum returns one label, and any confidence the model writes into its output is not calibrated."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-06": {
+      "id": "b-dn-06",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Aspect",
+          "Native engine (Jev)",
+          "BAML enum"
+        ],
+        "rows": [
+          [
+            "Output",
+            "A probability per option, from the model itself",
+            "One label. Any confidence is text the model wrote"
+          ],
+          [
+            "Many questions",
+            "All answered in one parallel pass, nearly free",
+            "A longer prompt, or one call per question"
+          ],
+          [
+            "Latency",
+            "About 100 ms",
+            "Seconds"
+          ],
+          [
+            "Rationale",
+            "None",
+            "Yes, as a typed field"
+          ],
+          [
+            "Generation",
+            "None. Closed answers only",
+            "Any typed output"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-dn-07": {
+      "id": "b-dn-07",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A native engine is weak in four cases. Handle them before the call, or use the BAML engine:"
+        }
+      ],
+      "children": []
+    },
+    "b-dn-08": {
+      "id": "b-dn-08",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Arithmetic, counting, and dates. Compute them in code and put the result in the state."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-09": {
+      "id": "b-dn-09",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Indirection. A question about a fact several steps removed from the state gets a weak answer."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-10": {
+      "id": "b-dn-10",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Large, distracting state. Filter the slice down to what the question needs."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-11": {
+      "id": "b-dn-11",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Adversarial text. Instructions inside the state can sway the answer."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-13": {
+      "id": "b-dn-13",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Engines"
+        }
+      ],
+      "children": []
+    },
+    "b-dn-14": {
+      "id": "b-dn-14",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Three engines fit the node contract. Jev and the BAML fallback work today. The OpenAI Decisions API waits on a published endpoint."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-15": {
+      "id": "b-dn-15",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Engine",
+          "Status",
+          "Input",
+          "Output",
+          "Speed / cost",
+          "Route"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "Jev (TypeSafe), "
+              },
+              {
+                "insert": "jev-1.13.0",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", alias "
+              },
+              {
+                "insert": "jev-latest",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Usable now. Early access since 2026-09-15",
+            [
+              {
+                "insert": "POST https://api.typesafe.ai/v1/systemone",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with "
+              },
+              {
+                "insert": "{model, state, questions}",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". TS SDK "
+              },
+              {
+                "insert": "@typesafe-ai/sdk",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " v0.6.0: "
+              },
+              {
+                "insert": "client.systemOne",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with "
+              },
+              {
+                "insert": "choice()",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "score()",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "noul()",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". Text only. 64k tokens per request, 32k for the state plus the longest question"
+              }
+            ],
+            [
+              {
+                "insert": "choice",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": up to 255 options, returns choice, probabilities, confidence. "
+              },
+              {
+                "insert": "score",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": 2 to 10 ordered levels, returns score, legend, probabilities, confidence. "
+              },
+              {
+                "insert": "noul",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ": yes or no, returns the probability of yes"
+              }
+            ],
+            "About 100 ms (vendor claim, 70 to 500 ms). $0.042 per million input tokens. Output is free",
+            "Its own route and credential. Not codex-lb"
+          ],
+          [
+            "OpenAI Decisions API (GPT-6 Luna based)",
+            "Not usable. Announced 2026-09-29 at DevDay. Limited preview",
+            "A question, a fixed answer list, and text or image context",
+            "One answer plus a confidence",
+            "About 150 ms. Pricing unpublished",
+            "Separate endpoint, not Responses. Needs a codex-lb pass-through once published"
+          ],
+          [
+            "BAML enum or union",
+            "Works with today's setup",
+            [
+              {
+                "insert": "Any BAML function input, through "
+              },
+              {
+                "insert": "kernel.call",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "One label plus a rationale. Confidence is self-reported",
+            "Seconds. Normal LLM cost",
+            "codex-lb"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-dn-16": {
+      "id": "b-dn-16",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The OpenAI Decisions API has no published endpoint, schema, model id, or pricing. Once those exist, it fits the same node contract as a second native engine. The BAML engine is the fallback and the escalation judge."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-17": {
+      "id": "b-dn-17",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Decision Result"
+        }
+      ],
+      "children": []
+    },
+    "b-dn-18": {
+      "id": "b-dn-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every engine returns the same shape. "
+        },
+        {
+          "insert": "confidenceSource",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is required, so no caller thresholds a self-reported number as if it were native. The example is a Jev verdict on a lint finding."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-19": {
+      "id": "b-dn-19",
+      "type": "state-shape",
+      "props": {
+        "example": "{\n  \"kind\": \"choice\",\n  \"choice\": \"false-positive\",\n  \"distribution\": {\n    \"real-bug\": 0.08,\n    \"false-positive\": 0.84,\n    \"style-only\": 0.08\n  },\n  \"confidence\": 0.81,\n  \"confidenceSource\": \"native\",\n  \"evidence\": [{ \"runId\": \"run_7f3a\", \"blobHash\": \"sha256:9c1e04\" }],\n  \"abstained\": false\n}",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "\"choice\" | \"score\" | \"binary\"",
+            "required": true
+          },
+          {
+            "name": "choice",
+            "type": "string",
+            "required": true,
+            "description": "The winning label."
+          },
+          {
+            "name": "distribution",
+            "type": "Record<label, number>",
+            "required": false,
+            "description": "Probability per label. Native engines only."
+          },
+          {
+            "name": "confidence",
+            "type": "number",
+            "required": false
+          },
+          {
+            "name": "confidenceSource",
+            "type": "\"native\" | \"self-reported\" | \"none\"",
+            "required": true,
+            "description": "Tells the caller whether a threshold on confidence means anything."
+          },
+          {
+            "name": "rationale",
+            "type": "string",
+            "required": false,
+            "description": "LLM engines only. Jev returns none."
+          },
+          {
+            "name": "checks",
+            "type": "Record<string, boolean>",
+            "required": false,
+            "description": "Results of BAML @check rules."
+          },
+          {
+            "name": "evidence",
+            "type": "{ eventId?, blobHash?, runId? }[]",
+            "required": false,
+            "description": "Trace pointers that support the answer."
+          },
+          {
+            "name": "abstained",
+            "type": "boolean",
+            "required": false,
+            "description": "True when confidence fell below abstainBelow."
+          }
+        ],
+        "name": "Decision result"
+      },
+      "children": []
+    },
+    "b-dn-20": {
+      "id": "b-dn-20",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Node Contract"
+        }
+      ],
+      "children": []
+    },
+    "b-dn-21": {
+      "id": "b-dn-21",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Harness code calls "
+        },
+        {
+          "insert": "decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with a state slice and a map of questions. The state is a filtered slice, not the whole transcript. It is typically the output of a preceding "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-22": {
+      "id": "b-dn-22",
+      "type": "interaction-surface",
+      "props": {
+        "operations": [
+          {
+            "name": "decide",
+            "kind": "action",
+            "description": "Runs kernel.decide(name, state, opts). Asks every question in one engine call. A low-confidence answer returns abstained: true instead of throwing.",
+            "params": [
+              {
+                "name": "name",
+                "type": "string",
+                "required": true,
+                "description": "Names the decision in the trace and the viewer card."
+              },
+              {
+                "name": "state",
+                "type": "string | object",
+                "required": true,
+                "description": "A filtered slice. Typically the output of a preceding kernel.call."
+              },
+              {
+                "name": "opts",
+                "type": "object",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "questions",
+                    "type": "Record<questionId, Question>",
+                    "required": true,
+                    "fields": [
+                      {
+                        "name": "type",
+                        "type": "\"choice\" | \"score\" | \"binary\"",
+                        "required": true
+                      },
+                      {
+                        "name": "instructions",
+                        "type": "string",
+                        "required": true,
+                        "description": "The question text."
+                      },
+                      {
+                        "name": "criteria",
+                        "type": "Record<label, string>",
+                        "required": true,
+                        "description": "Defines each option, each level, or the true and false outcomes."
+                      }
+                    ]
+                  },
+                  {
+                    "name": "containerId",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "parentRunId",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "trigger",
+                    "type": "\"judge\" | \"post-run\" | \"system\"",
+                    "required": false
+                  },
+                  {
+                    "name": "engine",
+                    "type": "string",
+                    "required": false,
+                    "description": "Picks the engine."
+                  },
+                  {
+                    "name": "model",
+                    "type": "string",
+                    "required": false,
+                    "description": "Pins a version such as jev-1.13.0. Thresholds are tuned per version."
+                  },
+                  {
+                    "name": "abstainBelow",
+                    "type": "number",
+                    "required": false,
+                    "description": "Confidence floor. Below it the result has abstained: true."
+                  },
+                  {
+                    "name": "signal",
+                    "type": "AbortSignal",
+                    "required": false
+                  }
+                ]
+              }
+            ],
+            "returns": "Record<questionId, Decision result>"
+          },
+          {
+            "name": "decision_made",
+            "kind": "event",
+            "params": [
+              {
+                "name": "payload",
+                "type": "object",
+                "required": true,
+                "fields": [
+                  {
+                    "name": "decisionName",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "answers",
+                    "type": "Record<questionId, Decision result>",
+                    "required": true
+                  },
+                  {
+                    "name": "chosen",
+                    "type": "string",
+                    "required": true,
+                    "description": "The label the harness acts on."
+                  },
+                  {
+                    "name": "confidenceSource",
+                    "type": "\"native\" | \"self-reported\" | \"none\"",
+                    "required": true
+                  },
+                  {
+                    "name": "abstained",
+                    "type": "boolean",
+                    "required": true
+                  },
+                  {
+                    "name": "engine",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "model",
+                    "type": "string",
+                    "required": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-dn-23": {
+      "id": "b-dn-23",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Patterns"
+        }
+      ],
+      "children": []
+    },
+    "b-dn-24": {
+      "id": "b-dn-24",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "TypeSafe documents five patterns. Each one is a single "
+        },
+        {
+          "insert": "decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " call plus a rule in harness code."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-25": {
+      "id": "b-dn-25",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Pattern",
+          "Questions",
+          "Harness rule"
+        ],
+        "rows": [
+          [
+            "Judge",
+            "Several binary questions, one per criterion",
+            "Code combines the answers"
+          ],
+          [
+            "Router",
+            [
+              {
+                "insert": "One choice over branch names plus "
+              },
+              {
+                "insert": "other",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Below a confidence floor, take the fallback branch"
+          ],
+          [
+            "Rule check",
+            "One binary question with explicit true and false criteria",
+            "Act on the verdict"
+          ],
+          [
+            "Speculative fan-out",
+            "Every question the flow might need, in one call",
+            "Code ignores the answers it does not use"
+          ],
+          [
+            "Confidence-gated escalation",
+            "Any",
+            "Below about 0.5 to 0.6, escalate. Risky actions need above 0.85 to 0.9"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "b-dn-26": {
+      "id": "b-dn-26",
+      "type": "callout",
+      "props": {},
+      "text": [
+        {
+          "insert": "TypeSafe states that confidence is not the probability of being correct. Set thresholds on your own labeled data, per pinned model version."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-27": {
+      "id": "b-dn-27",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Escalation"
+        }
+      ],
+      "children": []
+    },
+    "b-dn-28": {
+      "id": "b-dn-28",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A low-confidence answer escalates instead of failing. \"Can't decide\" is "
+        },
+        {
+          "insert": "abstained: true",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", not an error. Proposed flow:"
+        }
+      ],
+      "children": []
+    },
+    "b-dn-29": {
+      "id": "b-dn-29",
+      "type": "process-outline",
+      "props": {
+        "steps": [
+          {
+            "text": "Proposed decision with escalation",
+            "steps": [
+              {
+                "text": "Harness calls `kernel.decide(name, state, opts)`"
+              },
+              {
+                "text": "Kernel mints one session (kind `decision`) and one run under `parentRunId`"
+              },
+              {
+                "text": "Jev answers every question in one parallel pass"
+              },
+              {
+                "text": "Kernel emits `decision_made` with `engine: \"jev\"` and `confidenceSource: \"native\"`",
+                "trace": true
+              },
+              {
+                "text": "Harness compares `confidence` with its threshold",
+                "steps": [
+                  {
+                    "text": "At or above the threshold, the harness branches on `chosen` and the flow ends.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Harness runs a BAML judge through `kernel.call` and gets a rationale",
+                "steps": [
+                  {
+                    "text": "The judge records its own run, turns, and `baml_call_*` events. Its answer has `confidenceSource: \"self-reported\"`.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Harness marks the decision `abstained: true` and routes it to a human or operator",
+                "steps": [
+                  {
+                    "text": "Only when the judge is still uncertain. This is a normal result, not an error.",
+                    "kind": "note"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "b-dn-30": {
+      "id": "b-dn-30",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "In the BAML judge, return uncertainty as data. Use "
+        },
+        {
+          "insert": "@check",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " plus a "
+        },
+        {
+          "insert": "NeedsInfo",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " member in the return union. Avoid "
+        },
+        {
+          "insert": "@assert",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", which throws and ends the run as an error."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-31": {
+      "id": "b-dn-31",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Open Questions"
+        }
+      ],
+      "children": []
+    },
+    "b-dn-32": {
+      "id": "b-dn-32",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "promptHash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for Jev. Jev has no prompt template, so the hash would cover the questions and criteria spec instead."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-33": {
+      "id": "b-dn-33",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "pi_request_snapshot",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " assumes a chat request. The Jev body "
+        },
+        {
+          "insert": "{model, state, questions}",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " needs a non-chat snapshot shape."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-34": {
+      "id": "b-dn-34",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Branch labels known only at runtime need BAML TypeBuilder dynamic enums, which "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " defers."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-35": {
+      "id": "b-dn-35",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The Jev SDK's retry, timeout, and abort defaults are unverified."
+        }
+      ],
+      "children": []
+    }
+  }
+}

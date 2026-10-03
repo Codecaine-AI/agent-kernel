@@ -1,0 +1,567 @@
+{
+  "schemaVersion": 1,
+  "id": "worker-job-branching",
+  "title": "One worker job: who decides each branch",
+  "description": "Branching logic for worker-job/fn_8003A1C4. Shape and color mark the node type: blue double-sided box is an agent run, violet rounded box is a structured call, orange diamond is a decision node, gray box is a code step, gray diamond is a code branch, pink ellipse is a human. Green solid edges are the path this run took: attempt 1 goes worker, ExtractCheckpointNote, validate, JudgeAdvisory, ContinueOrStop, then loops back through the time check. Attempt 2 matches exactly and goes straight to stop and SummarizeWorkerRun. Gray dashed edges are paths not taken.",
+  "mode": "diagram",
+  "objects": [
+    {
+      "id": "flow",
+      "type": "section",
+      "text": "One worker job: worker-job/fn_8003A1C4",
+      "color": "gray",
+      "parentId": null,
+      "geometry": {
+        "x": -540,
+        "y": -140,
+        "width": 1940,
+        "height": 1820
+      }
+    },
+    {
+      "id": "legend",
+      "type": "section",
+      "text": "Legend",
+      "color": "white",
+      "parentId": null,
+      "geometry": {
+        "x": 1500,
+        "y": -140,
+        "width": 440,
+        "height": 1180
+      }
+    },
+    {
+      "id": "worker",
+      "type": "predefined-process",
+      "text": "worker (agent run)\nR1: 14 turns, $0.38\nR5: 9 turns, $0.24",
+      "color": "blue",
+      "parentId": "flow",
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 260,
+        "height": 130
+      }
+    },
+    {
+      "id": "extract",
+      "type": "process",
+      "text": "ExtractCheckpointNote (call)\nBAML, R2 and R6",
+      "color": "violet",
+      "parentId": "flow",
+      "geometry": {
+        "x": 0,
+        "y": 230,
+        "width": 260,
+        "height": 110
+      }
+    },
+    {
+      "id": "validate",
+      "type": "rectangle",
+      "text": "validate (code step)\nobjdiff, micro-gates, review_lint",
+      "color": "gray",
+      "parentId": "flow",
+      "geometry": {
+        "x": 0,
+        "y": 440,
+        "width": 260,
+        "height": 110
+      }
+    },
+    {
+      "id": "exact",
+      "type": "decision",
+      "text": "exact and clean? (code)",
+      "color": "gray",
+      "parentId": "flow",
+      "geometry": {
+        "x": 10,
+        "y": 640,
+        "width": 240,
+        "height": 170
+      }
+    },
+    {
+      "id": "judge",
+      "type": "decision",
+      "text": "JudgeAdvisory (decision)\nJev noul: justified?",
+      "color": "orange",
+      "parentId": "flow",
+      "geometry": {
+        "x": 0,
+        "y": 910,
+        "width": 260,
+        "height": 190
+      }
+    },
+    {
+      "id": "cos",
+      "type": "decision",
+      "text": "ContinueOrStop (decision)\nJev choice",
+      "color": "orange",
+      "parentId": "flow",
+      "geometry": {
+        "x": 0,
+        "y": 1220,
+        "width": 260,
+        "height": 190
+      }
+    },
+    {
+      "id": "rationale",
+      "type": "process",
+      "text": "JudgeAdvisoryWithRationale (call)\nBAML, self-reported",
+      "color": "violet",
+      "parentId": "flow",
+      "geometry": {
+        "x": -460,
+        "y": 950,
+        "width": 280,
+        "height": 120
+      }
+    },
+    {
+      "id": "operator",
+      "type": "ellipse",
+      "text": "Operator review queue (human)",
+      "color": "pink",
+      "parentId": "flow",
+      "geometry": {
+        "x": -460,
+        "y": 1250,
+        "width": 280,
+        "height": 130
+      }
+    },
+    {
+      "id": "repair",
+      "type": "rectangle",
+      "text": "repair instruction (code)",
+      "color": "gray",
+      "parentId": "flow",
+      "geometry": {
+        "x": 440,
+        "y": 950,
+        "width": 260,
+        "height": 110
+      }
+    },
+    {
+      "id": "budget",
+      "type": "rectangle",
+      "text": "attempt budget counter (code)",
+      "color": "gray",
+      "parentId": "flow",
+      "geometry": {
+        "x": 440,
+        "y": 1500,
+        "width": 260,
+        "height": 110
+      }
+    },
+    {
+      "id": "gate",
+      "type": "decision",
+      "text": "time left? (code)\ndeadline and budget",
+      "color": "gray",
+      "parentId": "flow",
+      "geometry": {
+        "x": 900,
+        "y": -20,
+        "width": 240,
+        "height": 170
+      }
+    },
+    {
+      "id": "stop",
+      "type": "rectangle",
+      "text": "stop (code step)\nS3",
+      "color": "gray",
+      "parentId": "flow",
+      "geometry": {
+        "x": 900,
+        "y": 670,
+        "width": 240,
+        "height": 110
+      }
+    },
+    {
+      "id": "summarize",
+      "type": "process",
+      "text": "SummarizeWorkerRun (call)\nnarrative to knowledge DB",
+      "color": "violet",
+      "parentId": "flow",
+      "geometry": {
+        "x": 900,
+        "y": 920,
+        "width": 240,
+        "height": 120
+      }
+    },
+    {
+      "id": "lg-agent",
+      "type": "predefined-process",
+      "text": "Agent run (spawnAgent)",
+      "color": "blue",
+      "parentId": "legend",
+      "geometry": {
+        "x": 1560,
+        "y": -60,
+        "width": 320,
+        "height": 90
+      }
+    },
+    {
+      "id": "lg-call",
+      "type": "process",
+      "text": "Structured call (kernel.call)",
+      "color": "violet",
+      "parentId": "legend",
+      "geometry": {
+        "x": 1560,
+        "y": 90,
+        "width": 320,
+        "height": 90
+      }
+    },
+    {
+      "id": "lg-decision",
+      "type": "decision",
+      "text": "Decision node (kernel.decide)",
+      "color": "orange",
+      "parentId": "legend",
+      "geometry": {
+        "x": 1560,
+        "y": 240,
+        "width": 320,
+        "height": 120
+      }
+    },
+    {
+      "id": "lg-step",
+      "type": "rectangle",
+      "text": "Code step (kernel.step)",
+      "color": "gray",
+      "parentId": "legend",
+      "geometry": {
+        "x": 1560,
+        "y": 390,
+        "width": 320,
+        "height": 90
+      }
+    },
+    {
+      "id": "lg-branch",
+      "type": "decision",
+      "text": "Code branch (if / while)",
+      "color": "gray",
+      "parentId": "legend",
+      "geometry": {
+        "x": 1560,
+        "y": 540,
+        "width": 320,
+        "height": 120
+      }
+    },
+    {
+      "id": "lg-human",
+      "type": "ellipse",
+      "text": "Human",
+      "color": "pink",
+      "parentId": "legend",
+      "geometry": {
+        "x": 1560,
+        "y": 690,
+        "width": 320,
+        "height": 90
+      }
+    },
+    {
+      "id": "lg-edges",
+      "type": "sticky",
+      "text": "Green solid edge: the path this run took.\nGray dashed edge: a path not taken.",
+      "color": "yellow",
+      "parentId": "legend",
+      "geometry": {
+        "x": 1560,
+        "y": 860,
+        "width": 320,
+        "height": 140
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "e-worker-extract",
+      "from": {
+        "objectId": "worker",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "extract",
+        "anchor": "top"
+      },
+      "label": "transcript",
+      "style": "solid",
+      "arrow": "forward",
+      "color": "green"
+    },
+    {
+      "id": "e-extract-validate",
+      "from": {
+        "objectId": "extract",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "validate",
+        "anchor": "top"
+      },
+      "label": "typed note",
+      "style": "solid",
+      "arrow": "forward",
+      "color": "green"
+    },
+    {
+      "id": "e-validate-exact",
+      "from": {
+        "objectId": "validate",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "exact",
+        "anchor": "top"
+      },
+      "label": "objdiff %, gates, lint",
+      "style": "solid",
+      "arrow": "forward",
+      "color": "green"
+    },
+    {
+      "id": "e-exact-stop",
+      "from": {
+        "objectId": "exact",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "stop",
+        "anchor": "left"
+      },
+      "label": "yes: 100%, 5/5, clean (attempt 2)",
+      "style": "solid",
+      "arrow": "forward",
+      "color": "green"
+    },
+    {
+      "id": "e-exact-judge",
+      "from": {
+        "objectId": "exact",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "judge",
+        "anchor": "top"
+      },
+      "label": "no: 97.4%, 1 advisory (attempt 1)",
+      "style": "solid",
+      "arrow": "forward",
+      "color": "green"
+    },
+    {
+      "id": "e-judge-cos",
+      "from": {
+        "objectId": "judge",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "cos",
+        "anchor": "top"
+      },
+      "label": "p=0.91 >= 0.85: accepted",
+      "style": "solid",
+      "arrow": "forward",
+      "color": "green"
+    },
+    {
+      "id": "e-judge-rationale",
+      "from": {
+        "objectId": "judge",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "rationale",
+        "anchor": "right"
+      },
+      "label": "0.4 <= p < 0.85: unsure",
+      "style": "dashed",
+      "arrow": "forward",
+      "color": "gray"
+    },
+    {
+      "id": "e-judge-repair",
+      "from": {
+        "objectId": "judge",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "repair",
+        "anchor": "left"
+      },
+      "label": "p < 0.4: rejected",
+      "style": "dashed",
+      "arrow": "forward",
+      "color": "gray"
+    },
+    {
+      "id": "e-rationale-operator",
+      "from": {
+        "objectId": "rationale",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "operator",
+        "anchor": "top"
+      },
+      "label": "still unsure: abstained",
+      "style": "dashed",
+      "arrow": "forward",
+      "color": "gray"
+    },
+    {
+      "id": "e-rationale-cos",
+      "from": {
+        "objectId": "rationale",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "cos",
+        "anchor": "left"
+      },
+      "label": "confident verdict + rationale",
+      "style": "dashed",
+      "arrow": "forward",
+      "color": "gray"
+    },
+    {
+      "id": "e-repair-cos",
+      "from": {
+        "objectId": "repair",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "cos",
+        "anchor": "top"
+      },
+      "label": "repair instruction",
+      "style": "dashed",
+      "arrow": "forward",
+      "color": "gray"
+    },
+    {
+      "id": "e-cos-gate",
+      "from": {
+        "objectId": "cos",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "gate",
+        "anchor": "right"
+      },
+      "label": "retry_new_strategy 0.71, c=0.64",
+      "style": "solid",
+      "arrow": "forward",
+      "color": "green"
+    },
+    {
+      "id": "e-cos-stop",
+      "from": {
+        "objectId": "cos",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "stop",
+        "anchor": "right"
+      },
+      "label": "stop_blocked",
+      "style": "dashed",
+      "arrow": "forward",
+      "color": "gray"
+    },
+    {
+      "id": "e-cos-budget",
+      "from": {
+        "objectId": "cos",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "budget",
+        "anchor": "left"
+      },
+      "label": "abstained: c < 0.5",
+      "style": "dashed",
+      "arrow": "forward",
+      "color": "gray"
+    },
+    {
+      "id": "e-budget-gate",
+      "from": {
+        "objectId": "budget",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "gate",
+        "anchor": "top"
+      },
+      "label": "count the attempt",
+      "style": "dashed",
+      "arrow": "forward",
+      "color": "gray"
+    },
+    {
+      "id": "e-gate-worker",
+      "from": {
+        "objectId": "gate",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "worker",
+        "anchor": "right"
+      },
+      "label": "yes: next attempt + strategy hint",
+      "style": "solid",
+      "arrow": "forward",
+      "color": "green"
+    },
+    {
+      "id": "e-gate-stop",
+      "from": {
+        "objectId": "gate",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "stop",
+        "anchor": "top"
+      },
+      "label": "no: deadline or budget spent",
+      "style": "dashed",
+      "arrow": "forward",
+      "color": "gray"
+    },
+    {
+      "id": "e-stop-summarize",
+      "from": {
+        "objectId": "stop",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "summarize",
+        "anchor": "top"
+      },
+      "label": "final transcript",
+      "style": "solid",
+      "arrow": "forward",
+      "color": "green"
+    }
+  ]
+}

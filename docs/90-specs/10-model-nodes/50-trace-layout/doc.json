@@ -1,0 +1,1440 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-97da35430299eaf0ea6d9eaf8d3b5081",
+  "title": "Trace Layout",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "tl-intro",
+        "tl-status",
+        "tl-h-calls",
+        "tl-calls-lead",
+        "tl-seq",
+        "tl-seq-note",
+        "tl-h-tree",
+        "tl-tree-lead",
+        "tl-tree",
+        "tl-h-nesting",
+        "tl-nesting-lead",
+        "tl-nesting-table",
+        "tl-nesting-1",
+        "tl-nesting-2",
+        "tl-nesting-3",
+        "tl-h-collected",
+        "tl-collected-lead",
+        "tl-collected-table",
+        "tl-h-rollup",
+        "tl-rollup-lead",
+        "tl-rollup-table"
+      ]
+    },
+    "tl-intro": {
+      "id": "tl-intro",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "One worker job produces one container of nested spans. This page traces container "
+        },
+        {
+          "insert": "worker-job/fn_8003A1C4",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the GameCube decomp target "
+        },
+        {
+          "insert": "fn_8003A1C4",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "d_a_player.cpp",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". It shows who calls whom, the span tree the viewer builds, and what each node records. The job runs two worker attempts, three calls, two decisions, and three code steps."
+        }
+      ],
+      "children": []
+    },
+    "tl-status": {
+      "id": "tl-status",
+      "type": "callout",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: proposal, nothing built. "
+        },
+        {
+          "insert": "spawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and its events exist today. "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "kernel.step",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " do not. "
+        },
+        {
+          "insert": "kernel.step",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and its "
+        },
+        {
+          "insert": "step_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "step_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " events are new in this spec."
+        }
+      ],
+      "children": []
+    },
+    "tl-h-calls": {
+      "id": "tl-h-calls",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Who Calls Whom"
+        }
+      ],
+      "children": []
+    },
+    "tl-calls-lead": {
+      "id": "tl-calls-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Every model node goes out and comes back. The harness sends work out through the kernel, gets a typed answer back, and branches in its own code. The kernel writes each leg to the Trace DB. Attempt 2 repeats the attempt 1 pattern, so the diagram collapses it."
+        }
+      ],
+      "children": []
+    },
+    "tl-seq": {
+      "id": "tl-seq",
+      "type": "sequence",
+      "props": {
+        "src": "./assets/sequences/worker-job-trace.sequence.json",
+        "title": "One worker job, fn_8003A1C4"
+      },
+      "children": []
+    },
+    "tl-seq-note": {
+      "id": "tl-seq-note",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Proposed flow. Jev is not behind codex-lb. It has its own route and credential. The "
+        },
+        {
+          "insert": "validate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " step runs in the harness process and never leaves the machine."
+        }
+      ],
+      "children": []
+    },
+    "tl-h-tree": {
+      "id": "tl-h-tree",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Span Tree"
+        }
+      ],
+      "children": []
+    },
+    "tl-tree-lead": {
+      "id": "tl-tree-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The viewer builds one tree per container. Both worker attempts sit in one "
+        },
+        {
+          "insert": "pi",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " session. Each call, decision, and step nests under the worker run it describes. Steps marked as trace lines map to real paired events. "
+        },
+        {
+          "insert": "Trace UI",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/60-trace-ui"
+            }
+          }
+        },
+        {
+          "insert": " shows how the viewer draws this tree."
+        }
+      ],
+      "children": []
+    },
+    "tl-tree": {
+      "id": "tl-tree",
+      "type": "process-outline",
+      "props": {
+        "steps": [
+          {
+            "text": "Container `worker-job/fn_8003A1C4`: 7 runs, 3 steps, about 7m10s, about $0.63",
+            "steps": [
+              {
+                "text": "Session `worker`, kind `pi`: holds both attempts",
+                "steps": [
+                  {
+                    "text": "`R1` agent run `worker`, attempt 1, trigger `system`: 14 turns, 31 tool calls, 4m12s, $0.38",
+                    "trace": true,
+                    "steps": [
+                      {
+                        "text": "Turns 1 to 14: `pi_request_snapshot`, `pi_turn_start`, `pi_turn_end`, with 31 tool call spans folded under their turns",
+                        "trace": true
+                      },
+                      {
+                        "text": "`R2` call `ExtractCheckpointNote`, trigger `post-run`, engine `baml`: 1 turn, 1.8 s, $0.004",
+                        "trace": true,
+                        "steps": [
+                          {
+                            "text": "Output: status `partial`, one kept advisory `type_erasing_cast` on `(u32)this->mpActor`.",
+                            "kind": "note"
+                          }
+                        ]
+                      },
+                      {
+                        "text": "`S1` step `validate`, attached to `R1`: 6.3 s",
+                        "trace": true,
+                        "steps": [
+                          {
+                            "text": "objdiff 97.4%, not exact. Micro-gates 5/5 pass. review_lint: one `llm_review` warning, `type_erasing_cast`.",
+                            "kind": "note"
+                          }
+                        ]
+                      },
+                      {
+                        "text": "`R3` decision `JudgeAdvisory`, trigger `judge`, engine `jev`, model `jev-1.13.0`: 110 ms, 1,412 input tokens, $0.00006",
+                        "trace": true,
+                        "steps": [
+                          {
+                            "text": "Question `justified` (binary): p=0.91, confidence source `native`. Threshold 0.85, so the harness accepts the advisory.",
+                            "kind": "note"
+                          }
+                        ]
+                      },
+                      {
+                        "text": "`R4` decision `ContinueOrStop`, trigger `judge`, engine `jev`: 95 ms, 968 input tokens, $0.00004",
+                        "trace": true,
+                        "steps": [
+                          {
+                            "text": "`retry_same_approach` 0.21, `retry_new_strategy` 0.71, `stop_blocked` 0.08. Confidence 0.64, `native`. Chosen: `retry_new_strategy`.",
+                            "kind": "note"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "text": "`R5` agent run `worker`, attempt 2, trigger `steer`, strategy hint in the message: 9 turns, 18 tool calls, 2m40s, $0.24",
+                    "trace": true,
+                    "steps": [
+                      {
+                        "text": "Turns 1 to 9, with 18 tool call spans folded under their turns",
+                        "trace": true
+                      },
+                      {
+                        "text": "`R6` call `ExtractCheckpointNote`, trigger `post-run`, engine `baml`: 1.8 s",
+                        "trace": true
+                      },
+                      {
+                        "text": "`S2` step `validate`, attached to `R5`: 5.4 s",
+                        "trace": true,
+                        "steps": [
+                          {
+                            "text": "objdiff 100%, exact. Gates 5/5. Lint clean.",
+                            "kind": "note"
+                          }
+                        ]
+                      },
+                      {
+                        "text": "`S3` step `stop`, attached to `R5`: 20 ms",
+                        "trace": true,
+                        "steps": [
+                          {
+                            "text": "Exact and clean, so the harness stops the job.",
+                            "kind": "note"
+                          }
+                        ]
+                      },
+                      {
+                        "text": "`R7` call `SummarizeWorkerRun`, trigger `post-run`, engine `baml`: 1.4 s",
+                        "trace": true,
+                        "steps": [
+                          {
+                            "text": "The harness writes the narrative to the knowledge DB.",
+                            "kind": "note"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "tl-h-nesting": {
+      "id": "tl-h-nesting",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "How Nesting Works"
+        }
+      ],
+      "children": []
+    },
+    "tl-nesting-lead": {
+      "id": "tl-nesting-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two run fields place a call or decision in the tree: "
+        },
+        {
+          "insert": "parentRunId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " names the worker run, and "
+        },
+        {
+          "insert": "trigger",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " says why it ran. Steps have no run of their own. A step attaches through the "
+        },
+        {
+          "insert": "runId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " stamped on its event, the same explicit linkage "
+        },
+        {
+          "insert": "bucketSpansByRun",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " uses in "
+        },
+        {
+          "insert": "packages/viewer-core/src/trace-builder/runBucketing.ts",
+          "attributes": {
+            "reference": {
+              "kind": "source",
+              "path": "packages/viewer-core/src/trace-builder/runBucketing.ts"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "tl-nesting-table": {
+      "id": "tl-nesting-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Node",
+          "Identity rows written",
+          "Parent link",
+          "Events"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "Agent run ("
+              },
+              {
+                "insert": "spawnAgent",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            [
+              {
+                "insert": "One session of kind "
+              },
+              {
+                "insert": "pi",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", one run, one turn row per model call"
+              }
+            ],
+            [
+              {
+                "insert": "None for "
+              },
+              {
+                "insert": "R1",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". "
+              },
+              {
+                "insert": "R5",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " reuses the "
+              },
+              {
+                "insert": "R1",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " session, trigger "
+              },
+              {
+                "insert": "steer",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "agent_run_start",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "agent_run_end",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "pi_turn_*",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "pi_request_snapshot",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", tool events"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Call ("
+              },
+              {
+                "insert": "kernel.call",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            [
+              {
+                "insert": "One session of kind "
+              },
+              {
+                "insert": "call",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", one run named after the function, one turn per HTTP call"
+              }
+            ],
+            [
+              {
+                "insert": "parentRunId",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " is the worker run. Trigger "
+              },
+              {
+                "insert": "post-run",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "call_start",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "pi_turn_*",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "pi_request_snapshot",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "call_end",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Decision ("
+              },
+              {
+                "insert": "kernel.decide",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            [
+              {
+                "insert": "One session of kind "
+              },
+              {
+                "insert": "decision",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", one run, one turn"
+              }
+            ],
+            [
+              {
+                "insert": "parentRunId",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " is the worker run. Trigger "
+              },
+              {
+                "insert": "judge",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "call_start",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "pi_request_snapshot",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "decision_made",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "call_end",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Step ("
+              },
+              {
+                "insert": "kernel.step",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", new)"
+              }
+            ],
+            "None. No session and no run",
+            [
+              {
+                "insert": "The event envelope "
+              },
+              {
+                "insert": "runId",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " is the worker run"
+              }
+            ],
+            [
+              {
+                "insert": "step_start",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "step_end",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ]
+        ]
+      },
+      "children": []
+    },
+    "tl-nesting-1": {
+      "id": "tl-nesting-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Attempt 2 is a second run in the same session. The viewer shows "
+        },
+        {
+          "insert": "R1",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "R5",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as sibling runs under one worker session, so you compare the two attempts side by side."
+        }
+      ],
+      "children": []
+    },
+    "tl-nesting-2": {
+      "id": "tl-nesting-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Steps cost nothing in the identity model. "
+        },
+        {
+          "insert": "kernel.step(name, opts, fn)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " emits a paired "
+        },
+        {
+          "insert": "step_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "step_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with a summary output, the duration, and a status. It writes no session or run rows."
+        }
+      ],
+      "children": []
+    },
+    "tl-nesting-3": {
+      "id": "tl-nesting-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Today the viewer nests a subagent session under the "
+        },
+        {
+          "insert": "spawn_agent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tool call by "
+        },
+        {
+          "insert": "tool_use_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Nesting by "
+        },
+        {
+          "insert": "parentRunId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "trigger",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the viewer change this spec proposes."
+        }
+      ],
+      "children": []
+    },
+    "tl-h-collected": {
+      "id": "tl-h-collected",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "What Gets Collected"
+        }
+      ],
+      "children": []
+    },
+    "tl-collected-lead": {
+      "id": "tl-collected-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Each node records enough to replay or audit it without logs. Small facts live in the "
+        },
+        {
+          "insert": "trace_events",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " row payload. Large payloads live in "
+        },
+        {
+          "insert": "trace_blobs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", keyed by content hash. Usage rolls up from turn to run, session, and container. Jev has no chat request, so its snapshot is the "
+        },
+        {
+          "insert": "{state, questions}",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " body it was sent."
+        }
+      ],
+      "children": []
+    },
+    "tl-collected-table": {
+      "id": "tl-collected-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Node",
+          "Captured",
+          "Where it lives",
+          "Why it matters"
+        ],
+        "rows": [
+          [
+            "Agent run, call",
+            "Request snapshot: the exact rendered prompt sent to codex-lb. For a call, the BAML prompt with its output format",
+            [
+              {
+                "insert": "pi_request_snapshot",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " row, body in a blob"
+              }
+            ],
+            "Shows exactly what the model saw on each turn"
+          ],
+          [
+            "Decision",
+            [
+              {
+                "insert": "Request snapshot: the Jev "
+              },
+              {
+                "insert": "{state, questions}",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " body. No chat messages exist"
+              }
+            ],
+            [
+              {
+                "insert": "pi_request_snapshot",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " row, body in a blob"
+              }
+            ],
+            "The full input behind p=0.91, with no hidden prompt"
+          ],
+          [
+            "Call",
+            "Input blob and output blob",
+            [
+              {
+                "insert": "inputBlobHash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " on "
+              },
+              {
+                "insert": "call_start",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "outputBlobHash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " on "
+              },
+              {
+                "insert": "call_end",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", bytes in "
+              },
+              {
+                "insert": "trace_blobs",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Rerun the extraction on the same input and diff the result"
+          ],
+          [
+            "Call",
+            [
+              {
+                "insert": "Typed output, such as "
+              },
+              {
+                "insert": "status: \"partial\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": "keptAdvisories",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Output blob",
+            "The harness and the doctor read fields instead of parsing text"
+          ],
+          [
+            "Decision",
+            [
+              {
+                "insert": "Per-option probabilities, "
+              },
+              {
+                "insert": "chosen",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "confidence",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "abstained",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "decision_made",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " row"
+              }
+            ],
+            [
+              {
+                "insert": "Explains why the harness took "
+              },
+              {
+                "insert": "retry_new_strategy",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " at 0.71"
+              }
+            ]
+          ],
+          [
+            "Decision",
+            [
+              {
+                "insert": "confidenceSource",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": "thresholdApplied",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "decision_made",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " row"
+              }
+            ],
+            "Tells a native 0.91 from a self-reported one, and records the 0.85 bar it cleared"
+          ],
+          [
+            "Call, decision",
+            [
+              {
+                "insert": "Model version and "
+              },
+              {
+                "insert": "promptHash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". For Jev the hash covers the questions and criteria"
+              }
+            ],
+            [
+              {
+                "insert": "call_start",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " payload and the session row"
+              }
+            ],
+            [
+              {
+                "insert": "Thresholds are tuned per model version, such as "
+              },
+              {
+                "insert": "jev-1.13.0",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". The hash groups nodes that asked the same thing"
+              }
+            ]
+          ],
+          [
+            "Every model node",
+            "Tokens and cost",
+            [
+              {
+                "insert": "pi_turn_end",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " row, rolled up onto "
+              },
+              {
+                "insert": "agent_runs",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", the session, and the container"
+              }
+            ],
+            "Container cost needs no special case per node type"
+          ],
+          [
+            "Every node",
+            "Latency",
+            "Timestamps on each start and end event pair",
+            "Puts 110 ms decisions beside a 4m12s worker run"
+          ],
+          [
+            "Step",
+            "Summary output, duration, status",
+            [
+              {
+                "insert": "step_end",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " row payload"
+              }
+            ],
+            "Shows objdiff 97.4%, gates 5/5, and the lint warning inline"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "tl-h-rollup": {
+      "id": "tl-h-rollup",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Cost and Time Rollup"
+        }
+      ],
+      "children": []
+    },
+    "tl-rollup-lead": {
+      "id": "tl-rollup-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The job costs about $0.63 and takes about 7m10s. The two worker runs are 98% of the cost. Jev charges $0.042 per million input tokens with free output, so "
+        },
+        {
+          "insert": "R3",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " costs $0.00006 for 1,412 tokens and "
+        },
+        {
+          "insert": "R4",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " costs $0.00004 for 968 tokens. Nodes run one after another, so time is a straight sum."
+        }
+      ],
+      "children": []
+    },
+    "tl-rollup-table": {
+      "id": "tl-rollup-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Node type",
+          "Count",
+          "Time",
+          "Cost"
+        ],
+        "rows": [
+          [
+            "Worker runs",
+            [
+              {
+                "insert": "2 ("
+              },
+              {
+                "insert": "R1",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "R5",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "): 23 turns, 49 tool calls"
+              }
+            ],
+            "6m52s",
+            "$0.62"
+          ],
+          [
+            "Calls",
+            [
+              {
+                "insert": "3 ("
+              },
+              {
+                "insert": "R2",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "R6",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "R7",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            "5.0 s",
+            "About $0.012"
+          ],
+          [
+            "Decisions",
+            [
+              {
+                "insert": "2 ("
+              },
+              {
+                "insert": "R3",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "R4",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            "205 ms",
+            "$0.0001"
+          ],
+          [
+            "Steps",
+            [
+              {
+                "insert": "3 ("
+              },
+              {
+                "insert": "S1",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "S2",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "S3",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            "About 11.7 s",
+            "$0. No model"
+          ],
+          [
+            "Total",
+            "7 runs, 3 steps",
+            "About 7m10s",
+            "About $0.63"
+          ]
+        ]
+      },
+      "children": []
+    }
+  }
+}

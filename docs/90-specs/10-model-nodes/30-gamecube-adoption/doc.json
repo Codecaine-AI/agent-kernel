@@ -1,0 +1,1128 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-1aa4dea4539f9c4a8bd079bf8a554a13",
+  "title": "GameCube Adoption",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "gc-01",
+        "gc-02",
+        "gc-03",
+        "gc-04",
+        "gc-05",
+        "gc-06",
+        "gc-07",
+        "gc-08",
+        "gc-09",
+        "gc-10",
+        "gc-11",
+        "gc-12",
+        "gc-13",
+        "gc-14",
+        "gc-15",
+        "gc-16",
+        "gc-17",
+        "gc-18",
+        "gc-19",
+        "gc-20",
+        "gc-21",
+        "gc-22",
+        "gc-23",
+        "gc-24",
+        "gc-25",
+        "gc-26"
+      ]
+    },
+    "gc-01": {
+      "id": "gc-01",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The GameCube decomp orchestrator already uses all three model node types, mostly built by hand. Agent runs work as they are. Extraction is five hand-written JSON parses that scavenge from the first "
+        },
+        {
+          "insert": "{",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to the last "
+        },
+        {
+          "insert": "}",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Decisions are regex over free text plus fixed counters."
+        }
+      ],
+      "children": []
+    },
+    "gc-02": {
+      "id": "gc-02",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Deterministic gates stay deterministic: objdiff matching, micro-gates, confirmation bisect, and policy merge. This page maps each model site to its node type, picks the first target, and sizes the work. Paths are relative to "
+        },
+        {
+          "insert": "apps/server/src/core/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "gamecube-decomp-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "gc-03": {
+      "id": "gc-03",
+      "type": "callout",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: proposal, nothing built. First step: a one-day spike that compares BAML and Jev on the "
+        },
+        {
+          "insert": "llm_review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question."
+        }
+      ],
+      "children": []
+    },
+    "gc-04": {
+      "id": "gc-04",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Node Types in the Run Loop"
+        }
+      ],
+      "children": []
+    },
+    "gc-05": {
+      "id": "gc-05",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The orchestrator loop starts at "
+        },
+        {
+          "insert": "harness-runtime/phases/running/run-loop.ts:882",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Brackets mark the node type a step would use: AGENT is "
+        },
+        {
+          "insert": "spawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", CALL is "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and DECISION is "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Unmarked steps are deterministic code."
+        }
+      ],
+      "children": []
+    },
+    "gc-06": {
+      "id": "gc-06",
+      "type": "process-outline",
+      "props": {
+        "steps": [
+          {
+            "text": "Orchestrator loop, one tick",
+            "steps": [
+              {
+                "text": "Orchestrator sends a heartbeat and probes the provider circuit"
+              },
+              {
+                "text": "Orchestrator reaps dead jobs and requeues their targets"
+              },
+              {
+                "text": "Orchestrator drains the integration queue with `git apply` of each best checkpoint"
+              },
+              {
+                "text": "Orchestrator runs knowledge maintenance",
+                "steps": [
+                  {
+                    "text": "The summarizer and librarian lanes run as background consumers.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "If the epoch is drained, orchestrator runs `runEpochBoundary`",
+                "steps": [
+                  {
+                    "text": "Settles the epoch"
+                  },
+                  {
+                    "text": "Builds the report, then runs the codex build fixer [AGENT]"
+                  },
+                  {
+                    "text": "Plans regressions and runs the confirmation bisect"
+                  },
+                  {
+                    "text": "Runs QA L2"
+                  },
+                  {
+                    "text": "Syncs upstream and runs policy merge, then the fixer [AGENT]"
+                  },
+                  {
+                    "text": "Opens a draft PR"
+                  }
+                ]
+              },
+              {
+                "text": "Otherwise orchestrator admits targets, and worker job consumers claim them"
+              },
+              {
+                "text": "Worker job runs one claimed target",
+                "steps": [
+                  {
+                    "text": "Pi worker edits the target [AGENT]"
+                  },
+                  {
+                    "text": "Worker job parses the checkpoint note [CALL]"
+                  },
+                  {
+                    "text": "Worker job computes the diff, runs lint, and applies write-set widening"
+                  },
+                  {
+                    "text": "Worker job validates with objdiff, micro-gates, and QA L1",
+                    "steps": [
+                      {
+                        "text": "Deterministic. Stays in code.",
+                        "kind": "note"
+                      }
+                    ]
+                  },
+                  {
+                    "text": "Worker job adjudicates `llm_review` advisories [DECISION, new]"
+                  },
+                  {
+                    "text": "Worker job records the checkpoint"
+                  },
+                  {
+                    "text": "Worker job decides whether to continue [DECISION]"
+                  }
+                ]
+              },
+              {
+                "text": "Orchestrator enqueues integration and the worker summary [CALL]"
+              },
+              {
+                "text": "Orchestrator checks stop conditions"
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "gc-07": {
+      "id": "gc-07",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Site Map"
+        }
+      ],
+      "children": []
+    },
+    "gc-08": {
+      "id": "gc-08",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Each row is one place the orchestrator runs a model, parses model output, or makes a judgment. Read the last column for the target node type."
+        }
+      ],
+      "children": []
+    },
+    "gc-09": {
+      "id": "gc-09",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Site",
+          "File and line",
+          "Today",
+          "Becomes"
+        ],
+        "rows": [
+          [
+            "Worker",
+            [
+              {
+                "insert": "harness-runtime/phases/running/workers/worker-cycle.ts:1733",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Pi agent "
+              },
+              {
+                "insert": "worker",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", about 30 tools"
+              }
+            ],
+            "Agent run, unchanged"
+          ],
+          [
+            "Librarian",
+            [
+              {
+                "insert": "knowledge-v2/librarian/consumer.ts:287",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Pi agent with a structured envelope, one retry on rejects",
+            "Agent run plus a declared result (phase 2)"
+          ],
+          [
+            "Build fixer",
+            [
+              {
+                "insert": "harness-runtime/phases/running/epochs/build-fixer.ts:62",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "codex exec",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " subprocess that bypasses the kernel"
+              }
+            ],
+            "Agent run, brought into the kernel"
+          ],
+          [
+            "Worker summarizer",
+            [
+              {
+                "insert": "knowledge-v2/summarizer-job/index.ts:264",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (parse "
+              },
+              {
+                "insert": ":311",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", validate "
+              },
+              {
+                "insert": ":126",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            "Zero-tool Pi agent plus a hand parse",
+            "Call"
+          ],
+          [
+            "Renarrate",
+            [
+              {
+                "insert": "knowledge-v2/renarrate/runner.ts:202",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Same agent under the mislabeled role "
+              },
+              {
+                "insert": "pr-reviewer",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Call"
+          ],
+          [
+            "Worker checkpoint note",
+            [
+              {
+                "insert": "worker/checkpoint-note.ts:3",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", called at "
+              },
+              {
+                "insert": "worker-cycle.ts:1859",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Hand parse of the final message",
+            "Call"
+          ],
+          [
+            "Shared parser",
+            [
+              {
+                "insert": "infrastructure/agent-runtime/runtime/output-json.ts:7",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Tries raw, then fenced, then first "
+              },
+              {
+                "insert": "{",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " to last "
+              },
+              {
+                "insert": "}",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Deleted once calls own their schemas"
+          ],
+          [
+            [
+              {
+                "insert": "llm_review",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " advisories"
+              }
+            ],
+            [
+              {
+                "insert": "worker/change-validation.ts:969",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": ":1050",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "validation/qa/repair-lane.ts:604",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "validation/jobs/qa-gate.ts:33",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Warnings fail L1 and L2. The repair lane silently skips them. Nobody reads the worker's justification.",
+            "Decision (first target)"
+          ],
+          [
+            "Worker error and blocker text",
+            [
+              {
+                "insert": "worker-cycle.ts:183-222",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": ":2448",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Regex. A misread can drain the worker pool ("
+              },
+              {
+                "insert": "run-loop.ts:839",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")."
+              }
+            ],
+            [
+              {
+                "insert": "Decision: "
+              },
+              {
+                "insert": "tool_error",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "justified_stop",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", or "
+              },
+              {
+                "insert": "keep_trying",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Continuation",
+            [
+              {
+                "insert": "worker-cycle.ts:745",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " ("
+              },
+              {
+                "insert": "workerContinuationDecision",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "), repair instruction at "
+              },
+              {
+                "insert": ":2378",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Attempt budget counter and two canned instructions",
+            "Decision. The deadline and exact-match checks stay in code."
+          ],
+          [
+            "Widening evidence",
+            [
+              {
+                "insert": "harness-runtime/run-state/write-set-widening.ts:307",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". Evidence only checks non-empty ("
+              },
+              {
+                "insert": ":298",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")."
+              }
+            ],
+            "Rung ladder",
+            "Decision on evidence soundness (later)"
+          ],
+          [
+            "Objdiff match, micro-gates, bisect, policy merge",
+            [
+              {
+                "insert": "change-validation.ts:1548",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "harness-runtime/phases/running/epochs/confirmation-pass.ts:138",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "harness-runtime/phases/running/epochs/policy-merge.ts:330",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Deterministic",
+            "Stay deterministic"
+          ]
+        ]
+      },
+      "children": []
+    },
+    "gc-10": {
+      "id": "gc-10",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "First Target: llm_review Adjudication"
+        }
+      ],
+      "children": []
+    },
+    "gc-11": {
+      "id": "gc-11",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "llm_review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " adjudication goes first because the current path is broken in three places. "
+        },
+        {
+          "insert": "review_lint",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " flags "
+        },
+        {
+          "insert": "type_erasing_cast",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "spNN",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " locals as "
+        },
+        {
+          "insert": "llm_review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", which means route to LLM review. The worker prompt asks the worker to justify any it keeps ("
+        },
+        {
+          "insert": "knowledge/decomp-context.ts:193",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "worker/context.ts:610",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ")."
+        }
+      ],
+      "children": []
+    },
+    "gc-12": {
+      "id": "gc-12",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Nothing reads the justification."
+        }
+      ],
+      "children": []
+    },
+    "gc-13": {
+      "id": "gc-13",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "L1 and L2 reject every warning, so a checkpoint that keeps an advisory is never accepted."
+        }
+      ],
+      "children": []
+    },
+    "gc-14": {
+      "id": "gc-14",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The repair lane silently waives the same warnings."
+        }
+      ],
+      "children": []
+    },
+    "gc-15": {
+      "id": "gc-15",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The proposed chain reads the justification and turns it into a gate input:"
+        }
+      ],
+      "children": []
+    },
+    "gc-16": {
+      "id": "gc-16",
+      "type": "process-outline",
+      "props": {
+        "steps": [
+          {
+            "text": "Proposed llm_review adjudication",
+            "steps": [
+              {
+                "text": "Pi worker keeps an advisory and writes a justification [AGENT]"
+              },
+              {
+                "text": "`kernel.call` on the checkpoint note extracts `{finding, hunk, justification}` for each kept advisory [CALL]"
+              },
+              {
+                "text": "`kernel.decide` asks one binary question per finding: is this justified? [DECISION]",
+                "steps": [
+                  {
+                    "text": "Low confidence escalates to a BAML judge that returns a rationale, then to operator review.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Worker job feeds the verdicts into `workerCheckpointHardGatesPassed` (`worker-cycle.ts:439`)"
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "gc-17": {
+      "id": "gc-17",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "First Spike"
+        }
+      ],
+      "children": []
+    },
+    "gc-18": {
+      "id": "gc-18",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Spend one day comparing two engines on the "
+        },
+        {
+          "insert": "llm_review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question. Use past worker attempts as the test set."
+        }
+      ],
+      "children": []
+    },
+    "gc-19": {
+      "id": "gc-19",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Engine A is a BAML judge running under Bun through codex-lb. This run also completes the existing "
+        },
+        {
+          "insert": "spikes/baml-bun",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " spike."
+        }
+      ],
+      "children": []
+    },
+    "gc-20": {
+      "id": "gc-20",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Engine B is Jev, asked binary questions."
+        }
+      ],
+      "children": []
+    },
+    "gc-21": {
+      "id": "gc-21",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Measure agreement, confidence spread, latency, and cost for each engine."
+        }
+      ],
+      "children": []
+    },
+    "gc-22": {
+      "id": "gc-22",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Write the results to "
+        },
+        {
+          "insert": "spikes/model-nodes/RESULTS.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "gc-23": {
+      "id": "gc-23",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The results decide which engine backs the first decision node."
+        }
+      ],
+      "children": []
+    },
+    "gc-24": {
+      "id": "gc-24",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Phasing"
+        }
+      ],
+      "children": []
+    },
+    "gc-25": {
+      "id": "gc-25",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Each phase ships one kernel capability and the GameCube sites that use it. "
+        },
+        {
+          "insert": "Structured Calls (BAML)",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/10-structured-calls-baml"
+            }
+          }
+        },
+        {
+          "insert": " specifies phase 1. "
+        },
+        {
+          "insert": "Decision Nodes",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/20-decision-nodes"
+            }
+          }
+        },
+        {
+          "insert": " specifies phase 2."
+        }
+      ],
+      "children": []
+    },
+    "gc-26": {
+      "id": "gc-26",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Phase",
+          "Deliverable",
+          "Size"
+        ],
+        "rows": [
+          [
+            "0. Spike",
+            [
+              {
+                "insert": "BAML judge versus Jev on "
+              },
+              {
+                "insert": "llm_review",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", written to "
+              },
+              {
+                "insert": "spikes/model-nodes/RESULTS.md",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "One day"
+          ],
+          [
+            [
+              {
+                "insert": "1. "
+              },
+              {
+                "insert": "kernel.call",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "kernel.call",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " in the kernel. "
+              },
+              {
+                "insert": "worker-summarizer",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and the four other parse sites replaced."
+              }
+            ],
+            "About a week"
+          ],
+          [
+            [
+              {
+                "insert": "2. "
+              },
+              {
+                "insert": "kernel.decide",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "kernel.decide",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " in the kernel. "
+              },
+              {
+                "insert": "llm_review",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " adjudication wired into the hard gates."
+              }
+            ],
+            "A few days"
+          ],
+          [
+            "3. More decisions",
+            "Worker error classification and continuation decisions",
+            "A few days each"
+          ]
+        ]
+      },
+      "children": []
+    }
+  }
+}

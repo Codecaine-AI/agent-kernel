@@ -1,0 +1,1007 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-1b3fe41c306daca5b855651870bda06b",
+  "title": "Model Nodes",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "mn-intro",
+        "mn-status",
+        "mn-h-types",
+        "mn-types-lead",
+        "mn-types-table",
+        "mn-h-chain",
+        "mn-chain-lead",
+        "mn-chain-outline",
+        "mn-h-changes",
+        "mn-changes-lead",
+        "mn-change-1",
+        "mn-change-2",
+        "mn-change-3",
+        "mn-change-4",
+        "mn-change-5",
+        "mn-h-risks",
+        "mn-risks-lead",
+        "mn-risk-1",
+        "mn-risk-2",
+        "mn-risk-3",
+        "mn-risk-4",
+        "mn-h-pages",
+        "mn-pages-lead",
+        "mn-page-1",
+        "mn-page-2",
+        "mn-page-3",
+        "mn-page-4",
+        "mn-page-5",
+        "mn-page-6"
+      ]
+    },
+    "mn-intro": {
+      "id": "mn-intro",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel gets three model node types that share one identity and trace model. "
+        },
+        {
+          "insert": "spawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " runs multi-turn work with tools. "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " turns input into a typed object. "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " picks a branch and reports how sure it is. Harness code chains them. The kernel records every node and does not route between them."
+        }
+      ],
+      "children": []
+    },
+    "mn-status": {
+      "id": "mn-status",
+      "type": "callout",
+      "props": {},
+      "text": [
+        {
+          "insert": "Status: proposal, nothing built. "
+        },
+        {
+          "insert": "spawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " exists today. "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "kernel.step",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " do not."
+        }
+      ],
+      "children": []
+    },
+    "mn-h-types": {
+      "id": "mn-h-types",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Three Node Types"
+        }
+      ],
+      "children": []
+    },
+    "mn-types-lead": {
+      "id": "mn-types-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Each node type answers a different question on a different engine. All three write the same container, session, run, and turn rows. Only the session "
+        },
+        {
+          "insert": "kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tells them apart. A code step from "
+        },
+        {
+          "insert": "kernel.step",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is a fourth kind of span, not a model node."
+        }
+      ],
+      "children": []
+    },
+    "mn-types-table": {
+      "id": "mn-types-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Property",
+          "Agent run",
+          "Structured call",
+          "Decision"
+        ],
+        "rows": [
+          [
+            "API",
+            [
+              {
+                "insert": "spawnAgent",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " (exists)"
+              }
+            ],
+            [
+              {
+                "insert": "kernel.call",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "kernel.decide",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "What it does",
+            "Multi-turn work with tools",
+            "Summarize, extract, or classify into a typed object",
+            "Did it pass, which branch, keep trying"
+          ],
+          [
+            "Engine",
+            "Pi",
+            "BAML, or pi-ai for plain text",
+            "Jev, OpenAI Decisions API, or a BAML enum fallback"
+          ],
+          [
+            "Output",
+            "Text plus side effects",
+            "A typed object",
+            "A choice with per-option probabilities, a confidence, and where the confidence came from"
+          ],
+          [
+            "Speed",
+            "Minutes",
+            "Seconds",
+            "About 100 to 150 ms"
+          ],
+          [
+            "Session kind",
+            [
+              {
+                "insert": "pi",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "call",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "decision",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ]
+        ]
+      },
+      "children": []
+    },
+    "mn-h-chain": {
+      "id": "mn-h-chain",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "How They Chain"
+        }
+      ],
+      "children": []
+    },
+    "mn-chain-lead": {
+      "id": "mn-chain-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A call sits between the agent and the decision. Jev accepts at most 32k tokens of state and gets less accurate on large, noisy input. A raw agent transcript is both. So a call first extracts a compact typed object from the transcript, and the decision judges that object."
+        }
+      ],
+      "children": []
+    },
+    "mn-chain-outline": {
+      "id": "mn-chain-outline",
+      "type": "process-outline",
+      "props": {
+        "steps": [
+          {
+            "text": "Proposed worker step",
+            "steps": [
+              {
+                "text": "Harness calls `spawnAgent` for the worker",
+                "steps": [
+                  {
+                    "text": "Kernel records the agent run (`agent_run_start`, `agent_run_end`) in a session of kind `pi`",
+                    "trace": true
+                  }
+                ]
+              },
+              {
+                "text": "Harness calls `kernel.call` with the worker transcript",
+                "steps": [
+                  {
+                    "text": "Kernel records the call (`call_start`, `call_end`, engine `baml`) with trigger `post-run` and `parentRunId` set to the worker run",
+                    "trace": true
+                  },
+                  {
+                    "text": "Result: a compact typed object, well under the 32k token limit.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Harness calls `kernel.decide` with the extracted object",
+                "steps": [
+                  {
+                    "text": "Kernel records the decision (`call_start`, `decision_made`, `call_end`, engine `jev`) with trigger `judge`",
+                    "trace": true
+                  },
+                  {
+                    "text": "Result: a choice, per-option probabilities, a confidence, and the confidence source.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Harness code branches on the choice",
+                "steps": [
+                  {
+                    "text": "The kernel takes no part in this step. It only records the next node the harness starts.",
+                    "kind": "note"
+                  }
+                ]
+              },
+              {
+                "text": "Harness escalates a low-confidence decision",
+                "steps": [
+                  {
+                    "text": "Harness calls `kernel.call` on a BAML judge that returns a verdict with a rationale"
+                  },
+                  {
+                    "text": "Harness hands the case to a human when the BAML judge is also unsure"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "mn-h-changes": {
+      "id": "mn-h-changes",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Shared Kernel Changes"
+        }
+      ],
+      "children": []
+    },
+    "mn-changes-lead": {
+      "id": "mn-changes-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Five changes serve all three node types. Each one extends an existing structure instead of adding a new one."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-1": {
+      "id": "mn-change-1",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Add a "
+        },
+        {
+          "insert": "kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " column to sessions with values "
+        },
+        {
+          "insert": "pi",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or "
+        },
+        {
+          "insert": "decision",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Every node reuses container, session, run, and turn IDs, so usage rollup needs no special case."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-2": {
+      "id": "mn-change-2",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Emit "
+        },
+        {
+          "insert": "call_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "call_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for calls and decisions, with "
+        },
+        {
+          "insert": "engine: \"baml\" | \"pi-ai\" | \"jev\" | \"openai-decisions\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in the payload. These names replace the earlier "
+        },
+        {
+          "insert": "baml_call_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " names. A "
+        },
+        {
+          "insert": "decision_made",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " point event holds the verdict, so the viewer and doctor can query it."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-3": {
+      "id": "mn-change-3",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Add triggers "
+        },
+        {
+          "insert": "post-run",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "judge",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to "
+        },
+        {
+          "insert": "RunTrigger",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "packages/db/src/schema/agent-runs.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/db/src/schema/agent-runs.ts",
+              "line": 13
+            }
+          }
+        },
+        {
+          "insert": " (lines 13 to 21). It is a closed TypeScript union with no SQL CHECK, so the change is a type edit plus callers. Calls and decisions link to the run they describe through "
+        },
+        {
+          "insert": "parentRunId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-4": {
+      "id": "mn-change-4",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Teach the viewer the new kinds. Register "
+        },
+        {
+          "insert": "call_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "step_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "KEYED_PAIRINGS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "packages/viewer-core/src/trace-builder/pairEvents.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/viewer-core/src/trace-builder/pairEvents.ts",
+              "line": 34
+            }
+          }
+        },
+        {
+          "insert": ", lines 34 to 50) and "
+        },
+        {
+          "insert": "EVENT_SPECS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "packages/viewer-core/src/trace-builder/spanAttributes.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/viewer-core/src/trace-builder/spanAttributes.ts",
+              "line": 236
+            }
+          }
+        },
+        {
+          "insert": ", line 236). Branch "
+        },
+        {
+          "insert": "toAgentSpan",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "packages/viewer-core/src/trace-builder/spanFactories.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/viewer-core/src/trace-builder/spanFactories.ts",
+              "line": 56
+            }
+          }
+        },
+        {
+          "insert": ", line 56) on "
+        },
+        {
+          "insert": "kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so calls and decisions do not render as "
+        },
+        {
+          "insert": "agent_invocation",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-5": {
+      "id": "mn-change-5",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Keep branching in harness code and make its checks visible. The kernel has no graph or router today. Adding one is a large scope jump and is out of scope for this spec. "
+        },
+        {
+          "insert": "kernel.step(name, opts, fn)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " records a deterministic code step as a span ("
+        },
+        {
+          "insert": "step_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "step_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") on its parent run. It writes no session or run rows, so the code checks between model nodes show in the trace."
+        }
+      ],
+      "children": []
+    },
+    "mn-h-risks": {
+      "id": "mn-h-risks",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Open Risks"
+        }
+      ],
+      "children": []
+    },
+    "mn-risks-lead": {
+      "id": "mn-risks-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Four risks need an answer before or during the first spike."
+        }
+      ],
+      "children": []
+    },
+    "mn-risk-1": {
+      "id": "mn-risk-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The names "
+        },
+        {
+          "insert": "pi_agent_sessions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "pi_turn_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " mislead once three kinds share them. Rename them now or accept the mismatch."
+        }
+      ],
+      "children": []
+    },
+    "mn-risk-2": {
+      "id": "mn-risk-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Branch labels known only at runtime need BAML dynamic enums through "
+        },
+        {
+          "insert": "TypeBuilder",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Pull "
+        },
+        {
+          "insert": "TypeBuilder",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " into the spike."
+        }
+      ],
+      "children": []
+    },
+    "mn-risk-3": {
+      "id": "mn-risk-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Jev's accuracy and calibration claims come only from the vendor. Test confidence thresholds against this repo's own past runs before trusting them."
+        }
+      ],
+      "children": []
+    },
+    "mn-risk-4": {
+      "id": "mn-risk-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Neither Jev nor the OpenAI Decisions API goes through codex-lb. Each needs its own route and credentials."
+        }
+      ],
+      "children": []
+    },
+    "mn-h-pages": {
+      "id": "mn-h-pages",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Pages in This Spec"
+        }
+      ],
+      "children": []
+    },
+    "mn-pages-lead": {
+      "id": "mn-pages-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The first three pages define the node types and their adoption. The last three follow one worker job through code, trace, and viewer."
+        }
+      ],
+      "children": []
+    },
+    "mn-page-1": {
+      "id": "mn-page-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Structured Calls (BAML)",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/10-structured-calls-baml"
+            }
+          }
+        },
+        {
+          "insert": " defines "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the single-shot completion and BAML extraction node."
+        }
+      ],
+      "children": []
+    },
+    "mn-page-2": {
+      "id": "mn-page-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Decision Nodes",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/20-decision-nodes"
+            }
+          }
+        },
+        {
+          "insert": " defines "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on Jev, the OpenAI Decisions API, or a BAML enum fallback, plus the "
+        },
+        {
+          "insert": "Decision",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " result type."
+        }
+      ],
+      "children": []
+    },
+    "mn-page-3": {
+      "id": "mn-page-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "GameCube Adoption",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/30-gamecube-adoption"
+            }
+          }
+        },
+        {
+          "insert": " maps where each node type lands in the GameCube decomp orchestrator and plans the first spike."
+        }
+      ],
+      "children": []
+    },
+    "mn-page-4": {
+      "id": "mn-page-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Walkthrough: One Worker Job",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/40-walkthrough"
+            }
+          }
+        },
+        {
+          "insert": " follows one worker job through harness pseudocode and a branching canvas that shows who decides each branch."
+        }
+      ],
+      "children": []
+    },
+    "mn-page-5": {
+      "id": "mn-page-5",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Trace Layout",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/50-trace-layout"
+            }
+          }
+        },
+        {
+          "insert": " shows who calls whom, the span tree, and what is collected at each node."
+        }
+      ],
+      "children": []
+    },
+    "mn-page-6": {
+      "id": "mn-page-6",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Trace UI",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/60-trace-ui"
+            }
+          }
+        },
+        {
+          "insert": " mocks up the viewer for that job, with decision and call detail cards."
+        }
+      ],
+      "children": []
+    }
+  }
+}

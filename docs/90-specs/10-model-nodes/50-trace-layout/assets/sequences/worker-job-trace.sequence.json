@@ -1,0 +1,511 @@
+{
+  "version": 1,
+  "id": "worker-job-trace",
+  "title": "One worker job, fn_8003A1C4",
+  "participants": [
+    {
+      "id": "p1",
+      "name": "harness",
+      "kind": "participant",
+      "label": "Harness"
+    },
+    {
+      "id": "p2",
+      "name": "kernel",
+      "kind": "participant",
+      "label": "Kernel"
+    },
+    {
+      "id": "p3",
+      "name": "pi",
+      "kind": "participant",
+      "label": "Pi worker"
+    },
+    {
+      "id": "p4",
+      "name": "baml",
+      "kind": "participant",
+      "label": "BAML runtime"
+    },
+    {
+      "id": "p5",
+      "name": "codexlb",
+      "kind": "participant",
+      "label": "codex-lb"
+    },
+    {
+      "id": "p6",
+      "name": "jev",
+      "kind": "participant",
+      "label": "Jev API"
+    },
+    {
+      "id": "p7",
+      "name": "tracedb",
+      "kind": "participant",
+      "label": "Trace DB"
+    }
+  ],
+  "items": [
+    {
+      "kind": "message",
+      "id": "m1",
+      "from": "p1",
+      "to": "p2",
+      "line": "sync",
+      "text": "spawnAgent(worker), trigger system"
+    },
+    {
+      "kind": "message",
+      "id": "m2",
+      "from": "p2",
+      "to": "p7",
+      "line": "async",
+      "text": "agent_run_start (R1)"
+    },
+    {
+      "kind": "message",
+      "id": "m3",
+      "from": "p2",
+      "to": "p3",
+      "line": "sync",
+      "text": "run attempt 1"
+    },
+    {
+      "kind": "fragment",
+      "id": "f1",
+      "op": "loop",
+      "operands": [
+        {
+          "guard": "14 turns, 31 tool calls",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m4",
+              "from": "p3",
+              "to": "p5",
+              "line": "sync",
+              "text": "model request"
+            },
+            {
+              "kind": "message",
+              "id": "m5",
+              "from": "p5",
+              "to": "p3",
+              "line": "return",
+              "text": "reply with tool calls"
+            },
+            {
+              "kind": "message",
+              "id": "m6",
+              "from": "p2",
+              "to": "p7",
+              "line": "async",
+              "text": "pi_request_snapshot, pi_turn_*, tool events"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "message",
+      "id": "m7",
+      "from": "p3",
+      "to": "p2",
+      "line": "return",
+      "text": "responseText"
+    },
+    {
+      "kind": "message",
+      "id": "m8",
+      "from": "p2",
+      "to": "p7",
+      "line": "async",
+      "text": "agent_run_end (R1: 4m12s, $0.38)"
+    },
+    {
+      "kind": "message",
+      "id": "m9",
+      "from": "p2",
+      "to": "p1",
+      "line": "return",
+      "text": "R1 result"
+    },
+    {
+      "kind": "message",
+      "id": "m10",
+      "from": "p1",
+      "to": "p2",
+      "line": "sync",
+      "text": "kernel.call(ExtractCheckpointNote), post-run"
+    },
+    {
+      "kind": "message",
+      "id": "m11",
+      "from": "p2",
+      "to": "p7",
+      "line": "async",
+      "text": "call_start (R2, engine baml)"
+    },
+    {
+      "kind": "message",
+      "id": "m12",
+      "from": "p2",
+      "to": "p4",
+      "line": "sync",
+      "text": "invoke with collector"
+    },
+    {
+      "kind": "message",
+      "id": "m13",
+      "from": "p4",
+      "to": "p5",
+      "line": "sync",
+      "text": "one model request"
+    },
+    {
+      "kind": "message",
+      "id": "m14",
+      "from": "p5",
+      "to": "p4",
+      "line": "return",
+      "text": "raw reply"
+    },
+    {
+      "kind": "message",
+      "id": "m15",
+      "from": "p4",
+      "to": "p2",
+      "line": "return",
+      "text": "typed note"
+    },
+    {
+      "kind": "message",
+      "id": "m16",
+      "from": "p2",
+      "to": "p7",
+      "line": "async",
+      "text": "pi_turn_*, pi_request_snapshot, call_end (1.8 s)"
+    },
+    {
+      "kind": "message",
+      "id": "m17",
+      "from": "p2",
+      "to": "p1",
+      "line": "return",
+      "text": "CheckpointNote: partial, 1 advisory"
+    },
+    {
+      "kind": "message",
+      "id": "m18",
+      "from": "p1",
+      "to": "p2",
+      "line": "sync",
+      "text": "kernel.step(validate, fn)"
+    },
+    {
+      "kind": "message",
+      "id": "m19",
+      "from": "p2",
+      "to": "p7",
+      "line": "async",
+      "text": "step_start (parent R1)"
+    },
+    {
+      "kind": "note",
+      "id": "n1",
+      "anchor": "p2",
+      "side": "over",
+      "text": "fn runs locally: objdiff 97.4%, gates 5/5, 1 lint warning"
+    },
+    {
+      "kind": "message",
+      "id": "m20",
+      "from": "p2",
+      "to": "p7",
+      "line": "async",
+      "text": "step_end (6.3 s)"
+    },
+    {
+      "kind": "message",
+      "id": "m21",
+      "from": "p2",
+      "to": "p1",
+      "line": "return",
+      "text": "validate summary"
+    },
+    {
+      "kind": "message",
+      "id": "m22",
+      "from": "p1",
+      "to": "p2",
+      "line": "sync",
+      "text": "kernel.decide(JudgeAdvisory), judge"
+    },
+    {
+      "kind": "message",
+      "id": "m23",
+      "from": "p2",
+      "to": "p7",
+      "line": "async",
+      "text": "call_start (R3, engine jev)"
+    },
+    {
+      "kind": "message",
+      "id": "m24",
+      "from": "p2",
+      "to": "p6",
+      "line": "sync",
+      "text": "POST /v1/systemone {state, questions}"
+    },
+    {
+      "kind": "message",
+      "id": "m25",
+      "from": "p6",
+      "to": "p2",
+      "line": "return",
+      "text": "justified p=0.91"
+    },
+    {
+      "kind": "message",
+      "id": "m26",
+      "from": "p2",
+      "to": "p7",
+      "line": "async",
+      "text": "decision_made, call_end (110 ms)"
+    },
+    {
+      "kind": "message",
+      "id": "m27",
+      "from": "p2",
+      "to": "p1",
+      "line": "return",
+      "text": "Decision: 0.91, native"
+    },
+    {
+      "kind": "note",
+      "id": "n2",
+      "anchor": "p1",
+      "side": "over",
+      "text": "0.91 >= 0.85: accept the advisory"
+    },
+    {
+      "kind": "message",
+      "id": "m28",
+      "from": "p1",
+      "to": "p2",
+      "line": "sync",
+      "text": "kernel.decide(ContinueOrStop), judge"
+    },
+    {
+      "kind": "message",
+      "id": "m29",
+      "from": "p2",
+      "to": "p7",
+      "line": "async",
+      "text": "call_start (R4, engine jev)"
+    },
+    {
+      "kind": "message",
+      "id": "m30",
+      "from": "p2",
+      "to": "p6",
+      "line": "sync",
+      "text": "POST /v1/systemone {state, questions}"
+    },
+    {
+      "kind": "message",
+      "id": "m31",
+      "from": "p6",
+      "to": "p2",
+      "line": "return",
+      "text": "0.21 / 0.71 / 0.08"
+    },
+    {
+      "kind": "message",
+      "id": "m32",
+      "from": "p2",
+      "to": "p7",
+      "line": "async",
+      "text": "decision_made, call_end (95 ms)"
+    },
+    {
+      "kind": "message",
+      "id": "m33",
+      "from": "p2",
+      "to": "p1",
+      "line": "return",
+      "text": "retry_new_strategy, confidence 0.64"
+    },
+    {
+      "kind": "fragment",
+      "id": "f2",
+      "op": "alt",
+      "operands": [
+        {
+          "guard": "retry_new_strategy",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m34",
+              "from": "p1",
+              "to": "p2",
+              "line": "sync",
+              "text": "steer worker with strategy hint, trigger steer"
+            },
+            {
+              "kind": "message",
+              "id": "m35",
+              "from": "p2",
+              "to": "p3",
+              "line": "sync",
+              "text": "run attempt 2 (R5, same session)"
+            },
+            {
+              "kind": "fragment",
+              "id": "f3",
+              "op": "loop",
+              "operands": [
+                {
+                  "guard": "9 turns, 18 tool calls",
+                  "items": [
+                    {
+                      "kind": "message",
+                      "id": "m36",
+                      "from": "p3",
+                      "to": "p5",
+                      "line": "sync",
+                      "text": "model request"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m37",
+                      "from": "p5",
+                      "to": "p3",
+                      "line": "return",
+                      "text": "reply with tool calls"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "message",
+              "id": "m38",
+              "from": "p3",
+              "to": "p2",
+              "line": "return",
+              "text": "responseText"
+            },
+            {
+              "kind": "message",
+              "id": "m39",
+              "from": "p2",
+              "to": "p1",
+              "line": "return",
+              "text": "R5 result (2m40s, $0.24)"
+            },
+            {
+              "kind": "note",
+              "id": "n3",
+              "anchor": "p1",
+              "side": "over",
+              "text": "R6 ExtractCheckpointNote and S2 validate repeat the attempt 1 pattern: objdiff 100%, gates 5/5, lint clean"
+            },
+            {
+              "kind": "message",
+              "id": "m40",
+              "from": "p1",
+              "to": "p2",
+              "line": "sync",
+              "text": "kernel.step(stop, fn)"
+            },
+            {
+              "kind": "message",
+              "id": "m41",
+              "from": "p2",
+              "to": "p7",
+              "line": "async",
+              "text": "step_start, step_end (S3)"
+            },
+            {
+              "kind": "message",
+              "id": "m42",
+              "from": "p1",
+              "to": "p2",
+              "line": "sync",
+              "text": "kernel.call(SummarizeWorkerRun), post-run"
+            },
+            {
+              "kind": "message",
+              "id": "m43",
+              "from": "p2",
+              "to": "p4",
+              "line": "sync",
+              "text": "invoke with collector"
+            },
+            {
+              "kind": "message",
+              "id": "m44",
+              "from": "p4",
+              "to": "p5",
+              "line": "sync",
+              "text": "one model request"
+            },
+            {
+              "kind": "message",
+              "id": "m45",
+              "from": "p5",
+              "to": "p4",
+              "line": "return",
+              "text": "raw reply"
+            },
+            {
+              "kind": "message",
+              "id": "m46",
+              "from": "p4",
+              "to": "p2",
+              "line": "return",
+              "text": "typed narrative"
+            },
+            {
+              "kind": "message",
+              "id": "m47",
+              "from": "p2",
+              "to": "p7",
+              "line": "async",
+              "text": "call_start, pi_turn_*, call_end (R7)"
+            },
+            {
+              "kind": "message",
+              "id": "m48",
+              "from": "p2",
+              "to": "p1",
+              "line": "return",
+              "text": "narrative"
+            },
+            {
+              "kind": "note",
+              "id": "n4",
+              "anchor": "p1",
+              "side": "over",
+              "text": "harness writes the narrative to the knowledge DB"
+            }
+          ]
+        },
+        {
+          "items": [
+            {
+              "kind": "note",
+              "id": "n5",
+              "anchor": "p1",
+              "side": "over",
+              "text": "retry_same_approach or stop_blocked: other branches, not taken here"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "style": {}
+}
