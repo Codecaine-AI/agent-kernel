@@ -45,7 +45,7 @@ import {
 } from "./DetailImageTrigger";
 import { DetailsView } from "./DetailsView";
 import { DocFigure, DocFigureCaption } from "./doc-figure/DocFigure";
-import { Clamped } from "./doc-figure/Clamped";
+import { Clamped, useRenderedHeight } from "./doc-figure/Clamped";
 import { CLAMP, shouldClamp } from "./doc-figure/clamp";
 
 export interface DetailShellProps {
@@ -97,21 +97,22 @@ function NodeFigure({
 	isErrorOutput,
 	hideCaption,
 	onOpenModal,
+	renderedHeightPx,
+	measureRef,
 }: {
 	block: DetailBlockSpec;
 	isErrorOutput: boolean;
 	hideCaption: boolean;
 	onOpenModal?: () => void;
+	renderedHeightPx: number | null;
+	measureRef?: Ref<HTMLDivElement>;
 }): JSX.Element {
 	const text = nodeText(block.node);
+	const lineCount = Math.max(1, text.split("\n").length);
 	const policy = block.clamp ?? CLAMP.block;
 	const needsExpansion = Boolean(
 		onOpenModal &&
-			shouldClamp(
-				policy,
-				Math.max(1, text.split("\n").length),
-				text.length,
-			),
+			shouldClamp(policy, lineCount, text.length, renderedHeightPx),
 	);
 	return (
 		<figure
@@ -136,8 +137,10 @@ function NodeFigure({
 			)}
 			<Clamped
 				policy={policy}
-				lineCount={Math.max(1, text.split("\n").length)}
+				lineCount={lineCount}
 				charCount={text.length}
+				renderedHeightPx={renderedHeightPx}
+				measureRef={measureRef}
 			>
 				<div className="min-w-0 p-3">{block.node}</div>
 			</Clamped>
@@ -172,6 +175,17 @@ function DetailBlock({
 			? () => onOpenModal(block)
 			: undefined;
 	const sourceText = hasBody ? (block.body ?? "") : nodeText(block.node);
+	// Line breaks miss soft-wrapped prose, so when a node block's renderer
+	// declared a clamp budget, its rendered height decides. Nodes on the shell's
+	// fallback budget (usage tables, render strips) keep the line estimate, so
+	// content that never asked for a preview is not newly cut down to one.
+	const measuresNode =
+		hasNode &&
+		!block.selfFramed &&
+		block.clamp !== undefined &&
+		Number.isFinite(clamp.maxHeightPx);
+	const rendered = useRenderedHeight(measuresNode);
+	const renderedHeightPx = measuresNode ? rendered.heightPx : null;
 	const needsShellExpansion = Boolean(
 		isCollapsible &&
 			modalCallback &&
@@ -179,6 +193,7 @@ function DetailBlock({
 				clamp,
 				Math.max(1, sourceText.split("\n").length),
 				sourceText.length,
+				renderedHeightPx,
 			),
 	);
 
@@ -216,6 +231,8 @@ function DetailBlock({
 					isErrorOutput={isErrorOutput}
 					hideCaption={isCollapsible || inModal}
 					onOpenModal={isCollapsible ? undefined : modalCallback}
+					renderedHeightPx={renderedHeightPx}
+					measureRef={measuresNode ? rendered.ref : undefined}
 				/>
 			)}
 		</>

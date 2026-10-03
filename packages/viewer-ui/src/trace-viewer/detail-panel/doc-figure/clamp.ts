@@ -5,6 +5,7 @@
  * Callers choose the visual budget that matches a block's role. The rendering
  * component combines that budget with caller-supplied text metrics so the
  * same decision is available during server rendering without measuring DOM.
+ * Content that soft-wraps also supplies its measured height once laid out.
  */
 
 export interface ClampPolicy {
@@ -48,18 +49,30 @@ export const CLAMP: {
 };
 
 const ESTIMATED_LINE_HEIGHT_PX = 18;
+/** A rendered height this far past the budget is rounding, not hidden content. */
+const RENDERED_OVERSHOOT_TOLERANCE_PX = 1;
 /**
- * Estimate whether unwrapped content can exceed a policy's height. Source
- * figures are byte-exact and horizontally scroll long lines, so only logical
- * line count contributes to vertical height. `charCount` remains in the
+ * Whether content exceeds a policy's height budget.
+ *
+ * Before layout the logical line count estimates the height. That holds for
+ * source figures, which are byte-exact and horizontally scroll long lines, but
+ * prose soft-wraps: one long paragraph is one logical line and many rendered
+ * ones. Callers that render wrapping content pass its measured height once it
+ * is laid out, and the measurement decides. `charCount` remains in the
  * signature for non-figure callers that already provide the shared metrics.
  */
 export function shouldClamp(
 	policy: ClampPolicy,
 	lineCount: number,
 	_charCount: number,
+	renderedHeightPx: number | null = null,
 ): boolean {
 	if (!Number.isFinite(policy.maxHeightPx)) return false;
+	if (renderedHeightPx !== null) {
+		return (
+			renderedHeightPx > policy.maxHeightPx + RENDERED_OVERSHOOT_TOLERANCE_PX
+		);
+	}
 
 	const estimatedLines = Math.max(1, Math.floor(lineCount));
 	const visibleLines = Math.max(

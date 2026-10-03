@@ -4,14 +4,44 @@
  * The tests pin the critical contract that clamping is purely visual: long
  * content remains complete in collapsed markup, while modal chrome remains a
  * figure/shell concern and long unwrapped lines do not inflate vertical height.
+ * For wrapping content, a measured height decides once it is known.
  */
 import { describe, expect, test } from "bun:test";
+import { createRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { Clamped } from "./Clamped";
 import { CLAMP } from "./clamp";
 
+/** One paragraph, no line breaks: the panel soft-wraps it into many lines. */
+const PARAGRAPH = `${"a long single-paragraph message ".repeat(60)}END`;
+const MANY_LINES = Array.from({ length: 100 }, (_, i) => `line ${i + 1}`).join(
+	"\n",
+);
+
 describe("Clamped", () => {
+	test.each([
+		["clamps one soft-wrapped paragraph rendered past its budget", PARAGRAPH, 900, true],
+		["leaves a paragraph rendered within its budget open", PARAGRAPH, 300, false],
+		["leaves a sub-pixel overshoot open", PARAGRAPH, 420.5, false],
+		["clamps many line breaks before layout, as before", MANY_LINES, null, true],
+	] as const)("%s", (_case, body, renderedHeightPx, clamped) => {
+		const markup = renderToStaticMarkup(
+			<Clamped
+				policy={CLAMP.block}
+				lineCount={body.split("\n").length}
+				charCount={body.length}
+				renderedHeightPx={renderedHeightPx}
+				measureRef={createRef<HTMLDivElement>()}
+			>
+				<p>{body}</p>
+			</Clamped>,
+		);
+
+		expect(markup.includes('data-clamped="true"')).toBe(clamped);
+		expect(markup).toContain(body);
+	});
+
 	test("keeps the full content in collapsed SSR markup", () => {
 		const fullContent = [
 			"START-OF-SOURCE",
