@@ -5,6 +5,18 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<link rel="icon" href="data:," />
 		<title>Pi Agent Kernel Simple Research Kernel</title>
+		<script>
+			// Before the bundle runs: the theme saved in the style engine's settings (the one source of
+			// truth, src/lib/style-settings.ts; .v2 is the engine's key, .v1 the one it carries over), so a
+			// dark page never paints light first. ResearchKernelLayout keeps data-theme in step afterwards.
+			try {
+				var saved = localStorage.getItem("simpleResearchStyleSettings.v2") || localStorage.getItem("simpleResearchStyleSettings.v1");
+				var theme = saved && JSON.parse(saved).theme;
+				if (theme === "light" || theme === "dark") document.documentElement.setAttribute("data-theme", theme);
+			} catch (error) {
+				// Storage blocked or a malformed value: tokens.css paints light until the app mounts.
+			}
+		</script>
 	</head>
 	<body>
 		<div id="root"></div>

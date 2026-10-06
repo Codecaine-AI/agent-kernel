@@ -95,7 +95,7 @@ export function ResearchWorkspace({
 	return (
 		<section className="research-run-grid grid h-[var(--research-workspace-height)] min-h-[var(--research-workspace-min-height)] min-w-0 overflow-hidden rounded border border-border bg-card">
 			<aside className="flex min-h-0 min-w-0 flex-col border-b border-border xl:border-b-0 xl:border-r">
-				<div className="flex h-[var(--research-header-height)] items-center border-b border-border px-4">
+				<div className="flex min-h-[var(--research-header-height)] items-center border-b border-border px-4">
 					<div className="flex w-full items-center justify-between gap-3">
 						<div className="min-w-0">
 							<h2 className="font-display text-reading font-bold leading-title text-ink">Research Run</h2>
@@ -126,13 +126,13 @@ export function ResearchWorkspace({
 							value={prompt}
 							onChange={(event) => setPrompt(event.target.value)}
 							onKeyDown={handlePromptKeyDown}
-							className="research-prompt-input w-full min-w-0 resize-none rounded border border-border bg-background px-3 py-2 text-ui-lg leading-[var(--ds-space-5)] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-agentprism-badge-chain-foreground"
+							className="research-prompt-input w-full min-w-0 resize-none rounded border border-border bg-background px-3 py-2 text-ui-lg leading-[var(--ds-space-5)] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring"
 							placeholder="Research prompt"
 						/>
 						<button
 							type="submit"
 							disabled={startingRun || prompt.trim().length === 0}
-							className="flex h-10 w-full min-w-0 items-center justify-center rounded border border-agentprism-badge-chain-foreground/60 bg-accent px-3 text-ui-lg font-bold leading-none text-accent-foreground transition-colors hover:border-agentprism-badge-chain-foreground hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-agentprism-badge-chain-foreground disabled:cursor-not-allowed disabled:opacity-55"
+							className="flex h-10 w-full min-w-0 items-center justify-center rounded border border-accent/60 bg-accent px-3 text-ui-lg font-bold leading-none text-accent-foreground transition-colors hover:border-accent hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-55"
 						>
 							{startingRun ? "Starting Run" : "Start Research Run"}
 						</button>
@@ -214,7 +214,7 @@ export function ResearchWorkspace({
 							type="button"
 							onClick={onOpenTrace}
 							disabled={!activeDetail}
-							className="flex h-10 w-full items-center justify-center rounded border border-border px-3 text-ui-lg font-bold text-foreground transition-colors hover:border-agentprism-badge-chain-foreground hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-agentprism-badge-chain-foreground disabled:cursor-not-allowed disabled:opacity-55"
+							className="flex h-10 w-full items-center justify-center rounded border border-border px-3 text-ui-lg font-bold text-foreground transition-colors hover:border-accent hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-55"
 						>
 							Open Detailed Trace
 						</button>

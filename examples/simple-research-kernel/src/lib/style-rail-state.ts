@@ -17,3 +17,16 @@ export const loadStyleRailCollapsed = () => loadShared(RESEARCH_STYLE_CONFIG);
 export const saveStyleRailCollapsed = (collapsed: boolean) => saveShared(RESEARCH_STYLE_CONFIG, collapsed);
 export const loadStyleRailWidth = () => loadWidthShared(RESEARCH_STYLE_CONFIG);
 export const saveStyleRailWidth = (width: number) => saveWidthShared(RESEARCH_STYLE_CONFIG, width);
+
+/**
+ * The width the user dragged the style inspector to, or null when they never did: the
+ * inspector then keeps the shell's width token (guide/layout.md, --ds-layout-inspector-width).
+ */
+export function loadStoredStyleRailWidth(): number | null {
+	try {
+		if (localStorage.getItem(RESEARCH_STYLE_CONFIG.railWidthStorageKey) === null) return null;
+	} catch {
+		return null;
+	}
+	return loadStyleRailWidth();
+}

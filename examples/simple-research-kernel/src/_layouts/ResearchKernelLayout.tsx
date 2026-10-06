@@ -1,12 +1,25 @@
-import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+	type CSSProperties,
+	type KeyboardEvent,
+	type PointerEvent as ReactPointerEvent,
+	type ReactNode
+} from "react";
 
-import { StyleOverlay, StyleSettingsRail } from "@agent-kernel/viewer-shell";
+import { StyleOverlay, StyleSettingsPanel } from "@agent-kernel/viewer-shell";
 
-import { AppSidebar } from "../_components/sidebar/AppSidebar";
+import { AppShell, resolveNav, type NavSection, type ShellLinkProps } from "../_components/AppShell";
+import { Icon } from "../shared/_components/Icon";
 import {
 	clampStyleRailWidth,
+	loadStoredStyleRailWidth,
 	loadStyleRailCollapsed,
-	loadStyleRailWidth,
 	saveStyleRailCollapsed,
 	saveStyleRailWidth
 } from "../lib/style-rail-state";
@@ -17,6 +30,7 @@ import {
 	type ResearchStyleSettingsPatch
 } from "../lib/style-settings";
 import type { WorkspaceId } from "../lib/types";
+import { pathnameForWorkspace, workspaceFromPathname } from "../lib/use-workspace-route";
 
 type ResearchKernelLayoutProps = {
 	activeWorkspace: WorkspaceId;
@@ -26,6 +40,91 @@ type ResearchKernelLayoutProps = {
 	children: ReactNode;
 };
 
+/** The topbar h1 and the document title: the page's nav label. */
+const PAGE_TITLES: Record<WorkspaceId, string> = {
+	research: "Research Run",
+	trace: "Trace Viewer",
+	agents: "Agent Viewer"
+};
+
+const NAV_SECTIONS: NavSection[] = [
+	{
+		id: "workspaces",
+		label: "Workspaces",
+		items: [
+			{
+				id: "research",
+				label: PAGE_TITLES.research,
+				href: pathnameForWorkspace("research"),
+				icon: <Icon name="research" />
+			},
+			{
+				id: "trace",
+				label: PAGE_TITLES.trace,
+				href: pathnameForWorkspace("trace"),
+				icon: <Icon name="traces" />
+			},
+			{
+				id: "agents",
+				label: PAGE_TITLES.agents,
+				href: pathnameForWorkspace("agents"),
+				icon: <Icon name="agents" />
+			}
+		]
+	}
+];
+
+const NavigateContext = createContext<(workspace: WorkspaceId) => void>(() => {});
+
+/**
+ * The shell's nav link: a real link (it opens in a new tab with a modifier), and a plain
+ * click switches the workspace in place through the History API. Module scope, so it
+ * keeps one identity across renders.
+ */
+function WorkspaceLink({ href, onClick, ...rest }: ShellLinkProps) {
+	const navigate = useContext(NavigateContext);
+	return (
+		<a
+			{...rest}
+			href={href}
+			onClick={(event) => {
+				onClick?.(event);
+				if (
+					event.defaultPrevented ||
+					event.button !== 0 ||
+					event.metaKey ||
+					event.ctrlKey ||
+					event.shiftKey ||
+					event.altKey
+				) {
+					return;
+				}
+				event.preventDefault();
+				navigate(workspaceFromPathname(href));
+			}}
+		/>
+	);
+}
+
+/** The inspector closes on Escape from inside it; an Escape that ends IME composition must not. */
+function keepOpenWhileComposing(event: KeyboardEvent<HTMLDivElement>) {
+	if (event.key === "Escape" && (event.nativeEvent.isComposing || event.keyCode === 229)) {
+		event.stopPropagation();
+	}
+}
+
+/**
+ * The design-system app shell (guide/layout.md) around the three workspaces, inside the
+ * viewer-shell style engine's root.
+ *
+ * - The engine root wraps the whole shell, as the old <main> did: its knobs (inline vars)
+ *   and effects (soften, bevel, grain overlay) reach the sidebar, topbar and inspector too.
+ *   styles.css maps its Layout knobs onto the shell's layout tokens.
+ * - The style rail is the shell's inspector: the Style button opens it, it keeps the stored
+ *   open state and `?style=open`, and its width is the shell's token until the user drags it.
+ * - The theme lives in the engine's settings (one source of truth); the topbar toggle and
+ *   the inspector's Theme tab both write it.
+ */
 export function ResearchKernelLayout({
 	activeWorkspace,
 	onWorkspaceChange,
@@ -33,66 +132,121 @@ export function ResearchKernelLayout({
 	onStyleSettingsChange,
 	children
 }: ResearchKernelLayoutProps) {
-	const [styleRailCollapsed, setStyleRailCollapsedState] = useState(loadStyleRailCollapsed);
-	const [styleRailWidth, setStyleRailWidthState] = useState(loadStyleRailWidth);
+	const [styleOpen, setStyleOpen] = useState(() => !loadStyleRailCollapsed());
+	const [styleRailWidth, setStyleRailWidth] = useState(loadStoredStyleRailWidth);
 	const [styleRailResizing, setStyleRailResizing] = useState(false);
+	const styleButtonRef = useRef<HTMLButtonElement>(null);
+	const title = PAGE_TITLES[activeWorkspace];
+	const dark = styleSettings.theme === "dark";
 
-	// Theme rides the style settings (persisted with them). The data-theme
-	// attribute on <html> switches the design-system tokens and host contract
-	// (light is :root's default); researchStyleVars below inlines only the
-	// engine's knobs (opacities, widths, layout), never a color.
-	useEffect(() => {
+	// data-theme on <html> switches the design-system tokens and the host contract. It is
+	// stamped before the browser paints, so a stored dark theme never shows light first.
+	useLayoutEffect(() => {
 		document.documentElement.dataset.theme = styleSettings.theme;
 	}, [styleSettings.theme]);
 
-	const setStyleRailCollapsed = useCallback((collapsed: boolean) => {
-		setStyleRailCollapsedState(collapsed);
-		saveStyleRailCollapsed(collapsed);
+	useEffect(() => {
+		document.title = title;
+	}, [title]);
+
+	const openStyle = useCallback(() => {
+		setStyleOpen(true);
+		saveStyleRailCollapsed(false);
 	}, []);
 
-	const setStyleRailWidth = useCallback((width: number) => {
-		setStyleRailWidthState(clampStyleRailWidth(width));
+	// Every close path (the inspector's close button, Escape inside it, the Style button)
+	// returns focus to Style, also when the inspector mounted open and the shell saw no opener.
+	const closeStyle = useCallback(() => {
+		setStyleOpen(false);
+		saveStyleRailCollapsed(true);
+		styleButtonRef.current?.focus({ preventScroll: true });
 	}, []);
 
-	const finishStyleRailResize = useCallback(() => {
-		setStyleRailResizing(false);
-		setStyleRailWidthState((width) => {
-			saveStyleRailWidth(width);
-			return width;
-		});
+	const startStyleRailResize = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+		event.preventDefault();
+		setStyleRailResizing(true);
+		let width: number | null = null;
+		const onMove = (moveEvent: PointerEvent) => {
+			width = clampStyleRailWidth(window.innerWidth - moveEvent.clientX);
+			setStyleRailWidth(width);
+		};
+		const onUp = () => {
+			window.removeEventListener("pointermove", onMove);
+			window.removeEventListener("pointerup", onUp);
+			setStyleRailResizing(false);
+			if (width !== null) saveStyleRailWidth(width);
+		};
+		window.addEventListener("pointermove", onMove);
+		window.addEventListener("pointerup", onUp);
 	}, []);
 
-	const shellStyle = {
+	const engineStyle = {
 		...researchStyleVars(styleSettings),
-		"--research-style-rail-track": styleRailCollapsed ? "52px" : `${styleRailWidth}px`
+		...(styleRailWidth === null ? {} : { "--research-style-rail-width": `${styleRailWidth}px` })
 	} as CSSProperties;
 
 	return (
-		<main
+		<div
 			className={`research-style-shell ${styleEffectClass(styleSettings)} ${
 				styleRailResizing ? "research-style-shell-resizing" : ""
-			} min-h-screen bg-background font-sans text-foreground`}
-			style={shellStyle}
+			} bg-background text-foreground`}
+			style={engineStyle}
 		>
-			<div className="research-layout-grid grid min-h-screen">
-				<AppSidebar
-					activeWorkspace={activeWorkspace}
-					onWorkspaceChange={onWorkspaceChange}
-				/>
-				<div className="min-w-0">
-					<div className="research-workspace-pad">{children}</div>
-				</div>
-				<StyleSettingsRail
-					collapsed={styleRailCollapsed}
-					onCollapsedChange={setStyleRailCollapsed}
-					onResizeEnd={finishStyleRailResize}
-					onResizeStart={() => setStyleRailResizing(true)}
-					onWidthChange={setStyleRailWidth}
-					settings={styleSettings}
-					onSettingsChange={onStyleSettingsChange}
-				/>
-			</div>
+			<NavigateContext.Provider value={onWorkspaceChange}>
+				<AppShell
+					appName="Research Kernel"
+					storageKey="simple-research-kernel.sidebar"
+					sections={resolveNav(NAV_SECTIONS, pathnameForWorkspace(activeWorkspace))}
+					title={title}
+					lane="full"
+					linkComponent={WorkspaceLink}
+					actions={
+						<>
+							<button
+								key="style"
+								ref={styleButtonRef}
+								type="button"
+								className="ds-shell-button"
+								aria-expanded={styleOpen}
+								aria-controls="ds-inspector"
+								onClick={styleOpen ? closeStyle : openStyle}
+							>
+								Style
+							</button>
+							<button
+								key="theme"
+								type="button"
+								className="ds-shell-icon-button"
+								aria-label="Dark theme"
+								aria-pressed={dark}
+								title="Dark theme"
+								onClick={() => onStyleSettingsChange({ theme: dark ? "light" : "dark" })}
+							>
+								<Icon name="moon" />
+							</button>
+						</>
+					}
+					inspector={{
+						title: "Style",
+						open: styleOpen,
+						onClose: closeStyle,
+						content: (
+							<div onKeyDown={keepOpenWhileComposing}>
+								<div
+									aria-hidden
+									className="style-settings-rail-resize-handle"
+									onPointerDown={startStyleRailResize}
+									title="Drag to resize"
+								/>
+								<StyleSettingsPanel settings={styleSettings} onChange={onStyleSettingsChange} />
+							</div>
+						)
+					}}
+				>
+					{children}
+				</AppShell>
+			</NavigateContext.Provider>
 			<StyleOverlay settings={styleSettings.grain} />
-		</main>
+		</div>
 	);
 }
