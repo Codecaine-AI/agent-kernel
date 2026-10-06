@@ -3,128 +3,39 @@
 @tailwind utilities;
 
 /*
- * Two-theme token system — one semantic vocabulary, two palettes.
+ * Colors, type and fonts come from @codecaine-ai/design-system, loaded first in main.tsx:
  *
- * LIGHT (default): "design doc" paper — derived from the state-shapes explainer
- * (docs/10-system-design/explainers/state-shapes.html): warm paper surfaces,
- * near-black ink, hairline rules, doc-key accents (blue / green / burnt orange
- * / violet).
+ *   fonts.css           Inter and IBM Plex Mono
+ *   tokens.css          the --ds-* tokens, light on :root, dark under data-theme="dark"
+ *   host-contract.css   the agent-viewer host contract (shadcn names, trace-*, status-*,
+ *                       syntax-*, editor-*, agentprism-*, tree and selection colors) as
+ *                       the RGB triplets Tailwind's rgb(var(--token) / <alpha>) reads
  *
- * DARK (`html[data-theme="dark"]`): the Instrument Telemetry calibration —
- * near-black void, signal-green primary, flat-emission accents. See DESIGN.md
- * §"Readability Calibration (Sustained Use)".
+ * The theme is chosen in the STYLE panel and persisted with the rest of the style
+ * settings; ResearchKernelLayout stamps `data-theme` on <html>, and both sheets follow it.
  *
- * Both themes drive the SAME semantic tokens (surfaces, status, trace-* kind
- * hues, syntax) so the trace viewer's color system carries across unchanged.
- * The theme is chosen in the STYLE panel's COLORS tab and persisted with the
- * rest of the style settings; App stamps `data-theme` on <html>.
- *
- * Tokens are RGB triplets consumed by Tailwind's `rgb(var(--token) / <alpha>)`.
+ * This file keeps only the app's own knobs. The viewer-shell style engine writes the
+ * same names inline on the shell; these are the defaults outside it.
  */
 
 :root {
-	color-scheme: light;
-
-	/* ── Base & structure (doc paper) ─────────────────────────────── */
-	--background: 249 249 247;        /* #F9F9F7 — page paper                       */
-	--foreground: 26 26 25;           /* #1A1A19 — ink                              */
-	--card: 252 252 251;              /* #FCFCFB — raised surfaces (panels, cards)  */
-	--card-foreground: 26 26 25;
-	--muted: 241 240 235;             /* #F1F0EB — inputs / wells                   */
-	--muted-foreground: 82 81 78;     /* #52514E — ink-2 secondary text             */
-	--border: 225 224 217;            /* #E1E0D9 — hairline rules                   */
-	--input: 225 224 217;
-	--ring: 42 120 214;               /* Focus ring = doc accent blue               */
-
-	/* ── Primary accent (doc blue) ────────────────────────────────── */
-	--accent: 42 120 214;             /* #2A78D6                                    */
-	--accent-foreground: 252 252 251;
-
-	--destructive: 185 28 28;         /* #B91C1C — alert red (5.9:1 on paper)       */
-	--trace-container: 82 81 78;
-
-	/* ── Status semantics (consistent across every panel) ─────────── */
-	--status-neutral: 82 81 78;       /* #52514E                                    */
-	--status-neutral-fill: 241 240 235; /* #F1F0EB                                  */
-	--status-neutral-border: 195 194 183; /* #C3C2B7 — strong hairline               */
-
-	--status-success: 21 125 89;      /* #157D59 — doc ok green (5.1:1)             */
-	--status-success-fill: 230 244 238;
-	--status-success-border: 167 216 196;
-
-	/* Warning stays yellow-amber so tool ORANGE reads apart from it.   */
-	--status-warning: 146 100 6;      /* #926406 — dark amber (4.8:1)               */
-	--status-warning-fill: 249 243 227;
-	--status-warning-border: 227 205 158;
-
-	/* Selected / Live / Focus → doc accent blue                        */
-	--status-info: 42 120 214;        /* #2A78D6                                    */
-	--status-info-fill: 232 241 251;
-	--status-info-border: 182 211 242;
-
-	/* ── Syntax (doc light code palette) ──────────────────────────── */
-	--syntax-key: 124 58 237;         /* #7C3AED keyword violet                     */
-	--syntax-string: 10 125 50;       /* #0A7D32 string green                       */
-	--syntax-number: 180 70 15;       /* #B4460F number burnt orange                */
-	--syntax-boolean: 42 120 214;     /* #2A78D6 boolean blue                       */
-
-	/* ── Editor surface (doc light code buffer) ───────────────────── */
-	--editor-bg: #fbfbf9;
-	--editor-fg: #1a1a19;
-	--editor-line-number: #898781;
-	--editor-line-number-active: #52514e;
-	--editor-gutter-bg: #fbfbf9;
-	--editor-rule: rgb(0 0 0 / 0.04);
-	--editor-guide: rgb(0 0 0 / 0.08);
-	--editor-landmark: rgb(0 0 0 / 0.028);
-
-	/* ── Trace viewer chrome ──────────────────────────────────────── */
-	--agentprism-background: 252 252 251; /* glyph knockout inside solid icon caps */
-	--agentprism-foreground: 26 26 25;
-	--agentprism-muted: 241 240 235;
-	--agentprism-muted-foreground: 82 81 78;
-	--agentprism-border-subtle: 225 224 217;
-	--agentprism-code-base: 241 240 235;  /* light well behind detail chips        */
-	--agentprism-badge-agent-foreground: 42 120 214;
-	--agentprism-badge-chain-foreground: 21 125 89;
-	--agentprism-badge-llm-foreground: 21 125 89;
-	--agentprism-badge-tool-foreground: 194 65 12;
-
-	/* ── Trace semantic groups (one hue per meaning, both themes) ─────
-	 * CONVERSATION user=blue / assistant=green; TOOL=orange; CONTEXT=violet;
-	 * lifecycle/meta neutral. Amber/red RESERVED for warning/error.        */
-	--trace-orchestration: 124 58 237;   /* #7C3AED violet — context / snapshots   */
-	--trace-user: 29 102 193;            /* #1D66C1 blue — user messages (5.5:1)   */
-	--trace-assistant: 21 125 89;        /* #157D59 green — assistant messages     */
-	--trace-tool: 194 65 12;             /* #C2410C orange — tool calls (5.1:1)    */
-	--trace-lifecycle: 137 135 129;      /* #898781 ink-3 — lifecycle / plumbing   */
-	--trace-meta: 137 135 129;
-
-	/* ── Tree chrome (style-panel adjustable) ─────────────────────────
-	 * Band alphas + caret/connector color and opacity. Colors are RGB
-	 * triplets; opacities are plain numbers composed into rgb(...)/alpha. */
+	/* Tree chrome: band and caret/connector opacities, composed into rgb(... / alpha). */
 	--band-wash-opacity: 0.1;
 	--band-border-opacity: 0.45;
-	--tree-caret: 82 81 78;              /* #52514E — chevrons                    */
 	--tree-caret-opacity: 1;
-	--tree-connector: 195 194 183;       /* #C3C2B7 — indent/connector lines     */
 	--tree-connector-opacity: 0.8;
 
-	/* Selection (style-panel adjustable): gutter bar + card ring/fill. */
-	--selection-color: 42 120 214;       /* #2A78D6 — doc accent blue            */
+	/* Selection: gutter bar and card ring. */
 	--selection-opacity: 1;
-	--selection-width: 2px;              /* card ring width                      */
-	--selection-bar-width: 3px;          /* row gutter bar width                 */
+	--selection-width: var(--ds-border-width-focus);
+	--selection-bar-width: var(--ds-border-width-rail);
 
-	/* Code-block zebra striping (style-panel adjustable; 0 disables).
-	 * Consumed by the shared code-block component as
-	 * rgb(var(--zebra-color)/var(--zebra-opacity)). */
-	--zebra-color: 0 0 0;                /* ink stripes on paper                 */
+	/* Code-block zebra striping (0 disables), read as rgb(var(--zebra-color) / var(--zebra-opacity)). */
 	--zebra-opacity: 0.04;
 
 	/* Adjustable research surface controls. */
-	--research-layout-padding: 16px;
-	--research-workspace-height: calc(100vh - 32px);
+	--research-layout-padding: var(--ds-space-4);
+	--research-workspace-height: calc(100vh - 2 * var(--research-layout-padding));
 	--research-workspace-min-height: 680px;
 	--research-header-height: 72px;
 	--research-style-rail-track: 52px;
@@ -137,99 +48,6 @@
 	--style-soften-icon-blur: 0px;
 	--style-soften-icon-glow: 0px;
 	--style-soften-icon-opacity: 1;
-}
-
-/*
- * DARK — Instrument Telemetry calibration (the original palette). Neutral gray
- * ladder anchored on VS Code Dark+ (#252526 raised surface), signal-green
- * primary, flat-emission accents on the near-black void.
- */
-:root[data-theme="dark"] {
-	color-scheme: dark;
-
-	--background: 27 27 28;           /* #1B1B1C — page base, a hair under the editor */
-	--foreground: 212 212 212;        /* #D4D4D4 — primary text (matches editor fg)   */
-	--card: 37 37 38;                 /* #252526 — raised surfaces (panels, cards)    */
-	--card-foreground: 212 212 212;
-	--muted: 42 42 43;                /* #2A2A2B — inputs / wells on raised surfaces  */
-	--muted-foreground: 168 168 168;  /* #A8A8A8 — secondary/label text, de-blued     */
-	--border: 58 58 59;               /* #3A3A3B — solid hairline panel / row rules   */
-	--input: 58 58 59;
-	--ring: 84 214 147;               /* Focus ring = signal-green primary            */
-
-	/* Primary accent (Signal Green — softened phosphor #54D693). */
-	--accent: 84 214 147;
-	--accent-foreground: 4 12 8;
-
-	--destructive: 225 91 88;         /* #E15B58 — softened Alert Red                 */
-	--trace-container: 168 168 168;
-
-	--status-neutral: 168 168 168;
-	--status-neutral-fill: 42 42 43;
-	--status-neutral-border: 74 74 76;
-
-	--status-success: 84 214 147;
-	--status-success-fill: 10 30 22;
-	--status-success-border: 38 92 70;
-
-	--status-warning: 220 167 76;     /* #DCA74C amber                               */
-	--status-warning-fill: 34 28 10;
-	--status-warning-border: 96 74 28;
-
-	--status-info: 84 211 224;        /* #54D3E0 HUD cyan — selection/focus          */
-	--status-info-fill: 8 30 36;
-	--status-info-border: 28 84 96;
-
-	--syntax-key: 176 176 176;
-	--syntax-string: 84 214 147;
-	--syntax-number: 220 167 76;
-	--syntax-boolean: 214 190 110;
-
-	/* Editor surface (VS Code Dark+ standards). */
-	--editor-bg: #1e1e1e;
-	--editor-fg: #d4d4d4;
-	--editor-line-number: #858585;
-	--editor-line-number-active: #c6c6c6;
-	--editor-gutter-bg: #1e1e1e;
-	--editor-rule: rgb(255 255 255 / 0.04);
-	--editor-guide: rgb(255 255 255 / 0.08);
-	--editor-landmark: rgb(255 255 255 / 0.028);
-
-	--agentprism-background: 27 27 28;
-	--agentprism-foreground: 212 212 212;
-	--agentprism-muted: 42 42 43;
-	--agentprism-muted-foreground: 168 168 168;
-	--agentprism-border-subtle: 58 58 59;
-	--agentprism-code-base: 168 168 168;
-	--agentprism-badge-agent-foreground: 84 211 224;
-	--agentprism-badge-chain-foreground: 110 210 184;
-	--agentprism-badge-llm-foreground: 84 214 147;
-	--agentprism-badge-tool-foreground: 232 130 61;
-
-	--trace-orchestration: 167 139 250;  /* #A78BFA violet — context / snapshots     */
-	--trace-user: 96 165 250;            /* #60A5FA blue — user messages             */
-	--trace-assistant: 84 214 147;       /* #54D693 green — assistant messages       */
-	--trace-tool: 232 130 61;            /* #E8823D orange — tool calls (5.2:1)      */
-	--trace-lifecycle: 168 168 168;      /* #A8A8A8 gray — lifecycle / plumbing      */
-	--trace-meta: 168 168 168;
-
-	/* Tree chrome (style-panel adjustable). */
-	--band-wash-opacity: 0.1;
-	--band-border-opacity: 0.45;
-	--tree-caret: 168 168 168;           /* #A8A8A8 — chevrons                       */
-	--tree-caret-opacity: 1;
-	--tree-connector: 58 58 59;          /* #3A3A3B — indent/connector lines         */
-	--tree-connector-opacity: 0.8;
-
-	/* Selection (style-panel adjustable): gutter bar + card ring/fill. */
-	--selection-color: 84 211 224;       /* #54D3E0 — HUD cyan                       */
-	--selection-opacity: 1;
-	--selection-width: 2px;
-	--selection-bar-width: 3px;
-
-	/* Code-block zebra striping (style-panel adjustable; 0 disables). */
-	--zebra-color: 255 255 255;          /* light stripes on the void                */
-	--zebra-opacity: 0.04;
 }
 
 * {
@@ -267,9 +85,24 @@ body {
 	}
 }
 
+/* Research Run workspace: the run column beside the live trace (xl and up). */
+.research-run-grid {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1280px) {
+	.research-run-grid {
+		grid-template-columns: 440px minmax(0, 1fr);
+	}
+}
+
+.research-prompt-input {
+	min-height: 116px;
+}
+
+/* Selected text keeps its own color. */
 ::selection {
-	background: rgb(var(--accent) / 0.85);
-	color: rgb(var(--accent-foreground));
+	background: var(--ds-color-selection);
 }
 
 ::-webkit-scrollbar {
@@ -292,37 +125,6 @@ body {
 
 ::-webkit-scrollbar-corner {
 	background: transparent;
-}
-
-/* ── Instrument utilities ─────────────────────────────────────────── */
-
-/* Phosphor emission — subtle, and RESERVED FOR THE SINGLE FOCAL READOUT.
- * Secondary lit values use flat accent color; many glows compete for the eye
- * and read as glare, not emission. Intensity kept low for sustained reading. */
-.tk-glow-green {
-	text-shadow: 0 0 5px rgb(84 214 147 / 0.28), 0 0 1px rgb(84 214 147 / 0.42);
-}
-.tk-glow-amber {
-	text-shadow: 0 0 5px rgb(220 167 76 / 0.26), 0 0 1px rgb(220 167 76 / 0.4);
-}
-.tk-glow-red {
-	text-shadow: 0 0 5px rgb(225 91 88 / 0.26), 0 0 1px rgb(225 91 88 / 0.4);
-}
-
-/* Corner-bracket frame — the signature HUD device, applied to key readouts
- * only. Draws four L-shaped ticks; the field between stays empty. */
-.tk-frame {
-	--tkf-len: 9px;
-	--tkf-c: rgb(var(--muted-foreground) / 0.35);
-	background:
-		linear-gradient(var(--tkf-c), var(--tkf-c)) top left / var(--tkf-len) 1px no-repeat,
-		linear-gradient(var(--tkf-c), var(--tkf-c)) top left / 1px var(--tkf-len) no-repeat,
-		linear-gradient(var(--tkf-c), var(--tkf-c)) top right / var(--tkf-len) 1px no-repeat,
-		linear-gradient(var(--tkf-c), var(--tkf-c)) top right / 1px var(--tkf-len) no-repeat,
-		linear-gradient(var(--tkf-c), var(--tkf-c)) bottom left / var(--tkf-len) 1px no-repeat,
-		linear-gradient(var(--tkf-c), var(--tkf-c)) bottom left / 1px var(--tkf-len) no-repeat,
-		linear-gradient(var(--tkf-c), var(--tkf-c)) bottom right / var(--tkf-len) 1px no-repeat,
-		linear-gradient(var(--tkf-c), var(--tkf-c)) bottom right / 1px var(--tkf-len) no-repeat;
 }
 
 /* Subtle live-tick pulse for status LEDs / the focus cursor. Isolated, tiny,

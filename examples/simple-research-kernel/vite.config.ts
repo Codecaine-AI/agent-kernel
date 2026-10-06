@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
@@ -20,6 +21,14 @@ const apiTarget = process.env.API_TARGET ?? "http://127.0.0.1:8788";
 const APP_DIR = dirname(fileURLToPath(import.meta.url));
 const PROMPT_KIT_DIR = resolve(APP_DIR, "../../../prompt-kit");
 const ANNOTATIONS_DIR = resolve(APP_DIR, "../../../annotations");
+/**
+ * @codecaine-ai/design-system (fonts.css, tokens.css, host-contract.css) is a Core
+ * workspace link whose real path is outside this repo: without this grant the dev
+ * server answers 403 for its font files (design-system guide/consume.md §8).
+ */
+const DESIGN_SYSTEM_DIR = dirname(
+	createRequire(import.meta.url).resolve("@codecaine-ai/design-system/package.json")
+);
 
 export default defineConfig({
 	plugins: [react()],
@@ -34,7 +43,7 @@ export default defineConfig({
 		port,
 		strictPort: true,
 		fs: {
-			allow: [resolve(APP_DIR, "../.."), PROMPT_KIT_DIR, ANNOTATIONS_DIR]
+			allow: [resolve(APP_DIR, "../.."), PROMPT_KIT_DIR, ANNOTATIONS_DIR, DESIGN_SYSTEM_DIR]
 		},
 		proxy: {
 			"/kernel": apiTarget,

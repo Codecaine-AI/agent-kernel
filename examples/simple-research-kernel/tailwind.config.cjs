@@ -1,5 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+	// The design-system preset (decision 3): its utilities read --ds-* from tokens.css, and it removes
+	// Tailwind's default palette and scales. budget's kernel view spreads this config, so it inherits
+	// the preset too and must load fonts.css, tokens.css and host-contract.css as well.
+	presets: [require("@codecaine-ai/design-system/tailwind-v3-preset")],
 	content: [
 		"./index.html",
 		"./src/**/*.{ts,tsx}",
@@ -14,16 +18,13 @@ module.exports = {
 	theme: {
 		extend: {
 			fontFamily: {
-				// The voice of this UI is machine type. Mono is the workhorse — every
-				// number, label, table cell, path, and log line. Squared caps face for
-				// large panel titles; neutral sans only for the odd prose paragraph.
-				mono: [
-					'"JetBrains Mono"', '"IBM Plex Mono"', '"Geist Mono"',
-					'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'
-				],
-				sans: ['"TX-02"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-				display: ['"Bank Gothic"', '"Eurostile"', '"Michroma"', 'ui-sans-serif', 'system-ui', 'sans-serif']
+				// Panel titles (font-display) take the design-system sans by role; the old display
+				// stack (Bank Gothic, Eurostile, Michroma) was never loaded. font-sans and font-mono
+				// come from the preset: Inter and IBM Plex Mono, loaded by fonts.css.
+				display: "var(--ds-font-family-sans)"
 			},
+			// The agent-viewer host contract, as RGB triplets: host-contract.css maps each name to a
+			// design-system token in both themes.
 			colors: {
 				background: "rgb(var(--background) / <alpha-value>)",
 				foreground: "rgb(var(--foreground) / <alpha-value>)",

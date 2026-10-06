@@ -38,9 +38,9 @@ export function ResearchKernelLayout({
 	const [styleRailResizing, setStyleRailResizing] = useState(false);
 
 	// Theme rides the style settings (persisted with them). The data-theme
-	// attribute on <html> flips every styles.css token block (light is :root's
-	// default); researchStyleVars below re-emits the inlined neutrals from the
-	// matching palette so the shell and the CSS always agree.
+	// attribute on <html> switches the design-system tokens and host contract
+	// (light is :root's default); researchStyleVars below inlines only the
+	// engine's knobs (opacities, widths, layout), never a color.
 	useEffect(() => {
 		document.documentElement.dataset.theme = styleSettings.theme;
 	}, [styleSettings.theme]);

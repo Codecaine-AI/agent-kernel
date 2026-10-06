@@ -93,19 +93,19 @@ export function ResearchWorkspace({
 	}
 
 	return (
-		<section className="grid h-[var(--research-workspace-height)] min-h-[var(--research-workspace-min-height)] min-w-0 grid-cols-[minmax(0,1fr)] overflow-hidden rounded-lg border border-border bg-card xl:grid-cols-[440px_minmax(0,1fr)]">
+		<section className="research-run-grid grid h-[var(--research-workspace-height)] min-h-[var(--research-workspace-min-height)] min-w-0 overflow-hidden rounded border border-border bg-card">
 			<aside className="flex min-h-0 min-w-0 flex-col border-b border-border xl:border-b-0 xl:border-r">
 				<div className="flex h-[var(--research-header-height)] items-center border-b border-border px-4">
 					<div className="flex w-full items-center justify-between gap-3">
 						<div className="min-w-0">
-							<h2 className="font-display text-lg font-bold leading-tight">Research Run</h2>
-							<p className="mt-1 text-xs text-muted-foreground">
+							<h2 className="font-display text-reading font-bold leading-title text-ink">Research Run</h2>
+							<p className="mt-1 text-ui-xs text-muted-foreground">
 								{info?.agents.length ?? 0} agents · {traceSessions.length} traces
 							</p>
 						</div>
 						{selectedTrace && (
 							<span
-								className={`shrink-0 rounded-md border px-1.5 py-0.5 text-[11px] font-bold ${traceStatusClass(
+								className={`shrink-0 rounded border px-1.5 py-0.5 text-ui-2xs font-bold ${traceStatusClass(
 									selectedTrace.status
 								)}`}
 							>
@@ -126,13 +126,13 @@ export function ResearchWorkspace({
 							value={prompt}
 							onChange={(event) => setPrompt(event.target.value)}
 							onKeyDown={handlePromptKeyDown}
-							className="min-h-[116px] w-full min-w-0 resize-none rounded-md border border-border bg-background px-3 py-2 text-sm leading-5 text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-agentprism-badge-chain-foreground"
+							className="research-prompt-input w-full min-w-0 resize-none rounded border border-border bg-background px-3 py-2 text-ui-lg leading-[var(--ds-space-5)] text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-agentprism-badge-chain-foreground"
 							placeholder="Research prompt"
 						/>
 						<button
 							type="submit"
 							disabled={startingRun || prompt.trim().length === 0}
-							className="flex h-10 w-full min-w-0 items-center justify-center rounded-md border border-agentprism-badge-chain-foreground/60 bg-accent px-3 text-sm font-bold leading-none text-accent-foreground transition-colors hover:border-agentprism-badge-chain-foreground hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-agentprism-badge-chain-foreground disabled:cursor-not-allowed disabled:opacity-55"
+							className="flex h-10 w-full min-w-0 items-center justify-center rounded border border-agentprism-badge-chain-foreground/60 bg-accent px-3 text-ui-lg font-bold leading-none text-accent-foreground transition-colors hover:border-agentprism-badge-chain-foreground hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-agentprism-badge-chain-foreground disabled:cursor-not-allowed disabled:opacity-55"
 						>
 							{startingRun ? "Starting Run" : "Start Research Run"}
 						</button>
@@ -142,26 +142,26 @@ export function ResearchWorkspace({
 				<div className="min-h-0 flex-1 overflow-y-auto p-4">
 					<div className="space-y-5">
 						<div>
-							<div className="mb-2 text-xs font-bold uppercase text-muted-foreground">Research Trace</div>
+							<div className="mb-2 text-ui-xs font-bold uppercase text-muted-foreground">Research Trace</div>
 							{selectedTrace ? (
-								<div className="rounded-md border border-border bg-background/25 px-3.5 py-3.5">
-									<div className="line-clamp-2 text-sm font-bold leading-5">{selectedTrace.label}</div>
-									<div className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+								<div className="rounded border border-border bg-background/25 px-3.5 py-3.5">
+									<div className="line-clamp-2 text-ui-lg font-bold leading-[var(--ds-space-5)]">{selectedTrace.label}</div>
+									<div className="mt-1 line-clamp-2 text-ui-xs leading-[var(--ds-space-5)] text-muted-foreground">
 										{selectedTrace.topic ?? selectedTrace.containerId}
 									</div>
-									<div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+									<div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-ui-xs text-muted-foreground">
 										<span>{selectedTrace.piSessionCount} sessions</span>
 										<span>{selectedTrace.eventCount} events</span>
 										<span>{formatTraceDate(selectedTrace.latestEventAt ?? selectedTrace.updatedAt)}</span>
 									</div>
 								</div>
 							) : activeRun ? (
-								<div className="rounded-md border border-status-info-border bg-status-info-fill px-3.5 py-3.5 text-sm text-status-info">
+								<div className="rounded border border-status-info-border bg-status-info-fill px-3.5 py-3.5 text-ui-lg text-status-info">
 									<div className="font-bold">Starting trace...</div>
-									<div className="mt-1 line-clamp-2 text-xs leading-5">{activeRun.prompt}</div>
+									<div className="mt-1 line-clamp-2 text-ui-xs leading-[var(--ds-space-5)]">{activeRun.prompt}</div>
 								</div>
 							) : (
-								<div className="rounded-md border border-border bg-background/25 px-3.5 py-3.5 text-sm text-muted-foreground">
+								<div className="rounded border border-border bg-background/25 px-3.5 py-3.5 text-ui-lg text-muted-foreground">
 									No research run in progress.
 								</div>
 							)}
@@ -169,9 +169,9 @@ export function ResearchWorkspace({
 
 						{activeRun && (
 							<div>
-								<div className="mb-2 text-xs font-bold uppercase text-muted-foreground">Active Run</div>
+								<div className="mb-2 text-ui-xs font-bold uppercase text-muted-foreground">Active Run</div>
 								<div
-									className={`rounded-md border px-3.5 py-3.5 text-sm ${
+									className={`rounded border px-3.5 py-3.5 text-ui-lg ${
 										activeRun.status === "error"
 											? "border-destructive/40 bg-destructive/10 text-destructive"
 											: "border-status-info-border bg-status-info-fill text-status-info"
@@ -186,9 +186,9 @@ export function ResearchWorkspace({
 										/>
 										<span>{activeRun.status}</span>
 									</div>
-									<div className="mt-1 line-clamp-3 text-xs leading-5">{activeRun.prompt}</div>
+									<div className="mt-1 line-clamp-3 text-ui-xs leading-[var(--ds-space-5)]">{activeRun.prompt}</div>
 									{activeRunError && (
-										<div className="mt-2 rounded-md border border-current/25 bg-background/45 px-2 py-1.5 text-xs leading-5">
+										<div className="mt-2 rounded border border-current/25 bg-background/45 px-2 py-1.5 text-ui-xs leading-[var(--ds-space-5)]">
 											{activeRunError}
 										</div>
 									)}
@@ -197,15 +197,15 @@ export function ResearchWorkspace({
 						)}
 
 						<div>
-							<div className="mb-2 text-xs font-bold uppercase text-muted-foreground">Artifacts</div>
-							<div className="grid grid-cols-2 gap-2 text-sm">
-								<div className="rounded-md border border-border bg-background/25 px-3.5 py-3">
-									<div className="text-base font-bold">{info?.artifacts.scoutReports.length ?? 0}</div>
-									<div className="mt-0.5 text-xs text-muted-foreground">scout reports</div>
+							<div className="mb-2 text-ui-xs font-bold uppercase text-muted-foreground">Artifacts</div>
+							<div className="grid grid-cols-2 gap-2 text-ui-lg">
+								<div className="rounded border border-border bg-background/25 px-3.5 py-3">
+									<div className="text-ui-lg font-bold">{info?.artifacts.scoutReports.length ?? 0}</div>
+									<div className="mt-0.5 text-ui-xs text-muted-foreground">scout reports</div>
 								</div>
-								<div className="rounded-md border border-border bg-background/25 px-3.5 py-3">
-									<div className="text-base font-bold">{info?.artifacts.reports.length ?? 0}</div>
-									<div className="mt-0.5 text-xs text-muted-foreground">reports</div>
+								<div className="rounded border border-border bg-background/25 px-3.5 py-3">
+									<div className="text-ui-lg font-bold">{info?.artifacts.reports.length ?? 0}</div>
+									<div className="mt-0.5 text-ui-xs text-muted-foreground">reports</div>
 								</div>
 							</div>
 						</div>
@@ -214,7 +214,7 @@ export function ResearchWorkspace({
 							type="button"
 							onClick={onOpenTrace}
 							disabled={!activeDetail}
-							className="flex h-10 w-full items-center justify-center rounded-md border border-border px-3 text-sm font-bold text-foreground transition-colors hover:border-agentprism-badge-chain-foreground hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-agentprism-badge-chain-foreground disabled:cursor-not-allowed disabled:opacity-55"
+							className="flex h-10 w-full items-center justify-center rounded border border-border px-3 text-ui-lg font-bold text-foreground transition-colors hover:border-agentprism-badge-chain-foreground hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-agentprism-badge-chain-foreground disabled:cursor-not-allowed disabled:opacity-55"
 						>
 							Open Detailed Trace
 						</button>
@@ -224,15 +224,15 @@ export function ResearchWorkspace({
 
 			<div className="min-h-0 overflow-hidden">
 				{loading && activeRun && !activeDetail ? (
-					<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+					<div className="flex h-full items-center justify-center text-ui-lg text-muted-foreground">
 						Loading live trace...
 					</div>
 				) : !activeRun ? (
-					<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+					<div className="flex h-full items-center justify-center text-ui-lg text-muted-foreground">
 						Start a research run.
 					</div>
 				) : !activeDetail ? (
-					<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+					<div className="flex h-full items-center justify-center text-ui-lg text-muted-foreground">
 						Waiting for live trace...
 					</div>
 				) : (

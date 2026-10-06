@@ -280,7 +280,7 @@ export function App() {
 			onStyleSettingsChange={setStyleSettings}
 		>
 			{error && (
-				<div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-3.5 py-3 text-sm text-destructive">
+				<div className="mb-4 rounded border border-destructive/40 bg-destructive/10 px-3.5 py-3 text-ui-lg text-destructive">
 					{error}
 				</div>
 			)}

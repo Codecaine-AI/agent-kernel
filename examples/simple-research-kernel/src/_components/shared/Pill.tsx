@@ -14,7 +14,7 @@ const toneClasses: Record<NonNullable<PillProps["tone"]>, string> = {
 
 export function Pill({ children, tone = "neutral" }: PillProps) {
 	return (
-		<span className={`inline-flex min-h-5 items-center rounded-[2px] border px-1.5 font-mono text-[10px] uppercase tracking-[0.1em] ${toneClasses[tone]}`}>
+		<span className={`inline-flex min-h-5 items-center rounded border px-1.5 font-mono text-micro uppercase tracking-micro ${toneClasses[tone]}`}>
 			{children}
 		</span>
 	);
