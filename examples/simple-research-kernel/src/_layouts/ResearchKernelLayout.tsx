@@ -167,17 +167,20 @@ export function ResearchKernelLayout({
 		setStyleRailResizing(true);
 		let width: number | null = null;
 		const onMove = (moveEvent: PointerEvent) => {
-			width = clampStyleRailWidth(window.innerWidth - moveEvent.clientX);
+			// The inspector ends at the root's client edge, left of a classic vertical scrollbar.
+			width = clampStyleRailWidth(document.documentElement.clientWidth - moveEvent.clientX);
 			setStyleRailWidth(width);
 		};
 		const onUp = () => {
 			window.removeEventListener("pointermove", onMove);
 			window.removeEventListener("pointerup", onUp);
+			window.removeEventListener("pointercancel", onUp);
 			setStyleRailResizing(false);
 			if (width !== null) saveStyleRailWidth(width);
 		};
 		window.addEventListener("pointermove", onMove);
 		window.addEventListener("pointerup", onUp);
+		window.addEventListener("pointercancel", onUp);
 	}, []);
 
 	const engineStyle = {

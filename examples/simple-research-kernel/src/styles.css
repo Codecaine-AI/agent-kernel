@@ -83,20 +83,37 @@ body {
  *           style rail's header, together with the panel headers that read it directly
  *           (72px by default, the token's value)
  *   Frame   the content padding around the workspace frame on every page (16px by default)
- *   width   the inspector, once the user drags its edge (the shell's 360px until then)
+ *   width   the inspector, once the user drags its edge (the shell's 360px until then;
+ *           capped below)
  *
  * The workspace frame fills the window under the topbar: the engine's own value
  * (100vh minus the frame padding) predates the topbar.
  */
 .ds-shell {
 	--ds-layout-topbar-height: var(--research-header-height);
-	--ds-layout-inspector-width: var(--research-style-rail-width);
 	--ds-layout-content-padding-top: var(--research-layout-padding);
 	--ds-layout-content-padding-x: var(--research-layout-padding);
 	--ds-layout-content-padding-bottom: var(--research-layout-padding);
 	--research-workspace-height: calc(
 		100vh - var(--ds-layout-topbar-height) - 2 * var(--research-layout-padding)
 	);
+}
+
+/*
+ * Narrow windows (layout.css's 800px block, guide/layout.md rule 13): the side padding is
+ * the shell's space.4 whatever the Frame knob says. Above 800px the inspector pushes the
+ * workspace, so a dragged width is capped at half the window to keep the workspace usable
+ * in the 801-1023px band; at 800px and below it covers instead, at min(width, 100%).
+ */
+.ds-shell {
+	--ds-layout-inspector-width: min(var(--research-style-rail-width), 50vw);
+}
+
+@media (max-width: 800px) {
+	.ds-shell {
+		--ds-layout-content-padding-x: var(--ds-space-4);
+		--ds-layout-inspector-width: var(--research-style-rail-width);
+	}
 }
 
 /* Dragging the inspector edge: the columns follow the pointer instead of easing after it. */
