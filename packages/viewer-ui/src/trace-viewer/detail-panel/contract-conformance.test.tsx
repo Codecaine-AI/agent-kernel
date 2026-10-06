@@ -682,7 +682,7 @@ describe("detail renderer contract conformance", () => {
 				const message = detailBlock(markup, "message");
 				expect(unifiedDataFigures(message.fullMarkup)).toHaveLength(0);
 				expect(message.fullMarkup).toContain(
-					`${WRAP_UTILITY} break-words text-sm leading-7 text-foreground`,
+					`${WRAP_UTILITY} break-words text-[length:var(--ds-font-size-ui-lg)] leading-[var(--ds-line-height-row)] text-foreground`,
 				);
 			}
 		});
@@ -1048,11 +1048,11 @@ test("the retired dead-end copy is absent from viewer-ui source", () => {
 
 const DELIBERATE_PROSE_WRAP_EXCEPTIONS = {
 	"renderers/MessageBody.tsx":
-		`<p className="${WRAP_UTILITY} break-words text-sm leading-7 text-foreground">`,
+		`<p className="${WRAP_UTILITY} break-words text-[length:var(--ds-font-size-ui-lg)] leading-[var(--ds-line-height-row)] text-foreground">`,
 	"renderers/snapshot-message-view.tsx":
-		`<p className="${WRAP_UTILITY} break-words text-sm leading-7 text-foreground">`,
+		`<p className="${WRAP_UTILITY} break-words text-[length:var(--ds-font-size-ui-lg)] leading-[var(--ds-line-height-row)] text-foreground">`,
 	"renderers/turn/turn-block-content.tsx":
-		`<p className="${WRAP_UTILITY} break-words text-sm leading-7 text-foreground">`,
+		`<p className="${WRAP_UTILITY} break-words text-[length:var(--ds-font-size-ui-lg)] leading-[var(--ds-line-height-row)] text-foreground">`,
 } as const;
 
 test("the wrapping utility is confined to named conversation-prose paths", () => {

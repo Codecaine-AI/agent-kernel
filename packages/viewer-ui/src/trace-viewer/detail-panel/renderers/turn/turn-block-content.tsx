@@ -31,7 +31,7 @@ import {
 } from "../snapshot-message-view";
 
 export const MESSAGE_ROLE_HEADER_CLASS =
-	"shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em]";
+	"shrink-0 text-[length:var(--ds-font-size-ui-2xs)] font-semibold uppercase tracking-[var(--ds-letter-spacing-micro)]";
 export const MESSAGE_BLOCK_LIST_CLASS = "min-w-0 space-y-2 pl-2 pr-2 pb-2";
 export const MESSAGE_LIST_CLASS = "min-w-0 space-y-4";
 
@@ -169,7 +169,7 @@ function ContentValue({
 			);
 		}
 		return (
-			<p className="whitespace-pre-wrap break-words text-sm leading-7 text-foreground">
+			<p className="whitespace-pre-wrap break-words text-[length:var(--ds-font-size-ui-lg)] leading-[var(--ds-line-height-row)] text-foreground">
 				{text}
 			</p>
 		);
@@ -202,7 +202,7 @@ function ContentValue({
 					dedent={false}
 				/>
 			) : (
-				<span className="font-mono text-sm font-medium text-trace-tool">
+				<span className="font-mono text-[length:var(--ds-font-size-ui-lg)] font-medium text-trace-tool">
 					{call.name ?? "tool"}
 				</span>
 			)
@@ -299,7 +299,7 @@ export function TurnMessage({
 					{roleLabel}
 				</span>
 				{typeof message.customType === "string" ? (
-					<span className="truncate font-mono text-[10px] text-muted-foreground">
+					<span className="truncate font-mono text-[length:var(--ds-font-size-micro)] text-muted-foreground">
 						{message.customType}
 					</span>
 				) : null}
@@ -327,7 +327,7 @@ export function TurnMessage({
 					)}
 				</div>
 			) : (
-				<p className="pb-2 pr-2 text-sm leading-7 text-muted-foreground">
+				<p className="pb-2 pr-2 text-[length:var(--ds-font-size-ui-lg)] leading-[var(--ds-line-height-row)] text-muted-foreground">
 					Empty message.
 				</p>
 			)}
@@ -347,7 +347,7 @@ export function TurnMessageList({
 	subsection?: string;
 }) {
 	if (entries.length === 0) {
-		return <p className="text-sm leading-7 text-muted-foreground">No messages.</p>;
+		return <p className="text-[length:var(--ds-font-size-ui-lg)] leading-[var(--ds-line-height-row)] text-muted-foreground">No messages.</p>;
 	}
 	return (
 		<div
@@ -381,7 +381,9 @@ export function TurnThumbnails({
 	return (
 		<div
 			data-turn-thumbnails=""
-			className="grid min-w-0 grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-2"
+			className="grid min-w-0 gap-2"
+			// Kept geometry: thumbnails at least 8rem wide, as many per row as fit.
+			style={{ gridTemplateColumns: "repeat(auto-fill, minmax(8rem, 1fr))" }}
 		>
 			{images.map((image, index) => (
 				<Thumbnail
@@ -408,7 +410,7 @@ function Thumbnail({
 	return (
 		<DetailImageTrigger
 			image={{ src: url, alt }}
-			className="block min-w-0 cursor-zoom-in overflow-hidden rounded-[3px] border border-border/60 bg-muted/20 transition-colors hover:border-status-info-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
+			className="block min-w-0 cursor-zoom-in overflow-hidden rounded-[var(--ds-radius-base)] border border-border/60 bg-muted/20 transition-colors hover:border-status-info-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
 			imageClassName="h-28 w-full object-cover"
 		/>
 	);

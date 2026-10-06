@@ -7,7 +7,7 @@
  * Everything here is presentational and offline-safe apart from BlobImage,
  * which needs an apiBase to resolve blob bytes.
  */
-import { type ReactNode } from "react";
+import { type ImgHTMLAttributes, type ReactNode } from "react";
 
 import {
   isImageElisionMarker,
@@ -97,6 +97,11 @@ export const ROLE_STYLE: Record<string, { label: string; className: string }> = 
   bashExecution: { label: "Bash", className: "text-trace-tool" },
 };
 
+/** Kept geometry: an inline snapshot image caps at 320px tall (the modal shows it whole). */
+const SNAPSHOT_IMAGE_PROPS: ImgHTMLAttributes<HTMLImageElement> = {
+  style: { maxHeight: "320px" },
+};
+
 export function BlobImage({
   apiBase,
   blobHash,
@@ -112,8 +117,9 @@ export function BlobImage({
     <DetailImageTrigger
       image={{ src: url, alt }}
       title="Open image"
-      className="block max-w-full cursor-zoom-in rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
-      imageClassName="max-h-[320px] max-w-full rounded-md border border-border/60 object-contain"
+      className="block max-w-full cursor-zoom-in rounded-[var(--ds-radius-base)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
+      imageClassName="max-w-full rounded-[var(--ds-radius-base)] border border-border/60 object-contain"
+      imageProps={SNAPSHOT_IMAGE_PROPS}
     />
   );
 }
@@ -123,7 +129,7 @@ export function ImageElisionPlaceholder({ text }: { text: string }) {
   return (
     <span
       data-image-elision-placeholder=""
-      className="break-words text-xs leading-5 text-muted-foreground/70"
+      className="break-words text-[length:var(--ds-font-size-ui-xs)] leading-[var(--ds-space-5)] text-muted-foreground/70"
     >
       {text}
     </span>
@@ -161,7 +167,7 @@ export function ContentBlock({
       );
     }
     return (
-      <p className="whitespace-pre-wrap break-words text-sm leading-7 text-foreground">
+      <p className="whitespace-pre-wrap break-words text-[length:var(--ds-font-size-ui-lg)] leading-[var(--ds-line-height-row)] text-foreground">
         {text}
       </p>
     );
@@ -193,7 +199,7 @@ export function ContentBlock({
             dedent={false}
           />
         ) : (
-          <span className="text-xs font-mono font-medium">
+          <span className="text-[length:var(--ds-font-size-ui-xs)] font-mono font-medium">
             {call.name ?? "tool"}
           </span>
         )}

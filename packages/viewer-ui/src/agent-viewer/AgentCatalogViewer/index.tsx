@@ -129,7 +129,7 @@ export function AgentCatalogViewer({
 		return (
 			<div
 				className={cn(
-					"flex h-full items-center justify-center font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70",
+					"flex h-full items-center justify-center font-mono text-[length:var(--ds-font-size-ui-2xs)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground/70",
 					className,
 				)}
 			>
@@ -154,7 +154,7 @@ export function AgentCatalogViewer({
 								key={group}
 								className="[&+&]:border-t [&+&]:border-border"
 							>
-								<h2 className="px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] text-foreground/70">
+								<h2 className="px-4 py-2 text-[length:var(--ds-font-size-ui-xs)] font-bold uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-foreground/70">
 									{effectiveGroupLabels[group] ?? group}
 								</h2>
 								<ul className="flex flex-col">
@@ -167,7 +167,7 @@ export function AgentCatalogViewer({
 													onClick={() => setSelectedName(agent.name)}
 													aria-pressed={isSelected}
 													className={cn(
-														"relative w-full py-2 pl-7 pr-4 text-left text-xs font-semibold transition-colors",
+														"relative w-full py-2 pl-7 pr-4 text-left text-[length:var(--ds-font-size-ui-xs)] font-semibold transition-colors",
 														isSelected
 															? "bg-muted text-foreground"
 															: "text-muted-foreground hover:bg-muted/50",

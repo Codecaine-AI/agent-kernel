@@ -23,8 +23,9 @@ import type {
 } from "@agent-kernel/viewer-core";
 
 import { formatCost, formatDuration, formatTokens, summarizeUsage } from "./usage-summary";
+import { CARD_LINE_META, CARD_TYPE_META } from "./SpanCard/variants/card-type";
 
-const META = "font-mono text-[11px] leading-[14px]";
+const META = CARD_TYPE_META;
 
 export interface UsageStripProps {
 	container?: KernelContainerSummary | null;
@@ -54,9 +55,10 @@ export const UsageStrip: FC<UsageStripProps> = ({
 			type="button"
 			onClick={onToggle}
 			aria-pressed={active}
+			style={CARD_LINE_META}
 			className={cn(
 				META,
-				"flex w-full items-center gap-2 border-b border-border/60 px-3 py-1.5 text-left tabular-nums tracking-[0.02em] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-status-info-border",
+				"flex w-full items-center gap-2 border-b border-border/60 px-3 py-1.5 text-left tabular-nums tracking-[var(--ds-letter-spacing-normal)] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-status-info-border",
 				active
 					? "bg-status-info-fill/30 text-foreground"
 					: "text-muted-foreground hover:bg-muted/30 hover:text-foreground",
@@ -64,7 +66,7 @@ export const UsageStrip: FC<UsageStripProps> = ({
 			)}
 			title="Toggle usage summary"
 		>
-			<span className="uppercase tracking-[0.12em] text-muted-foreground/80">
+			<span className="uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground/80">
 				Usage
 			</span>
 			<span>

@@ -368,7 +368,7 @@ export function AgentPromptLabContainer({
 	if (loadError) {
 		return (
 			<div className={cn("flex h-full items-center justify-center p-6 font-mono", className)}>
-				<p className="text-[12px] text-destructive">{loadError}</p>
+				<p className="text-[length:var(--ds-font-size-ui-xs)] text-destructive">{loadError}</p>
 			</div>
 		);
 	}
@@ -376,7 +376,7 @@ export function AgentPromptLabContainer({
 	if (!detail || !manifestFields) {
 		return (
 			<div className={cn("flex h-full items-center justify-center p-6 font-mono", className)}>
-				<p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
+				<p className="text-[length:var(--ds-font-size-ui-2xs)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground/70">
 					Loading {agentName}…
 				</p>
 			</div>
@@ -418,7 +418,7 @@ export function AgentPromptLabContainer({
 			{showSessionStrip && (
 				<div
 					data-prompt-session-strip=""
-					className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-background px-3 py-1.5 text-[11px]"
+					className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border bg-background px-3 py-1.5 text-[length:var(--ds-font-size-ui-2xs)]"
 				>
 					{sessionSnapshot.sessionStarting && (
 						<span className="text-muted-foreground">Starting session…</span>
@@ -436,14 +436,14 @@ export function AgentPromptLabContainer({
 								</span>
 							)}
 							{stagedCount > 0 && (
-								<span className="text-teal-500">
+								<span className="text-status-info">
 									{stagedCount} proposal{stagedCount === 1 ? "" : "s"} staged
 								</span>
 							)}
 							{stagedCount > 1 && (
 								<button
 									type="button"
-									className="rounded-md border border-border px-2 py-0.5 text-[11px] hover:border-ring"
+									className="rounded-[var(--ds-radius-base)] border border-border px-2 py-0.5 text-[length:var(--ds-font-size-ui-2xs)] hover:border-ring"
 									onClick={() => void controller.acceptAll()}
 								>
 									Accept all
@@ -452,7 +452,7 @@ export function AgentPromptLabContainer({
 							<button
 								type="button"
 								data-prompt-session-end=""
-								className="rounded-md border border-border px-2 py-0.5 text-[11px] text-muted-foreground hover:border-ring"
+								className="rounded-[var(--ds-radius-base)] border border-border px-2 py-0.5 text-[length:var(--ds-font-size-ui-2xs)] text-muted-foreground hover:border-ring"
 								onClick={() => void controller.endSession()}
 							>
 								End session

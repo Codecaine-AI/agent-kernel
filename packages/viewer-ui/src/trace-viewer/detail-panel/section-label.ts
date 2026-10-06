@@ -1,6 +1,6 @@
 /** Shared caption/section-label typography for the detail panel. */
 export const SECTION_LABEL_CLASS =
-	"text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.08em]";
+	"text-[length:var(--ds-font-size-ui-2xs)] font-semibold text-muted-foreground uppercase tracking-[var(--ds-letter-spacing-micro)]";
 
 /**
  * Caption typography for figures nested inside a parent section — THINKING,
@@ -14,7 +14,7 @@ export const SECTION_LABEL_CLASS =
  * and still neutral under a role-colored tier-1 row.
  */
 export const SUBORDINATE_SECTION_LABEL_CLASS =
-	"text-[10px] font-medium text-muted-foreground uppercase tracking-[0.1em]";
+	"text-[length:var(--ds-font-size-micro)] font-medium text-muted-foreground uppercase tracking-[var(--ds-letter-spacing-micro)]";
 
 /**
  * Frame color for a subordinate figure, one step up from the top tier's

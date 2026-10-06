@@ -28,10 +28,14 @@ function spacingStep(className: string): number {
 	return Number(value);
 }
 
-function textPixels(className: string): number {
-	const value = /\btext-\[(\d+)px\]/.exec(className)?.[1];
-	if (value === undefined) throw new Error(`No pixel text size in ${className}`);
-	return Number(value);
+/** The design-system font.size scale, smallest first. */
+const FONT_SIZE_SCALE = ["micro", "ui-2xs", "ui-xs", "ui-sm", "ui-md", "ui-lg", "reading", "title"];
+
+function textStep(className: string): number {
+	const value = /\btext-\[length:var\(--ds-font-size-([a-z0-9-]+)\)\]/.exec(className)?.[1];
+	const step = value === undefined ? -1 : FONT_SIZE_SCALE.indexOf(value);
+	if (step < 0) throw new Error(`No design-system text size in ${className}`);
+	return step;
 }
 
 function fontWeight(className: string): number {
@@ -187,9 +191,9 @@ describe("TurnMessage hierarchy", () => {
 		)?.[0] ?? "";
 
 		// The message wears the TREE's card: the group band (border + wash) at the
-		// shared 2px radius, with the icon cap pinned in the corner. Pinned via
+		// shared radius.base (2px), with the icon cap pinned in the corner. Pinned via
 		// GROUP_ACCENT so retuning a band moves both surfaces together or neither.
-		expect(classNameOf(assistantArticle)).toContain("rounded-[2px]");
+		expect(classNameOf(assistantArticle)).toContain("rounded-[var(--ds-radius-base)]");
 		expect(classNameOf(assistantArticle)).toContain(GROUP_ACCENT.assistant.border);
 		expect(classNameOf(assistantArticle)).toContain(bandWash("assistant"));
 		expect(classNameOf(assistantArticle)).toContain("w-full");
@@ -207,8 +211,8 @@ describe("TurnMessage hierarchy", () => {
 		expect(spacingStep(classNameOf(messageList))).toBeGreaterThan(
 			spacingStep(classNameOf(messageBlocks)),
 		);
-		expect(textPixels(MESSAGE_ROLE_HEADER_CLASS)).toBeGreaterThan(
-			textPixels(SUBORDINATE_SECTION_LABEL_CLASS),
+		expect(textStep(MESSAGE_ROLE_HEADER_CLASS)).toBeGreaterThan(
+			textStep(SUBORDINATE_SECTION_LABEL_CLASS),
 		);
 		expect(fontWeight(MESSAGE_ROLE_HEADER_CLASS)).toBeGreaterThan(
 			fontWeight(SUBORDINATE_SECTION_LABEL_CLASS),

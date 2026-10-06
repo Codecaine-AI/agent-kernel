@@ -12,7 +12,7 @@
  *     the RESERVED diagnostic hues only for trouble: amber for the warning-like
  *     "turn-limit", red for "error"/"aborted". Nothing else reaches amber/red.
  */
-import type { FC } from "react";
+import type { CSSProperties, FC } from "react";
 
 import cn from "classnames";
 
@@ -31,6 +31,7 @@ import {
 	type RunUsageRow,
 	type UsageTotals,
 } from "./usage-summary";
+import { CARD_LINE_META, CARD_TYPE_META } from "./SpanCard/variants/card-type";
 
 export interface UsageSummaryPanelProps {
 	container?: KernelContainerSummary | null;
@@ -45,8 +46,8 @@ export interface UsageSummaryPanelProps {
 	onRunSelect?: (row: RunUsageRow) => void;
 }
 
-const LABEL = "font-mono text-[13px] leading-[16px]";
-const META = "font-mono text-[11px] leading-[14px]";
+const LABEL = "font-mono text-[length:var(--ds-font-size-code)] leading-[var(--ds-space-4)]";
+const META = CARD_TYPE_META;
 
 /** Status → the reserved diagnostic treatment, or neutral lifecycle for healthy. */
 function statusChipClass(status: string): string {
@@ -66,9 +67,10 @@ const StatChip: FC<{ label: string; value: string; accent?: boolean }> = ({
 	value,
 	accent,
 }) => (
-	<div className="flex min-w-0 flex-col gap-0.5 rounded-[2px] border border-border bg-card/60 px-2.5 py-1.5">
+	<div className="flex min-w-0 flex-col gap-0.5 rounded-[var(--ds-radius-base)] border border-border bg-card/60 px-2.5 py-1.5">
 		<span
-			className={cn(META, "uppercase tracking-[0.12em] text-muted-foreground")}
+			style={CARD_LINE_META}
+			className={cn(META, "uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground")}
 		>
 			{label}
 		</span>
@@ -105,15 +107,17 @@ export const AgentBreakdown: FC<{ byAgent: AgentUsageRollup[] }> = ({ byAgent })
 	return (
 		<div className="flex flex-col gap-1">
 			<span
-				className={cn(META, "uppercase tracking-[0.12em] text-muted-foreground")}
+				style={CARD_LINE_META}
+				className={cn(META, "uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground")}
 			>
 				By agent
 			</span>
-			<div className="flex flex-col gap-px overflow-hidden rounded-[2px] border border-border">
+			<div className="flex flex-col gap-px overflow-hidden rounded-[var(--ds-radius-base)] border border-border">
 				{byAgent.map((agent) => (
 					<div
 						key={agent.agentName}
-						className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 bg-card/60 px-2.5 py-1"
+						className="grid items-center gap-2 bg-card/60 px-2.5 py-1"
+						style={AGENT_ROW_COLUMNS}
 					>
 						<span
 							className={cn(LABEL, "truncate font-semibold text-trace-orchestration")}
@@ -121,7 +125,7 @@ export const AgentBreakdown: FC<{ byAgent: AgentUsageRollup[] }> = ({ byAgent })
 						>
 							{agent.agentName}
 						</span>
-						<span className={cn(META, "tabular-nums text-muted-foreground")}>
+						<span style={CARD_LINE_META} className={cn(META, "tabular-nums text-muted-foreground")}>
 							{agent.runCount} {agent.runCount === 1 ? "run" : "runs"} ·{" "}
 							{formatTokens(agent.inputTokens + agent.outputTokens)} tok
 						</span>
@@ -132,8 +136,15 @@ export const AgentBreakdown: FC<{ byAgent: AgentUsageRollup[] }> = ({ byAgent })
 	);
 };
 
-const RUN_ROW_GRID =
-	"grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_64px_64px_60px] items-center gap-2";
+/** Agent name, then its run count and tokens. */
+const AGENT_ROW_COLUMNS: CSSProperties = { gridTemplateColumns: "minmax(0, 1fr) auto" };
+
+const RUN_ROW_GRID = "grid items-center gap-2";
+
+/** Agent, trigger, in and out (space.16 each), duration (60px: kept geometry). */
+const RUN_ROW_COLUMNS: CSSProperties = {
+	gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr) var(--ds-space-16) var(--ds-space-16) 60px",
+};
 
 export const RunsTable: FC<{
 	runs: RunUsageRow[];
@@ -143,16 +154,18 @@ export const RunsTable: FC<{
 	return (
 		<div className="flex flex-col gap-1">
 			<span
-				className={cn(META, "uppercase tracking-[0.12em] text-muted-foreground")}
+				style={CARD_LINE_META}
+				className={cn(META, "uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground")}
 			>
 				Runs
 			</span>
-			<div className="overflow-hidden rounded-[2px] border border-border">
+			<div className="overflow-hidden rounded-[var(--ds-radius-base)] border border-border">
 				<div
+					style={{ ...CARD_LINE_META, ...RUN_ROW_COLUMNS }}
 					className={cn(
 						META,
 						RUN_ROW_GRID,
-						"border-b border-border bg-card/80 px-2.5 py-1 uppercase tracking-[0.1em] text-muted-foreground",
+						"border-b border-border bg-card/80 px-2.5 py-1 uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground",
 					)}
 				>
 					<span>Agent</span>
@@ -184,23 +197,23 @@ export const RunsTable: FC<{
 								<span
 									className={cn(
 										META,
-										"shrink-0 rounded-[2px] border px-1 py-px uppercase leading-none",
+										"shrink-0 rounded-[var(--ds-radius-base)] border px-1 py-px uppercase leading-none",
 										statusChipClass(run.status),
 									)}
 								>
 									{run.status}
 								</span>
 							</span>
-							<span className={cn(META, "truncate text-muted-foreground")} title={run.trigger}>
+							<span style={CARD_LINE_META} className={cn(META, "truncate text-muted-foreground")} title={run.trigger}>
 								{run.trigger}
 							</span>
-							<span className={cn(META, "text-right tabular-nums text-foreground")}>
+							<span style={CARD_LINE_META} className={cn(META, "text-right tabular-nums text-foreground")}>
 								{formatTokens(run.inputTokens)}
 							</span>
-							<span className={cn(META, "text-right tabular-nums text-foreground")}>
+							<span style={CARD_LINE_META} className={cn(META, "text-right tabular-nums text-foreground")}>
 								{formatTokens(run.outputTokens)}
 							</span>
-							<span className={cn(META, "text-right tabular-nums text-muted-foreground")}>
+							<span style={CARD_LINE_META} className={cn(META, "text-right tabular-nums text-muted-foreground")}>
 								{formatDuration(run.durationMs)}
 							</span>
 						</>
@@ -210,12 +223,13 @@ export const RunsTable: FC<{
 							key={run.id}
 							type="button"
 							onClick={() => onRunSelect(run)}
+							style={RUN_ROW_COLUMNS}
 							className={rowClass}
 						>
 							{cells}
 						</button>
 					) : (
-						<div key={run.id} className={rowClass}>
+						<div key={run.id} style={RUN_ROW_COLUMNS} className={rowClass}>
 							{cells}
 						</div>
 					);
@@ -238,6 +252,7 @@ export const UsageSummaryPanel: FC<UsageSummaryPanelProps> = ({
 	if (runs.length === 0) {
 		return (
 			<div
+				style={CARD_LINE_META}
 				className={cn(
 					META,
 					"px-3 py-4 text-center text-muted-foreground",

@@ -408,11 +408,11 @@ describe("DocFigure", () => {
 		expect(DocFigureSubordinateCaption).toBe(
 			SUBORDINATE_SECTION_LABEL_CLASS,
 		);
-		expect(SECTION_LABEL_CLASS).toContain("text-[11px]");
+		expect(SECTION_LABEL_CLASS).toContain("text-[length:var(--ds-font-size-ui-2xs)]");
 		expect(SECTION_LABEL_CLASS).toContain("font-semibold");
 		// Subordinate, not faint: brightened a step on review so the inner cards
 		// separate, while staying smaller and lighter than the top tier.
-		expect(SUBORDINATE_SECTION_LABEL_CLASS).toContain("text-[10px]");
+		expect(SUBORDINATE_SECTION_LABEL_CLASS).toContain("text-[length:var(--ds-font-size-micro)]");
 		expect(SUBORDINATE_SECTION_LABEL_CLASS).toContain("font-medium");
 		expect(SUBORDINATE_SECTION_LABEL_CLASS).toContain("text-muted-foreground");
 		expect(SUBORDINATE_SECTION_LABEL_CLASS).not.toContain(

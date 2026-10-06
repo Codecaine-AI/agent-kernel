@@ -35,18 +35,22 @@ describe("selection treatment", () => {
 		expect(markup).not.toContain("from-status-info-fill");
 		expect(markup).not.toContain("before:bg-status-info-fill");
 		expect(markup).toContain(
-			"shadow-[inset_var(--selection-bar-width,3px)_0_0_0_rgb(var(--selection-color,var(--status-info))/var(--selection-opacity,1))]",
+			"box-shadow:inset var(--selection-bar-width, var(--ds-border-width-rail)) 0 0 0 rgb(var(--selection-color, var(--status-info)) / var(--selection-opacity, 1))",
 		);
 		// Exactly one selected row.
 		expect((markup.match(/data-selected/g) ?? []).length).toBe(1);
 	});
 
-	test("card ring + fill consume the selection tokens with baked fallbacks", () => {
+	test("card ring consumes the selection knobs; the fill is the design-system accent wash", () => {
+		expect(markup).toContain("group-data-[selected]/spanrow:ring-inset");
 		expect(markup).toContain(
-			"group-data-[selected]/spanrow:shadow-[inset_0_0_0_var(--selection-width,2px)_rgb(var(--selection-color,var(--status-info))/var(--selection-opacity,1))]",
+			"group-data-[selected]/spanrow:ring-[length:var(--selection-width,var(--ds-border-width-focus))]",
 		);
 		expect(markup).toContain(
-			"group-data-[selected]/spanrow:bg-[rgb(var(--selection-color,var(--status-info))/0.12)]",
+			"group-data-[selected]/spanrow:ring-[color:rgb(var(--selection-color,var(--status-info))/var(--selection-opacity,1))]",
+		);
+		expect(markup).toContain(
+			"group-data-[selected]/spanrow:bg-[color:var(--ds-color-fill-accent)]",
 		);
 		// The old fixed classes are gone.
 		expect(markup).not.toContain("ring-status-info-border");

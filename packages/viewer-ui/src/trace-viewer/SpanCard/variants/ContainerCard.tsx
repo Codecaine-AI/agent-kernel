@@ -3,7 +3,7 @@ import type { FC } from "react";
 import type { SpanCardChrome } from "../SpanCard";
 
 import { TraceCard } from "../TraceCard";
-import { CARD_TYPE_LABEL } from "./card-type";
+import { CARD_LINE_LABEL, CARD_TYPE_LABEL } from "./card-type";
 
 interface ContainerCardProps {
   label: string;
@@ -18,6 +18,6 @@ export const ContainerCard: FC<ContainerCardProps> = ({ label, chrome }) => (
     style={chrome.style}
     label={chrome.label}
   >
-    <span className={`${CARD_TYPE_LABEL} font-medium tracking-wide`}>{label}</span>
+    <span style={CARD_LINE_LABEL} className={`${CARD_TYPE_LABEL} font-medium tracking-[var(--ds-letter-spacing-normal)]`}>{label}</span>
   </TraceCard>
 );

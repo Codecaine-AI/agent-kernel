@@ -41,6 +41,14 @@ const LAYOUT_CONSTANTS = {
 const MAX_CONTENT_LENGTH = 200;
 
 /**
+ * The selected row's gutter bar: an inset left bar in the selection color.
+ * Color, opacity and width ride the --selection-* knobs (style-rail
+ * adjustable); the width defaults to border.width.rail.
+ */
+const SELECTED_ROW_BAR =
+  "inset var(--selection-bar-width, var(--ds-border-width-rail)) 0 0 0 rgb(var(--selection-color, var(--status-info)) / var(--selection-opacity, 1))";
+
+/**
  * Chrome bundle threaded from SpanCard into every variant so the shared
  * TraceCard frame renders the same anatomy (icon cap + group border) at every
  * size. `descriptor` carries the resolved kind + group + accent classes.
@@ -452,17 +460,14 @@ export const SpanCard: FC<SpanCardProps> = ({
           className={cn(
             // Named group: the CARD (TraceCard) wears the actual selection
             // ring/fill via group-data-[selected]/spanrow variants. The row
-            // contributes NOTHING row-wide — just the left gutter bar. Bar
-            // color/opacity/width ride the --selection-* tokens (style-rail
-            // adjustable) with baked fallbacks so hosts without the vars keep
-            // today's look.
+            // contributes NOTHING row-wide — just the left gutter bar
+            // (SELECTED_ROW_BAR, an inline box-shadow).
             "group/spanrow relative mb-3 grid w-full items-center",
-            state.isSelected &&
-              "shadow-[inset_var(--selection-bar-width,3px)_0_0_0_rgb(var(--selection-color,var(--status-info))/var(--selection-opacity,1))]",
           )}
           style={{
             gridTemplateColumns,
-            backgroundSize: "auto calc(100% - 8px)",
+            boxShadow: state.isSelected ? SELECTED_ROW_BAR : undefined,
+            backgroundSize: "auto calc(100% - var(--ds-space-2))",
             backgroundPosition: "top",
             backgroundRepeat: "no-repeat",
           }}
@@ -503,7 +508,8 @@ export const SpanCard: FC<SpanCardProps> = ({
                     aria-hidden="true"
                     className={cn(
                       TREE_LINE_CLASS,
-                      "pointer-events-none absolute left-1/2 top-[calc(50%_+_10px)] -bottom-3 w-px -translate-x-1/2",
+                      // Starts below the size-5 toggle: centre plus half of it (mt-2.5).
+                      "pointer-events-none absolute left-1/2 top-1/2 mt-2.5 -bottom-3 w-px -translate-x-1/2",
                     )}
                   />
                 )}

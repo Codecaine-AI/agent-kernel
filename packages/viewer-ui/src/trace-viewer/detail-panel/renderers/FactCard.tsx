@@ -159,7 +159,7 @@ function factBlocks(span: TraceSpan, eventType: string): DetailBlockSpec[] {
 		order: -100,
 		caption: "Facts",
 		node: (
-			<ul data-fact-list="" className="space-y-1 text-sm leading-relaxed text-foreground">
+			<ul data-fact-list="" className="space-y-1 text-[length:var(--ds-font-size-ui-lg)] leading-[var(--ds-line-height-reading)] text-foreground">
 				{facts.map((fact, index) => (
 					<li key={`${index}:${fact}`} className="break-words">
 						{fact}

@@ -18,6 +18,7 @@
 import { useCallback, useState, type FC } from "react";
 
 import cn from "classnames";
+import { CARD_LINE_META, CARD_TYPE_META } from "./SpanCard/variants/card-type";
 
 export interface DoctorViolation {
 	invariant: number;
@@ -46,8 +47,8 @@ export interface DoctorPanelProps {
 	className?: string;
 }
 
-const LABEL = "font-mono text-[13px] leading-[16px]";
-const META = "font-mono text-[11px] leading-[14px]";
+const LABEL = "font-mono text-[length:var(--ds-font-size-code)] leading-[var(--ds-space-4)]";
+const META = CARD_TYPE_META;
 
 type FetchState =
 	| { status: "idle" }
@@ -62,25 +63,25 @@ async function fetchDoctor(endpoint: string): Promise<DoctorReport> {
 }
 
 const CountsMeta: FC<{ counts: DoctorReport["counts"] }> = ({ counts }) => (
-	<span className={cn(META, "text-muted-foreground")}>
+	<span style={CARD_LINE_META} className={cn(META, "text-muted-foreground")}>
 		{counts.containers} containers · {counts.piAgentSessions} sessions ·{" "}
 		{counts.agentRuns} runs · {counts.traceEvents} events
 	</span>
 );
 
 const ViolationRow: FC<{ violation: DoctorViolation }> = ({ violation }) => (
-	<div className="flex flex-col gap-0.5 rounded-[2px] border border-destructive/40 bg-destructive/10 px-2.5 py-1.5">
+	<div className="flex flex-col gap-0.5 rounded-[var(--ds-radius-base)] border border-destructive/40 bg-destructive/10 px-2.5 py-1.5">
 		<div className="flex items-baseline justify-between gap-2">
 			<span className={cn(LABEL, "font-semibold text-destructive")}>
 				[{violation.invariant}] {violation.name}
 			</span>
-			<span className={cn(META, "shrink-0 tabular-nums text-destructive")}>
+			<span style={CARD_LINE_META} className={cn(META, "shrink-0 tabular-nums text-destructive")}>
 				{violation.count} {violation.count === 1 ? "row" : "rows"}
 			</span>
 		</div>
-		<span className={cn(META, "text-muted-foreground")}>{violation.description}</span>
+		<span style={CARD_LINE_META} className={cn(META, "text-muted-foreground")}>{violation.description}</span>
 		{violation.sampleIds.length > 0 && (
-			<span className={cn(META, "truncate text-muted-foreground/80")}>
+			<span style={CARD_LINE_META} className={cn(META, "truncate text-muted-foreground/80")}>
 				samples: {violation.sampleIds.join(", ")}
 			</span>
 		)}
@@ -117,7 +118,7 @@ export const DoctorPanel: FC<DoctorPanelProps> = ({
 					disabled={state.status === "loading"}
 					className={cn(
 						LABEL,
-						"rounded-[2px] border border-border bg-card/60 px-2 py-1 font-semibold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-status-neutral-border hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-neutral-border disabled:opacity-60",
+						"rounded-[var(--ds-radius-base)] border border-border bg-card/60 px-2 py-1 font-semibold uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground transition-colors hover:border-status-neutral-border hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-neutral-border disabled:opacity-60",
 					)}
 				>
 					{state.status === "loading" ? "Checking…" : "Doctor"}
@@ -125,9 +126,10 @@ export const DoctorPanel: FC<DoctorPanelProps> = ({
 
 				{state.status === "ready" && state.report.ok && (
 					<span
+						style={CARD_LINE_META}
 						className={cn(
 							META,
-							"rounded-[2px] border border-status-neutral-border bg-status-neutral-fill px-1.5 py-0.5 font-bold uppercase tracking-[0.08em] text-status-neutral",
+							"rounded-[var(--ds-radius-base)] border border-status-neutral-border bg-status-neutral-fill px-1.5 py-0.5 font-bold uppercase tracking-[var(--ds-letter-spacing-micro)] text-status-neutral",
 						)}
 					>
 						Invariants OK
@@ -137,9 +139,10 @@ export const DoctorPanel: FC<DoctorPanelProps> = ({
 					<button
 						type="button"
 						onClick={() => setExpanded((prev) => !prev)}
+						style={CARD_LINE_META}
 						className={cn(
 							META,
-							"rounded-[2px] border border-destructive/50 bg-destructive/10 px-1.5 py-0.5 font-bold uppercase tracking-[0.08em] text-destructive",
+							"rounded-[var(--ds-radius-base)] border border-destructive/50 bg-destructive/10 px-1.5 py-0.5 font-bold uppercase tracking-[var(--ds-letter-spacing-micro)] text-destructive",
 						)}
 					>
 						{state.report.violations.length}{" "}
@@ -151,7 +154,7 @@ export const DoctorPanel: FC<DoctorPanelProps> = ({
 			</div>
 
 			{state.status === "error" && (
-				<span className={cn(META, "text-destructive")}>{state.message}</span>
+				<span style={CARD_LINE_META} className={cn(META, "text-destructive")}>{state.message}</span>
 			)}
 
 			{state.status === "ready" &&

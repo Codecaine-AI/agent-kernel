@@ -17,7 +17,7 @@ export function MessageBody({ span }: RendererProps): DetailView {
 				caption: `${role} message`,
 				clamp: CLAMP.block,
 				node: (
-					<p className="whitespace-pre-wrap break-words text-sm leading-7 text-foreground">
+					<p className="whitespace-pre-wrap break-words text-[length:var(--ds-font-size-ui-lg)] leading-[var(--ds-line-height-row)] text-foreground">
 						{text || "Empty message."}
 					</p>
 				),

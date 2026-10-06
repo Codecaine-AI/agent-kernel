@@ -102,7 +102,7 @@ export const ContextBuildBody: DetailBodyRenderer = ({ span }): DetailView => {
 					node: (
 						<p
 							data-context-stage="declared"
-							className="text-sm leading-relaxed text-muted-foreground"
+							className="text-[length:var(--ds-font-size-ui-lg)] leading-[var(--ds-line-height-reading)] text-muted-foreground"
 						>
 							Declared input details were not recorded.
 						</p>
@@ -130,7 +130,7 @@ export const ContextBuildBody: DetailBodyRenderer = ({ span }): DetailView => {
 					node: (
 						<p
 							data-context-stage="loaded"
-							className="text-sm leading-relaxed text-muted-foreground"
+							className="text-[length:var(--ds-font-size-ui-lg)] leading-[var(--ds-line-height-reading)] text-muted-foreground"
 						>
 							{loadedFallback} was not recorded in this older trace.
 						</p>

@@ -143,14 +143,14 @@ export function RevisionHistoryPanel({
 		<section className={cn("flex shrink-0 flex-col bg-card font-mono", className)}>
 			<div className="px-3 pt-2.5">
 				<div className="mb-2 flex items-center gap-2">
-					<span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+					<span className="text-[length:var(--ds-font-size-micro)] font-medium uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground">
 						Revisions
 					</span>
-					<span className="tabular-nums text-[10px] text-muted-foreground/70">
+					<span className="tabular-nums text-[length:var(--ds-font-size-micro)] text-muted-foreground/70">
 						{revisions.length}
 					</span>
 					<span className="h-px flex-1 bg-border" />
-					<span className="text-[9px] uppercase tracking-[0.08em] text-muted-foreground/60">
+					<span className="text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground/60">
 						pick two to diff
 					</span>
 				</div>
@@ -165,7 +165,7 @@ export function RevisionHistoryPanel({
 				) : ordered.length === 0 ? (
 					<Notice>No revisions yet</Notice>
 				) : (
-					<ul className="flex flex-col overflow-hidden rounded-[3px] border border-border bg-background/40">
+					<ul className="flex flex-col overflow-hidden rounded-[var(--ds-radius-base)] border border-border bg-background/40">
 						{ordered.map((revision, index) => {
 							const isSelected = selected.includes(revision.hash);
 							const isCurrent = revision.hash === currentHash;
@@ -184,17 +184,17 @@ export function RevisionHistoryPanel({
 										)}
 									>
 										<span className="flex items-center gap-2">
-											<span className="truncate text-[12px] tabular-nums" title={revision.hash}>
+											<span className="truncate text-[length:var(--ds-font-size-ui-xs)] tabular-nums" title={revision.hash}>
 												{shortHash(revision.hash)}
 											</span>
 											{isCurrent && (
-												<span className="rounded-[2px] border border-status-success-border bg-status-success-fill/30 px-1 text-[9px] uppercase tracking-[0.1em] text-status-success">
+												<span className="rounded-[var(--ds-radius-base)] border border-status-success-border bg-status-success-fill/30 px-1 text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro)] text-status-success">
 													current
 												</span>
 											)}
 										</span>
-										<span className="flex items-center gap-2 text-[10px] text-muted-foreground/70">
-											<span className="uppercase tracking-[0.08em]">{revision.source}</span>
+										<span className="flex items-center gap-2 text-[length:var(--ds-font-size-micro)] text-muted-foreground/70">
+											<span className="uppercase tracking-[var(--ds-letter-spacing-micro)]">{revision.source}</span>
 											<span className="tabular-nums">{formatTimestamp(revision.createdAt)}</span>
 										</span>
 									</button>
@@ -218,7 +218,7 @@ export function RevisionHistoryPanel({
 						) : diff.length === 0 ? (
 							<Notice>No block-level changes between the selected revisions.</Notice>
 						) : (
-							<ul className="flex flex-col overflow-hidden rounded-[3px] border border-border bg-background/40">
+							<ul className="flex flex-col overflow-hidden rounded-[var(--ds-radius-base)] border border-border bg-background/40">
 								{diff.map((entry, index) => (
 									<DiffRow key={`${entry.kind}:${entry.id}`} entry={entry} bordered={index > 0} />
 								))}
@@ -249,20 +249,20 @@ function DiffRow({ entry, bordered }: { entry: PromptBlockDiffEntry; bordered: b
 			<span className="flex items-center gap-1.5">
 				<span
 					className={cn(
-						"inline-flex h-4 shrink-0 items-center rounded-[2px] border px-1 text-[9px] uppercase tracking-[0.1em]",
+						"inline-flex h-4 shrink-0 items-center rounded-[var(--ds-radius-base)] border px-1 text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro)]",
 						DIFF_KIND_CLASSES[entry.kind],
 					)}
 				>
 					{entry.kind}
 				</span>
-				<span className="shrink-0 rounded-[2px] border border-border bg-muted/30 px-1 text-[9px] uppercase tracking-[0.08em] text-muted-foreground">
+				<span className="shrink-0 rounded-[var(--ds-radius-base)] border border-border bg-muted/30 px-1 text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground">
 					{entry.nodeType}
 				</span>
-				<span className="ml-auto min-w-0 truncate text-[9px] tabular-nums text-muted-foreground/60">
+				<span className="ml-auto min-w-0 truncate text-[length:var(--ds-font-size-micro)] tabular-nums text-muted-foreground/60">
 					{entry.id}
 				</span>
 			</span>
-			<span className="min-w-0 truncate text-[11px] text-foreground">{entry.label}</span>
+			<span className="min-w-0 truncate text-[length:var(--ds-font-size-ui-2xs)] text-foreground">{entry.label}</span>
 		</li>
 	);
 }
@@ -277,7 +277,7 @@ function Notice({
 	return (
 		<p
 			className={cn(
-				"py-1.5 text-[11px] leading-relaxed",
+				"py-1.5 text-[length:var(--ds-font-size-ui-2xs)] leading-[var(--ds-line-height-ui)]",
 				tone === "error" ? "text-destructive" : "text-muted-foreground/70",
 			)}
 		>

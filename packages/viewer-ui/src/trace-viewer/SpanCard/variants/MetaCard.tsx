@@ -3,7 +3,7 @@ import type { FC } from "react";
 import type { SpanCardChrome } from "../SpanCard";
 
 import { TraceCard } from "../TraceCard";
-import { CARD_TYPE_LABEL } from "./card-type";
+import { CARD_LINE_LABEL, CARD_TYPE_LABEL } from "./card-type";
 
 /**
  * MetaCard — the fallback row for unrecognized event types (pi_turn_start,
@@ -25,6 +25,7 @@ export const MetaCard: FC<MetaCardProps> = ({ title, chrome }) => (
     label={chrome.label}
   >
     <span
+      style={CARD_LINE_LABEL}
       className={`${CARD_TYPE_LABEL} truncate text-agentprism-muted-foreground`}
       title={title}
     >

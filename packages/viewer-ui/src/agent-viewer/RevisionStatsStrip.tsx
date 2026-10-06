@@ -55,12 +55,12 @@ export function RevisionStatsStrip({
 	return (
 		<div
 			className={cn(
-				"flex flex-wrap items-center gap-x-4 gap-y-1 rounded-[2px] border border-border bg-muted/20 px-2.5 py-1.5 font-mono",
+				"flex flex-wrap items-center gap-x-4 gap-y-1 rounded-[var(--ds-radius-base)] border border-border bg-muted/20 px-2.5 py-1.5 font-mono",
 				className,
 			)}
 		>
 			{error ? (
-				<span className="text-[10px] text-muted-foreground/70">{error}</span>
+				<span className="text-[length:var(--ds-font-size-micro)] text-muted-foreground/70">{error}</span>
 			) : (
 				<>
 					<Stat label="runs" value={stats ? formatCount(stats.runs) : "…"} />
@@ -88,12 +88,12 @@ function Stat({
 }) {
 	return (
 		<span className="flex items-baseline gap-1.5">
-			<span className="text-[9px] uppercase tracking-[0.14em] text-muted-foreground/70">
+			<span className="text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground/70">
 				{label}
 			</span>
 			<span
 				className={cn(
-					"tabular-nums text-[12px]",
+					"tabular-nums text-[length:var(--ds-font-size-ui-xs)]",
 					tone === "warn" ? "text-status-warning" : "text-foreground",
 				)}
 			>

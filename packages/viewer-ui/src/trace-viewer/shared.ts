@@ -46,9 +46,9 @@ export type ComponentSize =
 
 export const ROUNDED_CLASSES = {
   none: "rounded-none",
-  sm: "rounded-sm",
-  md: "rounded-md",
-  lg: "rounded-lg",
+  sm: "rounded-[var(--ds-radius-base)]",
+  md: "rounded-[var(--ds-radius-base)]",
+  lg: "rounded-[var(--ds-radius-base)]",
   full: "rounded-full",
 };
 

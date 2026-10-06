@@ -99,30 +99,30 @@ const CONTAINER_EVENT_TYPES: ReadonlySet<string> = new Set([
 export function getSpanStyle(span: TraceSpan): SpanStyle {
 	if (span.status === "error") {
 		return {
-			titleClassName: "text-[15px] font-semibold text-destructive",
+			titleClassName: "text-[length:var(--ds-font-size-ui-lg)] font-semibold text-destructive",
 			indicator: "!",
 		};
 	}
 	if (span.status === "warning") {
 		return {
-			titleClassName: "text-[15px] font-semibold text-status-warning",
+			titleClassName: "text-[length:var(--ds-font-size-ui-lg)] font-semibold text-status-warning",
 			indicator: "!",
 		};
 	}
 
 	const eventType = readStringAttr(span, "event_type");
 	if (eventType === "ui_ask_requested") {
-		return { titleClassName: "text-[15px] font-semibold", indicator: "?" };
+		return { titleClassName: "text-[length:var(--ds-font-size-ui-lg)] font-semibold", indicator: "?" };
 	}
 	if (
 		eventType !== undefined &&
 		(PROMINENT_EVENT_TYPES.has(eventType) || CONTAINER_EVENT_TYPES.has(eventType))
 	) {
-		return { titleClassName: "text-[15px] font-semibold" };
+		return { titleClassName: "text-[length:var(--ds-font-size-ui-lg)] font-semibold" };
 	}
 
 	const level = readNumberAttr(span, "trace_level");
-	if (level === 3) return { titleClassName: "text-[11px] opacity-60" };
-	if (level === 2) return { titleClassName: "text-[13px] opacity-70" };
-	return { titleClassName: "text-[15px]" };
+	if (level === 3) return { titleClassName: "text-[length:var(--ds-font-size-ui-2xs)] opacity-60" };
+	if (level === 2) return { titleClassName: "text-[length:var(--ds-font-size-ui-sm)] opacity-70" };
+	return { titleClassName: "text-[length:var(--ds-font-size-ui-lg)]" };
 }

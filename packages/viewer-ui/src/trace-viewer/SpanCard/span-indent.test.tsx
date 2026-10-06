@@ -129,7 +129,7 @@ function parseRows(markup: string): RenderedRow[] {
 			connectors,
 			connectorClasses,
 			slot: slot?.[1] ?? null,
-			hasDropLine: /top-\[calc\(50%_\+_10px\)\]/.test(chunk),
+			hasDropLine: /\btop-1\/2 mt-2\.5\b/.test(chunk),
 		});
 	}
 	return rows;

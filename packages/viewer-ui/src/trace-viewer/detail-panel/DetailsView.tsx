@@ -8,7 +8,7 @@
  * the display record become real indented blocks, while Copy JSON preserves
  * the exact round-trippable JSON representation.
  */
-import { useMemo, type JSX, type ReactNode } from "react";
+import { useMemo, type CSSProperties, type JSX, type ReactNode } from "react";
 import type {
 	TraceSpan,
 	TraceSpanAttribute,
@@ -20,6 +20,11 @@ import type { DetailBlockSpec } from "./contract";
 import { SECTION_LABEL_CLASS } from "./renderers/snapshot-message-view";
 import { DocFigure } from "./doc-figure/DocFigure";
 import { CLAMP } from "./doc-figure/clamp";
+
+/** Kept geometry: label column at least 7rem, then the value column. */
+const DETAIL_ROW_GRID: CSSProperties = {
+	gridTemplateColumns: "minmax(7rem, 0.75fr) minmax(0, 1.25fr)",
+};
 
 function formatTimestamp(ts: Date): string {
 	return ts.toLocaleString("en-US", {
@@ -68,7 +73,7 @@ function CopyButton({ label, value }: { label: string; value: string }) {
 			aria-label={`Copy ${label}`}
 			title={`Copy ${label}`}
 			onClick={() => void copyText(value)}
-			className="grid size-6 shrink-0 place-items-center rounded-[3px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
+			className="grid size-6 shrink-0 place-items-center rounded-[var(--ds-radius-base)] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
 		>
 			<Copy aria-hidden="true" className="size-3" />
 		</button>
@@ -85,9 +90,9 @@ function DetailRow({
 	className?: string;
 }) {
 	return (
-		<div className="grid min-w-0 grid-cols-[minmax(7rem,0.75fr)_minmax(0,1.25fr)] gap-x-4 py-0.5 text-sm">
+		<div className="grid min-w-0 gap-x-4 py-0.5 text-[length:var(--ds-font-size-ui-lg)]" style={DETAIL_ROW_GRID}>
 			<span className="min-w-0 break-words text-muted-foreground">{label}</span>
-			<span className={cn("min-w-0 text-xs", className)}>{children}</span>
+			<span className={cn("min-w-0 text-[length:var(--ds-font-size-ui-xs)]", className)}>{children}</span>
 		</div>
 	);
 }
@@ -129,7 +134,7 @@ function DetailSection({
 				{meta || action ? (
 					<div className="ml-auto flex min-w-0 items-center gap-2">
 						{meta ? (
-							<span className="min-w-0 truncate font-mono text-[10px] text-muted-foreground">
+							<span className="min-w-0 truncate font-mono text-[length:var(--ds-font-size-micro)] text-muted-foreground">
 								{meta}
 							</span>
 						) : null}
@@ -378,7 +383,7 @@ export function DetailsView({
 					<button
 						type="button"
 						onClick={() => void copyText(raw.json)}
-						className="inline-flex items-center gap-1.5 rounded-[3px] border border-border px-2 py-1 font-sans text-[11px] text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
+						className="inline-flex items-center gap-1.5 rounded-[var(--ds-radius-base)] border border-border px-2 py-1 font-sans text-[length:var(--ds-font-size-ui-2xs)] text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
 					>
 						<Copy aria-hidden="true" className="size-3" />
 						Copy JSON

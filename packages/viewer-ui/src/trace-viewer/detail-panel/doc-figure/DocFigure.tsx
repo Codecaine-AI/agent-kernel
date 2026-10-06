@@ -32,7 +32,7 @@ import {
  * figure keeps its own ruled look for raw-source correlation.
  */
 const docFigureRuleBackground = {
-	backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent calc(${'${EDITOR_METRICS.lineHeight}'} - 1px), rgb(255 255 255 / 0.025) calc(${'${EDITOR_METRICS.lineHeight}'} - 1px), rgb(255 255 255 / 0.025) ${'${EDITOR_METRICS.lineHeight}'})`,
+	backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent calc(${'${EDITOR_METRICS.lineHeight}'} - 1px), var(--prompt-editor-rule, var(--editor-rule)) calc(${'${EDITOR_METRICS.lineHeight}'} - 1px), var(--prompt-editor-rule, var(--editor-rule)) ${'${EDITOR_METRICS.lineHeight}'})`,
 	backgroundPosition: "0 0",
 } as const;
 
@@ -132,7 +132,7 @@ const PROMPT_TOKEN_STYLE: Partial<Record<TokenType, CSSProperties>> = {
 };
 
 const BODY_CLASS =
-	"min-w-0 max-w-full overflow-x-auto bg-muted/30 p-3 text-xs leading-relaxed font-mono text-foreground";
+	"min-w-0 max-w-full overflow-x-auto bg-muted/30 p-3 text-[length:var(--ds-font-size-code)] leading-[var(--ds-line-height-code)] font-mono text-foreground";
 
 /**
  * Keep prompt-kit's exact pre-token result as the fallback. The indirection is
@@ -396,7 +396,7 @@ export function DocFigure({
 			data-doc-figure=""
 			data-doc-language={language}
 			className={cn(
-				"min-w-0 max-w-full rounded-md border",
+				"min-w-0 max-w-full rounded-[var(--ds-radius-base)] border",
 				TIER_BORDER[captionTier],
 				className,
 			)}
@@ -424,7 +424,7 @@ export function DocFigure({
 							data-detail-modal-trigger=""
 							aria-label={`Expand ${caption}`}
 							onClick={onOpenModal}
-							className="ml-auto grid size-6 shrink-0 place-items-center rounded-[3px] font-mono text-sm leading-none text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
+							className="ml-auto grid size-6 shrink-0 place-items-center rounded-[var(--ds-radius-base)] font-mono text-[length:var(--ds-font-size-ui-lg)] leading-none text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
 						>
 							<span aria-hidden="true">⤢</span>
 						</button>

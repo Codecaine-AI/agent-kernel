@@ -44,7 +44,7 @@ describe("MessageBody", () => {
 			expect(blocks).toHaveLength(1);
 			expect(blocks[0]?.slot).toBe("content");
 			const markup = renderToStaticMarkup(<>{blocks[0]?.node}</>);
-			expect(markup).toContain("leading-7");
+			expect(markup).toContain("leading-[var(--ds-line-height-row)]");
 			expect(markup).not.toContain("font-mono");
 		}
 	});

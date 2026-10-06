@@ -4,7 +4,7 @@ import type { SpanCardChrome } from "../SpanCard";
 
 import { GROUP_ACCENT } from "../../icons";
 import { TraceCard } from "../TraceCard";
-import { CARD_TYPE_LABEL, CARD_TYPE_META } from "./card-type";
+import { CARD_LINE_LABEL, CARD_LINE_META, CARD_TYPE_LABEL, CARD_TYPE_META } from "./card-type";
 
 /**
  * SpawnerCard — a spawner tool call (D77) rendered as an agent dispatch rather
@@ -30,7 +30,7 @@ export const SpawnerCard: FC<SpawnerCardProps> = ({ name, spawns, detail, chrome
   const named = spawns.filter((s) => s && s !== "*");
   const anyAgent = named.length === 0;
   const accent = GROUP_ACCENT[chrome.descriptor.group];
-  const chip = `${CARD_TYPE_META} inline-block rounded-[2px] border px-1.5 py-0.5 font-medium tracking-wide text-foreground ${accent.border}`;
+  const chip = `${CARD_TYPE_META} inline-block rounded-[var(--ds-radius-base)] border px-1.5 py-0.5 font-medium tracking-[var(--ds-letter-spacing-normal)] text-foreground ${accent.border}`;
 
   return (
     <TraceCard
@@ -42,17 +42,18 @@ export const SpawnerCard: FC<SpawnerCardProps> = ({ name, spawns, detail, chrome
     >
       <span
         aria-hidden="true"
-        className={`${CARD_TYPE_META} font-semibold uppercase tracking-wide ${accent.text}`}
+        style={CARD_LINE_META}
+        className={`${CARD_TYPE_META} font-semibold uppercase tracking-[var(--ds-letter-spacing-micro)] ${accent.text}`}
       >
         Dispatch
       </span>
-      <span className={`${CARD_TYPE_LABEL} font-medium`}>{name}</span>
+      <span style={CARD_LINE_LABEL} className={`${CARD_TYPE_LABEL} font-medium`}>{name}</span>
       <span className="flex flex-wrap items-center gap-1">
         {anyAgent ? (
-          <span className={chip}>Any Agent</span>
+          <span style={CARD_LINE_META} className={chip}>Any Agent</span>
         ) : (
           named.map((agent) => (
-            <span key={agent} className={chip}>
+            <span key={agent} style={CARD_LINE_META} className={chip}>
               {toTitleCase(agent)}
             </span>
           ))
@@ -60,7 +61,8 @@ export const SpawnerCard: FC<SpawnerCardProps> = ({ name, spawns, detail, chrome
       </span>
       {detail && (
         <code
-          className={`${CARD_TYPE_META} truncate rounded-[2px] bg-agentprism-code-base px-1.5 py-0.5 text-agentprism-muted-foreground`}
+          style={CARD_LINE_META}
+          className={`${CARD_TYPE_META} truncate rounded-[var(--ds-radius-base)] bg-agentprism-code-base px-1.5 py-0.5 text-agentprism-muted-foreground`}
         >
           {detail}
         </code>

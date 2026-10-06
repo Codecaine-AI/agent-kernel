@@ -93,9 +93,9 @@ export const SpanIconCap: FC<SpanIconCapProps> = ({
 				// continuous outline.
 				dividerClassName,
 				isSolid ? "bg-current" : "bg-transparent",
-				layout === "box" && "absolute left-0 top-0 rounded-tl-[2px]",
+				layout === "box" && "absolute left-0 top-0 rounded-tl-[var(--ds-radius-base)]",
 				layout === "inline" &&
-					(side === "left" ? "rounded-l-[2px]" : "rounded-r-[2px]"),
+					(side === "left" ? "rounded-l-[var(--ds-radius-base)]" : "rounded-r-[var(--ds-radius-base)]"),
 			)}
 			style={{ width: SPAN_CAP_SIZE, minHeight: SPAN_CAP_SIZE }}
 		>

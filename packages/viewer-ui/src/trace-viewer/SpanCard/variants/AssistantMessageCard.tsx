@@ -3,7 +3,7 @@ import type { FC } from "react";
 import type { SpanCardChrome } from "../SpanCard";
 
 import { TraceCard } from "../TraceCard";
-import { CARD_TYPE_BODY } from "./card-type";
+import { CARD_FRAME_BOX, CARD_TYPE_BODY } from "./card-type";
 
 interface AssistantMessageCardProps {
   content: string;
@@ -18,9 +18,9 @@ export const AssistantMessageCard: FC<AssistantMessageCardProps> = ({ content, c
     style={chrome.style}
     size="box"
     label={chrome.label}
-    className="max-w-[90%]"
+    frameStyle={CARD_FRAME_BOX}
   >
-    {/* No top padding: the first line box (13px/relaxed ≈ 21px) must stay flush
+    {/* No top padding: the first line box (13px / 21px, line-height.code) must stay flush
         to the frame so its center matches the 22px corner cap's glyph center. */}
     <p className={`${CARD_TYPE_BODY} line-clamp-5 whitespace-pre-wrap break-words px-2 pb-1`}>
       {content}

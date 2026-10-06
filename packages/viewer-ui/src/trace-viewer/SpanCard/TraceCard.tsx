@@ -20,7 +20,7 @@
  * the same hue); plumbing groups are neutral hairline, no wash; error/warning
  * are full-strength border + wash. See resolve-span-icon.tsx for semantics.
  */
-import type { ElementType, FC, ReactNode } from "react";
+import type { CSSProperties, ElementType, FC, ReactNode } from "react";
 
 import cn from "classnames";
 
@@ -39,13 +39,19 @@ export type TraceCardSize = "line" | "box";
 /**
  * Selection treatment lives ON THE CARD: when the enclosing SpanCard row
  * (named group "spanrow") carries data-selected, the card gets an inset ring
- * plus a light fill of the selection color, overriding any kind-band wash
- * (the variant selector out-specifies the plain wash utility). Color, ring
- * opacity, and ring width ride the --selection-* tokens (style-rail
- * adjustable) with baked fallbacks; the row contributes only the gutter bar.
+ * plus the design-system accent wash (color.fill.accent), overriding any
+ * kind-band wash (the variant selector out-specifies the plain wash utility).
+ * Ring color, opacity and width ride the --selection-* knobs (style-rail
+ * adjustable); the width defaults to border.width.focus. The ring is
+ * Tailwind's inset ring: the same `inset 0 0 0 <width> <color>` box-shadow.
+ * The row contributes only the gutter bar.
  */
-const SELECTED_CARD =
-	"group-data-[selected]/spanrow:shadow-[inset_0_0_0_var(--selection-width,2px)_rgb(var(--selection-color,var(--status-info))/var(--selection-opacity,1))] group-data-[selected]/spanrow:bg-[rgb(var(--selection-color,var(--status-info))/0.12)]";
+const SELECTED_CARD = [
+	"group-data-[selected]/spanrow:ring-inset",
+	"group-data-[selected]/spanrow:ring-[length:var(--selection-width,var(--ds-border-width-focus))]",
+	"group-data-[selected]/spanrow:ring-[color:rgb(var(--selection-color,var(--status-info))/var(--selection-opacity,1))]",
+	"group-data-[selected]/spanrow:bg-[color:var(--ds-color-fill-accent)]",
+].join(" ");
 
 export interface TraceCardProps {
 	kind: SpanIconKind;
@@ -70,8 +76,10 @@ export interface TraceCardProps {
 	frameData?: Record<string, string>;
 	/** Cap through-line to the accessible label. */
 	label?: string;
-	/** Extra classes on the outer frame (e.g. max-width for boxes). */
+	/** Extra classes on the outer frame. */
 	className?: string;
+	/** Inline style on the outer frame (e.g. kept max-width geometry for boxes). */
+	frameStyle?: CSSProperties;
 	children: ReactNode;
 }
 
@@ -86,11 +94,12 @@ export const TraceCard: FC<TraceCardProps> = ({
 	frameData,
 	label,
 	className,
+	frameStyle,
 	children,
 }) => {
 	const isBox = size === "box";
 	const { border, text: accent, wash } = GROUP_ACCENT[group];
-	const capPad = SPAN_CAP_SIZE + 8;
+	const capPad = `calc(${SPAN_CAP_SIZE}px + var(--ds-space-2))`;
 
 	const cap = (
 		<SpanIconCap
@@ -110,11 +119,12 @@ export const TraceCard: FC<TraceCardProps> = ({
 		return (
 			<Frame
 				{...frameData}
+				style={frameStyle}
 				className={cn(
 					// w-fit so short messages hug their content instead of stretching
-					// an empty frame across the row; variants cap growth via max-w.
+					// an empty frame across the row; variants cap growth via frameStyle.
 					// `fill` opts into the detail panel's equal-width message column.
-					"relative overflow-hidden rounded-[2px] border text-foreground transition-colors",
+					"relative overflow-hidden rounded-[var(--ds-radius-base)] border text-foreground transition-colors",
 					fill ? "w-full min-w-0" : "w-fit",
 					border,
 					wash ?? "hover:bg-muted/30",
@@ -136,8 +146,9 @@ export const TraceCard: FC<TraceCardProps> = ({
 	return (
 		<Frame
 			{...frameData}
+			style={frameStyle}
 			className={cn(
-				"max-w-full items-stretch overflow-hidden rounded-[2px] border text-foreground transition-colors",
+				"max-w-full items-stretch overflow-hidden rounded-[var(--ds-radius-base)] border text-foreground transition-colors",
 				fill ? "flex w-full min-w-0" : "inline-flex",
 				border,
 				wash ?? "hover:bg-muted/30",

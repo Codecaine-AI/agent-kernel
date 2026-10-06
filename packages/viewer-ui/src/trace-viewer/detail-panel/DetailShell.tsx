@@ -13,6 +13,7 @@ import {
 	type KeyboardEvent as ReactKeyboardEvent,
 	type ReactElement,
 	type ReactNode,
+	type CSSProperties,
 	type Ref,
 } from "react";
 import { createPortal } from "react-dom";
@@ -53,6 +54,17 @@ export interface DetailShellProps {
 	view: DetailView;
 }
 
+/** Kept geometry: Details and Close share one width so the header never shifts. */
+const DETAILS_CONTROL_STYLE: CSSProperties = { width: "3.75rem" };
+
+/** Kept geometry: the modal's viewport inset (padding) and its viewport-sized frame. */
+const MODAL_BACKDROP_STYLE: CSSProperties = { padding: "3vh" };
+const MODAL_DIALOG_STYLE: CSSProperties = {
+	height: "92vh",
+	width: "min(1400px, 94vw)",
+	boxShadow: "var(--ds-shadow-dialog)",
+};
+
 /**
  * @internal Pure Escape precedence rule used by the shell and contract tests.
  * The ladder is modal → Details takeover; Details closes only when nothing
@@ -85,7 +97,7 @@ function ExpandFigureButton({
 			data-detail-modal-trigger=""
 			aria-label={`Expand ${caption}`}
 			onClick={onClick}
-			className="grid size-6 shrink-0 place-items-center rounded-[3px] font-mono text-sm leading-none text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
+			className="grid size-6 shrink-0 place-items-center rounded-[var(--ds-radius-base)] font-mono text-[length:var(--ds-font-size-ui-lg)] leading-none text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
 		>
 			<span aria-hidden="true">⤢</span>
 		</button>
@@ -118,7 +130,7 @@ function NodeFigure({
 		<figure
 			data-doc-figure=""
 			className={cn(
-				"min-w-0 max-w-full rounded-md border border-border/60",
+				"min-w-0 max-w-full rounded-[var(--ds-radius-base)] border border-border/60",
 				isErrorOutput && "border-destructive/60",
 			)}
 		>
@@ -256,7 +268,7 @@ function DetailBlock({
 					open={open}
 					onOpenChange={setOpen}
 					className={cn(
-						"min-w-0 rounded-md border border-border/60",
+						"min-w-0 rounded-[var(--ds-radius-base)] border border-border/60",
 						isErrorOutput && "border-destructive/60",
 					)}
 				>
@@ -270,7 +282,7 @@ function DetailBlock({
 								<ChevronRight
 									aria-hidden="true"
 									className={cn(
-										"size-3.5 shrink-0 text-muted-foreground transition-transform duration-150 ease-out",
+										"size-3.5 shrink-0 text-muted-foreground transition-transform duration-[var(--ds-motion-duration-base)] ease-[var(--ds-motion-easing-decelerate)]",
 										open && "rotate-90",
 									)}
 								/>
@@ -575,7 +587,7 @@ export function DetailShellFrame({
 				>
 					<Glyph size={14} />
 				</span>
-				<span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
+				<span className="min-w-0 flex-1 truncate text-[length:var(--ds-font-size-ui-lg)] font-semibold text-foreground">
 					{span.title}
 				</span>
 				{detailsOpen ? (
@@ -584,7 +596,8 @@ export function DetailShellFrame({
 						type="button"
 						aria-label="Close details"
 						onClick={hideDetails}
-						className="ml-auto grid h-7 w-[3.75rem] shrink-0 place-items-center rounded-[3px] text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
+						style={DETAILS_CONTROL_STYLE}
+						className="ml-auto grid h-7 shrink-0 place-items-center rounded-[var(--ds-radius-base)] text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
 					>
 						<X aria-hidden="true" className="size-4" />
 					</button>
@@ -596,7 +609,8 @@ export function DetailShellFrame({
 						aria-expanded={false}
 						aria-controls={detailsRegionId}
 						onClick={revealDetails}
-						className="ml-auto grid h-7 w-[3.75rem] shrink-0 place-items-center rounded-[3px] text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
+						style={DETAILS_CONTROL_STYLE}
+						className="ml-auto grid h-7 shrink-0 place-items-center rounded-[var(--ds-radius-base)] text-[length:var(--ds-font-size-micro)] font-semibold uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
 					>
 						Details
 					</button>
@@ -621,7 +635,7 @@ export function DetailShellFrame({
 						<div
 							role="tablist"
 							aria-label="Detail sections"
-							className="mx-4 mt-4 flex min-w-0 overflow-hidden rounded-[3px] border border-border bg-muted"
+							className="mx-4 mt-4 flex min-w-0 overflow-hidden rounded-[var(--ds-radius-base)] border border-border bg-muted"
 						>
 							{orderedTabs.map((tab, index) => {
 								const active = tab.id === resolvedActiveTabId;
@@ -643,7 +657,7 @@ export function DetailShellFrame({
 										onClick={() => setActiveTabId(tab.id)}
 										onKeyDown={(event) => onTabKeyDown(event, index)}
 										className={cn(
-											"min-w-0 flex-1 px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-status-info-border",
+											"min-w-0 flex-1 px-3 py-2.5 text-[length:var(--ds-font-size-ui-xs)] font-semibold uppercase tracking-[var(--ds-letter-spacing-micro-wide)] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-status-info-border",
 											index > 0 && "border-l border-border",
 											active
 												? "bg-status-info-fill text-status-info"
@@ -723,7 +737,8 @@ export function DetailModalFrame({
 	return (
 		<div
 			data-detail-modal-backdrop=""
-			className="fixed inset-0 z-[100] grid place-items-center bg-black/60 p-[3vh]"
+			className="fixed inset-0 z-[var(--ds-z-popover)] grid place-items-center bg-[color:var(--ds-color-backdrop)]"
+			style={MODAL_BACKDROP_STYLE}
 			onClick={(event) => {
 				if (event.currentTarget === event.target) onClose();
 			}}
@@ -736,12 +751,13 @@ export function DetailModalFrame({
 				aria-modal="true"
 				aria-labelledby={labelId}
 				tabIndex={-1}
-				className="flex h-[92vh] w-[min(1400px,94vw)] min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-background shadow-2xl focus:outline-none"
+				className="flex min-w-0 flex-col overflow-hidden rounded-[var(--ds-radius-base)] border border-border bg-background focus:outline-none"
+				style={MODAL_DIALOG_STYLE}
 			>
 				<div className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
 					<h2
 						id={labelId}
-						className="min-w-0 truncate text-sm font-semibold text-foreground"
+						className="min-w-0 truncate text-[length:var(--ds-font-size-ui-lg)] font-semibold text-foreground"
 					>
 						{label}
 					</h2>
@@ -749,7 +765,7 @@ export function DetailModalFrame({
 						type="button"
 						aria-label={`Close ${label}`}
 						onClick={onClose}
-						className="ml-auto grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
+						className="ml-auto grid size-8 shrink-0 place-items-center rounded-[var(--ds-radius-base)] text-muted-foreground hover:bg-muted/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
 					>
 						<X aria-hidden="true" className="size-4" />
 					</button>

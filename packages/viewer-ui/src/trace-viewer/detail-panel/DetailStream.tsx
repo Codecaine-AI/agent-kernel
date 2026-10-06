@@ -70,7 +70,7 @@ export function DetailSubtabs({
 			<div
 				role="tablist"
 				aria-label="Turn surfaces"
-				className="flex min-w-0 overflow-hidden rounded-[3px] border border-border bg-muted"
+				className="flex min-w-0 overflow-hidden rounded-[var(--ds-radius-base)] border border-border bg-muted"
 			>
 				{zones.map((zone, index) => {
 					const on = zone.id === activeZoneId;
@@ -86,7 +86,7 @@ export function DetailSubtabs({
 							tabIndex={on ? 0 : -1}
 							onClick={() => onSelect(zone.id)}
 							className={cn(
-								"flex min-w-0 flex-1 items-baseline justify-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-status-info-border",
+								"flex min-w-0 flex-1 items-baseline justify-center gap-1.5 px-3 py-1.5 text-[length:var(--ds-font-size-micro)] font-semibold uppercase tracking-[var(--ds-letter-spacing-micro-wide)] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-status-info-border",
 								index > 0 && "border-l border-border",
 								on
 									? "bg-status-info-fill text-status-info"

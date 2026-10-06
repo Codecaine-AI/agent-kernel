@@ -289,9 +289,9 @@ describe("live-reviewed message hierarchy", () => {
 				expect(result).toContain(SECTION_LABEL_CLASS);
 				expect(call).not.toContain('data-doc-caption-tier="subordinate"');
 				expect(result).not.toContain('data-doc-caption-tier="subordinate"');
-				expect(SECTION_LABEL_CLASS).toContain("text-[11px]");
+				expect(SECTION_LABEL_CLASS).toContain("text-[length:var(--ds-font-size-ui-2xs)]");
 				expect(SECTION_LABEL_CLASS).toContain("font-semibold");
-				expect(MESSAGE_ROLE_HEADER_CLASS).toContain("text-[11px]");
+				expect(MESSAGE_ROLE_HEADER_CLASS).toContain("text-[length:var(--ds-font-size-ui-2xs)]");
 				expect(MESSAGE_ROLE_HEADER_CLASS).toContain("font-semibold");
 				expect(call).toContain('data-doc-line-number=""');
 				expect(result).toContain('data-doc-line-number=""');

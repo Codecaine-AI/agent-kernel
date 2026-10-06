@@ -82,7 +82,7 @@ describe("DetailShell", () => {
 		expect(header).toContain("border-b border-border");
 		expect(header).toContain("bg-background");
 		expect(header).toContain(
-			"min-w-0 flex-1 truncate text-sm font-semibold text-foreground",
+			"min-w-0 flex-1 truncate text-[length:var(--ds-font-size-ui-lg)] font-semibold text-foreground",
 		);
 		expect(header).toContain(">Details<");
 		expect(header).toContain('aria-label="Details"');
@@ -170,7 +170,7 @@ describe("DetailShell", () => {
 			/<button[^>]*aria-label="Close details"[^>]*>/.exec(open)?.[0] ?? "";
 		for (const control of [closedControl, openControl]) {
 			expect(control).toContain("h-7");
-			expect(control).toContain("w-[3.75rem]");
+			expect(control).toContain('style="width:3.75rem"');
 		}
 		const openHeaderMarkup = open.slice(
 			open.indexOf('data-detail-header=""'),

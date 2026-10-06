@@ -93,11 +93,11 @@ export function StateSection({
 						afterLine: anchorLine,
 						label: "Attached renders · kernel",
 						node: (
-							// Capped so the images stay read-in-place instead of
-							// stretching to the width of the longest source line.
-							<div className="min-w-0 max-w-[40rem] space-y-1.5">
+							// Capped (kept geometry, 40rem) so the images stay read-in-place
+							// instead of stretching to the width of the longest source line.
+							<div className="min-w-0 space-y-1.5" style={{ maxWidth: "40rem" }}>
 								{renderCaption.length > 0 ? (
-									<p className="whitespace-normal break-words text-[11px] leading-5 text-muted-foreground">
+									<p className="whitespace-normal break-words text-[length:var(--ds-font-size-ui-2xs)] leading-[var(--ds-space-5)] text-muted-foreground">
 										{renderCaption}
 									</p>
 								) : null}

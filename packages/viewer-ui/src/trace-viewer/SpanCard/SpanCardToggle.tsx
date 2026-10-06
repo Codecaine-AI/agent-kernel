@@ -18,7 +18,7 @@ export const SpanCardToggle = ({
   <Collapsible.Trigger asChild>
     <button
       className={cn(
-        "flex size-5 shrink-0 items-center justify-center rounded-sm transition-colors hover:bg-agentprism-muted/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-agentprism-border-subtle",
+        "flex size-5 shrink-0 items-center justify-center rounded-[var(--ds-radius-base)] transition-colors hover:bg-agentprism-muted/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-agentprism-border-subtle",
         !isExpanded && "translate-y-px",
       )}
       onClick={onToggleClick}
@@ -30,7 +30,7 @@ export const SpanCardToggle = ({
       <ChevronRight
         aria-hidden="true"
         className={cn(
-          "text-[rgb(var(--tree-caret,var(--agentprism-muted-foreground))/var(--tree-caret-opacity,1))] size-3.5 transition-transform duration-150 ease-out",
+          "text-[rgb(var(--tree-caret,var(--agentprism-muted-foreground))/var(--tree-caret-opacity,1))] size-3.5 transition-transform duration-[var(--ds-motion-duration-base)] ease-[var(--ds-motion-easing-decelerate)]",
           isExpanded && "rotate-90",
         )}
       />
