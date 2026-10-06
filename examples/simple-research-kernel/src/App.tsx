@@ -4,46 +4,27 @@ import {
 	type KernelTraceSessionDetail
 } from "@agent-kernel/viewer-core";
 
-import { AgentsWorkspace } from "./_components/workspaces/AgentsWorkspace";
-import { ResearchWorkspace } from "./_components/workspaces/ResearchWorkspace";
-import { TraceWorkspace } from "./_components/workspaces/TraceWorkspace";
-import { ResearchKernelLayout } from "./_layouts/ResearchKernelLayout";
+import { AgentsWorkspace } from "./_components/AgentsWorkspace";
+import { ResearchWorkspace } from "./_components/ResearchWorkspace";
+import { TraceWorkspace } from "./_components/TraceWorkspace";
+import { ResearchKernelLayout } from "./_components/ResearchKernelLayout";
 import {
 	deleteTraceSession,
 	fetchResearchKernelState,
 	startResearchRun,
 	type FetchResearchKernelStateOptions
-} from "./lib/api";
-import { toAgentViewerDefinitions } from "./lib/agent-viewer-adapter";
-import {
-	collectLatestContextPreviews,
-	collectLatestRenderedPrompts
-} from "./lib/trace-selectors";
+} from "@/shared/api";
 import {
 	loadResearchStyleSettings,
 	mergeResearchStyleSettings,
 	saveResearchStyleSettings,
 	type ResearchStyleSettings,
 	type ResearchStyleSettingsPatch
-} from "./lib/style-settings";
-import { useWorkspaceRoute, workspaceFromPathname } from "./lib/use-workspace-route";
-import type { ResearchHarnessInfo, ResearchRunSummary } from "./lib/types";
-
-function selectedTraceIdFromLocation(): string | null {
-	const params = new URLSearchParams(window.location.search);
-	return params.get("traceId") ?? params.get("containerId");
-}
-
-function replaceTraceIdInUrl(traceId: string | null): void {
-	const url = new URL(window.location.href);
-	if (traceId) {
-		url.searchParams.set("traceId", traceId);
-		url.searchParams.delete("containerId");
-	} else {
-		url.searchParams.delete("traceId");
-	}
-	window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-}
+} from "@/shared/style-settings";
+import type { ResearchHarnessInfo, ResearchRunSummary } from "@/shared/types";
+import { replaceTraceIdInUrl, selectedTraceIdFromLocation } from "./trace-url";
+import { useWorkspaceRoute } from "./useWorkspaceRoute";
+import { workspaceFromPathname } from "./workspace-paths";
 
 export function App() {
 	const { activeWorkspace, navigate } = useWorkspaceRoute();
@@ -177,13 +158,6 @@ export function App() {
 		return buildTraceSpans(detail.events, detail.pi_sessions, detail.agent_runs);
 	}, [detail]);
 
-	const renderedPrompts = useMemo(() => collectLatestRenderedPrompts(detail), [detail]);
-	const contextPreviews = useMemo(() => collectLatestContextPreviews(detail), [detail]);
-	const agentViewerDefinitions = useMemo(
-		() => toAgentViewerDefinitions(info?.agents ?? [], renderedPrompts, contextPreviews),
-		[contextPreviews, info?.agents, renderedPrompts]
-	);
-
 	const handleTraceSelect = useCallback(
 		async (traceSessionId: string) => {
 			setSelectedTraceSessionId(traceSessionId);
@@ -314,7 +288,8 @@ export function App() {
 			)}
 			{activeWorkspace === "agents" && (
 				<AgentsWorkspace
-					agents={agentViewerDefinitions}
+					agents={info?.agents}
+					detail={detail}
 					selectedAgentName={selectedAgentName}
 					onAgentSelect={setSelectedAgentName}
 				/>

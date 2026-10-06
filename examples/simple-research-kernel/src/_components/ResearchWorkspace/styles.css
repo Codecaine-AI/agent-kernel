@@ -1,0 +1,10 @@
+/* Research Run workspace: the run column beside the live trace (xl and up). */
+.research-run-grid {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1280px) {
+	.research-run-grid {
+		grid-template-columns: 440px minmax(0, 1fr);
+	}
+}

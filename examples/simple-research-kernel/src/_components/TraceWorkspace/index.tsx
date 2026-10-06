@@ -10,9 +10,10 @@ import {
 	type TraceWorkspaceRow
 } from "@agent-kernel/viewer-shell";
 
-import { KERNEL_TRACE_API_BASE } from "../../lib/api";
-import type { TraceIconSettings } from "../../lib/style-settings";
-import { isSelectedTrace, traceStatusClass } from "../../lib/trace-ui";
+import { KERNEL_TRACE_API_BASE } from "@/shared/api";
+import type { TraceIconSettings } from "@/shared/style-settings";
+import { isSelectedTrace, traceStatusClass } from "@/shared/trace-ui";
+import { isActiveTrace, sessionLabelOf } from "./utils";
 
 /**
  * Thin app binding over the SHARED KernelTraceWorkspace: this file only maps
@@ -20,7 +21,7 @@ import { isSelectedTrace, traceStatusClass } from "../../lib/trace-ui";
  * workspace adapter contract. All list/drill-in/split UX lives in
  * @agent-kernel/viewer-shell.
  */
-type TraceWorkspaceProps = {
+export type TraceWorkspaceProps = {
 	detail: KernelTraceSessionDetail | null;
 	spans: KernelTraceViewerProps["spans"];
 	traceSessions: KernelTraceSessionSummary[];
@@ -31,21 +32,6 @@ type TraceWorkspaceProps = {
 	onTraceDelete: (traceSessionId: string) => void;
 	traceIcons: TraceIconSettings;
 };
-
-function shortId(value: string): string {
-	return value.length > 12 ? `${value.slice(0, 8)}...${value.slice(-4)}` : value;
-}
-
-function isActiveTrace(status: string): boolean {
-	return status === "active" || status === "queued" || status === "running";
-}
-
-function sessionLabelOf(trace: KernelTraceSessionSummary): string {
-	const metadataSlug = trace.metadata?.sessionSlug;
-	return typeof metadataSlug === "string" && metadataSlug.length > 0
-		? metadataSlug
-		: shortId(trace.containerId);
-}
 
 export function TraceWorkspace({
 	detail,

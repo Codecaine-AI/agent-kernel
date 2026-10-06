@@ -9,7 +9,7 @@ import {
 	STYLE_RAIL_MIN_WIDTH
 } from "@agent-kernel/viewer-shell";
 
-import { RESEARCH_STYLE_CONFIG } from "./style-settings";
+import { RESEARCH_STYLE_CONFIG } from "@/shared/style-settings";
 
 export { clampStyleRailWidth, STYLE_RAIL_MAX_WIDTH, STYLE_RAIL_MIN_WIDTH };
 

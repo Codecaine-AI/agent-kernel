@@ -33,6 +33,9 @@ const DESIGN_SYSTEM_DIR = dirname(
 export default defineConfig({
 	plugins: [react()],
 	resolve: {
+		// `@/` is this app's src (design-system guide/code-structure.md); scoped packages such
+		// as `@agent-kernel/viewer-shell` do not match the `@` key.
+		alias: { "@": resolve(APP_DIR, "src") },
 		dedupe: ["react", "react-dom"]
 	},
 	optimizeDeps: {

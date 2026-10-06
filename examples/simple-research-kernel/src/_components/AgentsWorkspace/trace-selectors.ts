@@ -8,7 +8,7 @@ import type {
 	AgentContextPreviewSummary,
 	AgentRuntimeSummary,
 	RenderedPromptSummary
-} from "./types";
+} from "@/shared/types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;

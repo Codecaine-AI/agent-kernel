@@ -4,7 +4,7 @@ import type {
 	AgentContextPreviewSummary,
 	RenderedPromptSummary,
 	ResearchAgentSummary
-} from "./types";
+} from "@/shared/types";
 
 export function toAgentViewerDefinitions(
 	agents: ResearchAgentSummary[],
