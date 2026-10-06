@@ -60,19 +60,19 @@ export function StyleSettingsRail({
 			>
 				<button
 					aria-expanded={false}
-					className={`flex w-full items-center justify-center gap-2 border-border bg-muted/30 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground ${
+					className={`flex w-full items-center justify-center gap-2 border-border bg-muted/30 px-3 text-[length:var(--ds-font-size-ui-2xs)] font-bold uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground ${
 						vertical ? "h-full flex-col" : "h-12 lg:h-full lg:flex-col"
 					}`}
 					onClick={() => onCollapsedChange(false)}
 					title="Open style controls"
 					type="button"
 				>
-					<span aria-hidden className="text-base leading-none">◧</span>
+					<span aria-hidden className="text-[length:var(--ds-space-4)] leading-none">◧</span>
 					<span
 						className={
 							vertical
-								? "[writing-mode:vertical-rl] rotate-180"
-								: "lg:[writing-mode:vertical-rl] lg:rotate-180"
+								? "style-settings-rail-vertical-label"
+								: "style-settings-rail-vertical-label-lg"
 						}
 					>
 						Style
@@ -84,9 +84,10 @@ export function StyleSettingsRail({
 
 	return (
 		<aside
-			className={`style-settings-rail style-settings-rail-open relative grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-card/85 ${
+			className={`style-settings-rail style-settings-rail-open relative grid min-h-0 min-w-0 overflow-hidden bg-card/85 ${
 				vertical ? "h-full border-l border-border" : "border-t border-border lg:border-l lg:border-t-0"
 			}`}
+			style={{ gridTemplateRows: "auto minmax(0, 1fr)" }}
 		>
 			<div
 				aria-hidden
@@ -94,8 +95,8 @@ export function StyleSettingsRail({
 				onPointerDown={startResize}
 				title="Drag to resize"
 			/>
-			<div className="flex h-[var(--research-header-height,56px)] min-h-[56px] items-center gap-3 border-b border-border bg-muted/55 px-3">
-				<h2 className="m-0 min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-center font-mono text-[12px] font-bold uppercase tracking-[0.16em] text-foreground">
+			<div className="flex h-[var(--research-header-height,56px)] min-h-14 items-center gap-3 border-b border-border bg-muted/55 px-3">
+				<h2 className="m-0 min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-center font-mono text-[length:var(--ds-font-size-ui-xs)] font-bold uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-[color:var(--ds-color-text-ink)]">
 					Style
 				</h2>
 				<button

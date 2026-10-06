@@ -3,25 +3,82 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { clampStyleRailWidth, loadStyleRailWidth, saveStyleRailWidth } from "./rail-state";
 import {
 	buildColorExport,
+	colorOverrideVars,
 	colorTokenDefaultHex,
 	colorTokenEffectiveHex,
 	defaultStyleSettings,
 	getColorToken,
 	hexToRgb,
 	hexToTriplet,
+	hostColorHex,
 	loadStyleSettings,
 	mergeColorOverrides,
 	mergeStyleSettings,
 	normalizeColorOverrides,
 	normalizeHex,
 	normalizeStyleSettings,
+	parseHostColor,
 	rgbToHex,
 	saveStyleSettings,
+	SHOW_COLOR_CONTROLS,
+	STYLE_PANEL_TAB_OPTIONS,
+	styleSettingsStorageKey,
 	styleVars,
 	tripletToHex,
 	effectiveBaseTokens,
 	type StyleSystemConfig
 } from "./style-settings";
+
+/**
+ * A host page for the engine's live-CSS reads: the contract values a host
+ * gets from host-contract.css (light theme), triplets and hex as the sheet
+ * writes them, plus one value that is not a plain color.
+ */
+const HOST_CSS: Record<string, string> = {
+	"--background": " 253 253 253",
+	"--foreground": "42 42 42",
+	"--card": "248 248 247",
+	"--card-foreground": "42 42 42",
+	"--muted": "235 235 233",
+	"--muted-foreground": "102 101 98",
+	"--border": "230 229 227",
+	"--trace-user": "11 110 153",
+	"--trace-orchestration": "105 64 165",
+	"--selection-color": "0 120 223",
+	"--zebra-color": "31 31 31",
+	"--editor-bg": "#f9f9f9",
+	"--editor-fg": "rgb(31, 31, 31)",
+	"--editor-line-number": "color-mix(in srgb, #9b9a97 65%, #666562)"
+};
+
+const realDocument = (globalThis as { document?: unknown }).document;
+const realGetComputedStyle = (globalThis as { getComputedStyle?: unknown }).getComputedStyle;
+
+/** Install a fake document whose root computes to HOST_CSS; returns the restore. */
+function stubHostCss(values: Record<string, string> = HOST_CSS): () => void {
+	const root = { tagName: "HTML" };
+	(globalThis as { document?: unknown }).document = { documentElement: root };
+	(globalThis as { getComputedStyle?: unknown }).getComputedStyle = (element: unknown) => ({
+		getPropertyValue: (name: string) => (element === root ? values[name] ?? "" : "")
+	});
+	return () => {
+		(globalThis as { document?: unknown }).document = realDocument;
+		(globalThis as { getComputedStyle?: unknown }).getComputedStyle = realGetComputedStyle;
+	};
+}
+
+/** Every color variable the engine used to write inline on the style shell. */
+const CONTRACT_COLOR_VARS = [
+	"--background", "--foreground", "--card", "--card-foreground", "--popover", "--popover-foreground",
+	"--primary", "--primary-foreground", "--secondary", "--secondary-foreground", "--muted",
+	"--muted-foreground", "--border", "--input", "--destructive", "--trace-container", "--trace-orchestration",
+	"--trace-user", "--trace-assistant", "--trace-tool", "--trace-lifecycle", "--status-warning",
+	"--status-neutral-fill", "--status-neutral-border", "--status-success-fill", "--status-success-border",
+	"--status-warning-fill", "--status-warning-border", "--status-info-fill", "--status-info-border",
+	"--agentprism-background", "--agentprism-foreground", "--agentprism-muted", "--agentprism-muted-foreground",
+	"--agentprism-border-subtle", "--agentprism-code-base", "--editor-bg", "--editor-fg", "--editor-line-number",
+	"--tree-caret", "--tree-connector", "--selection-color", "--zebra-color"
+];
 
 /** A light-default app binding matching the example app's shape. */
 const LIGHT_CONFIG: StyleSystemConfig = {
@@ -60,35 +117,67 @@ describe("hex / triplet utilities", () => {
 	});
 });
 
+describe("host color reads", () => {
+	test("parseHostColor reads triplets, hex and rgb(), and nothing else", () => {
+		expect(parseHostColor(" 27 27 28")).toBe("#1B1B1C");
+		expect(parseHostColor("27 27 28 / 0.5")).toBe("#1B1B1C");
+		expect(parseHostColor("#abc")).toBe("#AABBCC");
+		expect(parseHostColor("rgb(31, 31, 31)")).toBe("#1F1F1F");
+		expect(parseHostColor("rgba(31, 31, 31, 0.5)")).toBe("#1F1F1F");
+		expect(parseHostColor("rgb(31 31 31 / 50%)")).toBe("#1F1F1F");
+		expect(parseHostColor("color-mix(in srgb, #9b9a97 65%, #666562)")).toBeNull();
+		expect(parseHostColor("var(--x)")).toBeNull();
+		expect(parseHostColor("")).toBeNull();
+		expect(parseHostColor("27 27")).toBeNull();
+	});
+
+	test("hostColorHex reads the document root, and nothing without a DOM", () => {
+		expect(hostColorHex("--background")).toBeNull();
+		const restore = stubHostCss();
+		try {
+			expect(hostColorHex("--background")).toBe("#FDFDFD");
+			expect(hostColorHex("--editor-bg")).toBe("#F9F9F9");
+			expect(hostColorHex("--editor-line-number")).toBeNull();
+			expect(hostColorHex("--not-declared")).toBeNull();
+		} finally {
+			restore();
+		}
+	});
+});
+
 describe("color token catalog", () => {
-	test("neutral default hex derives from the theme's base tokens", () => {
-		const background = getColorToken("background");
-		expect(background).toBeDefined();
-		expect(colorTokenDefaultHex(background!, "dark")).toBe("#1B1B1C");
-		expect(colorTokenDefaultHex(background!, "light")).toBe("#F9F9F7");
-	});
-
-	test("editor default hex derives from literal editor defaults", () => {
-		const editorBg = getColorToken("editorBg");
-		expect(colorTokenDefaultHex(editorBg!, "dark")).toBe("#1E1E1E");
-		expect(colorTokenDefaultHex(editorBg!, "light")).toBe("#FBFBF9");
-	});
-
-	test("accent default hex derives from the theme's accent defaults", () => {
-		const orchestration = getColorToken("traceOrchestration");
-		expect(colorTokenDefaultHex(orchestration!, "dark")).toBe("#A78BFA");
-		expect(colorTokenDefaultHex(orchestration!, "light")).toBe("#7C3AED");
-		// Tool is ORANGE in both themes (cyan is retired for tools).
-		const tool = getColorToken("traceTool");
-		expect(colorTokenDefaultHex(tool!, "dark")).toBe("#E8823D");
-		expect(colorTokenDefaultHex(tool!, "light")).toBe("#C2410C");
+	test("a token's default is the host's live contract value, empty when unreadable", () => {
+		const background = getColorToken("background")!;
+		const editorFg = getColorToken("editorFg")!;
+		const traceTool = getColorToken("traceTool")!;
+		expect(colorTokenDefaultHex(background, "light")).toBe("");
+		const restore = stubHostCss();
+		try {
+			expect(colorTokenDefaultHex(background, "light")).toBe("#FDFDFD");
+			expect(colorTokenDefaultHex(editorFg, "light")).toBe("#1F1F1F");
+			expect(colorTokenDefaultHex(getColorToken("traceUser")!, "light")).toBe("#0B6E99");
+			// Not declared by this host page: no default.
+			expect(colorTokenDefaultHex(traceTool, "light")).toBe("");
+		} finally {
+			restore();
+		}
 	});
 
 	test("effective hex prefers a valid override, ignores a bad one", () => {
 		const background = getColorToken("background")!;
-		expect(colorTokenEffectiveHex(background, { background: "#123456" }, "dark")).toBe("#123456");
-		expect(colorTokenEffectiveHex(background, { background: "nope" }, "dark")).toBe("#1B1B1C");
-		expect(colorTokenEffectiveHex(background, {}, "dark")).toBe("#1B1B1C");
+		const restore = stubHostCss();
+		try {
+			expect(colorTokenEffectiveHex(background, { background: "#123456" }, "dark")).toBe("#123456");
+			expect(colorTokenEffectiveHex(background, { background: "nope" }, "dark")).toBe("#FDFDFD");
+			expect(colorTokenEffectiveHex(background, {}, "dark")).toBe("#FDFDFD");
+		} finally {
+			restore();
+		}
+	});
+
+	test("the color controls are hidden: the colors tab is the Theme tab", () => {
+		expect(SHOW_COLOR_CONTROLS).toBe(false);
+		expect(STYLE_PANEL_TAB_OPTIONS.find((option) => option.id === "colors")?.label).toBe("Theme");
 	});
 });
 
@@ -160,15 +249,16 @@ describe("normalize / merge settings", () => {
 		expect(vars["--selection-opacity"]).toBe("1");
 		expect(vars["--selection-width"]).toBe("3px");
 		expect(vars["--selection-bar-width"]).toBe("3px");
-		// Color token: theme-keyed defaults (light doc blue / dark HUD cyan).
-		const color = getColorToken("selectionColor");
-		expect(colorTokenDefaultHex(color!, "light")).toBe("#2A78D6");
-		expect(colorTokenDefaultHex(color!, "dark")).toBe("#54D3E0");
-		// Export carries color + sliders.
-		const out = buildColorExport({}, "light", undefined, merged.selection);
-		expect(out).toContain("--selection-color: 42 120 214;");
-		expect(out).toContain("--selection-width: 3px;");
-		expect(out).toContain("--selection-bar-width: 3px;");
+		// Export carries the host's color + the sliders.
+		const restore = stubHostCss();
+		try {
+			const out = buildColorExport({}, "light", undefined, merged.selection);
+			expect(out).toContain("--selection-color: 0 120 223;");
+			expect(out).toContain("--selection-width: 3px;");
+			expect(out).toContain("--selection-bar-width: 3px;");
+		} finally {
+			restore();
+		}
 	});
 
 	test("code-block zebra normalizes, clamps, merges, emits, and exports", () => {
@@ -179,14 +269,16 @@ describe("normalize / merge settings", () => {
 		expect(merged.codeBlock.zebraOpacity).toBe(0.1);
 		const vars = styleVars(merged, LIGHT_CONFIG) as Record<string, string>;
 		expect(vars["--zebra-opacity"]).toBe("0.1");
-		// Color token: theme-keyed defaults (ink on paper / light on the void).
-		const zebra = getColorToken("zebraColor");
-		expect(colorTokenDefaultHex(zebra!, "light")).toBe("#000000");
-		expect(colorTokenDefaultHex(zebra!, "dark")).toBe("#FFFFFF");
-		// Export carries color + slider.
-		const out = buildColorExport({}, "dark", undefined, undefined, merged.codeBlock);
-		expect(out).toContain("--zebra-color: 255 255 255;");
-		expect(out).toContain("--zebra-opacity: 0.1;");
+		// Export carries the host's color (or an override) + the slider.
+		const restore = stubHostCss();
+		try {
+			const out = buildColorExport({}, "dark", undefined, undefined, merged.codeBlock);
+			expect(out).toContain("--zebra-color: 31 31 31;");
+			expect(out).toContain("--zebra-opacity: 0.1;");
+			expect(buildColorExport({ zebraColor: "#ffffff" }, "dark")).toContain("--zebra-color: 255 255 255;");
+		} finally {
+			restore();
+		}
 	});
 
 	test("theme follows the app default and rejects unknown values", () => {
@@ -210,44 +302,66 @@ describe("normalize / merge settings", () => {
 	});
 });
 
-describe("overlay threading", () => {
-	test("effectiveBaseTokens shadows neutral overrides and drives cardForeground from foreground", () => {
-		const base = effectiveBaseTokens({ background: "#000000", foreground: "#ffffff" }, "dark");
-		expect(base.background).toEqual([0, 0, 0]);
-		expect(base.foreground).toEqual([255, 255, 255]);
-		expect(base.cardForeground).toEqual([255, 255, 255]);
+describe("no inline colors", () => {
+	test("styleVars writes no contract color, whatever the saved overrides", () => {
+		const overridden = merge(DEFAULTS, {
+			theme: "dark",
+			colorOverrides: { background: "#000000", foreground: "#ffffff", traceUser: "#60A5FA", editorBg: "#101010" }
+		});
+		for (const config of [LIGHT_CONFIG, DARK_CONFIG]) {
+			for (const settings of [defaultStyleSettings(config), overridden]) {
+				const vars = styleVars(settings, config) as Record<string, string>;
+				for (const name of CONTRACT_COLOR_VARS) expect(vars[name]).toBeUndefined();
+			}
+		}
 	});
 
-	test("styleVars emits accent overrides as triplets and leaves untouched accents unset", () => {
-		const vars = styleVars(
-			merge(DEFAULTS, { colorOverrides: { traceUser: "#60A5FA", editorBg: "#101010" } }),
-			LIGHT_CONFIG
-		) as Record<string, string>;
-		expect(vars["--trace-user"]).toBe("96 165 250");
-		expect(vars["--editor-bg"]).toBe("#101010");
-		expect(vars["--trace-tool"]).toBeUndefined();
+	test("the remaining emission is knobs only: opacities, widths, effects, layout", () => {
+		const vars = styleVars(DEFAULTS, LIGHT_CONFIG) as Record<string, string>;
+		for (const value of Object.values(vars)) {
+			expect(value).not.toMatch(/#[0-9a-f]{3,8}\b|rgb|hsl|^\d+ \d+ \d+$/i);
+		}
+		expect(vars["--zebra-opacity"]).toBe("0.04");
+	});
+});
+
+describe("color overrides (code kept behind SHOW_COLOR_CONTROLS)", () => {
+	test("viewer-only and editor overrides go onto their own variable; untouched ones stay unset", () => {
+		const vars = colorOverrideVars({ traceUser: "#60A5FA", editorBg: "#101010" }, LIGHT_CONFIG);
+		expect(vars).toEqual({ "--trace-user": "96 165 250", "--editor-bg": "#101010" });
+		expect(colorOverrideVars({ traceUser: "nope" }, LIGHT_CONFIG)).toEqual({});
 	});
 
-	test("a neutral override survives softening (base is shifted, then mixed)", () => {
-		const vars = styleVars(
-			merge(DEFAULTS, { theme: "dark", colorOverrides: { background: "#000000" } }),
-			LIGHT_CONFIG
-		) as Record<string, string>;
-		// With background softening at default (1 → mix 0.1) toward [35,35,36].
-		expect(vars["--background"]).toBe("4 4 4");
+	test("a neutral override drives its followers, in the host's format", () => {
+		expect(colorOverrideVars({ foreground: "#ffffff", border: "#3a3a3b" }, LIGHT_CONFIG)).toEqual({
+			"--foreground": "255 255 255",
+			"--card-foreground": "255 255 255",
+			"--agentprism-foreground": "255 255 255",
+			"--border": "58 58 59",
+			"--input": "58 58 59"
+		});
+		const hex = colorOverrideVars({ background: "#1b1b1c", card: "#252526" }, DARK_CONFIG);
+		expect(hex).toEqual({
+			"--background": "#1B1B1C",
+			"--agentprism-background": "27 27 28",
+			"--primary-foreground": "#1B1B1C",
+			"--card": "#252526",
+			"--popover": "#252526"
+		});
 	});
 
-	test("hex hosts get hex neutrals plus derived shadcn aliases; triplet hosts get triplets", () => {
-		const dark = defaultStyleSettings(DARK_CONFIG);
-		const hexVars = styleVars(dark, DARK_CONFIG) as Record<string, string>;
-		expect(hexVars["--background"]).toMatch(/^#/);
-		expect(hexVars["--popover"]).toBe(hexVars["--card"]);
-		expect(hexVars["--secondary"]).toBe(hexVars["--muted"]);
-		// Viewer-only tokens stay triplets in BOTH formats.
-		expect(hexVars["--status-info-fill"]).toMatch(/^\d+ \d+ \d+$/);
-		const tripletVars = styleVars(DEFAULTS, LIGHT_CONFIG) as Record<string, string>;
-		expect(tripletVars["--background"]).toMatch(/^\d+ \d+ \d+$/);
-		expect(tripletVars["--popover"]).toBeUndefined();
+	test("effectiveBaseTokens reads the host and shadows neutral overrides", () => {
+		const restore = stubHostCss();
+		try {
+			const base = effectiveBaseTokens({ background: "#000000", foreground: "#ffffff" }, "light");
+			expect(base.background).toEqual([0, 0, 0]);
+			expect(base.foreground).toEqual([255, 255, 255]);
+			expect(base.cardForeground).toEqual([255, 255, 255]);
+			expect(base.card).toEqual([248, 248, 247]);
+			expect(base.border).toEqual([230, 229, 227]);
+		} finally {
+			restore();
+		}
 	});
 });
 
@@ -286,29 +400,28 @@ describe("scale neutrality", () => {
 });
 
 describe("buildColorExport", () => {
-	test("emits both section headers and reflects overrides", () => {
-		const out = buildColorExport({ background: "#000000", traceUser: "#123456" }, "dark");
-		expect(out).toContain("styles.css :root");
-		expect(out).toContain("BASE_TOKENS");
-		expect(out).toContain("--background: 0 0 0;");
-		expect(out).toContain("--trace-user: 18 52 86;");
-		expect(out).toContain("background: [0, 0, 0],");
-		expect(out).not.toContain("traceUser: [");
+	test("prints the host's effective values with overrides, and skips unreadable ones", () => {
+		const restore = stubHostCss();
+		try {
+			const out = buildColorExport({ background: "#000000", traceUser: "#123456" }, "light");
+			expect(out).toContain("host-contract.css");
+			expect(out).toContain("--background: 0 0 0;");
+			expect(out).toContain("--trace-user: 18 52 86;");
+			expect(out).toContain("--card: 248 248 247;");
+			expect(out).toContain("--editor-bg: #F9F9F9;");
+			expect(out).not.toContain("--editor-line-number:");
+			expect(out).not.toContain("--trace-tool:");
+			expect(out).toContain("--band-wash-opacity: 0.1;");
+		} finally {
+			restore();
+		}
 	});
 
-	test("with no overrides emits the active theme's shipped defaults", () => {
-		const dark = buildColorExport({}, "dark");
-		expect(dark).toContain("--background: 27 27 28;");
-		expect(dark).toContain("--editor-bg: #1E1E1E;");
-		expect(dark).toContain("--trace-orchestration: 167 139 250;");
-		const light = buildColorExport({}, "light");
-		expect(light).toContain("--background: 249 249 247;");
-		expect(light).toContain("--editor-bg: #FBFBF9;");
-		expect(light).toContain("--trace-tool: 194 65 12;");
-		expect(light).toContain("--tree-caret: 82 81 78;");
-		expect(light).toContain("--tree-connector: 195 194 183;");
-		expect(light).toContain("--band-wash-opacity: 0.1;");
-		expect(buildColorExport({}, "dark")).toContain("--tree-connector: 58 58 59;");
+	test("without a DOM only overrides and knobs are printed", () => {
+		const out = buildColorExport({ traceUser: "#123456" }, "dark");
+		expect(out).toContain("--trace-user: 18 52 86;");
+		expect(out).not.toContain("--background:");
+		expect(out).toContain("--tree-connector-opacity: 0.8;");
 	});
 });
 
@@ -329,6 +442,15 @@ describe("per-app config isolation", () => {
 		return store;
 	}
 
+	test("the settings key is the app's key with its version raised by one", () => {
+		expect(styleSettingsStorageKey(LIGHT_CONFIG)).toBe("testAppLight.settings.v2");
+		const key = (settingsStorageKey: string) => styleSettingsStorageKey({ ...LIGHT_CONFIG, settingsStorageKey });
+		expect(key("simpleResearchStyleSettings.v1")).toBe("simpleResearchStyleSettings.v2");
+		expect(key("canvasAgentViewerStyle.v1")).toBe("canvasAgentViewerStyle.v2");
+		expect(key("observatory.viewerStyle.v1")).toBe("observatory.viewerStyle.v2");
+		expect(key("app.style.v9")).toBe("app.style.v10");
+	});
+
 	test("two apps: different storage keys and default themes, no bleed", () => {
 		const store = stubStorage();
 
@@ -344,8 +466,9 @@ describe("per-app config isolation", () => {
 				colorOverrides: { traceUser: "#123456" }
 			})
 		);
-		expect(store.has("testAppLight.settings")).toBe(true);
-		expect(store.has("testAppDark.settings")).toBe(false);
+		expect(store.has("testAppLight.settings.v2")).toBe(true);
+		expect(store.has("testAppLight.settings")).toBe(false);
+		expect(store.has("testAppDark.settings.v2")).toBe(false);
 
 		// …app B still loads ITS untouched defaults.
 		expect(loadStyleSettings(DARK_CONFIG).theme).toBe("dark");
@@ -356,11 +479,38 @@ describe("per-app config isolation", () => {
 		expect(reloaded.colorOverrides).toEqual({ traceUser: "#123456" });
 	});
 
+	test("first load after the key raise keeps the non-color settings and drops the saved colors", () => {
+		const store = stubStorage();
+		// A blob saved under the app's own key before the raise (Ford's saved
+		// settings): a theme, effects, a tab and a picked color.
+		const legacy = JSON.stringify({
+			theme: "dark",
+			grain: { enabled: false, opacity: 0.2 },
+			selection: { ringWidth: 3 },
+			colorOverrides: { background: "#000000", traceUser: "#60A5FA" },
+			activeTab: "effects"
+		});
+		localStorage.setItem(LIGHT_CONFIG.settingsStorageKey, legacy);
+		const loaded = loadStyleSettings(LIGHT_CONFIG);
+		expect(loaded.theme).toBe("dark");
+		expect(loaded.grain.enabled).toBe(false);
+		expect(loaded.grain.opacity).toBe(0.2);
+		expect(loaded.selection.ringWidth).toBe(3);
+		expect(loaded.activeTab).toBe("effects");
+		expect(loaded.colorOverrides).toEqual({});
+		// The old blob is never deleted or rewritten.
+		expect(store.get(LIGHT_CONFIG.settingsStorageKey)).toBe(legacy);
+
+		// Once the new key holds a blob, the old one is not read again.
+		saveStyleSettings(LIGHT_CONFIG, { ...loaded, theme: "light" });
+		expect(loadStyleSettings(LIGHT_CONFIG).theme).toBe("light");
+		expect(store.get(LIGHT_CONFIG.settingsStorageKey)).toBe(legacy);
+	});
+
 	test("a pre-theme legacy blob adopts the app's default theme (old saves survive)", () => {
 		stubStorage();
-		// Simulate a blob written before the theme field existed (Ford's saved
-		// example-app settings): it must load with the app default, keeping its
-		// other fields.
+		// A blob written before the theme field existed: it loads with the app
+		// default, keeping its other non-color fields.
 		localStorage.setItem(
 			LIGHT_CONFIG.settingsStorageKey,
 			JSON.stringify({ colorOverrides: { traceUser: "#60A5FA" }, activeTab: "effects" })
@@ -368,10 +518,13 @@ describe("per-app config isolation", () => {
 		const loaded = loadStyleSettings(LIGHT_CONFIG);
 		expect(loaded.theme).toBe("light");
 		expect(loaded.activeTab).toBe("effects");
-		expect(loaded.colorOverrides).toEqual({ traceUser: "#60A5FA" });
+		expect(loaded.colorOverrides).toEqual({});
 		// The same blob under the canvas config would adopt dark.
 		localStorage.setItem(DARK_CONFIG.settingsStorageKey, JSON.stringify({ activeTab: "trace" }));
 		expect(loadStyleSettings(DARK_CONFIG).theme).toBe("dark");
+		// A malformed old blob falls back to the defaults.
+		localStorage.setItem(DARK_CONFIG.settingsStorageKey, "not json");
+		expect(loadStyleSettings(DARK_CONFIG)).toEqual(defaultStyleSettings(DARK_CONFIG));
 	});
 
 	test("rail state is config-keyed", () => {

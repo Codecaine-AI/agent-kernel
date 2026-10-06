@@ -120,6 +120,9 @@ export interface KernelTraceWorkspaceProps {
 	detailBlockProvider?: DetailBlockProvider;
 }
 
+/** List row grid: title, then the status column (the row button spans both). */
+const ROW_MAIN_COLUMNS = "minmax(0, 1fr) 90px";
+
 /** The standard status→badge mapping (union of both hosts' vocabularies). */
 export function defaultTraceStatusClass(status: string): string {
 	if (status === "active" || status === "running" || status === "queued") {
@@ -235,9 +238,9 @@ export function KernelTraceWorkspace({
 			? (rows.find((row) => row.id === selectedRowId)?.deleteDisabled ?? false)
 			: true);
 
-	const rowGrid = onDelete
-		? "grid-cols-[minmax(0,1fr)_90px_48px]"
-		: "grid-cols-[minmax(0,1fr)_90px]";
+	// Row columns: the title, a fixed status column and, with deletes, a delete
+	// column (space.12). The status width is kept geometry: no token equals it.
+	const rowColumns = { gridTemplateColumns: onDelete ? `${ROW_MAIN_COLUMNS} var(--ds-space-12)` : ROW_MAIN_COLUMNS };
 
 	// usageData still feeds UsageContext (detail-side renderers show usage
 	// aggregates with run→span click-through); no workspace-level usage UI.
@@ -253,21 +256,23 @@ export function KernelTraceWorkspace({
 	return (
 		<section
 			data-trace-workspace={showList ? "list" : "detail"}
-			className="flex h-[var(--research-workspace-height,100%)] min-h-[var(--research-workspace-min-height,560px)] min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card"
+			className="flex h-[var(--research-workspace-height,100%)] min-h-[var(--research-workspace-min-height,560px)] min-w-0 flex-col overflow-hidden rounded-[var(--ds-radius-base)] border border-border bg-card"
 		>
 			{showList ? (
 				<>
 					<div className="flex h-[var(--research-header-height,64px)] shrink-0 items-center border-b border-border px-4">
 						<div className="flex w-full items-center justify-between gap-3">
 							<div>
-								<h2 className="font-display text-lg font-bold leading-tight">{listTitle}</h2>
-								<p className="mt-1 text-xs text-muted-foreground">
+								<h2 className="font-display text-[length:var(--ds-font-size-reading)] font-bold leading-[var(--ds-line-height-tight)] text-[color:var(--ds-color-text-ink)]">
+									{listTitle}
+								</h2>
+								<p className="mt-1 text-[length:var(--ds-font-size-ui-xs)] text-muted-foreground">
 									{rows.length} {countNoun}
 									{rows.length === 1 ? "" : "s"}
 								</p>
 							</div>
 							{loading && (
-								<span className="rounded-[2px] border border-border px-2 py-1 text-xs text-muted-foreground">
+								<span className="rounded-[var(--ds-radius-base)] border border-border px-2 py-1 text-[length:var(--ds-font-size-ui-xs)] text-muted-foreground">
 									Loading
 								</span>
 							)}
@@ -280,13 +285,14 @@ export function KernelTraceWorkspace({
 
 					<div className="min-h-0 flex-1 overflow-y-auto">
 						{rows.length === 0 && !loading ? (
-							<div className="px-3 py-8 text-center text-sm text-muted-foreground">
+							<div className="px-3 py-8 text-center text-[length:var(--ds-font-size-ui-lg)] text-muted-foreground">
 								No traces found.
 							</div>
 						) : (
 							<div className="min-w-0">
 								<div
-									className={`sticky top-0 z-10 grid ${rowGrid} gap-2 border-b border-border bg-card/95 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground`}
+									style={rowColumns}
+									className={`sticky top-0 z-10 grid gap-2 border-b border-border bg-card/95 px-3 py-2 text-[length:var(--ds-font-size-micro)] font-bold uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground`}
 								>
 									<span>{rowColumnLabel}</span>
 									<span className="text-right">State</span>
@@ -297,7 +303,8 @@ export function KernelTraceWorkspace({
 									return (
 										<div
 											key={row.id}
-											className={`relative grid w-full min-w-0 ${rowGrid} items-center gap-2 border-b border-border/70 text-left transition-colors ${
+											style={rowColumns}
+											className={`relative grid w-full min-w-0 items-center gap-2 border-b border-border/70 text-left transition-colors ${
 												selected
 													? "bg-status-info-fill/30 text-foreground before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-status-info-border"
 													: "text-muted-foreground hover:bg-muted/35 hover:text-foreground"
@@ -306,27 +313,28 @@ export function KernelTraceWorkspace({
 											<button
 												type="button"
 												onClick={() => handleListSelect(row.id)}
-												className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_90px] items-center gap-2 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-status-info-border"
+												style={{ gridTemplateColumns: ROW_MAIN_COLUMNS }}
+												className="col-span-2 grid min-w-0 items-center gap-2 px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-status-info-border"
 											>
 												<span className="min-w-0">
 													<span className="flex min-w-0 items-center gap-1.5">
-														<span className="min-w-0 truncate text-[13px] font-bold leading-5">
+														<span className="min-w-0 truncate text-[length:var(--ds-font-size-ui-sm)] font-bold leading-[var(--ds-line-height-ui)]">
 															{row.title}
 														</span>
 														{row.badge && (
-															<span className="shrink-0 rounded-[2px] border border-border px-1 py-px text-[9px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+															<span className="shrink-0 rounded-[var(--ds-radius-base)] border border-border px-1 py-px text-[length:var(--ds-font-size-micro)] font-bold uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground">
 																{row.badge}
 															</span>
 														)}
 													</span>
 													{row.subtitle && (
-														<span className="block truncate text-[11px] leading-4 text-muted-foreground">
+														<span className="block truncate text-[length:var(--ds-font-size-ui-2xs)] leading-[var(--ds-line-height-ui)] text-muted-foreground">
 															{row.subtitle}
 														</span>
 													)}
 												</span>
 												<span
-													className={`justify-self-end rounded-[2px] border px-1.5 py-0.5 text-[10px] font-bold uppercase ${statusClass(row.status)}`}
+													className={`justify-self-end rounded-[var(--ds-radius-base)] border px-1.5 py-0.5 text-[length:var(--ds-font-size-micro)] font-bold uppercase ${statusClass(row.status)}`}
 												>
 													{row.status}
 												</span>
@@ -342,7 +350,7 @@ export function KernelTraceWorkspace({
 															? "Cannot delete this trace right now"
 															: `Delete ${row.title}`
 													}
-													className="mr-2 h-7 w-8 justify-self-end rounded-[2px] border border-destructive/40 text-[10px] font-bold uppercase text-destructive transition-colors hover:border-destructive hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-destructive disabled:cursor-not-allowed disabled:border-border disabled:text-muted-foreground disabled:opacity-60"
+													className="mr-2 h-7 w-8 justify-self-end rounded-[var(--ds-radius-base)] border border-destructive/40 text-[length:var(--ds-font-size-micro)] font-bold uppercase text-destructive transition-colors hover:border-destructive hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-destructive disabled:cursor-not-allowed disabled:border-border disabled:text-muted-foreground disabled:opacity-60"
 												>
 													{row.deleting ? "..." : "Del"}
 												</button>
@@ -364,20 +372,20 @@ export function KernelTraceWorkspace({
 						<button
 							type="button"
 							onClick={handleBack}
-							className="flex shrink-0 items-center gap-1.5 rounded-[2px] border border-border px-2 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
+							className="flex shrink-0 items-center gap-1.5 rounded-[var(--ds-radius-base)] border border-border px-2 py-1 text-[length:var(--ds-font-size-ui-2xs)] font-bold uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
 						>
 							<span aria-hidden="true">‹</span>
 							{backLabel}
 						</button>
 						<h2
-							className="min-w-0 truncate text-sm font-bold leading-tight text-foreground"
+							className="min-w-0 truncate text-[length:var(--ds-font-size-ui-lg)] font-bold leading-[var(--ds-line-height-tight)] text-[color:var(--ds-color-text-ink)]"
 							title={detail?.title}
 						>
 							{detail?.title}
 						</h2>
 						{detail && (
 							<span
-								className={`shrink-0 rounded-[2px] border px-1.5 py-0.5 text-[10px] uppercase opacity-80 ${statusClass(detail.status)}`}
+								className={`shrink-0 rounded-[var(--ds-radius-base)] border px-1.5 py-0.5 text-[length:var(--ds-font-size-micro)] uppercase opacity-80 ${statusClass(detail.status)}`}
 							>
 								{detail.status}
 							</span>
@@ -390,7 +398,7 @@ export function KernelTraceWorkspace({
 									aria-label="Trace actions"
 									aria-haspopup="menu"
 									aria-expanded={menuOpen}
-									className="rounded-[2px] border border-border px-2 py-1 text-[11px] font-bold leading-none text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
+									className="rounded-[var(--ds-radius-base)] border border-border px-2 py-1 text-[length:var(--ds-font-size-ui-2xs)] font-bold leading-none text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-status-info-border"
 								>
 									…
 								</button>
@@ -407,14 +415,15 @@ export function KernelTraceWorkspace({
 								/>
 								<div
 									role="menu"
-									className="absolute right-3 top-full z-40 mt-1 w-44 rounded-[3px] border border-border bg-card py-1 shadow-xl"
+									style={{ boxShadow: "var(--ds-shadow-glass)" }}
+									className="absolute right-3 top-full z-40 mt-1 w-44 rounded-[var(--ds-radius-base)] border border-border bg-card py-1"
 								>
 									<button
 										type="button"
 										role="menuitem"
 										disabled={headerDeleteDisabled}
 										onClick={handleHeaderDelete}
-										className="block w-full px-3 py-1.5 text-left text-xs text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:bg-transparent"
+										className="block w-full px-3 py-1.5 text-left text-[length:var(--ds-font-size-ui-xs)] text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:hover:bg-transparent"
 									>
 										Delete trace…
 									</button>
@@ -425,7 +434,7 @@ export function KernelTraceWorkspace({
 
 					<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 						{loading && spans.length === 0 ? (
-							<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+							<div className="flex h-full items-center justify-center text-[length:var(--ds-font-size-ui-lg)] text-muted-foreground">
 								Loading kernel trace...
 							</div>
 						) : (

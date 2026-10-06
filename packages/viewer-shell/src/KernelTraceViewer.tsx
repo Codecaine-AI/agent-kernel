@@ -201,7 +201,7 @@ export function KernelTraceViewer({
 			<div className={className}>
 				{plugins?.containerHeader}
 				{plugins?.emptyState ?? (
-					<div className="flex h-full items-center justify-center font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
+					<div className="flex h-full items-center justify-center font-mono text-[length:var(--ds-font-size-ui-2xs)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground/70">
 						No events yet
 					</div>
 				)}
@@ -218,7 +218,7 @@ export function KernelTraceViewer({
 				{plugins?.containerHeader}
 				<div ref={splitRef} className="flex min-h-0 flex-1 font-mono">
 					<div
-						className="flex min-h-0 flex-col overflow-hidden rounded-[3px] border border-border bg-card"
+						className="flex min-h-0 flex-col overflow-hidden rounded-[var(--ds-radius-base)] border border-border bg-card"
 						style={{ width: `${treePct}%` }}
 					>
 						<div // Shared panel-header surface: bg-background over border-b border-border (the detail header's original dark base surface) —
@@ -234,7 +234,7 @@ export function KernelTraceViewer({
 							<button
 								type="button"
 								onClick={toggleExpandAll}
-								className="ml-auto rounded-[2px] border border-border px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:border-status-success-border hover:text-status-success"
+								className="ml-auto rounded-[var(--ds-radius-base)] border border-border px-2 py-0.5 text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground transition-colors hover:border-status-success-border hover:text-status-success"
 							>
 								{allExpanded ? "Collapse All" : "Expand All"}
 							</button>
@@ -260,7 +260,7 @@ export function KernelTraceViewer({
 					>
 						<div className="w-px bg-border transition-colors group-hover:bg-status-info-border group-active:bg-status-info-border" />
 					</div>
-					<div className="min-w-0 flex-1 overflow-hidden rounded-[3px] border border-border bg-card">
+					<div className="min-w-0 flex-1 overflow-hidden rounded-[var(--ds-radius-base)] border border-border bg-card">
 						<TraceViewerApiContext.Provider value={apiContextValue}>
 							<DetailBlocksProvider provider={detailBlockProvider ?? null}>
 								{selectedSpan ? (

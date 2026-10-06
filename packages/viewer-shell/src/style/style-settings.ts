@@ -1,19 +1,30 @@
 /**
- * Shared viewer style system — settings model, per-theme palettes, and the
- * CSS-variable emission every host app mounts on its style shell.
+ * Shared viewer style system — settings model and the CSS-variable emission
+ * every host app mounts on its style shell.
  *
  * Extracted from examples/simple-research-kernel so all apps composing the
  * @agent-kernel viewer packages (the example app, the canvas-agent viewer, …)
- * share ONE style rail: theme (light/dark doc palettes), color pickers,
- * tree-chrome strength, grain/bevel effects, trace icon options.
+ * share ONE style rail: theme (light/dark), tree-chrome strength, grain/bevel
+ * effects, trace icon options and layout geometry.
+ *
+ * Colors come from the host, never from this module. The host loads
+ * @codecaine-ai/design-system's tokens.css and host-contract.css, which declare
+ * the contract the viewer packages read (--background, --card,
+ * --status-info-fill, --trace-user, …) from --ds-* tokens in both themes.
+ * styleVars() writes no color, so nothing here paints over a token.
+ *
+ * The color pickers that used to override the contract stay in the code behind
+ * SHOW_COLOR_CONTROLS (off). With the flag off the panel hides them and
+ * styleVars() ignores saved overrides. With it on, an override is written onto
+ * its own contract variable and every other color stays the host's.
  *
  * The app-level seam is StyleSystemConfig: each app names its own storage
- * keys, default theme, visible panel sections, and — crucially — the token
- * format its Tailwind setup consumes for the shared-name neutral tokens:
+ * keys, default theme, visible panel sections, and the format its Tailwind
+ * setup reads the shared-name neutrals in (used by color overrides only):
  *   "triplet" — `--background: 27 27 28` (Tailwind v3 rgb(var(--x)/<alpha>))
  *   "hex"     — `--background: #1B1B1C` (Tailwind v4 @theme inline var(--x))
- * Viewer-only tokens (status-*, trace-*, agentprism-*) are RGB triplets in
- * every host and are always emitted as triplets.
+ * Viewer-only colors (status-*, trace-*, agentprism-*) are RGB triplets in
+ * every host and are always written as triplets.
  */
 import type { CSSProperties } from "react";
 
@@ -26,6 +37,12 @@ export interface LayoutStyleSettings {
 	headerHeight: number;
 }
 
+/**
+ * Softening mix, 0–1 per channel. `background` scales the grain layer's
+ * opacity, `font` the text glow, `icons` the icon blur and glow. `borders` is
+ * kept for saved blobs but no longer does anything: it mixed the engine's own
+ * border colors, which the host's tokens set now (the panel hides it).
+ */
 export interface SofteningSettings {
 	background: number;
 	font: number;
@@ -66,9 +83,8 @@ export type TraceIconSide = "left" | "right";
 export type TraceIconStyle = "outline" | "solid";
 
 /**
- * The two shipped palettes. Light is the default (doc-paper look derived from
- * the state-shapes explainer); dark is the Instrument Telemetry calibration.
- * Both drive the same semantic tokens — see styles.css.
+ * The two themes. The host stamps the choice on <html> as data-theme, and the
+ * design-system tokens (with the host contract built on them) follow it.
  */
 export type ThemeMode = "light" | "dark";
 
@@ -88,14 +104,19 @@ export type NeutralTokenFormat = "triplet" | "hex";
  * storage and each keeps its own default look.
  */
 export interface StyleSystemConfig {
-	/** localStorage key for the settings blob (keep stable across releases). */
+	/**
+	 * The app's localStorage key for the settings blob (keep stable across
+	 * releases). The blob is stored under styleSettingsStorageKey(config), this
+	 * key with its version raised by one; this key is only read once, to carry
+	 * the non-color settings over.
+	 */
 	settingsStorageKey: string;
 	/** localStorage keys for the rail's collapsed/width chrome state. */
 	railCollapsedStorageKey: string;
 	railWidthStorageKey: string;
 	/** The theme a fresh install (or a pre-theme settings blob) gets. */
 	defaultTheme: ThemeMode;
-	/** How --background/--foreground/… are emitted (see module doc). */
+	/** How a --background/--foreground/… override is written (see module doc). */
 	neutralTokenFormat: NeutralTokenFormat;
 	/** Panel tabs to show; omit for all. First entry is the fallback tab. */
 	sections?: readonly StylePanelTab[];
@@ -146,11 +167,46 @@ export interface CodeBlockStyleSettings {
 }
 
 /**
+ * The one flag for the color controls (owner decision for the style engines:
+ * hide them, keep their code). Off: the panel hides the color pickers and the
+ * Copy CSS / Reset colors export, and styleVars() writes no color override,
+ * so every color is the host's design-system token. On: both come back.
+ */
+export const SHOW_COLOR_CONTROLS = false;
+
+/**
+ * The host contract colors the engine once shipped as its own palette, by key,
+ * with the contract variable each one is read from.
+ */
+const BASE_TOKEN_VARS = {
+	background: "--background",
+	foreground: "--foreground",
+	card: "--card",
+	cardForeground: "--card-foreground",
+	muted: "--muted",
+	mutedForeground: "--muted-foreground",
+	border: "--border",
+	statusNeutralFill: "--status-neutral-fill",
+	statusNeutralBorder: "--status-neutral-border",
+	statusSuccessFill: "--status-success-fill",
+	statusSuccessBorder: "--status-success-border",
+	statusWarningFill: "--status-warning-fill",
+	statusWarningBorder: "--status-warning-border",
+	statusInfoFill: "--status-info-fill",
+	statusInfoBorder: "--status-info-border",
+	agentPrismMuted: "--agentprism-muted",
+	agentPrismBorder: "--agentprism-border-subtle",
+	agentPrismCodeBase: "--agentprism-code-base"
+} as const;
+
+export type BaseTokenKey = keyof typeof BASE_TOKEN_VARS;
+
+/**
  * A user-picker-editable color token. `id` is the override-map key; `cssVar`
- * is the custom property set on the shell; `format` decides how the value is
- * serialized (RGB-triplet `27 27 28` neutrals/accents vs literal `#1e1e1e`
- * editor colors). `baseTokenKey` links a neutral/accent back to its BASE_TOKENS
- * entry so the overlay can shadow it BEFORE softening; editor tokens have none.
+ * is the contract variable it overrides on the shell; `format` decides how the
+ * value is serialized (RGB-triplet `27 27 28` neutrals/accents vs literal
+ * `#1e1e1e` editor colors). `baseTokenKey` links a neutral back to its
+ * effectiveBaseTokens entry; editor and accent tokens have none.
  */
 export interface ColorTokenDescriptor {
 	id: string;
@@ -158,7 +214,7 @@ export interface ColorTokenDescriptor {
 	group: ColorTokenGroup;
 	format: ColorTokenFormat;
 	cssVar: string;
-	baseTokenKey?: keyof typeof DARK_BASE_TOKENS;
+	baseTokenKey?: BaseTokenKey;
 	reserved?: boolean;
 	reservedNote?: string;
 }
@@ -289,8 +345,13 @@ export const BASE_DEFAULT_STYLE_SETTINGS: StyleSettings = {
 	activeTab: DEFAULT_STYLE_PANEL_TAB
 };
 
+/**
+ * The "colors" tab keeps its id (saved blobs and host `sections` name it).
+ * With the color controls hidden it holds the theme switch and the strength
+ * sliders only, so it is labeled Theme.
+ */
 export const STYLE_PANEL_TAB_OPTIONS: ReadonlyArray<{ id: StylePanelTab; label: string }> = [
-	{ id: "colors", label: "Colors" },
+	{ id: "colors", label: SHOW_COLOR_CONTROLS ? "Colors" : "Theme" },
 	{ id: "effects", label: "Effects" },
 	{ id: "trace", label: "Trace" },
 	{ id: "layout", label: "Layout" }
@@ -320,147 +381,6 @@ export const TRACE_ICON_STYLE_OPTIONS: ReadonlyArray<{ id: TraceIconStyle; label
 	{ id: "solid", label: "Solid" }
 ];
 
-// Per-theme neutral palettes. These are the RUNTIME source of truth for the
-// neutral ladder — the style overlay inlines them onto .research-style-shell,
-// shadowing the styles.css fallbacks. Keep each in lockstep with its styles.css
-// block (:root = light, :root[data-theme="dark"] = dark).
-//
-// DARK: neutral gray ladder anchored on VS Code Dark+ (#252526 raised
-// surface), cohesive with the #1E1E1E editor buffer. Warm-neutral, no blue cast.
-const DARK_BASE_TOKENS = {
-	background: [27, 27, 28],          // #1B1B1C — page base
-	foreground: [212, 212, 212],       // #D4D4D4 — primary text
-	card: [37, 37, 38],                // #252526 — raised surfaces
-	cardForeground: [212, 212, 212],   // #D4D4D4
-	muted: [42, 42, 43],               // #2A2A2B — inputs / wells on raised surfaces
-	mutedForeground: [168, 168, 168],  // #A8A8A8 — secondary / label text
-	border: [58, 58, 59],              // #3A3A3B — solid hairline
-	statusNeutralFill: [42, 42, 43],   // #2A2A2B
-	statusNeutralBorder: [74, 74, 76], // #4A4A4C
-	statusSuccessFill: [10, 30, 22],
-	statusSuccessBorder: [38, 92, 70],
-	statusWarningFill: [34, 28, 10],
-	statusWarningBorder: [96, 74, 28],
-	statusInfoFill: [8, 30, 36],
-	statusInfoBorder: [28, 84, 96],
-	agentPrismMuted: [42, 42, 43],     // #2A2A2B
-	agentPrismBorder: [58, 58, 59],    // #3A3A3B
-	agentPrismCodeBase: [168, 168, 168] // #A8A8A8
-} satisfies Record<string, Rgb>;
-
-// LIGHT: doc-paper ladder from the state-shapes explainer palette.
-const LIGHT_BASE_TOKENS = {
-	background: [249, 249, 247],        // #F9F9F7 — page paper
-	foreground: [26, 26, 25],           // #1A1A19 — ink
-	card: [252, 252, 251],              // #FCFCFB — raised surfaces
-	cardForeground: [26, 26, 25],
-	muted: [241, 240, 235],             // #F1F0EB — inputs / wells
-	mutedForeground: [82, 81, 78],      // #52514E — ink-2
-	border: [225, 224, 217],            // #E1E0D9 — hairline rules
-	statusNeutralFill: [241, 240, 235],
-	statusNeutralBorder: [195, 194, 183], // #C3C2B7
-	statusSuccessFill: [230, 244, 238],
-	statusSuccessBorder: [167, 216, 196],
-	statusWarningFill: [249, 243, 227],
-	statusWarningBorder: [227, 205, 158],
-	statusInfoFill: [232, 241, 251],
-	statusInfoBorder: [182, 211, 242],
-	agentPrismMuted: [241, 240, 235],
-	agentPrismBorder: [225, 224, 217],
-	agentPrismCodeBase: [241, 240, 235]
-} satisfies Record<string, Rgb>;
-
-const BASE_TOKENS_BY_THEME: Record<ThemeMode, typeof DARK_BASE_TOKENS> = {
-	dark: DARK_BASE_TOKENS,
-	light: LIGHT_BASE_TOKENS
-};
-
-// Softening targets: variants the base grays mix toward as the softening
-// sliders rise. Dark mixes lighter; light mixes a touch deeper/warmer. Both
-// stay on the same neutral family (no blue cast).
-const DARK_SOFT_TARGETS = {
-	background: [35, 35, 36],           // #232324
-	card: [45, 45, 46],                 // #2D2D2E — hover/active neutral territory
-	muted: [52, 52, 53],                // #343435
-	foreground: [214, 214, 214],        // #D6D6D6
-	mutedForeground: [176, 176, 176],   // #B0B0B0
-	border: [74, 74, 76],               // #4A4A4C
-	statusSuccessFill: [14, 39, 29],
-	statusSuccessBorder: [54, 112, 86],
-	statusWarningFill: [43, 36, 16],
-	statusWarningBorder: [120, 94, 40],
-	statusInfoFill: [13, 42, 49],
-	statusInfoBorder: [48, 104, 116]
-} satisfies Record<string, Rgb>;
-
-const LIGHT_SOFT_TARGETS = {
-	background: [245, 244, 240],
-	card: [247, 246, 242],
-	muted: [235, 234, 228],
-	foreground: [38, 38, 36],
-	mutedForeground: [95, 94, 90],
-	border: [211, 210, 201],
-	statusSuccessFill: [222, 240, 232],
-	statusSuccessBorder: [150, 205, 183],
-	statusWarningFill: [246, 238, 216],
-	statusWarningBorder: [216, 192, 140],
-	statusInfoFill: [222, 235, 249],
-	statusInfoBorder: [163, 199, 236]
-} satisfies Record<string, Rgb>;
-
-const SOFT_TARGETS_BY_THEME: Record<ThemeMode, typeof DARK_SOFT_TARGETS> = {
-	dark: DARK_SOFT_TARGETS,
-	light: LIGHT_SOFT_TARGETS
-};
-
-// ── Color picker layer ────────────────────────────────────────────────────
-// Accent/status color tokens live only in styles.css today (not in the base
-// token ladders, and not emitted by styleVars). We mirror their
-// per-theme default RGB triplets here so the overlay can emit user overrides
-// on top and the export builder can print the effective lines. NOT softened.
-const ACCENT_DEFAULTS_BY_THEME: Record<ThemeMode, Record<string, Rgb>> = {
-	dark: {
-		traceOrchestration: [167, 139, 250], // #A78BFA violet — context/snapshots
-		traceUser: [96, 165, 250],           // #60A5FA
-		traceAssistant: [84, 214, 147],      // #54D693
-		traceTool: [232, 130, 61],           // #E8823D orange
-		traceLifecycle: [168, 168, 168],     // #A8A8A8
-		statusWarning: [220, 167, 76],       // #DCA74C
-		statusError: [225, 91, 88],          // #E15B58 (--destructive)
-		treeCaret: [168, 168, 168],          // #A8A8A8
-		treeConnector: [58, 58, 59],         // #3A3A3B
-		selectionColor: [84, 211, 224],      // #54D3E0 HUD cyan
-		zebraColor: [255, 255, 255]          // light stripes on the void
-	},
-	light: {
-		traceOrchestration: [124, 58, 237],  // #7C3AED violet — context/snapshots
-		traceUser: [29, 102, 193],           // #1D66C1
-		traceAssistant: [21, 125, 89],       // #157D59
-		traceTool: [194, 65, 12],            // #C2410C orange
-		traceLifecycle: [137, 135, 129],     // #898781
-		statusWarning: [146, 100, 6],        // #926406
-		statusError: [185, 28, 28],          // #B91C1C (--destructive)
-		treeCaret: [82, 81, 78],             // #52514E
-		treeConnector: [195, 194, 183],      // #C3C2B7
-		selectionColor: [42, 120, 214],      // #2A78D6 doc accent blue
-		zebraColor: [0, 0, 0]                // ink stripes on paper
-	}
-};
-
-// Literal-hex editor defaults (consumed via var(--editor-*, fallback)).
-const EDITOR_DEFAULTS_BY_THEME: Record<ThemeMode, Record<string, string>> = {
-	dark: {
-		editorBg: "#1e1e1e",
-		editorFg: "#d4d4d4",
-		editorLineNumber: "#858585"
-	},
-	light: {
-		editorBg: "#fbfbf9",
-		editorFg: "#1a1a19",
-		editorLineNumber: "#898781"
-	}
-};
-
 /**
  * The full catalog of picker-editable color tokens. Order within a group is the
  * display order. Neutrals/accents serialize as RGB triplets; editor tokens as
@@ -468,7 +388,8 @@ const EDITOR_DEFAULTS_BY_THEME: Record<ThemeMode, Record<string, string>> = {
  * excluded — solid colors only this pass.
  */
 export const COLOR_TOKENS: ReadonlyArray<ColorTokenDescriptor> = [
-	// Neutrals — shadow BASE_TOKENS entries BEFORE softening.
+	// Neutrals — written in the host's neutralTokenFormat, with their followers
+	// (see NEUTRAL_OVERRIDE_TARGETS).
 	{ id: "background", label: "Background", group: "neutrals", format: "triplet", cssVar: "--background", baseTokenKey: "background" },
 	{ id: "card", label: "Card / Surface", group: "neutrals", format: "triplet", cssVar: "--card", baseTokenKey: "card" },
 	{ id: "muted", label: "Muted / Well", group: "neutrals", format: "triplet", cssVar: "--muted", baseTokenKey: "muted" },
@@ -479,7 +400,7 @@ export const COLOR_TOKENS: ReadonlyArray<ColorTokenDescriptor> = [
 	{ id: "editorBg", label: "Editor BG", group: "editor", format: "hex", cssVar: "--editor-bg" },
 	{ id: "editorFg", label: "Editor FG", group: "editor", format: "hex", cssVar: "--editor-fg" },
 	{ id: "editorLineNumber", label: "Line Number", group: "editor", format: "hex", cssVar: "--editor-line-number" },
-	// Accents — emitted directly (no softening); reserved diagnostics locked.
+	// Accents — written onto their own variable; reserved diagnostics locked.
 	{ id: "traceOrchestration", label: "Orchestration", group: "accents", format: "triplet", cssVar: "--trace-orchestration" },
 	{ id: "traceUser", label: "User", group: "accents", format: "triplet", cssVar: "--trace-user" },
 	{ id: "traceAssistant", label: "Assistant", group: "accents", format: "triplet", cssVar: "--trace-assistant" },
@@ -561,19 +482,53 @@ export function hexToTriplet(input: string): string | null {
 	return rgb ? `${rgb[0]} ${rgb[1]} ${rgb[2]}` : null;
 }
 
-/** The shipped default color for a token in a theme, as canonical `#RRGGBB` hex. */
-export function colorTokenDefaultHex(token: ColorTokenDescriptor, theme: ThemeMode): string {
-	if (token.format === "hex") {
-		return normalizeHex(EDITOR_DEFAULTS_BY_THEME[theme][token.id] ?? "") ?? "#000000";
-	}
-	if (token.baseTokenKey) {
-		return rgbToHex(BASE_TOKENS_BY_THEME[theme][token.baseTokenKey]);
-	}
-	const accent = ACCENT_DEFAULTS_BY_THEME[theme][token.id];
-	return accent ? rgbToHex(accent) : "#000000";
+/**
+ * A host contract value as canonical `#RRGGBB`: an RGB triplet (`27 27 28`,
+ * optionally `/ alpha`), `#RGB`/`#RRGGBB`, or `rgb()`/`rgba()` with numeric
+ * channels. The alpha is dropped. Null for anything else (empty, `color-mix()`,
+ * an unresolved `var()`).
+ */
+export function parseHostColor(value: string): string | null {
+	if (typeof value !== "string") return null;
+	const trimmed = value.trim();
+	if (trimmed.startsWith("#")) return normalizeHex(trimmed);
+	const fn = /^rgba?\((.*)\)$/i.exec(trimmed);
+	const body = (fn ? fn[1] : trimmed).split("/")[0].trim();
+	const parts = body.split(fn ? /[\s,]+/ : /\s+/).filter(Boolean);
+	// rgba(r, g, b, a): the comma form carries the alpha as a fourth part.
+	const channels = fn && parts.length === 4 ? parts.slice(0, 3) : parts;
+	if (channels.length !== 3 || channels.some((part) => !/^\d{1,3}(\.\d+)?$/.test(part))) return null;
+	return tripletToHex(channels.join(" "));
 }
 
-/** The effective (override-or-default) color for a token, as `#RRGGBB` hex. */
+/**
+ * The host's current value of a contract variable (`--background`,
+ * `--trace-user`, …) as `#RRGGBB`, read from the live CSS: the design-system
+ * tokens the host loads through host-contract.css. Reads `element`, or the
+ * document root, so overrides on the style shell do not count. Null outside a
+ * browser or when the value is not a plain color.
+ */
+export function hostColorHex(cssVar: string, element?: Element | null): string | null {
+	const doc = (globalThis as { document?: Document }).document;
+	const target = element ?? doc?.documentElement;
+	if (!target || typeof globalThis.getComputedStyle !== "function") return null;
+	return parseHostColor(globalThis.getComputedStyle(target).getPropertyValue(cssVar));
+}
+
+/**
+ * A token's default color (its value before any override), as `#RRGGBB`: the
+ * host's live contract value (hostColorHex). That value follows the document's
+ * active theme, which hosts keep equal to settings.theme, so `theme` only
+ * documents the caller's intent. Empty string when the value cannot be read.
+ */
+export function colorTokenDefaultHex(token: ColorTokenDescriptor, _theme: ThemeMode): string {
+	return hostColorHex(token.cssVar) ?? "";
+}
+
+/**
+ * The effective (override-or-default) color for a token, as `#RRGGBB` hex.
+ * Empty string when there is no override and the default cannot be read.
+ */
 export function colorTokenEffectiveHex(
 	token: ColorTokenDescriptor,
 	overrides: ColorOverrides,
@@ -809,11 +764,34 @@ export function defaultStyleSettings(config: StyleSystemConfig): StyleSettings {
 	return { ...BASE_DEFAULT_STYLE_SETTINGS, theme: config.defaultTheme };
 }
 
+/**
+ * The localStorage key the settings blob is stored under: the app's
+ * settingsStorageKey with its trailing `.v<N>` raised by one
+ * (`simpleResearchStyleSettings.v1` → `simpleResearchStyleSettings.v2`), or
+ * `.v2` appended when it has none. The raise marks the token-seeded engine: a
+ * blob saved before it can hold color overrides, which would paint over the
+ * host's design-system tokens.
+ */
+export function styleSettingsStorageKey(config: StyleSystemConfig): string {
+	const match = /^(.*)\.v(\d+)$/.exec(config.settingsStorageKey);
+	return match ? `${match[1]}.v${Number(match[2]) + 1}` : `${config.settingsStorageKey}.v2`;
+}
+
+/**
+ * Load the app's settings. Without a blob under styleSettingsStorageKey, the
+ * first load carries the non-color settings (theme, layout, effects, trace
+ * icons, strengths, active tab) over from the app's own key and drops its
+ * color overrides. The old blob is left where it is.
+ */
 export function loadStyleSettings(config: StyleSystemConfig): StyleSettings {
 	try {
-		const raw = localStorage.getItem(config.settingsStorageKey);
-		if (!raw) return defaultStyleSettings(config);
-		return normalizeStyleSettings(JSON.parse(raw) as Record<string, unknown>, config);
+		const raw = localStorage.getItem(styleSettingsStorageKey(config));
+		if (raw) return normalizeStyleSettings(JSON.parse(raw) as Record<string, unknown>, config);
+		const legacy = localStorage.getItem(config.settingsStorageKey);
+		if (!legacy) return defaultStyleSettings(config);
+		const parsed: unknown = JSON.parse(legacy);
+		const source = parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
+		return normalizeStyleSettings({ ...source, colorOverrides: {} }, config);
 	} catch {
 		return defaultStyleSettings(config);
 	}
@@ -821,33 +799,28 @@ export function loadStyleSettings(config: StyleSystemConfig): StyleSettings {
 
 export function saveStyleSettings(config: StyleSystemConfig, settings: StyleSettings) {
 	try {
-		localStorage.setItem(config.settingsStorageKey, JSON.stringify(settings));
+		localStorage.setItem(styleSettingsStorageKey(config), JSON.stringify(settings));
 	} catch {
 		// The live settings still apply if storage is unavailable.
 	}
 }
 
-function mixRgb(left: Rgb, right: Rgb, amount: number): Rgb {
-	return [
-		Math.round(left[0] * (1 - amount) + right[0] * amount),
-		Math.round(left[1] * (1 - amount) + right[1] * amount),
-		Math.round(left[2] * (1 - amount) + right[2] * amount)
-	];
-}
+type BaseTokens = { [K in BaseTokenKey]: Rgb };
 
-function token(rgb: Rgb): string {
-	return `${rgb[0]} ${rgb[1]} ${rgb[2]}`;
-}
-
-type BaseTokens = { [K in keyof typeof DARK_BASE_TOKENS]: Rgb };
+/** Channels for a contract color the live CSS does not give (no DOM): never painted. */
+const UNREAD_RGB: Rgb = [0, 0, 0];
 
 /**
- * BASE_TOKENS with neutral picker overrides shadowed in — this is the pre-
- * softening base the overlay mixes toward SOFT_TARGETS. Overriding `foreground`
- * also drives `cardForeground` so body text stays a single color.
+ * The host's neutral and status contract colors (read from the live CSS, see
+ * hostColorHex) with neutral picker overrides shadowed in. Overriding
+ * `foreground` also drives `cardForeground` so body text stays a single color.
+ * `theme` documents the caller's intent, as in colorTokenDefaultHex.
  */
-export function effectiveBaseTokens(overrides: ColorOverrides, theme: ThemeMode): BaseTokens {
-	const next = { ...BASE_TOKENS_BY_THEME[theme] } as BaseTokens;
+export function effectiveBaseTokens(overrides: ColorOverrides, _theme: ThemeMode): BaseTokens {
+	const next = {} as BaseTokens;
+	for (const key of Object.keys(BASE_TOKEN_VARS) as BaseTokenKey[]) {
+		next[key] = hexToRgb(hostColorHex(BASE_TOKEN_VARS[key]) ?? "") ?? UNREAD_RGB;
+	}
 	for (const tokenDesc of COLOR_TOKENS) {
 		if (tokenDesc.group !== "neutrals" || !tokenDesc.baseTokenKey) continue;
 		const override = overrides[tokenDesc.id];
@@ -860,31 +833,66 @@ export function effectiveBaseTokens(overrides: ColorOverrides, theme: ThemeMode)
 	return next;
 }
 
+/**
+ * Where a neutral override is written: its own variable and the shadcn names
+ * that follow it (in the host's neutralTokenFormat), the viewer-only names
+ * that follow it (always triplets), and the shadcn aliases only Tailwind v4
+ * hex hosts read.
+ */
+const NEUTRAL_OVERRIDE_TARGETS: Record<string, { neutral: string[]; triplet: string[]; hexAliases: string[] }> = {
+	background: { neutral: ["--background"], triplet: ["--agentprism-background"], hexAliases: ["--primary-foreground"] },
+	card: { neutral: ["--card"], triplet: [], hexAliases: ["--popover"] },
+	muted: { neutral: ["--muted"], triplet: [], hexAliases: ["--secondary"] },
+	border: { neutral: ["--border", "--input"], triplet: [], hexAliases: [] },
+	foreground: {
+		neutral: ["--foreground", "--card-foreground"],
+		triplet: ["--agentprism-foreground"],
+		hexAliases: ["--popover-foreground", "--primary", "--secondary-foreground"]
+	},
+	mutedForeground: {
+		neutral: ["--muted-foreground"],
+		triplet: ["--trace-container", "--agentprism-muted-foreground"],
+		hexAliases: []
+	}
+};
+
+/**
+ * The variables a set of color overrides writes onto the style shell: each
+ * overridden token on its own contract variable (neutrals in the host's
+ * neutralTokenFormat with their followers, viewer-only colors as triplets,
+ * editor colors as hex). A token without an override writes nothing, so the
+ * host's token stays live. styleVars() uses it only while SHOW_COLOR_CONTROLS
+ * is on.
+ */
+export function colorOverrideVars(overrides: ColorOverrides, config: StyleSystemConfig): Record<string, string> {
+	const vars: Record<string, string> = {};
+	for (const tokenDesc of COLOR_TOKENS) {
+		const hex = normalizeHex(overrides[tokenDesc.id] ?? "");
+		if (!hex) continue;
+		const targets = tokenDesc.group === "neutrals" ? NEUTRAL_OVERRIDE_TARGETS[tokenDesc.id] : undefined;
+		if (!targets) {
+			vars[tokenDesc.cssVar] = colorTokenCssValue(tokenDesc, hex);
+			continue;
+		}
+		const triplet = hexToTriplet(hex) ?? hex;
+		const neutral = config.neutralTokenFormat === "hex" ? hex : triplet;
+		for (const name of targets.neutral) vars[name] = neutral;
+		for (const name of targets.triplet) vars[name] = triplet;
+		if (config.neutralTokenFormat === "hex") for (const name of targets.hexAliases) vars[name] = hex;
+	}
+	return vars;
+}
+
 export function styleVars(
 	settings: StyleSettings,
 	config: StyleSystemConfig
 ): CSSProperties {
-	const asNeutral = (rgb: Rgb): string =>
-		config.neutralTokenFormat === "hex" ? rgbToHex(rgb) : token(rgb);
-	const { background, borders, font, icons } = settings.grain.softening;
-	const backgroundMix = background * 0.1;
-	const borderMix = borders * 0.16;
-	const fontMix = font * 0.08;
+	const { font, icons } = settings.grain.softening;
 	const bevelStrength = settings.grain.cssBevel.enabled ? settings.grain.cssBevel.strength : 0;
-	const overrides = settings.colorOverrides;
-	const BASE = effectiveBaseTokens(overrides, settings.theme);
-	const SOFT_TARGETS = SOFT_TARGETS_BY_THEME[settings.theme];
 
-	// Accent (trace-*/status) and editor tokens are not softened: emit the
-	// override straight onto its CSS var so it wins over the styles.css :root
-	// fallback. Untouched tokens are omitted, keeping the :root default live.
-	const accentVars: Record<string, string> = {};
-	for (const tokenDesc of COLOR_TOKENS) {
-		if (tokenDesc.group === "neutrals") continue;
-		const override = overrides[tokenDesc.id];
-		if (!override) continue;
-		accentVars[tokenDesc.cssVar] = colorTokenCssValue(tokenDesc, override);
-	}
+	// No color here: the host's tokens (host-contract.css) color the shell.
+	// Saved overrides are written only while the color controls are shown.
+	const colorVars = SHOW_COLOR_CONTROLS ? colorOverrideVars(settings.colorOverrides, config) : {};
 
 	// SCALE NEUTRALITY: the shared system must never change a host's sizing
 	// context. Layout geometry vars (padding/workspace/header heights) are
@@ -902,7 +910,7 @@ export function styleVars(
 		: {};
 
 	return {
-		...accentVars,
+		...colorVars,
 		...layoutVars,
 		"--band-wash-opacity": String(settings.treeChrome.bandWashOpacity),
 		"--band-border-opacity": String(settings.treeChrome.bandBorderOpacity),
@@ -912,41 +920,6 @@ export function styleVars(
 		"--selection-width": `${settings.selection.ringWidth}px`,
 		"--selection-bar-width": `${settings.selection.barWidth}px`,
 		"--zebra-opacity": String(settings.codeBlock.zebraOpacity),
-		"--background": asNeutral(mixRgb(BASE.background, SOFT_TARGETS.background, backgroundMix)),
-		"--card": asNeutral(mixRgb(BASE.card, SOFT_TARGETS.card, backgroundMix)),
-		"--card-foreground": asNeutral(mixRgb(BASE.cardForeground, SOFT_TARGETS.foreground, fontMix)),
-		"--muted": asNeutral(mixRgb(BASE.muted, SOFT_TARGETS.muted, backgroundMix)),
-		"--foreground": asNeutral(mixRgb(BASE.foreground, SOFT_TARGETS.foreground, fontMix)),
-		"--muted-foreground": asNeutral(mixRgb(BASE.mutedForeground, SOFT_TARGETS.mutedForeground, fontMix)),
-		"--border": asNeutral(mixRgb(BASE.border, SOFT_TARGETS.border, borderMix)),
-		"--input": asNeutral(mixRgb(BASE.border, SOFT_TARGETS.border, borderMix)),
-		// Hex hosts (Tailwind v4 @theme inline maps) also consume these
-		// shadcn-style aliases; derive them so page chrome themes too.
-		...(config.neutralTokenFormat === "hex"
-			? {
-					"--popover": asNeutral(mixRgb(BASE.card, SOFT_TARGETS.card, backgroundMix)),
-					"--popover-foreground": asNeutral(mixRgb(BASE.cardForeground, SOFT_TARGETS.foreground, fontMix)),
-					"--primary": asNeutral(mixRgb(BASE.foreground, SOFT_TARGETS.foreground, fontMix)),
-					"--primary-foreground": asNeutral(mixRgb(BASE.background, SOFT_TARGETS.background, backgroundMix)),
-					"--secondary": asNeutral(mixRgb(BASE.muted, SOFT_TARGETS.muted, backgroundMix)),
-					"--secondary-foreground": asNeutral(mixRgb(BASE.foreground, SOFT_TARGETS.foreground, fontMix)),
-				}
-			: {}),
-		"--trace-container": token(mixRgb(BASE.mutedForeground, SOFT_TARGETS.mutedForeground, fontMix)),
-		"--status-neutral-fill": token(mixRgb(BASE.statusNeutralFill, SOFT_TARGETS.muted, backgroundMix)),
-		"--status-neutral-border": token(mixRgb(BASE.statusNeutralBorder, SOFT_TARGETS.border, borderMix)),
-		"--status-success-fill": token(mixRgb(BASE.statusSuccessFill, SOFT_TARGETS.statusSuccessFill, backgroundMix)),
-		"--status-success-border": token(mixRgb(BASE.statusSuccessBorder, SOFT_TARGETS.statusSuccessBorder, borderMix)),
-		"--status-warning-fill": token(mixRgb(BASE.statusWarningFill, SOFT_TARGETS.statusWarningFill, backgroundMix)),
-		"--status-warning-border": token(mixRgb(BASE.statusWarningBorder, SOFT_TARGETS.statusWarningBorder, borderMix)),
-		"--status-info-fill": token(mixRgb(BASE.statusInfoFill, SOFT_TARGETS.statusInfoFill, backgroundMix)),
-		"--status-info-border": token(mixRgb(BASE.statusInfoBorder, SOFT_TARGETS.statusInfoBorder, borderMix)),
-		"--agentprism-background": token(mixRgb(BASE.background, SOFT_TARGETS.background, backgroundMix)),
-		"--agentprism-foreground": token(mixRgb(BASE.foreground, SOFT_TARGETS.foreground, fontMix)),
-		"--agentprism-muted": token(mixRgb(BASE.agentPrismMuted, SOFT_TARGETS.muted, backgroundMix)),
-		"--agentprism-muted-foreground": token(mixRgb(BASE.mutedForeground, SOFT_TARGETS.mutedForeground, fontMix)),
-		"--agentprism-border-subtle": token(mixRgb(BASE.agentPrismBorder, SOFT_TARGETS.border, borderMix)),
-		"--agentprism-code-base": token(mixRgb(BASE.agentPrismCodeBase, SOFT_TARGETS.mutedForeground, fontMix)),
 		"--style-bevel-depth": `${settings.grain.cssBevel.depth * bevelStrength}px`,
 		"--style-bevel-highlight-alpha": String(settings.grain.cssBevel.highlight * bevelStrength * 0.24),
 		"--style-bevel-shadow-alpha": String(settings.grain.cssBevel.shadow * bevelStrength * 0.32),
@@ -966,12 +939,10 @@ export function styleEffectClass(settings: StyleSettings): string {
 }
 
 /**
- * Build a paste-ready CSS/TS block reflecting the EFFECTIVE base colors
- * (defaults + overrides, pre-softening). Two sections, each under a one-line
- * comment header saying where the lines belong:
- *   1. styles.css :root — every picker token as its CSS custom property.
- *   2. src/lib/style-settings.ts BASE_TOKENS — the neutral entries only
- *      (accents/editor tokens don't live in BASE_TOKENS).
+ * Build a paste-ready CSS block of the EFFECTIVE contract colors (the host's
+ * live values with overrides applied) and the strength knobs, for a host
+ * stylesheet's :root after host-contract.css. A token whose value cannot be
+ * read as a plain color is left out.
  */
 export function buildColorExport(
 	overrides: ColorOverrides,
@@ -983,7 +954,7 @@ export function buildColorExport(
 	const rootLines: string[] = [];
 	for (const tokenDesc of COLOR_TOKENS) {
 		const hex = colorTokenEffectiveHex(tokenDesc, overrides, theme);
-		rootLines.push(`  ${tokenDesc.cssVar}: ${colorTokenCssValue(tokenDesc, hex)};`);
+		if (hex) rootLines.push(`  ${tokenDesc.cssVar}: ${colorTokenCssValue(tokenDesc, hex)};`);
 	}
 	rootLines.push(`  --band-wash-opacity: ${treeChrome.bandWashOpacity};`);
 	rootLines.push(`  --band-border-opacity: ${treeChrome.bandBorderOpacity};`);
@@ -994,19 +965,5 @@ export function buildColorExport(
 	rootLines.push(`  --selection-bar-width: ${selection.barWidth}px;`);
 	rootLines.push(`  --zebra-opacity: ${codeBlock.zebraOpacity};`);
 
-	const base = effectiveBaseTokens(overrides, theme);
-	const baseLines: string[] = [];
-	for (const tokenDesc of COLOR_TOKENS) {
-		if (tokenDesc.group !== "neutrals" || !tokenDesc.baseTokenKey) continue;
-		const rgb = base[tokenDesc.baseTokenKey];
-		baseLines.push(`  ${tokenDesc.baseTokenKey}: [${rgb[0]}, ${rgb[1]}, ${rgb[2]}],`);
-	}
-
-	return [
-		"/* → examples/simple-research-kernel/src/styles.css :root */",
-		...rootLines,
-		"",
-		"/* → examples/simple-research-kernel/src/lib/style-settings.ts BASE_TOKENS */",
-		...baseLines
-	].join("\n");
+	return ["/* → host stylesheet :root, after host-contract.css */", ...rootLines].join("\n");
 }

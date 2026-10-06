@@ -38,7 +38,7 @@ export function TraceLevelSlider({
 			role="group"
 			aria-label="Trace level"
 			className={cx(
-				"flex items-stretch overflow-hidden rounded-[3px] border border-border",
+				"flex items-stretch overflow-hidden rounded-[var(--ds-radius-base)] border border-border",
 				className,
 			)}
 		>
@@ -54,7 +54,7 @@ export function TraceLevelSlider({
 						aria-label={`${level.marker} — ${level.name}: ${level.description}`}
 						title={`${level.marker} · ${level.name} — ${level.description}`}
 						className={cx(
-							"flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring",
+							"flex items-center gap-1.5 px-2.5 py-1.5 text-[length:var(--ds-font-size-ui-2xs)] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring",
 							idx > 0 && "border-l border-border",
 							isCurrent
 								? "bg-status-success-fill text-status-success"
@@ -64,7 +64,7 @@ export function TraceLevelSlider({
 						<span
 							aria-hidden="true"
 							className={cx(
-								"text-[9px] font-bold uppercase tabular-nums tracking-[0.08em]",
+								"text-[length:var(--ds-font-size-micro)] font-bold uppercase tabular-nums tracking-[var(--ds-letter-spacing-micro)]",
 								isCurrent
 									? "text-status-success"
 									: isIncluded

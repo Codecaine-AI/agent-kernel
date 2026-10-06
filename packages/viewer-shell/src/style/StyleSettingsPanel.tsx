@@ -9,6 +9,7 @@ import {
 	DEFAULT_LAYOUT_STYLE_SETTINGS,
 	GRAIN_BLEND_OPTIONS,
 	normalizeHex,
+	SHOW_COLOR_CONTROLS,
 	SOFTENING_CHANNEL_OPTIONS,
 	STYLE_PANEL_TAB_OPTIONS,
 	THEME_OPTIONS,
@@ -50,7 +51,7 @@ function PanelSection({ children }: { children: ReactNode }) {
 
 function PanelTitle({ children, className = "mb-3" }: { children: ReactNode; className?: string }) {
 	return (
-		<div className={`style-panel-heading text-[11px] font-bold uppercase tracking-[0.14em] text-foreground ${className}`}>
+		<div className={`style-panel-heading text-[length:var(--ds-font-size-ui-2xs)] font-bold uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-[color:var(--ds-color-text-ink)] ${className}`}>
 			{children}
 		</div>
 	);
@@ -74,10 +75,10 @@ function StyleSlider({
 	valueLabel: string;
 }) {
 	return (
-		<label className="block text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+		<label className="block text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground">
 			<span className="flex items-center justify-between gap-3">
 				<span>{label}</span>
-				<span className="text-[11px] normal-case tracking-normal text-foreground/80">{valueLabel}</span>
+				<span className="text-[length:var(--ds-font-size-ui-2xs)] normal-case tracking-normal text-foreground/80">{valueLabel}</span>
 			</span>
 			<input
 				className="style-range mt-2"
@@ -102,7 +103,7 @@ function CheckboxField({
 	onChange: (checked: boolean) => void;
 }) {
 	return (
-		<label className="mt-2 flex items-center gap-2.5 text-xs text-muted-foreground">
+		<label className="mt-2 flex items-center gap-2.5 text-[length:var(--ds-font-size-ui-xs)] text-muted-foreground">
 			<input
 				checked={checked}
 				className="h-4 min-h-4 w-4 accent-accent"
@@ -134,7 +135,7 @@ function TabBar({
 				return (
 					<button
 						aria-selected={isActive}
-						className={`min-h-7 border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] transition-colors ${
+						className={`min-h-7 border px-2 py-1 text-[length:var(--ds-font-size-micro)] font-bold uppercase tracking-[var(--ds-letter-spacing-micro-wide)] transition-colors ${
 							isActive
 								? "border-status-info-border bg-muted text-foreground"
 								: "border-transparent text-muted-foreground hover:text-foreground"
@@ -204,7 +205,10 @@ function ColorTokenRow({
 	const draftValid = normalizeHex(draft) !== null;
 
 	return (
-		<div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-t border-border/60 py-1.5 first:border-t-0">
+		<div
+			className="grid items-center gap-2 border-t border-border/60 py-1.5 first:border-t-0"
+			style={{ gridTemplateColumns: "auto minmax(0, 1fr) auto" }}
+		>
 			<div className="flex items-center gap-2">
 				<span
 					aria-hidden
@@ -222,18 +226,18 @@ function ColorTokenRow({
 			</div>
 			<div className="min-w-0">
 				<div className="flex items-center gap-1.5">
-					<span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
+					<span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[length:var(--ds-font-size-ui-2xs)] uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground">
 						{token.label}
 					</span>
 					{token.reserved && (
-						<span className="shrink-0 text-[9px] uppercase tracking-[0.08em] text-status-warning">
+						<span className="shrink-0 text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro)] text-status-warning">
 							{token.reservedNote ?? "reserved"}
 						</span>
 					)}
 				</div>
 				<input
 					aria-label={`${token.label} hex`}
-					className={`mt-1 min-h-7 w-full border bg-muted px-2 py-1 font-mono text-[12px] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border disabled:opacity-40 ${
+					className={`mt-1 min-h-7 w-full border bg-muted px-2 py-1 font-mono text-[length:var(--ds-font-size-ui-xs)] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border disabled:opacity-40 ${
 						draftValid ? "border-border" : "border-destructive"
 					}`}
 					disabled={disabled}
@@ -254,7 +258,7 @@ function ColorTokenRow({
 				{token.reserved && (
 					<button
 						aria-label={locked ? `Unlock ${token.label}` : `Lock ${token.label}`}
-						className="grid h-6 w-6 place-items-center border border-border bg-card text-[11px] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground"
+						className="grid h-6 w-6 place-items-center border border-border bg-card text-[length:var(--ds-font-size-ui-2xs)] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground"
 						onClick={() => setLocked((value) => !value)}
 						title={locked ? "Unlock to edit (diagnostics color)" : "Lock"}
 						type="button"
@@ -264,7 +268,7 @@ function ColorTokenRow({
 				)}
 				<button
 					aria-label={`Reset ${token.label}`}
-					className="grid h-6 w-6 place-items-center border border-border bg-card text-[13px] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground disabled:opacity-30"
+					className="grid h-6 w-6 place-items-center border border-border bg-card text-[length:var(--ds-font-size-ui-sm)] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground disabled:opacity-30"
 					disabled={!hasOverride}
 					onClick={reset}
 					title="Reset to default"
@@ -323,7 +327,7 @@ function ColorsTab({
 							<button
 								key={option.id}
 								aria-pressed={active}
-								className={`min-h-8 border px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] transition-colors ${
+								className={`min-h-8 border px-2.5 py-1 text-[length:var(--ds-font-size-ui-2xs)] font-bold uppercase tracking-[var(--ds-letter-spacing-micro)] transition-colors ${
 									active
 										? "border-status-info-border bg-status-info-fill text-foreground"
 										: "border-border bg-muted text-muted-foreground hover:border-status-info-border hover:text-foreground"
@@ -336,12 +340,14 @@ function ColorsTab({
 						);
 					})}
 				</div>
-				<p className="mt-2 text-[10px] leading-snug text-muted-foreground">
-					Light follows the design-doc palette; dark is the instrument calibration.
+				<p className="mt-2 text-[length:var(--ds-font-size-micro)] leading-[var(--ds-line-height-ui)] text-muted-foreground">
+					Both themes use the design-system colors this app loads.
 				</p>
 			</PanelSection>
 
-			{groups.map(({ group, tokens }) => (
+			{/* Color pickers: hidden with the color controls (owner decision); the
+			    code stays behind SHOW_COLOR_CONTROLS. */}
+			{SHOW_COLOR_CONTROLS && groups.map(({ group, tokens }) => (
 				<PanelSection key={group}>
 					<PanelTitle>{COLOR_GROUP_TITLES[group]}</PanelTitle>
 					<div className="grid">
@@ -452,25 +458,27 @@ function ColorsTab({
 				</div>
 			</PanelSection>
 
-			<PanelSection>
-				<PanelTitle>Export</PanelTitle>
-				<div className="grid gap-2">
-					<button
-						className="min-h-8 border border-border bg-muted px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground"
-						onClick={copyExport}
-						type="button"
-					>
-						{copied ? "Copied ✓" : "Copy CSS"}
-					</button>
-					<button
-						className="min-h-8 border border-border bg-muted px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-destructive hover:text-foreground"
-						onClick={() => onChange({ colorOverrides: null })}
-						type="button"
-					>
-						Reset all colors
-					</button>
-				</div>
-			</PanelSection>
+			{SHOW_COLOR_CONTROLS && (
+				<PanelSection>
+					<PanelTitle>Export</PanelTitle>
+					<div className="grid gap-2">
+						<button
+							className="min-h-8 border border-border bg-muted px-2.5 py-1 text-[length:var(--ds-font-size-ui-2xs)] font-bold uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground"
+							onClick={copyExport}
+							type="button"
+						>
+							{copied ? "Copied ✓" : "Copy CSS"}
+						</button>
+						<button
+							className="min-h-8 border border-border bg-muted px-2.5 py-1 text-[length:var(--ds-font-size-ui-2xs)] font-bold uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground transition-colors hover:border-destructive hover:text-foreground"
+							onClick={() => onChange({ colorOverrides: null })}
+							type="button"
+						>
+							Reset all colors
+						</button>
+					</div>
+				</PanelSection>
+			)}
 		</div>
 	);
 }
@@ -489,10 +497,10 @@ function TraceTab({
 			<PanelSection>
 				<PanelTitle>Trace Icons</PanelTitle>
 				<div className="grid gap-4">
-					<label className="block text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+					<label className="block text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground">
 						<span>Icon side</span>
 						<select
-							className="mt-1.5 min-h-8 w-full border border-border bg-muted px-2 py-1 text-[13px] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border"
+							className="mt-1.5 min-h-8 w-full border border-border bg-muted px-2 py-1 text-[length:var(--ds-font-size-ui-sm)] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border"
 							onChange={(event) => onChange({ traceIcons: { side: event.currentTarget.value as TraceIconSide } })}
 							value={settings.traceIcons.side}
 						>
@@ -503,10 +511,10 @@ function TraceTab({
 							))}
 						</select>
 					</label>
-					<label className="block text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+					<label className="block text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground">
 						<span>Icon style</span>
 						<select
-							className="mt-1.5 min-h-8 w-full border border-border bg-muted px-2 py-1 text-[13px] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border"
+							className="mt-1.5 min-h-8 w-full border border-border bg-muted px-2 py-1 text-[length:var(--ds-font-size-ui-sm)] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border"
 							onChange={(event) => onChange({ traceIcons: { style: event.currentTarget.value as TraceIconStyle } })}
 							value={settings.traceIcons.style}
 						>
@@ -538,7 +546,7 @@ function LayoutTab({
 				<div className="mb-3 flex flex-wrap items-center justify-between gap-2">
 					<PanelTitle className="mb-0 min-w-0 flex-1">Surface</PanelTitle>
 					<button
-						className="min-h-7 border border-border bg-muted px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground"
+						className="min-h-7 border border-border bg-muted px-2.5 py-1 text-[length:var(--ds-font-size-ui-2xs)] font-bold uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground"
 						onClick={() => onChange({ layout: DEFAULT_LAYOUT_STYLE_SETTINGS })}
 						type="button"
 					>
@@ -596,7 +604,7 @@ function EffectsTab({
 				<div className="mb-3 flex flex-wrap items-center justify-between gap-2">
 					<PanelTitle className="mb-0 min-w-0 flex-1">Global Grain</PanelTitle>
 					<button
-						className="min-h-7 border border-border bg-muted px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground"
+						className="min-h-7 border border-border bg-muted px-2.5 py-1 text-[length:var(--ds-font-size-ui-2xs)] font-bold uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground transition-colors hover:border-status-info-border hover:text-foreground"
 						onClick={() => onChange({ grain: DEFAULT_GRAIN_SETTINGS })}
 						type="button"
 					>
@@ -636,10 +644,10 @@ function EffectsTab({
 						value={grain.contrast}
 						valueLabel={`${grain.contrast.toFixed(2)}x`}
 					/>
-					<label className="block text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+					<label className="block text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground">
 						<span>Blend</span>
 						<select
-							className="mt-1.5 min-h-8 w-full border border-border bg-muted px-2 py-1 text-[13px] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border"
+							className="mt-1.5 min-h-8 w-full border border-border bg-muted px-2 py-1 text-[length:var(--ds-font-size-ui-sm)] normal-case tracking-normal text-foreground outline-none transition-colors focus:border-status-info-border"
 							onChange={(event) => onChange({ grain: { blendMode: event.currentTarget.value as GrainBlendMode } })}
 							value={grain.blendMode}
 						>
@@ -656,7 +664,11 @@ function EffectsTab({
 			<PanelSection>
 				<PanelTitle>Softening Mix</PanelTitle>
 				<div className="grid gap-4">
-					{SOFTENING_CHANNEL_OPTIONS.map((option) => (
+					{SOFTENING_CHANNEL_OPTIONS.filter(
+						// Borders softening only mixed the engine's own border colors.
+						// The host's tokens set them now, so it has nothing to soften.
+						(option) => option.id !== "borders"
+					).map((option) => (
 						<StyleSlider
 							key={option.id}
 							label={option.label}

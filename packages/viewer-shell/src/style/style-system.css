@@ -7,7 +7,9 @@
  *
  * Class names keep their original `research-*` prefixes for backward
  * compatibility with existing app markup; they are app-agnostic in behavior.
- * Colors reference the host's theme tokens (--border, --foreground, …).
+ * Colors read the host contract (--border, --foreground, …); sizes, motion
+ * and layers read the design-system tokens (--ds-*). The host loads both:
+ * @codecaine-ai/design-system's tokens.css and host-contract.css.
  */
 
 .research-style-shell {
@@ -23,8 +25,8 @@
 	filter: blur(var(--style-soften-icon-blur)) drop-shadow(0 0 var(--style-soften-icon-glow) currentColor);
 	opacity: var(--style-soften-icon-opacity);
 	transition:
-		filter 140ms ease,
-		opacity 140ms ease;
+		filter var(--ds-motion-duration-base) var(--ds-motion-easing-standard),
+		opacity var(--ds-motion-duration-base) var(--ds-motion-easing-standard);
 }
 
 .style-bevel-enabled :is(button, input:not(.style-range), select, textarea, pre, article, section, aside, header, [class~="border"], [class*="border-"]) {
@@ -33,22 +35,26 @@
 		inset -1px -1px var(--style-bevel-depth) rgb(0 0 0 / var(--style-bevel-shadow-alpha));
 }
 
+/*
+ * Full-viewport effect layers. Their rects are painted by the SVG filters in
+ * StyleOverlay (neither filter reads the rect's own fill).
+ */
 .research-normal-layer,
 .research-grain-layer {
 	position: fixed;
 	inset: 0;
 	pointer-events: none;
-	transition: opacity 140ms ease;
+	transition: opacity var(--ds-motion-duration-base) var(--ds-motion-easing-standard);
 }
 
 .research-normal-layer {
-	z-index: 60;
+	z-index: var(--ds-z-top);
 	opacity: var(--normal-opacity, 0);
 	mix-blend-mode: soft-light;
 }
 
 .research-grain-layer {
-	z-index: 61;
+	z-index: calc(var(--ds-z-top) + 1);
 	opacity: var(--grain-opacity, 0.1);
 	mix-blend-mode: var(--grain-blend-mode, screen);
 }
@@ -60,14 +66,6 @@
 	height: 100%;
 }
 
-.research-normal-layer rect {
-	fill: #808080;
-}
-
-.research-grain-layer rect {
-	fill: #fff;
-}
-
 .style-settings-rail {
 	overflow-x: clip;
 }
@@ -76,11 +74,25 @@
 	min-width: min(100%, var(--research-style-rail-track));
 }
 
+/* The collapsed rail's "Style" label, read bottom to top. */
+.style-settings-rail-vertical-label {
+	writing-mode: vertical-rl;
+	transform: rotate(180deg);
+}
+
+@media (min-width: 1024px) {
+	.style-settings-rail-vertical-label-lg {
+		writing-mode: vertical-rl;
+		transform: rotate(180deg);
+	}
+}
+
+/* Hit area straddling the rail's left border (kept geometry: no token fits). */
 .style-settings-rail-resize-handle {
 	position: absolute;
 	inset-block: 0;
 	inset-inline-start: -3px;
-	z-index: 20;
+	z-index: var(--ds-z-raised);
 	width: 7px;
 	cursor: col-resize;
 }
@@ -98,19 +110,19 @@
 .style-panel-heading {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--ds-space-2);
 	white-space: nowrap;
 }
 
 .style-panel-heading::after {
 	content: "";
 	flex: 1;
-	height: 1px;
+	height: var(--ds-border-width-hairline);
 	background: linear-gradient(90deg, rgb(var(--border)), transparent);
 }
 
 .style-range {
-	min-height: 24px;
+	min-height: var(--ds-space-6);
 	padding: 0;
 	appearance: none;
 	border: 0;
@@ -124,40 +136,43 @@
 	box-shadow: none;
 }
 
+/* Track and thumb: the 10x18 thumb is kept geometry (no token fits). */
 .style-range::-webkit-slider-runnable-track {
-	height: 4px;
-	border: 1px solid rgb(var(--border));
+	height: var(--ds-space-1);
+	border: var(--ds-border-width-hairline) solid rgb(var(--border));
 	background: linear-gradient(90deg, rgb(var(--status-info) / 0.24), rgb(var(--foreground) / 0.18));
 }
 
 .style-range::-webkit-slider-thumb {
 	width: 10px;
 	height: 18px;
-	margin-top: -8px;
+	margin-top: calc(var(--ds-space-2) * -1);
 	-webkit-appearance: none;
 	appearance: none;
-	border: 1px solid rgb(var(--foreground));
+	border: var(--ds-border-width-hairline) solid rgb(var(--foreground));
 	background: rgb(var(--foreground));
-	box-shadow: 0 0 0 2px rgb(var(--background));
+	box-shadow: 0 0 0 var(--ds-focus-ring-offset) rgb(var(--background));
 }
 
 .style-range:focus-visible::-webkit-slider-thumb {
-	box-shadow: 0 0 0 2px rgb(var(--background)), 0 0 0 4px rgb(var(--status-info) / 0.35);
+	box-shadow:
+		0 0 0 var(--ds-focus-ring-offset) rgb(var(--background)),
+		0 0 0 calc(var(--ds-focus-ring-offset) + var(--ds-border-width-focus)) rgb(var(--status-info) / 0.35);
 }
 
 .style-range::-moz-range-track {
-	height: 4px;
-	border: 1px solid rgb(var(--border));
+	height: var(--ds-space-1);
+	border: var(--ds-border-width-hairline) solid rgb(var(--border));
 	background: linear-gradient(90deg, rgb(var(--status-info) / 0.24), rgb(var(--foreground) / 0.18));
 }
 
 .style-range::-moz-range-thumb {
 	width: 10px;
 	height: 18px;
-	border: 1px solid rgb(var(--foreground));
-	border-radius: 0;
+	border: var(--ds-border-width-hairline) solid rgb(var(--foreground));
+	border-radius: var(--ds-radius-none);
 	background: rgb(var(--foreground));
-	box-shadow: 0 0 0 2px rgb(var(--background));
+	box-shadow: 0 0 0 var(--ds-focus-ring-offset) rgb(var(--background));
 }
 
 @media (max-width: 1023px) {
