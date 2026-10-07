@@ -41,7 +41,7 @@ import {
 import { canonicalJson } from "./blobs";
 import type { ModelNodeContext } from "./context";
 import { toUsageDelta } from "./pricing";
-import { redactText } from "./redact";
+import { mergeSecrets, redactDeep, redactText } from "./redact";
 import type { ResolvedNodeScope } from "./scope";
 import { KernelNodeError, type NodeIds } from "./types";
 
@@ -135,6 +135,15 @@ export interface NodeRunSpec<TOutcome> {
 	 * requestId: a different request with the same requestId is rejected.
 	 */
 	fingerprint?: string;
+	/**
+	 * Credentials known before the claim (a call's route set; none for a
+	 * decision, whose set exists only after it sends). Every string the claim
+	 * records or logs (name, requestId, display label, parent tool use id, the
+	 * `start` fields, session and run metadata) is scrubbed with it (§4.7).
+	 * Identity stays raw: the session id, coalescing and the fingerprint use
+	 * the caller's values.
+	 */
+	claimSecrets?: readonly string[];
 	/** Runs the engine; must resolve for engine failures (status error/aborted). */
 	execute(run: NodeRunHandle): Promise<NodeExecution<TOutcome>>;
 	/** Rebuilds the outcome of a prior done run of the same requestId; writes nothing. */
@@ -230,7 +239,15 @@ async function runClaimed<TOutcome>(
 		...(scope.parentRunId !== undefined && { parentRunId: scope.parentRunId }),
 	};
 	const traceIds: RunTraceEventIds = { containerId: scope.containerId, runId, piSessionUuid: sessionId };
-	const logIds = { kind: spec.kind, name: spec.name, runId, sessionId };
+	// What the claim records: caller strings scrubbed with the credentials known now.
+	const claimSecrets = spec.claimSecrets ?? [];
+	const recorded = (value: string) => redactText(value, claimSecrets);
+	const recordedName = recorded(spec.name);
+	const recordedStart = redactDeep(spec.start, claimSecrets);
+	const recordedRequestId = spec.requestId !== undefined ? recorded(spec.requestId) : undefined;
+	const recordedLabel = scope.displayLabel !== undefined ? recorded(scope.displayLabel) : undefined;
+	const recordedToolUseId = scope.parentToolUseId !== undefined ? recorded(scope.parentToolUseId) : undefined;
+	const logIds = { kind: spec.kind, name: recordedName, runId, sessionId };
 
 	await ctx.ensureSchema();
 
@@ -243,14 +260,15 @@ async function runClaimed<TOutcome>(
 	const startData: CallStartData = {
 		run_id: runId,
 		node_kind: spec.kind,
-		function_name: spec.name,
-		...spec.start,
+		function_name: recordedName,
+		...recordedStart,
 		trigger: scope.trigger,
+		// The parent run id is a foreign key to an existing run row, recorded as is.
 		...(scope.parentRunId !== undefined && { parent_run_id: scope.parentRunId }),
-		...(scope.parentToolUseId !== undefined && { parent_tool_use_id: scope.parentToolUseId }),
-		...(spec.requestId !== undefined && { request_id: spec.requestId }),
+		...(recordedToolUseId !== undefined && { parent_tool_use_id: recordedToolUseId }),
+		...(recordedRequestId !== undefined && { request_id: recordedRequestId }),
 		deadline_at: deadlineAt,
-		...(scope.displayLabel !== undefined && { display_label: scope.displayLabel }),
+		...(recordedLabel !== undefined && { display_label: recordedLabel }),
 		...(fingerprint !== undefined && { request_fingerprint: fingerprint }),
 	};
 	const startEvent = createCallStartEvent(traceIds, startData, { eventId: startEventId, timestamp: startedAt });
@@ -261,14 +279,14 @@ async function runClaimed<TOutcome>(
 			kind: spec.kind,
 			sessionId,
 			runId,
-			...(spec.requestId !== undefined && { requestId: spec.requestId }),
+			...(recordedRequestId !== undefined && { requestId: recordedRequestId }),
 			containerId: scope.containerId,
-			agentName: spec.name,
-			displayLabel: scope.displayLabel ?? null,
-			model: spec.start.model,
-			promptHash: spec.start.prompt_hash,
+			agentName: recordedName,
+			displayLabel: recordedLabel ?? null,
+			model: recordedStart.model,
+			promptHash: recordedStart.prompt_hash,
 			parentRunId: scope.parentRunId ?? null,
-			parentToolUseId: scope.parentToolUseId ?? null,
+			parentToolUseId: recordedToolUseId ?? null,
 			trigger: scope.trigger,
 			startedAt,
 			startEvent,
@@ -279,7 +297,7 @@ async function runClaimed<TOutcome>(
 			...(fingerprint !== undefined && { requestFingerprint: fingerprint }),
 		});
 	} catch (error) {
-		ctx.logger?.error("model node start write failed", { ...logIds, error: errorName(error) });
+		ctx.logger?.error("model node start write failed", { ...logIds, error: errorClass(error) });
 		throw new KernelNodeError("row-write-failed", `${spec.kind} ${spec.name}: start write failed`, { cause: error });
 	}
 
@@ -329,14 +347,17 @@ async function runClaimed<TOutcome>(
 	};
 
 	let execution: NodeExecution<TOutcome>;
+	let stage: typeof CALLBACK_THREW | typeof EXECUTION_THREW = CALLBACK_THREW;
 	try {
 		spec.onNodeStarted?.(ids);
+		stage = EXECUTION_THREW;
 		execution = await spec.execute(handle);
 	} catch (error) {
 		clearTimeout(timer);
-		ctx.logger?.error("model node execute threw", { ...logIds, error: errorName(error) });
+		// A fixed classification: the thrown value's name and message are caller or kind text (§4.7).
+		ctx.logger?.error("model node execute threw", { ...logIds, error: stage });
 		// The execution error reaches the caller only once the error completion committed.
-		await persistOrReject(ctx, db, spec, handle, failedExecution(error), logIds, { executionError: error });
+		await persistOrReject(ctx, db, spec, handle, failedExecution(stage), logIds, { executionError: error });
 		throw error;
 	}
 	clearTimeout(timer);
@@ -361,7 +382,12 @@ async function replayRun<TOutcome>(
 		...(run?.parentRunId ? { parentRunId: run.parentRunId } : {}),
 	};
 	const events = await getTraceEventsForRun(db, priorRunId);
-	ctx.logger?.debug("model node replayed", { kind: spec.kind, name: spec.name, runId: priorRunId, sessionId });
+	ctx.logger?.debug("model node replayed", {
+		kind: spec.kind,
+		name: redactText(spec.name, spec.claimSecrets ?? []),
+		runId: priorRunId,
+		sessionId,
+	});
 	const outcome = await spec.replay({ db, ids, events });
 	return { outcome, ids, replayed: true, coalesced: false };
 }
@@ -375,7 +401,7 @@ async function persist<TOutcome>(
 ): Promise<void> {
 	const endMs = Date.parse(handle.timestamp());
 	const endedAt = new Date(endMs).toISOString();
-	const secrets = execution.secrets ?? [];
+	const secrets = completionSecrets(spec, execution);
 	const endData: CallEndData = {
 		run_id: handle.ids.runId,
 		node_kind: spec.kind,
@@ -424,8 +450,8 @@ async function persistOrReject<TOutcome>(
 	} catch (error) {
 		ctx.logger?.error("model node completion write failed", {
 			...logIds,
-			name: redactText(spec.name, execution.secrets ?? []),
-			error: errorName(error),
+			name: redactText(spec.name, completionSecrets(spec, execution)),
+			error: errorClass(error),
 		});
 		throw new KernelNodeError("row-write-failed", `${spec.kind} ${spec.name}: completion write failed`, {
 			cause: error,
@@ -434,20 +460,44 @@ async function persistOrReject<TOutcome>(
 	}
 }
 
-/** Closes a run whose `execute` threw: status error, no outcome events. */
-function failedExecution<TOutcome>(error: unknown): NodeExecution<TOutcome> {
+/** The credentials completion scrubs with: the claim's set and the run's complete set. */
+function completionSecrets<TOutcome>(spec: NodeRunSpec<TOutcome>, execution: NodeExecution<TOutcome>): string[] {
+	return mergeSecrets(spec.claimSecrets ?? [], execution.secrets ?? []);
+}
+
+/** call_end.error.message of a run whose onNodeStarted callback threw. */
+export const CALLBACK_THREW = "node callback threw";
+/** call_end.error.message of a run whose kind execution (engine step) threw. */
+export const EXECUTION_THREW = "node execution threw";
+
+/** Closes a run whose callback or `execute` threw: status error, a fixed kind and message, no outcome events. */
+function failedExecution<TOutcome>(message: typeof CALLBACK_THREW | typeof EXECUTION_THREW): NodeExecution<TOutcome> {
 	return {
 		outcome: undefined as TOutcome,
 		runStatus: "error",
-		end: { status: "error", error: { kind: "internal", message: errorName(error) }, attempts: 0 },
+		end: { status: "error", error: { kind: "internal", message }, attempts: 0 },
 		events: [],
 		blobs: [],
 	};
 }
 
-/** Error name only: messages may embed prompts or provider payloads (§4.7). */
-function errorName(error: unknown): string {
-	if (error instanceof KernelNodeError) return `${error.name}(${error.code})`;
-	if (error instanceof Error) return error.name;
+/** Error classes a write failure may report by name; anything else is "Error". */
+const KNOWN_ERROR_CLASSES: ReadonlySet<string> = new Set([
+	"Error",
+	"TypeError",
+	"RangeError",
+	"SQLiteError",
+	"DrizzleError",
+	"AbortError",
+	"TimeoutError",
+]);
+
+/**
+ * A fixed classification of a write failure for logs: never the message, and
+ * the name only from a fixed vocabulary (an Error's name is mutable, §4.7).
+ */
+function errorClass(error: unknown): string {
+	if (error instanceof KernelNodeError) return `KernelNodeError(${error.code})`;
+	if (error instanceof Error) return KNOWN_ERROR_CLASSES.has(error.name) ? error.name : "Error";
 	return typeof error;
 }

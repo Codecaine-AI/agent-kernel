@@ -16,8 +16,9 @@ import { InMemoryCredentialStore } from "@earendil-works/pi-ai";
 
 import { createTempKernelDb, disableNetwork, type TempKernelDb } from "../__fixtures__/temp-kernel";
 import { createModelNodeContext, type ModelNodeLogger } from "../context";
+import { CALLBACK_THREW, EXECUTION_THREW, REQUEST_MISMATCH_MESSAGE } from "../node-run";
 import { ROUTE_FAILURE_MESSAGES, SHORT_CREDENTIAL_MESSAGE } from "../pi-models";
-import { KernelCallError, type FnName, type PiTransport } from "../types";
+import { KernelCallError, KernelNodeError, type FnName, type PiTransport } from "../types";
 import { createCall } from "./index";
 import { createCallKit, type CallKit, type CallKitOptions } from "./__fixtures__/call-kit";
 import {
@@ -301,7 +302,11 @@ describe("call secrets (S4)", () => {
 				piModels: () => pi,
 			}),
 		);
-		const run = (): Promise<unknown> => call(name as FnName<LeakyClient>, ["note"], { containerId: temp.containerId });
+		const run = (opts: { note?: string; requestId?: string } = {}): Promise<unknown> =>
+			call(name as FnName<LeakyClient>, [opts.note ?? "note"], {
+				containerId: temp.containerId,
+				...(opts.requestId !== undefined && { requestId: opts.requestId }),
+			});
 		return { temp, engine, logs, run };
 	}
 
@@ -313,11 +318,21 @@ describe("call secrets (S4)", () => {
 	test("a function name holding the route credential is scrubbed from every row and log line", async () => {
 		const name = `Extract_${API_KEY}`;
 		const k = await leakyNameKernel(name, (_req, index) => okThenParseFailure(index), fakePiModels({ apiKey: API_KEY }));
-		await k.run();
+		await k.run({ requestId: "extract-1" });
 		expect((await rejection(k.run())).failure.kind).toBe("parse");
+		// A replay and a mismatched reuse of the requestId log the name too.
+		await k.run({ requestId: "extract-1" });
+		await expect(k.run({ requestId: "extract-1", note: "other" })).rejects.toThrow(REQUEST_MISMATCH_MESSAGE);
 		// The engine still ran the real function; only what the kernel records is scrubbed.
 		expect(k.engine.invocations.map((req) => String(req.name))).toEqual([name, name]);
-		expect(k.logs.map((l) => l.message)).toEqual(expect.arrayContaining(["model call done", "model call failed"]));
+		expect(k.logs.map((l) => l.message)).toEqual(
+			expect.arrayContaining([
+				"model call done",
+				"model call failed",
+				"model node replayed",
+				"model node requestId reused for a different request",
+			]),
+		);
 		expect(JSON.stringify(k.logs)).not.toContain(API_KEY);
 		expect(hits(k.temp.db, [API_KEY])).toEqual([]);
 	});
@@ -354,4 +369,84 @@ describe("call secrets (S4)", () => {
 		expect(completionLogs).toHaveLength(2);
 		expect(JSON.stringify(completionLogs)).not.toContain(ROTATED_KEY);
 	});
+
+	/** A logger that keeps every line. */
+	function captureLogs() {
+		const lines: Array<{ message: string; data?: Record<string, unknown> }> = [];
+		const capture = (message: string, data?: Record<string, unknown>) => lines.push({ message, ...(data && { data }) });
+		const logger: ModelNodeLogger = { debug: capture, info: capture, warn: capture, error: capture };
+		return { lines, logger };
+	}
+
+	test("claim metadata holding the route credential is scrubbed from every row and log line; identity stays raw", async () => {
+		const { lines, logger } = captureLogs();
+		const k = await kit({
+			pi: { apiKey: API_KEY },
+			logger,
+			models: { aliases: { [`alias-${API_KEY}`]: "fake/fake-model" } },
+		});
+		const opts = {
+			requestId: `req-${API_KEY}`,
+			displayLabel: `label ${API_KEY}`,
+			parentToolUseId: `tool-${API_KEY}`,
+			model: `alias-${API_KEY}`,
+		};
+		await k.call("Extract", ["note"], opts);
+		// The same raw requestId replays (identity is unscrubbed); different arguments are a mismatch.
+		await k.call("Extract", ["note"], opts);
+		const mismatch = await k.call("Extract", ["other note"], opts).catch((error: unknown) => error);
+		expect(mismatch).toBeInstanceOf(KernelNodeError);
+		expect((mismatch as KernelNodeError).message).toBe(REQUEST_MISMATCH_MESSAGE);
+		expect(k.engine.invocations).toHaveLength(1);
+
+		const [start] = await getTraceEventsForRun(k.temp.db, k.engine.invocations[0]!.tags.runId!, ["call_start"]);
+		expect(start?.eventData).toMatchObject({
+			request_id: "req-<redacted>",
+			display_label: "label <redacted>",
+			parent_tool_use_id: "tool-<redacted>",
+			model_alias: "alias-<redacted>",
+			model: "fake/fake-model",
+		});
+		expect(lines.map((l) => l.message)).toEqual(
+			expect.arrayContaining(["model call done", "model node replayed", "model node requestId reused for a different request"]),
+		);
+		expect(JSON.stringify(lines)).not.toContain(API_KEY);
+		expect(hits(k.temp.db, [API_KEY])).toEqual([]);
+	});
+
+	const thrownErrors: Array<{ name: string; message: string; throwIn: "callback" | "engine" }> = [
+		{ name: "an onNodeStarted callback", message: CALLBACK_THREW, throwIn: "callback" },
+		{ name: "the engine (a programmer error)", message: EXECUTION_THREW, throwIn: "engine" },
+	];
+	for (const c of thrownErrors) {
+		test(`an error thrown by ${c.name} is recorded and logged as a fixed classification`, async () => {
+			const sentinel = "THROWN-ERROR-SENTINEL-1234";
+			const thrown = Object.assign(new Error(`message ${sentinel}`), { name: `Name${sentinel}` });
+			const { lines, logger } = captureLogs();
+			let runId = "";
+			const k = await kit({
+				logger,
+				respond(req) {
+					if (c.throwIn === "engine") throw thrown;
+					return fakeFailure({ kind: "other", message: "unused" });
+				},
+			});
+			const rejected = await k
+				.call("Extract", ["note"], {
+					onNodeStarted(ids) {
+						runId = ids.runId;
+						if (c.throwIn === "callback") throw thrown;
+					},
+				})
+				.catch((error: unknown) => error);
+			// The caller still receives its own error, once the error completion committed.
+			expect(rejected).toBe(thrown);
+			expect((await getAgentRun(k.temp.db, runId))?.status).toBe("error");
+			const [end] = await getTraceEventsForRun(k.temp.db, runId, ["call_end"]);
+			expect((end?.eventData as CallEndData).error).toEqual({ kind: "internal", message: c.message });
+			expect(lines.find((l) => l.message === "model node execute threw")?.data).toMatchObject({ error: c.message });
+			expect(JSON.stringify(lines)).not.toContain(sentinel);
+			expect(hits(k.temp.db, [sentinel])).toEqual([]);
+		});
+	}
 });

@@ -144,15 +144,15 @@ export function createCall<TCalls>(ctx: CallNodeContext<TCalls>): KernelCallFn<T
 			new Date(ctx.clock.now()).toISOString(),
 		);
 		const provider = route.ok ? route.route.provider : splitModelRef(model)?.provider;
-		// The name the claim records (call_start, session, run, logs): the route credential is known by now.
-		const recordedName = redactText(name, preflight);
 
 		let outcome: CallOutcome;
 		try {
 			const result = await runModelNode<CallOutcome>(ctx, {
 				kind: "call",
-				name: recordedName,
+				name,
 				scope,
+				// The route credential is known by now: everything the claim records is scrubbed with it.
+				claimSecrets: preflight,
 				...(opts.requestId !== undefined && { requestId: opts.requestId }),
 				...(opts.signal !== undefined && { signal: opts.signal }),
 				...(opts.onNodeStarted !== undefined && { onNodeStarted: opts.onNodeStarted }),
