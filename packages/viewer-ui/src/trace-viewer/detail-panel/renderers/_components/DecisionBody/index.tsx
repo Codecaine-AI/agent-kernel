@@ -16,7 +16,7 @@ import type { DetailBlockSpec, DetailView } from "../../../contract";
 import type { RendererProps } from "../../../types";
 import { blobStatusBlock, useTraceBlob, type TraceBlobState } from "../../useTraceBlob";
 import { FieldTable } from "../FieldTable";
-import { jsonBlock } from "../JsonFields";
+import { inputBlock } from "../JsonFields";
 import { AbstainPanel } from "./_components/AbstainPanel";
 import { DecisionSummary } from "./_components/DecisionSummary";
 import { ProbabilityBars, questionBars } from "./_components/ProbabilityBars";
@@ -83,7 +83,7 @@ export function buildDecisionView(span: TraceSpan, input: TraceBlobState): Detai
 
 	const inputSpec = { id: "decision-input", caption: "Input state", slot: "content" as const, order: ORDER.input };
 	if (input.phase === "loaded") {
-		blocks.push(jsonBlock(inputSpec, input.text));
+		blocks.push(inputBlock(inputSpec, input.text));
 	} else {
 		const status = blobStatusBlock(input, inputSpec);
 		if (status) blocks.push(status);

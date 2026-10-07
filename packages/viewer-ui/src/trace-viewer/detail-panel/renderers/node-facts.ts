@@ -63,3 +63,52 @@ export function usageRows(span: TraceSpan): FactRow[] {
 		...factRow("cost", "Cost", costSummary(span)),
 	];
 }
+
+/** What a node's input blob holds: real input, a claim-time copy, or a marker that none was recorded. */
+export type NodeInput =
+	| { kind: "recorded" }
+	| { kind: "claim-time"; value: unknown }
+	| { kind: "not-recorded"; reason: string };
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+	const own = Object.keys(value);
+	return own.length === keys.length && keys.every((key) => Object.hasOwn(value, key));
+}
+
+/**
+ * The kernel claims a node run before its final, fully scrubbed input exists:
+ * call_start points at a placeholder and the completion writes the real input
+ * on call_end. A run that never completed (stale recovery) or whose route
+ * failed keeps only the placeholder, which is status, not input:
+ *
+ *   `{ pending: true }`                   claim-time marker (decisions, Pi-transport calls)
+ *   `{ omitted: "<why>" }`                a call whose route failed
+ *   `{ pending: true, redacted: <args> }` a BAML-HTTP call's claim-time arguments,
+ *                                         redacted with the route's credentials only
+ *
+ * Exact shapes only: any other text is real input, as on older traces whose
+ * call_start held the real context.
+ */
+export function classifyNodeInput(text: string): NodeInput {
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(text);
+	} catch {
+		return { kind: "recorded" };
+	}
+	if (!isPlainObject(parsed)) return { kind: "recorded" };
+	if (parsed.pending === true && hasOnlyKeys(parsed, ["pending"])) {
+		return { kind: "not-recorded", reason: "Input not recorded: the run ended before its final input was written." };
+	}
+	if (typeof parsed.omitted === "string" && hasOnlyKeys(parsed, ["omitted"])) {
+		return { kind: "not-recorded", reason: `Input not recorded: ${parsed.omitted}.` };
+	}
+	if (parsed.pending === true && hasOnlyKeys(parsed, ["pending", "redacted"])) {
+		return { kind: "claim-time", value: parsed.redacted };
+	}
+	return { kind: "recorded" };
+}

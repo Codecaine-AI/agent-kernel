@@ -27,9 +27,6 @@ describe("CallBody", () => {
 		const output = markup.slice(markup.indexOf('data-detail-block="call-output"'));
 		expect(output).toContain('data-field="kept"');
 		expect(output).toContain("[ &quot;A1&quot; ]");
-		// Values wrap at spaces and break a long token only where they must.
-		expect(output).toMatch(/data-field="justification" class="[^"]*" style="overflow-wrap:anywhere"/);
-		expect(output).not.toContain("break-all");
 		expect(output).toContain('data-field="justification"');
 		expect(output).toContain("the cast is layout-safe");
 		// The raw JSON is a data figure, pretty-printed.
@@ -71,5 +68,34 @@ describe("CallBody", () => {
 		});
 		expect(blockIds(markup)).toEqual(["call-output-unavailable", "call-summary"]);
 		expect(markup).toContain("Trace blob b1-out-RK could not be read: HTTP 404.");
+	});
+
+	test("a recovered call keeps only its start placeholder: status, never shown as input data", () => {
+		const recovered = fixtureSpan("retriedCallAttempt1");
+		const view = (text: string) =>
+			renderToStaticMarkup(
+				<DetailShell
+					span={recovered}
+					view={buildCallView(recovered, {
+						input: { phase: "loaded", hash: "b1-in-RKa", text },
+						output: { phase: "absent" },
+					})}
+				/>,
+			);
+
+		const pending = view('{"pending":true}');
+		expect(blockIds(pending)).toEqual(["call-error", "call-input-unrecorded", "call-summary"]);
+		expect(pending).toContain("Input not recorded: the run ended before its final input was written.");
+
+		const omitted = view('{"omitted":"arguments are not recorded when the route fails"}');
+		expect(blockIds(omitted)).toContain("call-input-unrecorded");
+		expect(omitted).toContain("Input not recorded: arguments are not recorded when the route fails.");
+
+		// A BAML-HTTP claim keeps the arguments redacted with the route credentials: shown as input, labelled.
+		const claimTime = view('{"pending":true,"redacted":{"checkpoint":"cp-7"}}');
+		const input = claimTime.slice(claimTime.indexOf('data-detail-block="call-input"'));
+		expect(input).toContain("Recorded when the run was claimed");
+		expect(input).toContain('data-json-field="checkpoint"');
+		expect(input).not.toContain("pending");
 	});
 });

@@ -17,7 +17,7 @@ import type { RendererProps } from "../../../types";
 import { jsonDocument } from "../../json-document";
 import { blobStatusBlock, useTraceBlob, type TraceBlobState } from "../../useTraceBlob";
 import { FieldTable } from "../FieldTable";
-import { jsonBlock } from "../JsonFields";
+import { inputBlock } from "../JsonFields";
 import { CallErrorPanel } from "./_components/CallErrorPanel";
 import { callErrorRows, callOutcome, callSummaryRows, outputFields } from "./utils";
 
@@ -90,7 +90,7 @@ export function buildCallView(span: TraceSpan, blobs: CallBlobs): DetailView {
 	}
 	blocks.push(
 		...blobBlocks(blobs.input, { id: "call-input", caption: "Input", order: ORDER.input }, (text) => [
-			jsonBlock({ id: "call-input", caption: "Input", slot: "content", order: ORDER.input }, text),
+			inputBlock({ id: "call-input", caption: "Input", slot: "content", order: ORDER.input }, text),
 		]),
 		{
 			id: "call-summary",

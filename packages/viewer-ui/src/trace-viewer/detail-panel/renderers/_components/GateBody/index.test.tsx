@@ -11,9 +11,10 @@ describe("GateBody", () => {
 		expect(markup).toMatch(/data-gate-pill="verdict"[^>]*data-gate-pill-tone="success"[^>]*>pass</);
 		expect(markup.match(/data-gate-check="/g)).toHaveLength(2);
 		expect(markup).toContain('data-gate-check="judge:A1"');
-		// Check names keep their full text as a tooltip; a check's note wraps instead of truncating.
+		// Check names keep their full text as a tooltip; a check's note is shown in full
+		// on its own line (its wrapping is proven by the DS screenshots, not here).
 		expect(markup).toContain('title="justification:A1"');
-		expect(markup).toMatch(/<p data-gate-check-note="" class="break-words[^"]*">true<\/p>/);
+		expect(markup).toMatch(/<p data-gate-check-note=""[^>]*>true<\/p>/);
 		// The decide check's question: p against its pass and fail lines.
 		expect(markup).toMatch(/data-gate-check="judge:A1"[\s\S]*data-probability-bars="ok"/);
 		expect(markup).toContain("2 checks · 460 ms");

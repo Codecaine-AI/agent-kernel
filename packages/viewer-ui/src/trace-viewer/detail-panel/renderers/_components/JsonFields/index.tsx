@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from "react";
 
 import type { BlockSlot, DetailBlockSpec } from "../../../contract";
 import { CLAMP } from "../../../doc-figure/clamp";
+import { classifyNodeInput } from "../../node-facts";
 
 export type JsonFieldsProps = {
 	value: unknown;
@@ -86,4 +87,45 @@ export function jsonBlock(
 		return { ...spec, body: text, language: "text", clamp: CLAMP.block };
 	}
 	return { ...spec, node: <JsonFields value={parsed} /> };
+}
+
+const STATUS_LINE_CLASS = "text-[length:var(--ds-font-size-ui-xs)] text-muted-foreground";
+
+/**
+ * A node's input blob as a detail block. Real input renders under `spec.id`
+ * (the field view); a claim-time copy renders there too, under a line saying
+ * what it is; a placeholder that recorded nothing becomes a muted status line
+ * under `<id>-unrecorded`, so no real-data selector ever shows a placeholder.
+ */
+export function inputBlock(
+	spec: { id: string; caption: string; slot: BlockSlot; order: number },
+	text: string,
+): DetailBlockSpec {
+	const input = classifyNodeInput(text);
+	if (input.kind === "not-recorded") {
+		return {
+			...spec,
+			id: `${spec.id}-unrecorded`,
+			expandable: false,
+			node: (
+				<p data-input-unrecorded="" className={STATUS_LINE_CLASS}>
+					{input.reason}
+				</p>
+			),
+		};
+	}
+	if (input.kind === "claim-time") {
+		return {
+			...spec,
+			node: (
+				<div className="min-w-0 space-y-2">
+					<p data-input-claim-time="" className={STATUS_LINE_CLASS}>
+						Recorded when the run was claimed, redacted with the route credentials only; the final input was never written.
+					</p>
+					<JsonFields value={input.value} />
+				</div>
+			),
+		};
+	}
+	return jsonBlock(spec, text);
 }
