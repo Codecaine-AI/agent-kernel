@@ -9,8 +9,7 @@
  * approximate to live), extraction calls, a `checkpoint-accepted` gate with
  * step and decision checks, a choice decision, an abstained decision, a failed
  * call, and three retry sessions: a failed → done decision inside the gate, a
- * stale → recovered call, and a failed → done call whose attempts have
- * different parent runs.
+ * stale → recovered call, and a failed → done call.
  *
  * Every row goes through the committed protocol factories and db actions:
  * worker rows through the async actions the spawn pipeline uses, node rows
@@ -306,6 +305,15 @@ function sortKeys(value: unknown): unknown {
 	for (const key of Object.keys(value).sort()) out[key] = sortKeys((value as Record<string, unknown>)[key]);
 	return out;
 }
+
+/**
+ * The kernel's request fingerprint (model-nodes/node-run.ts requestFingerprint):
+ * "rf1-" + sha256 over the canonical JSON of the request's identifying parts.
+ */
+const requestFingerprint = (parts: unknown): string => `rf1-${sha256Hex(canonicalJson(parts))}`;
+
+/** The run a node describes (part of every fingerprint); no node here has a parent tool call. */
+const fingerprintScope = (parentRunId: string) => ({ parentRunId, parentToolUseId: null });
 
 function bytesBlob(kind: string, mimeType: string, text: string): TraceBlobInput {
 	const bytes = new TextEncoder().encode(text);
@@ -800,6 +808,7 @@ async function claimNode(
 	scope: NodeScope,
 	start: NodeStartFields,
 	startBlobs: TraceBlobInput[],
+	fingerprint: string,
 ): Promise<ClaimedNode> {
 	const sessionId = sessionFor(scope.requestId);
 	const traceIds: RunTraceEventIds = { containerId: CONTAINER_ID, runId: scope.runId, piSessionUuid: sessionId };
@@ -818,6 +827,7 @@ async function claimNode(
 		request_id: scope.requestId,
 		deadline_at: deadlineAt,
 		...(displayLabel !== undefined && { display_label: displayLabel }),
+		request_fingerprint: fingerprint,
 	};
 	const claim = await claimAndStartNode(db, {
 		kind: scope.kind,
@@ -981,6 +991,18 @@ interface CallNodeSpec extends Omit<NodeScope, "kind" | "deadlineMs"> {
 const bamlPromptHash = (name: string): string =>
 	`baml1-${sha256Hex(`function ${name}(…) -> ${name}Result { client KernelCall prompt #"…"# }`)}`;
 
+/** A call's request fingerprint, from the parts kernel.call hashes (call/index.ts). */
+const callFingerprint = (name: string, args: unknown[], parentRunId: string): string =>
+	requestFingerprint({
+		kind: "call",
+		name,
+		args,
+		model: WORKER_MODEL,
+		reasoning: "low",
+		promptHash: bamlPromptHash(name),
+		scope: fingerprintScope(parentRunId),
+	});
+
 function callUsage(input: number, output: number, cost: number): TurnUsage {
 	return {
 		inputTokens: input,
@@ -1044,6 +1066,7 @@ async function writeCall(db: KernelDatabase, spec: CallNodeSpec): Promise<void> 
 			input_blob_hash: inputBlob.hash,
 		},
 		[inputBlob],
+		callFingerprint(spec.name, spec.args, spec.parentRunId),
 	);
 
 	const systemPromptBlob = textBlob("text", spec.system);
@@ -1140,6 +1163,8 @@ interface DecisionNodeSpec extends Omit<NodeScope, "kind" | "deadlineMs"> {
 }
 
 const JEV_THRESHOLDS: ThresholdApplied = { passAt: 0.85, failAt: 0.15 };
+/** ContinueOrStop: a 0.5 floor on the top choice, the default 0.2 margin. */
+const CHOICE_THRESHOLDS: ThresholdApplied = { minTop: 0.5, minMargin: 0.2 };
 
 function jevUsage(input: number, output: number): TurnUsage {
 	return {
@@ -1165,8 +1190,25 @@ function jevWireRequest(state: Record<string, unknown>, questions: Record<string
 
 async function writeDecision(db: KernelDatabase, spec: DecisionNodeSpec): Promise<void> {
 	const context = { state: spec.state, questions: spec.questions };
+	// The claim commits a pending placeholder; the completion records the
+	// (scrubbed) classifier context on call_end.
+	const pendingBlob = jsonBlob("classifier-context", { pending: true });
 	const contextBlob = jsonBlob("classifier-context", context);
 	const promptHash = `dq1-${sha256Hex(canonicalJson({ questions: spec.questions }))}`;
+	// The parts kernel.decide hashes (decide/index.ts), thresholds as the kernel merges them.
+	const fingerprint = requestFingerprint({
+		kind: "decision",
+		name: spec.name,
+		state: spec.state,
+		questions: Object.fromEntries(
+			Object.entries(spec.questions).map(([id, question]) => [
+				id,
+				{ question, thresholds: question.type === "bool" ? JEV_THRESHOLDS : CHOICE_THRESHOLDS },
+			]),
+		),
+		model: JEV_MODEL,
+		scope: fingerprintScope(spec.parentRunId),
+	});
 	const node = await claimNode(
 		db,
 		{ ...spec, kind: "decision", deadlineMs: DECIDE_DEADLINE_MS },
@@ -1176,9 +1218,10 @@ async function writeDecision(db: KernelDatabase, spec: DecisionNodeSpec): Promis
 			provider: JEV_PROVIDER,
 			api: JEV_API,
 			prompt_hash: promptHash,
-			input_blob_hash: contextBlob.hash,
+			input_blob_hash: pendingBlob.hash,
 		},
-		[contextBlob],
+		[pendingBlob],
+		fingerprint,
 	);
 
 	const contextText = JSON.stringify(context, null, 2);
@@ -1252,6 +1295,7 @@ async function writeDecision(db: KernelDatabase, spec: DecisionNodeSpec): Promis
 		runStatus: spec.error ? "error" : "done",
 		end: {
 			status: spec.error ? "error" : "ok",
+			input_blob_hash: contextBlob.hash,
 			output_blob_hash: outputBlob.hash,
 			...(spec.error && { error: spec.error }),
 			...(usage && { usage }),
@@ -1259,7 +1303,7 @@ async function writeDecision(db: KernelDatabase, spec: DecisionNodeSpec): Promis
 			resolved_model: JEV_MODEL,
 		},
 		events,
-		blobs: [messageBlob, requestBlob, ...(responseBlob ? [responseBlob] : []), outputBlob],
+		blobs: [messageBlob, requestBlob, ...(responseBlob ? [responseBlob] : []), outputBlob, contextBlob],
 	});
 }
 
@@ -1873,31 +1917,10 @@ async function generate(db: KernelDatabase): Promise<void> {
 				confidence: 0.64,
 				confidenceSource: "native",
 				abstained: false,
-				thresholdApplied: { minTop: 0.5, minMargin: 0.2 },
+				thresholdApplied: CHOICE_THRESHOLDS,
 			},
 		},
 		chosen: "retry_new_strategy",
-	});
-
-	// SummarizeWorkerRun attempt 1 (parent R1): codex-lb answered 502 twice → error.
-	await writeCall(db, {
-		name: "SummarizeWorkerRun",
-		displayLabel: "SummarizeWorkerRun (R1)",
-		requestId: REQUEST.SUMMARY,
-		runId: RUNS.SUMMARY_ATTEMPT_1,
-		parentRunId: RUNS.R1,
-		trigger: "post-run",
-		startMs: 292_900,
-		attempt: 1,
-		args: [{ session: WORKER_SESSION_ID, through_run: RUNS.R1 }],
-		system: "Write the worker-run narrative for the knowledge DB.",
-		user: R1_NOTE,
-		attempts: [
-			{ startMs: 292_901, endMs: 293_150, httpStatus: 502, stopReason: "error", response: { status: 502, headers: {}, body: "Bad Gateway" } },
-			{ startMs: 293_650, endMs: 293_880, httpStatus: 502, stopReason: "error", response: { status: 502, headers: {}, body: "Bad Gateway" } },
-		],
-		endMs: 293_900,
-		result: { status: "error", error: { kind: "http", message: "HTTP 502", http_status: 502 } },
 	});
 
 	// ── Attempt 2: R5 (steer, same session), 2m40s ──
@@ -2019,35 +2042,55 @@ async function generate(db: KernelDatabase): Promise<void> {
 		}),
 	]);
 
-	// SummarizeWorkerRun attempt 2 (same requestId, parent R5): done, 1.4 s.
-	const summaryUsage = callUsage(5_960, 640, 0.0042);
-	await writeCall(db, {
+	// SummarizeWorkerRun (post-run, parent R5). Attempt 1: codex-lb answered 502
+	// twice (BAML retry policy) → error. Attempt 2, the same request under the
+	// same requestId (a requestId names one request: the kernel rejects other
+	// arguments or another parent run): done, 1.4 s.
+	const summaryRequest = {
 		name: "SummarizeWorkerRun",
-		displayLabel: "SummarizeWorkerRun (R5)",
+		displayLabel: "SummarizeWorkerRun",
 		requestId: REQUEST.SUMMARY,
-		runId: RUNS.SUMMARY_ATTEMPT_2,
 		parentRunId: RUNS.R5,
 		trigger: "post-run",
-		startMs: 467_600,
-		attempt: 2,
 		args: [{ session: WORKER_SESSION_ID, through_run: RUNS.R5 }],
 		system: "Write the worker-run narrative for the knowledge DB.",
 		user: `${R1_NOTE}\n\n${R5_NOTE}`,
+	} as const;
+	await writeCall(db, {
+		...summaryRequest,
+		args: [...summaryRequest.args],
+		runId: RUNS.SUMMARY_ATTEMPT_1,
+		startMs: 467_600,
+		attempt: 1,
+		attempts: [
+			{ startMs: 467_601, endMs: 467_850, httpStatus: 502, stopReason: "error", response: { status: 502, headers: {}, body: "Bad Gateway" } },
+			{ startMs: 468_350, endMs: 468_580, httpStatus: 502, stopReason: "error", response: { status: 502, headers: {}, body: "Bad Gateway" } },
+		],
+		endMs: 468_600,
+		result: { status: "error", error: { kind: "http", message: "HTTP 502", http_status: 502 } },
+	});
+	const summaryUsage = callUsage(5_960, 640, 0.0042);
+	await writeCall(db, {
+		...summaryRequest,
+		args: [...summaryRequest.args],
+		runId: RUNS.SUMMARY_ATTEMPT_2,
+		startMs: 470_000,
+		attempt: 2,
 		attempts: [
 			{
-				startMs: 467_601,
-				endMs: 468_980,
+				startMs: 470_001,
+				endMs: 471_380,
 				httpStatus: 200,
 				stopReason: "stop",
 				usage: summaryUsage,
 				response: sseResponse(JSON.stringify(SUMMARY_OUTPUT), summaryUsage),
 			},
 		],
-		endMs: 469_000,
+		endMs: 471_400,
 		result: { status: "ok", output: SUMMARY_OUTPUT },
 	});
 
-	await worker.end(469_000);
+	await worker.end(471_400);
 
 	// ── Settlement: ExtractConfirmedCheckpointKnowledge for ckpt-2 (post-run, parent R5) ──
 	// Attempt 1 is claimed and never completes (the process died mid-call).
@@ -2090,6 +2133,7 @@ async function generate(db: KernelDatabase): Promise<void> {
 		},
 		confirmedStart,
 		[confirmedInput],
+		callFingerprint("ExtractConfirmedCheckpointKnowledge", confirmedArgs, RUNS.R5),
 	);
 	// Attempt 2 claims past deadline_at + 60 s grace: the claim abandons attempt 1
 	// (synthesized aborted call_end, error kind "abandoned") and runs; done, 1.6 s.

@@ -55,6 +55,12 @@ rows are the ones the kernel writes:
 - Every call and decision goes through `claimAndStartNode` and
   `persistNodeCompletion`. The stale attempt is left `running`, and the next
   claim abandons it after `deadline_at` plus the 60 s grace.
+- Like the kernel, `call_start.input_blob_hash` names a pending placeholder
+  (calls: `{pending, redacted}` arguments; decisions: `{pending: true}`), and
+  `call_end.input_blob_hash` names the final input. `call_start` carries the
+  kernel's `request_fingerprint` (`rf1-` + sha256 of the canonical request
+  parts in `call/index.ts` and `decide/index.ts`). So a retry reuses its
+  requestId only for the same request under the same parent run.
 - Steps and gates go through `insertTraceEventsBatch`. Span ids come from
   `kernelRequestId(kernelId, "span", requestId)`.
 - The promoted nested end is inserted as an approximate row, then replaced by
@@ -81,7 +87,7 @@ Times are offsets from t0 = 2026-10-07T09:00:00Z.
 | `JudgeAdvisory:A3` | Abstains, low confidence, p = 0.52 | 100 ms |
 | `JudgeAdvisoryWithRationale:A3` | Escalation call (judge). The output is truncated, so it fails with a parse error and keeps the raw output | 2.1 s |
 | R4 `ContinueOrStop` | Choice decision: `retry_new_strategy` 0.71 (0.21 / 0.71 / 0.08), confidence 0.64, floor 0.5 | 95 ms, 968 input tokens |
-| `SummarizeWorkerRun` | One requestId under two parent runs. Attempt 1 under R1 fails (HTTP 502 twice). Attempt 2 under R5 succeeds. Renders as one row under each run | 1.0 s, then 1.4 s |
+| `SummarizeWorkerRun` | Post-run call under R5 with one requestId. Attempt 1 fails (HTTP 502 twice). Attempt 2, the same request, succeeds. Renders as one row with two attempt rows | 1.0 s, then 1.4 s |
 | R5 `worker` (steer) | Same session, strategy hint, three turns | 2m40s, $0.24 |
 | R6 `ExtractCheckpointKnowledge (R5)` | Call, post-run under R5, status `exact` | 1.8 s |
 | S2 `validate`, S3 `stop` | Steps on R5 | 5.4 s (objdiff 100%, exact); 20 ms |

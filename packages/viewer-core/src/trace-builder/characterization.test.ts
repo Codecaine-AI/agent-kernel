@@ -91,8 +91,7 @@ describe("buildTraceSpans characterization (state-demo fixture, turn nesting)", 
  * with every model-node shape: call and decision node rows under the worker
  * run they describe, a gate holding step checks and decisions, a codemode
  * tool with nested calls three levels deep, an abstained decision, a failed
- * call, and retry sessions (attempt rows under a summary row, and one session
- * whose attempts sit under two different parent runs).
+ * call, and retry sessions (attempt rows under a summary row).
  */
 describe("buildTraceSpans characterization (model-nodes-demo fixture)", () => {
   const demoEvents = modelNodesDemoFixture.events as TraceEvent[];

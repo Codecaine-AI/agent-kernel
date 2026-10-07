@@ -31,7 +31,9 @@
  * - The escalation call fails (offline: a truncated output that does not
  *   parse; live: a budget too short to answer). ContractProbe stands in for the
  *   fixture's SummarizeWorkerRun (the GameCube client has no summarizer): one
- *   requestId, attempt 1 under R1 fails, attempt 2 under R5 succeeds.
+ *   request under one requestId after R5, attempt 1 fails, attempt 2 succeeds
+ *   (the kernel rejects a requestId reused with other arguments or another
+ *   parent run).
  * - ExtractConfirmedCheckpointKnowledge attempt 1 is claimed by a kernel whose
  *   engine never answers (the process "dies" mid-call). A second node set over
  *   the same database, with a clock 190 s later ("the restarted process"),
@@ -409,7 +411,7 @@ function offlineCallResponder(): (req: FakeCallRequest<DemoCalls>) => Promise<Fa
 						attempt(210, { output: OFFLINE_OUTPUT.JUDGE_RAW, usage: { inputTokens: 2_204, outputTokens: 380 } }),
 					]);
 				case "ContractProbe":
-					// Attempt 1 (under R1): codex-lb answers 502 twice (BAML retry policy). Attempt 2 (under R5): ok.
+					// Attempt 1: codex-lb answers 502 twice (BAML retry policy). Attempt 2 (same request): ok.
 					return n === 0
 						? fakeFailure({ kind: "http", status: 502, rawResponse: "Bad Gateway" }, [
 								attempt(60, { status: 502, usage: null }),
@@ -988,20 +990,6 @@ export async function runRealDemo(opts: RunRealOptions): Promise<RunRealResult> 
 		);
 		log(`decide ContinueOrStop: ${r4.chosen}`);
 
-		// ContractProbe attempt 1 under R1: fails.
-		try {
-			await kernel.call("ContractProbe", [summaryText(R1_NOTE)], {
-				parentRunId: r1.runId,
-				requestId: REQUEST.SUMMARY,
-				displayLabel: "ContractProbe (R1)",
-				...setup.failingCall,
-			});
-			log("call ContractProbe (R1): ok (expected a failure)");
-		} catch (error) {
-			if (!(error instanceof KernelCallError)) throw error;
-			log(`call ContractProbe (R1): failed (${error.failure.kind})`);
-		}
-
 		// ── Attempt 2: R5 (steer, same session) ──
 		scriptR5(worker.faux);
 		const r5 = await kernel.spawnAgent("worker", R5_PROMPT, worker.ctx, { ...spawnOpts, trigger: "steer" });
@@ -1039,13 +1027,18 @@ export async function runRealDemo(opts: RunRealOptions): Promise<RunRealResult> 
 		);
 		await kernel.step("stop", { parentRunId: r5.runId, requestId: REQUEST.S3, summarize: (reason: string) => ({ reason }) }, () => "exact_match");
 
-		// ContractProbe attempt 2 (same requestId) under R5: done.
-		await kernel.call("ContractProbe", [summaryText(`${R1_NOTE}\n\n${R5_NOTE}`)], {
-			parentRunId: r5.runId,
-			requestId: REQUEST.SUMMARY,
-			displayLabel: "ContractProbe (R5)",
-		});
-		log("call ContractProbe (R5): ok");
+		// ContractProbe under R5: attempt 1 fails; attempt 2 (same request, same requestId) is done.
+		const summaryArgs: [string] = [summaryText(`${R1_NOTE}\n\n${R5_NOTE}`)];
+		const summaryOpts = { parentRunId: r5.runId, requestId: REQUEST.SUMMARY, displayLabel: "ContractProbe" };
+		try {
+			await kernel.call("ContractProbe", summaryArgs, { ...summaryOpts, ...setup.failingCall });
+			log("call ContractProbe attempt 1: ok (expected a failure)");
+		} catch (error) {
+			if (!(error instanceof KernelCallError)) throw error;
+			log(`call ContractProbe attempt 1: failed (${error.failure.kind})`);
+		}
+		await kernel.call("ContractProbe", summaryArgs, summaryOpts);
+		log("call ContractProbe attempt 2: ok");
 
 		// ── Settlement: ExtractConfirmedCheckpointKnowledge for ckpt-2 (post-run, parent R5) ──
 		// Attempt 1: claimed by a process that dies mid-call (its engine never answers).
