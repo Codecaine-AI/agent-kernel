@@ -33,7 +33,9 @@ export function ProbabilityBars({ question }: ProbabilityBarsProps) {
 			className="min-w-0 space-y-1.5"
 		>
 			<div className="flex min-w-0 items-baseline gap-2">
-				<span className={cn(LABEL_TEXT, "font-semibold text-foreground")}>{question.id}</span>
+				<span title={question.id} className={cn(LABEL_TEXT, "min-w-0 truncate font-semibold text-foreground")}>
+					{question.id}
+				</span>
 				<span className="text-[length:var(--ds-font-size-ui-2xs)] uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground">
 					{question.kind}
 				</span>
@@ -55,7 +57,9 @@ export function ProbabilityBars({ question }: ProbabilityBarsProps) {
 			) : (
 				question.rows.map((row) => (
 					<div key={row.label} data-bar-row={row.label} className="flex min-w-0 items-center gap-2">
-						<span className={cn(LABEL_TEXT, "w-24 shrink-0 truncate text-foreground")}>{row.label}</span>
+						<span title={row.label} className={cn(LABEL_TEXT, "w-24 shrink-0 truncate text-foreground")}>
+							{row.label}
+						</span>
 						<span className="relative h-2 min-w-0 flex-1 rounded-pill bg-muted">
 							<span
 								data-bar-fill={row.chosen ? "chosen" : "other"}

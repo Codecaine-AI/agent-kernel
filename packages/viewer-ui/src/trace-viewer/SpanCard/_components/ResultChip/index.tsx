@@ -16,7 +16,7 @@ export type ResultChipProps = {
 	kind: "result" | "duration" | "attempts";
 };
 
-/** One inline chip on a model-node row: the result, the duration, or the attempt count. It truncates rather than overflow its row. */
+/** One inline chip on a model-node row: the result, the duration, or the attempt count. Always whole: it never shrinks or truncates. */
 export function ResultChip({ label, tone, kind }: ResultChipProps) {
 	return (
 		<span
@@ -24,7 +24,7 @@ export function ResultChip({ label, tone, kind }: ResultChipProps) {
 			data-node-chip-tone={tone}
 			title={label}
 			style={CARD_LINE_META}
-			className={`${CARD_TYPE_META} min-w-0 truncate rounded-[var(--ds-radius-base)] px-1.5 py-0.5 tabular-nums ${TONE_CLASS[tone]}`}
+			className={`${CARD_TYPE_META} shrink-0 whitespace-nowrap rounded-[var(--ds-radius-base)] px-1.5 py-0.5 tabular-nums ${TONE_CLASS[tone]}`}
 		>
 			{label}
 		</span>

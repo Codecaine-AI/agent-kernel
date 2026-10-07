@@ -28,6 +28,24 @@ function rowMarkup(spanId: string): string {
 	return markup.slice(start, next < 0 ? undefined : next);
 }
 
+/** The opening tag of the first element carrying `attribute`. */
+function openingTag(markup: string, attribute: string): string {
+	const match = new RegExp(`<[a-z]+ ${attribute}=[^>]*>`).exec(markup);
+	if (!match) throw new Error(`no element with ${attribute}`);
+	return match[0];
+}
+
+/** The first `<span attribute…>…</span>` (no nested spans), opening tag to close. */
+function elementMarkup(markup: string, attribute: string): string {
+	const match = new RegExp(`<span ${attribute}=[^>]*>[^<]*</span>`).exec(markup);
+	if (!match) throw new Error(`no leaf span with ${attribute}`);
+	return match[0];
+}
+
+function classes(tag: string): string[] {
+	return (/\bclass="([^"]*)"/.exec(tag)?.[1] ?? "").split(/\s+/);
+}
+
 function count(needle: string): number {
 	return markup.split(needle).length - 1;
 }
@@ -93,20 +111,50 @@ describe("TreeView model-node rows", () => {
 		expect(rowMarkup("attempt:RD2b")).toContain(">attempt 2</span>");
 	});
 
-	test("the name keeps its width ahead of the chips and carries its full name as a tooltip", () => {
-		const row = rowMarkup(fixtureSpan("retriedCall").id);
-		// Longer than 18 characters: may truncate, but never below 18ch.
-		expect(row).toMatch(/data-node-name="" title="ExtractConfirmedCheckpointKnowledge" style="[^"]*min-width:18ch/);
-		// A short name never shrinks.
-		expect(rowMarkup(step)).toMatch(/data-node-name="" title="validate" style="[^"]*flex-shrink:0/);
-		// Chips sit on one clipped line and wrap out whole; the duration has its own
-		// slot, which gives way before the name or the result.
-		expect(row).toMatch(/data-node-chips="" class="[^"]*flex-wrap[^"]*overflow-hidden[^"]*" style="height:18px;flex-shrink:1"/);
-		expect(row).toMatch(/data-node-duration="" class="[^"]*flex-wrap[^"]*overflow-hidden[^"]*" style="height:18px;flex-shrink:1000000"/);
-		expect(row).toMatch(/style="line-height:18px;min-width:18ch;flex-shrink:1000"/);
-		const chips = [...row.matchAll(/data-node-chip="(\w+)"/g)].map((match) => match[1]);
-		expect(chips).toEqual(["result", "attempts", "duration"]);
-		expect(rowMarkup("attempt:RD2a")).toContain('title="attempt 1 of 2 · http · upstream 503"');
+	test("required chips can never be clipped: only the name truncates, and the chips wrap whole to a visible line", () => {
+		// No browser layout here, so this asserts the structure that guarantees it.
+		for (const id of [call, decision, step, gate, fixtureSpan("retry").id, "attempt:RD2a"]) {
+			const row = rowMarkup(id);
+			const wrapper = openingTag(row, "data-node-row");
+			// The row may wrap onto a second line; nothing in it clips or pins a height.
+			expect(classes(wrapper)).toContain("flex-wrap");
+			expect(classes(wrapper)).not.toContain("overflow-hidden");
+			expect(wrapper).not.toContain("style=");
+
+			// The chips: one slot after the name (not inside it), never shrinking or wrapping.
+			const name = elementMarkup(row, "data-node-name");
+			expect(name).not.toContain("data-node-chip");
+			const slot = classes(openingTag(row, "data-node-chips"));
+			expect(slot).toEqual(expect.arrayContaining(["shrink-0", "flex-nowrap"]));
+			expect(slot).not.toContain("overflow-hidden");
+			for (const chip of row.matchAll(/<span data-node-chip="[^"]*"[^>]*>/g)) {
+				expect(classes(chip[0])).toEqual(expect.arrayContaining(["shrink-0", "whitespace-nowrap"]));
+				expect(classes(chip[0])).not.toContain("truncate");
+			}
+		}
+
+		// Every required chip is there on the retried decision: result, retry count, duration.
+		const retry = rowMarkup(fixtureSpan("retry").id);
+		expect([...retry.matchAll(/data-node-chip="(\w+)"/g)].map((match) => match[1])).toEqual([
+			"result",
+			"attempts",
+			"duration",
+		]);
+	});
+
+	test("a long name truncates from a spacing-token basis with its full name as a tooltip; a short one keeps its width", () => {
+		const long = openingTag(rowMarkup(fixtureSpan("retriedCall").id), "data-node-name");
+		expect(long).toContain('title="ExtractConfirmedCheckpointKnowledge"');
+		expect(classes(long)).toEqual(expect.arrayContaining(["truncate", "basis-36", "min-w-0"]));
+
+		const short = openingTag(rowMarkup(step), "data-node-name");
+		expect(short).toContain('title="validate"');
+		expect(classes(short)).toContain("shrink-0");
+		expect(classes(short)).not.toContain("truncate");
+
+		expect(openingTag(rowMarkup("attempt:RD2a"), "data-node-name")).toContain(
+			'title="attempt 1 of 2 · http · upstream 503"',
+		);
 	});
 
 	test("every tree item carries its span id exactly once, on the item and on its clickable row", () => {

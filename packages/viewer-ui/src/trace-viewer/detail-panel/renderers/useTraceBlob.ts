@@ -27,41 +27,76 @@ function restingState(hash: string | undefined, online: boolean): TraceBlobState
 	return online ? { phase: "loading", hash } : { phase: "offline", hash };
 }
 
+/** A settled read, tagged with the API base and hash it was read for. */
+export interface TraceBlobSlot {
+	key: string;
+	state: TraceBlobState;
+}
+
+/** The identity a read belongs to: the API base and the hash. */
+export function traceBlobKey(apiBase: string | null, hash: string | undefined): string {
+	return JSON.stringify([apiBase, hash ?? null]);
+}
+
+/**
+ * What a body shows for `hash` now: the settled read only when it was read for
+ * this exact API base and hash; otherwise the resting state (loading online),
+ * so a node row that switches to another attempt's blob never shows the old
+ * one next to the new verdict.
+ */
+export function currentTraceBlob(
+	slot: TraceBlobSlot | null,
+	apiBase: string | null,
+	hash: string | undefined,
+): TraceBlobState {
+	if (slot && slot.key === traceBlobKey(apiBase, hash)) return slot.state;
+	return restingState(hash, hasApiBase(apiBase));
+}
+
+/**
+ * Read one blob and settle it once, unless the returned cancel ran first: a
+ * response that arrives after its hash was replaced is dropped.
+ */
+export function loadTraceBlob(
+	apiBase: string,
+	hash: string,
+	settle: (slot: TraceBlobSlot) => void,
+	fetchImpl: typeof fetch = fetch,
+): () => void {
+	const key = traceBlobKey(apiBase, hash);
+	let live = true;
+	const finish = (state: TraceBlobState) => {
+		if (live) settle({ key, state });
+	};
+	fetchImpl(blobUrl(apiBase, hash))
+		.then(async (response) => {
+			if (!response.ok) throw new Error(`HTTP ${response.status}`);
+			return response.text();
+		})
+		.then((text) => finish({ phase: "loaded", hash, text }))
+		.catch((error: unknown) =>
+			finish({
+				phase: "error",
+				hash,
+				message: error instanceof Error ? error.message : String(error),
+			}),
+		);
+	return () => {
+		live = false;
+	};
+}
+
 export function useTraceBlob(hash: string | undefined): TraceBlobState {
 	const { apiBase } = useTraceViewerApi();
-	const [state, setState] = useState<TraceBlobState>(() =>
-		restingState(hash, hasApiBase(apiBase)),
-	);
+	const [slot, setSlot] = useState<TraceBlobSlot | null>(null);
 
 	useEffect(() => {
-		if (!hash || !hasApiBase(apiBase)) {
-			setState(restingState(hash, false));
-			return;
-		}
-		let cancelled = false;
-		setState({ phase: "loading", hash });
-		fetch(blobUrl(apiBase, hash))
-			.then(async (response) => {
-				if (!response.ok) throw new Error(`HTTP ${response.status}`);
-				return response.text();
-			})
-			.then((text) => {
-				if (!cancelled) setState({ phase: "loaded", hash, text });
-			})
-			.catch((error: unknown) => {
-				if (cancelled) return;
-				setState({
-					phase: "error",
-					hash,
-					message: error instanceof Error ? error.message : String(error),
-				});
-			});
-		return () => {
-			cancelled = true;
-		};
+		if (!hash || !hasApiBase(apiBase)) return;
+		// React runs the previous read's cancel before this one starts.
+		return loadTraceBlob(apiBase, hash, setSlot);
 	}, [apiBase, hash]);
 
-	return state;
+	return currentTraceBlob(slot, apiBase, hash);
 }
 
 /**

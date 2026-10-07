@@ -17,21 +17,25 @@ export function CheckRow({ check }: CheckRowProps) {
 		<li data-gate-check={check.name} data-gate-check-result={check.result} className="min-w-0 space-y-2">
 			<div className="flex min-w-0 items-center gap-2">
 				<ResultPill kind="check" label={check.result} tone={pillTone(check.result)} />
-				<span className="min-w-0 truncate font-mono text-[length:var(--ds-font-size-ui-xs)] font-semibold text-foreground">
+				<span
+					title={check.name}
+					className="min-w-0 truncate font-mono text-[length:var(--ds-font-size-ui-xs)] font-semibold text-foreground"
+				>
 					{check.name}
 				</span>
 				<span className="shrink-0 text-[length:var(--ds-font-size-ui-2xs)] uppercase tracking-[var(--ds-letter-spacing-micro)] text-muted-foreground">
 					{check.kind}
 				</span>
-				{note ? (
-					<span
-						data-gate-check-note=""
-						className={`ml-auto min-w-0 truncate font-mono text-[length:var(--ds-font-size-ui-xs)] ${check.error ? "text-destructive" : "text-muted-foreground"}`}
-					>
-						{note}
-					</span>
-				) : null}
 			</div>
+			{note ? (
+				// The value, reason or error in full: it wraps rather than truncate.
+				<p
+					data-gate-check-note=""
+					className={`break-words pl-2 font-mono text-[length:var(--ds-font-size-ui-xs)] ${check.error ? "text-destructive" : "text-muted-foreground"}`}
+				>
+					{note}
+				</p>
+			) : null}
 			{check.questions.length > 0 ? (
 				<div className="min-w-0 space-y-2 pl-2">
 					{check.questions.map((question) => (
