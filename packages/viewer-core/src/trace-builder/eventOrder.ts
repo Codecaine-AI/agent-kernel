@@ -30,6 +30,11 @@ import { EventType, UI_ASK_ANSWERED, UI_ASK_REQUESTED, type TraceEvent } from ".
  *   assistant reply → turn end → run end → pi agent end → session end.
  * Unknown types sit at DEFAULT_RANK (between user message and turn start) so
  * they never leapfrog the request/reply ordering this exists to protect.
+ *
+ * Model nodes open before the turns they own and close after them: a gate
+ * wraps its checks (gate_start first, gate_end last), a step wraps its
+ * callback, and a call/decision opens with call_start before its turns and
+ * closes with decision_made then call_end after them.
  */
 const CAUSAL_RANK: Record<string, number> = {
   [EventType.AGENT_SESSION_START]: 0,
@@ -38,7 +43,10 @@ const CAUSAL_RANK: Record<string, number> = {
   [EventType.CONTEXT_BUILD_STARTED]: 3,
   [EventType.CONTEXT_INPUT_RESOLVED]: 4,
   [EventType.CONTEXT_BUILD_COMPLETED]: 5,
+  [EventType.GATE_START]: 5.5,
   [EventType.AGENT_RUN_START]: 6,
+  [EventType.STEP_START]: 6.2,
+  [EventType.CALL_START]: 6.4,
   [EventType.USER_MESSAGE]: 7,
   [EventType.PI_TURN_START]: 9,
   [EventType.PI_REQUEST_SNAPSHOT]: 10,
@@ -48,7 +56,11 @@ const CAUSAL_RANK: Record<string, number> = {
   [UI_ASK_ANSWERED]: 14,
   [EventType.ASSISTANT_MESSAGE]: 15,
   [EventType.PI_TURN_END]: 16,
+  [EventType.DECISION_MADE]: 16.5,
   [EventType.AGENT_RUN_END]: 17,
+  [EventType.CALL_END]: 17,
+  [EventType.STEP_END]: 17.2,
+  [EventType.GATE_END]: 17.8,
   [EventType.PI_AGENT_END]: 18,
   [EventType.AGENT_SESSION_END]: 19,
 };

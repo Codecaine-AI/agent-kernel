@@ -32,16 +32,23 @@ import {
   type AgentSessionEndData,
   type AgentSessionStartData,
   type AssistantMessageData,
+  type CallEndData,
+  type CallStartData,
   type ContextBuildCompletedData,
   type ContextBuildStartedData,
   type ContextInputResolvedData,
+  type DecisionMadeData,
   type ErrorData,
+  type GateEndData,
+  type GateStartData,
   type PhaseEndData,
   type PhaseStartData,
   type PiRequestSnapshotData,
   type PiTurnEndData,
   type PostToolHookData,
   type PreToolHookData,
+  type StepEndData,
+  type StepStartData,
   type SystemPromptResolvedData,
   type ToolCallEndData,
   type ToolCallStartData,
@@ -209,6 +216,149 @@ function genericStatus(data: unknown): TraceSpanStatus {
   }
   return "success";
 }
+
+// ─── Nested tool calls ──────────────────────────────────────────────────────
+// Calls a codemode script makes carry their immediate parent's tool_use_id;
+// the nesting pass moves them under that tool span. Absent on top-level tools,
+// so these attributes add nothing there.
+
+type NestedToolData = { parent_tool_use_id?: string; nested_status?: string };
+
+function nestedToolAttrs(
+  start: NestedToolData | null,
+  end: NestedToolData | null,
+): AttrEntry[] {
+  return [
+    ["parent_tool_use_id", start?.parent_tool_use_id ?? end?.parent_tool_use_id],
+    ["nested_status", end?.nested_status],
+  ];
+}
+
+// ─── Model nodes ────────────────────────────────────────────────────────────
+// call_start/call_end bracket one call or decision run; decision_made records
+// the decision's answers. Steps and gates are spans on their parent run. The
+// node-row builder (model-nodes.ts) absorbs a node run's lifecycle events, so
+// these entries mostly show when a node event renders as a plain span.
+
+/** call_end.status → span status: ok → success, error → error, aborted → warning. */
+export function callEndStatus(status: string | null | undefined): TraceSpanStatus {
+  if (status === "error") return "error";
+  if (status === "aborted") return "warning";
+  return "success";
+}
+
+/** step_end → span status: an error or a failed check is an error, an abstained check a warning. */
+export function stepEndStatus(data: StepEndData | null): TraceSpanStatus {
+  if (data?.status === "error" || data?.check_result === "fail") return "error";
+  if (data?.check_result === "abstain") return "warning";
+  return "success";
+}
+
+/** Gate verdict → span status: pass → success, fail → error, abstain → warning. */
+export function gateVerdictStatus(verdict: string | null | undefined): TraceSpanStatus {
+  if (verdict === "fail") return "error";
+  if (verdict === "abstain") return "warning";
+  return "success";
+}
+
+function callStartAttrs(d: CallStartData | null): AttrEntry[] {
+  return [
+    ["run_id", d?.run_id],
+    ["node_kind", d?.node_kind],
+    ["function_name", d?.function_name],
+    ["engine", d?.engine],
+    ["transport", d?.transport],
+    ["model", d?.model],
+    ["model_alias", d?.model_alias],
+    ["provider", d?.provider],
+    ["api", d?.api],
+    ["prompt_hash", d?.prompt_hash],
+    ["input_blob_hash", d?.input_blob_hash],
+    ["trigger", d?.trigger],
+    ["parent_run_id", d?.parent_run_id],
+    ["parent_tool_use_id", d?.parent_tool_use_id],
+    ["request_id", d?.request_id],
+    ["attempt", d?.attempt],
+    ["deadline_at", d?.deadline_at],
+    ["gate_span_id", d?.gate_span_id],
+  ];
+}
+
+function callEndAttrs(d: CallEndData | null): AttrEntry[] {
+  return [
+    ["status", d?.status],
+    ["output_blob_hash", d?.output_blob_hash],
+    ["error_kind", d?.error?.kind],
+    ["error_message", d?.error?.message],
+    ["http_status", d?.error?.http_status],
+    ["attempts", d?.attempts],
+    ["duration_ms", d?.duration_ms],
+    ["resolved_model", d?.resolved_model],
+    ["input_tokens", d?.usage?.inputTokens],
+    ["output_tokens", d?.usage?.outputTokens],
+    ["cache_read_tokens", d?.usage?.cacheReadTokens],
+    ["cache_write_tokens", d?.usage?.cacheWriteTokens],
+    ["cost_estimate", d?.usage?.costEstimate],
+  ];
+}
+
+function decisionAttrs(d: DecisionMadeData | null): AttrEntry[] {
+  return [
+    ["run_id", d?.run_id],
+    ["decision_name", d?.decision_name],
+    ["chosen", d?.chosen],
+    ["abstained", d?.abstained],
+    ["abstain_reason", d?.abstain_reason],
+    ["confidence_source", d?.confidence_source],
+    ["engine", d?.engine],
+    ["provider", d?.provider],
+    ["api", d?.api],
+    ["model", d?.model],
+    ["requested_model", d?.requested_model],
+    ["error_kind", d?.error_kind],
+    ["gate_span_id", d?.gate_span_id],
+  ];
+}
+
+/** Step attributes from start and end, end winning on a shared key; JSON, or absent when empty. */
+function stepAttributesJson(
+  start: StepStartData | null,
+  end: StepEndData | null,
+): string | undefined {
+  const merged = { ...start?.attributes, ...end?.attributes };
+  return Object.keys(merged).length > 0 ? JSON.stringify(merged) : undefined;
+}
+
+function stepEndAttrs(d: StepEndData | null): AttrEntry[] {
+  return [
+    ["status", d?.status],
+    ["duration_ms", d?.duration_ms],
+    ["check_result", d?.check_result],
+    ["check_value", d?.check_value],
+    ["error_message", d?.error_message],
+    ["step_events", asNonEmptyArrayJson(d?.events)],
+  ];
+}
+
+function gateEndAttrs(d: GateEndData | null): AttrEntry[] {
+  return [
+    ["verdict", d?.verdict],
+    ["aborted", d?.aborted === true ? true : undefined],
+    ["duration_ms", d?.duration_ms],
+  ];
+}
+
+/**
+ * Step and gate spans carry their envelope span id (gate folding matches a
+ * check's gate_span_id against it) and their envelope run id (they attach to
+ * that run). Other event types never get these two attributes from here.
+ */
+const RUN_SCOPED_SPAN_EVENT_TYPES = new Set<string>([
+  EventType.STEP_START,
+  EventType.STEP_END,
+  EventType.GATE_START,
+  EventType.GATE_END,
+]);
 
 // ─── App event payloads ─────────────────────────────────────────────────────
 
@@ -458,6 +608,7 @@ const EVENT_SPECS: Record<string, EventSpec> = {
         ["tool_name", d?.tool_name],
         ["tool_use_id", d?.tool_use_id],
         ...spawnerAttrs(d),
+        ...nestedToolAttrs(d, null),
       ],
     }),
     pair: (start, end) => ({
@@ -469,6 +620,7 @@ const EVENT_SPECS: Record<string, EventSpec> = {
         ["duration_ms", end?.duration_ms],
         ["is_error", end?.is_error === true ? true : undefined],
         ...spawnerAttrs(start ?? end),
+        ...nestedToolAttrs(start, end),
       ],
     }),
   }),
@@ -484,6 +636,7 @@ const EVENT_SPECS: Record<string, EventSpec> = {
         ["duration_ms", d?.duration_ms],
         ["is_error", d?.is_error === true ? true : undefined],
         ...spawnerAttrs(d),
+        ...nestedToolAttrs(null, d),
       ],
     }),
     pairStatus: (_start, end) =>
@@ -510,6 +663,103 @@ const EVENT_SPECS: Record<string, EventSpec> = {
   }),
   [EventType.PHASE_END]: spec<PhaseEndData>({
     title: (d) => d.phase,
+  }),
+  [EventType.CALL_START]: spec<CallStartData, CallEndData>({
+    category: "llm_call",
+    title: (d) => d.display_label ?? d.function_name,
+    status: "pending",
+    point: (d) => ({ attrs: callStartAttrs(d) }),
+    pair: (start, end) => ({
+      attrs: [...callStartAttrs(start), ...callEndAttrs(end)],
+    }),
+  }),
+  [EventType.CALL_END]: spec<CallEndData, CallEndData>({
+    category: "llm_call",
+    title: (d) => d.function_name,
+    status: (d) => callEndStatus(d?.status),
+    point: (d) => ({
+      attrs: [
+        ["run_id", d?.run_id],
+        ["node_kind", d?.node_kind],
+        ["function_name", d?.function_name],
+        ["gate_span_id", d?.gate_span_id],
+        ...callEndAttrs(d),
+      ],
+    }),
+    pairStatus: (_start, end) => callEndStatus(end?.status),
+  }),
+  [EventType.DECISION_MADE]: spec<DecisionMadeData>({
+    category: "llm_call",
+    title: (d) => d.decision_name,
+    status: (d) => (d?.abstained === true ? "warning" : "success"),
+    point: (d) => ({ output: asJson(d), attrs: decisionAttrs(d) }),
+  }),
+  [EventType.STEP_START]: spec<StepStartData, StepEndData>({
+    category: "chain_operation",
+    title: (d) => d.step_name,
+    status: "pending",
+    point: (d) => ({
+      attrs: [
+        ["step_name", d?.step_name],
+        ["gate_span_id", d?.gate_span_id],
+        ["step_attributes", stepAttributesJson(d, null)],
+      ],
+    }),
+    pair: (start, end) => ({
+      output: asJson(end?.output_summary),
+      attrs: [
+        ["step_name", start?.step_name ?? end?.step_name],
+        ["gate_span_id", start?.gate_span_id ?? end?.gate_span_id],
+        ...stepEndAttrs(end),
+        ["step_attributes", stepAttributesJson(start, end)],
+      ],
+    }),
+  }),
+  [EventType.STEP_END]: spec<StepEndData, StepEndData>({
+    category: "chain_operation",
+    title: (d) => d.step_name,
+    status: (d) => stepEndStatus(d),
+    point: (d) => ({
+      output: asJson(d?.output_summary),
+      attrs: [
+        ["step_name", d?.step_name],
+        ["gate_span_id", d?.gate_span_id],
+        ...stepEndAttrs(d),
+        ["step_attributes", stepAttributesJson(null, d)],
+      ],
+    }),
+    pairStatus: (_start, end) => stepEndStatus(end),
+  }),
+  [EventType.GATE_START]: spec<GateStartData, GateEndData>({
+    category: "guardrail",
+    title: (d) => d.gate_name,
+    status: "pending",
+    point: (d) => ({
+      input: asNonEmptyArrayJson(d?.checks),
+      attrs: [
+        ["gate_name", d?.gate_name],
+        ["check_count", d?.checks?.length],
+      ],
+    }),
+    pair: (start, end) => ({
+      input: asNonEmptyArrayJson(start?.checks),
+      output: asNonEmptyArrayJson(end?.checks),
+      attrs: [
+        ["gate_name", start?.gate_name ?? end?.gate_name],
+        ["check_count", start?.checks?.length],
+        ...gateEndAttrs(end),
+      ],
+    }),
+  }),
+  [EventType.GATE_END]: spec<GateEndData, GateEndData>({
+    category: "guardrail",
+    title: (d) => d.gate_name,
+    status: (d) => gateVerdictStatus(d?.verdict),
+    point: (d) => ({
+      output: asNonEmptyArrayJson(d?.checks),
+      attrs: [["gate_name", d?.gate_name], ...gateEndAttrs(d)],
+    }),
+    pairStatus: (_start, end) => gateVerdictStatus(end?.verdict),
   }),
   [EventType.ERROR]: spec<ErrorData>({
     status: "error",
@@ -619,6 +869,15 @@ export function extractSpanPayload(paired: PairedEvent): SpanPayload {
   // span's attribute set (and the characterization snapshots) stay unchanged.
   if (sourceEvent.type === EventType.PI_REQUEST_SNAPSHOT) {
     pushAttr(attrs, "run_id", sourceEvent.runId);
+  }
+  if (RUN_SCOPED_SPAN_EVENT_TYPES.has(sourceEvent.type)) {
+    const dataRunId = (sourceEvent.eventData as { run_id?: unknown } | null)?.run_id;
+    pushAttr(attrs, "span_id", sourceEvent.spanId);
+    pushAttr(
+      attrs,
+      "run_id",
+      sourceEvent.runId ?? (typeof dataRunId === "string" ? dataRunId : undefined),
+    );
   }
 
   let payload: Payload;

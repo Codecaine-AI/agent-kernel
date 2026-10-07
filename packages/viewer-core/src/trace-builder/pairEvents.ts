@@ -1,12 +1,14 @@
 /**
  * pairEvents.ts — Pair start/end TraceEvents into duration-bearing PairedEvent records.
  *
- * Handles four pairings driven by different keys:
+ * Handles these pairings, driven by different keys:
  *   - tool_call_start/end  → protocol spanId, with a LIFO fallback per
  *     (piSessionId, tool_name) for legacy events that lack a spanId
  *   - agent_run_start/end  → keyed by eventData.run_id
  *   - context_build_*      → keyed by spanId
  *   - ui_ask_requested/answered → keyed by eventData.tool_use_id
+ *   - call_start/end       → keyed by eventData.run_id (model-node run)
+ *   - step_* / gate_*      → keyed by spanId (step / gate span id)
  *
  * Unpaired / unknown events flow through as `point` entries preserving input order.
  */
@@ -46,6 +48,21 @@ const KEYED_PAIRINGS: KeyedPairing[] = [
     startType: UI_ASK_REQUESTED,
     endType: UI_ASK_ANSWERED,
     keyOf: (event) => (event.eventData as { tool_use_id?: string } | null)?.tool_use_id,
+  },
+  {
+    startType: EventType.CALL_START,
+    endType: EventType.CALL_END,
+    keyOf: (event) => (event.eventData as { run_id?: string } | null)?.run_id,
+  },
+  {
+    startType: EventType.STEP_START,
+    endType: EventType.STEP_END,
+    keyOf: (event) => event.spanId ?? undefined,
+  },
+  {
+    startType: EventType.GATE_START,
+    endType: EventType.GATE_END,
+    keyOf: (event) => event.spanId ?? undefined,
   },
 ];
 

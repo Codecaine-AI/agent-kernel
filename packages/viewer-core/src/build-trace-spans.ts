@@ -5,9 +5,13 @@
  * Pipeline (each stage lives in ./trace-builder/):
  *   pairEvents         → fold start/end pairs into PairedEvent
  *   toEventSpans       → PairedEvent → TraceSpan, bucketed per PI session
- *   nestPiSpans        → context inputs → provisioning → per-turn grouping
+ *   nestPiSpans        → context inputs → provisioning → per-turn grouping →
+ *                        nested tools under their parent tool span
  *   wrapSpansInRuns    → drop each PI bucket's spans into agent_run wrappers
- *   buildAgentForest   → PI spans hosted under their spawner's tool_call
+ *   buildAgentForest   → PI spans hosted under their spawner's tool_call;
+ *                        call/decision sessions become node rows
+ *   foldGateChildren   → gate checks (steps, decisions) under their gate
+ *   attachRunScopedSpans → node rows, steps and gates under their parent run
  *   collectContainerRanges → container events + summaries → ContainerRange map
  *   groupRoots         → hoist roots under phase and/or container spans
  *
@@ -31,6 +35,14 @@ import {
   groupSpansByTurn,
   groupSpansByUserMessage,
 } from "./trace-builder/nesting";
+import {
+  attachRunScopedSpans,
+  foldGateChildren,
+  isNodeSession,
+  nestToolSpans,
+  NODE_LIFECYCLE_EVENT_TYPES,
+  toNodeSpans,
+} from "./trace-builder/model-nodes";
 import { extractPhaseSpans, groupAgentsByPhase, type PhaseRange } from "./trace-builder/phaseGrouping";
 import {
   containerSummariesToRanges,
@@ -73,6 +85,8 @@ interface EventSpanIndex {
   /** span id → envelope runId; explicit run linkage stamped at emit time,
    * preferred over timestamp reconstruction wherever the emitter set it. */
   runIdBySpanId: Map<string, string>;
+  /** span id → source events, for the model-node lifecycle spans node rows absorb. */
+  pairedBySpanId: Map<string, PairedEvent>;
 }
 
 interface EventSpanBuckets {
@@ -91,6 +105,7 @@ function toEventSpans(paired: PairedEvent[]): EventSpanBuckets {
     typeById: new Map(),
     protocolSpanIdById: new Map(),
     runIdBySpanId: new Map(),
+    pairedBySpanId: new Map(),
   };
 
   for (const p of paired) {
@@ -101,6 +116,7 @@ function toEventSpans(paired: PairedEvent[]): EventSpanBuckets {
     index.typeById.set(span.id, sourceEvent.type);
     if (sourceEvent.spanId) index.protocolSpanIdById.set(span.id, sourceEvent.spanId);
     if (sourceEvent.runId) index.runIdBySpanId.set(span.id, sourceEvent.runId);
+    if (NODE_LIFECYCLE_EVENT_TYPES.has(sourceEvent.type)) index.pairedBySpanId.set(span.id, p);
 
     if (!sourceEvent.piSessionId) {
       orphanSpans.push(span);
@@ -118,7 +134,7 @@ function toEventSpans(paired: PairedEvent[]): EventSpanBuckets {
   return { spansByPi, orphanSpans, index };
 }
 
-/** Stage: nest each PI bucket — context inputs under their build, provisioning wrapper, tools under their turn, one block per user turn. */
+/** Stage: nest each PI bucket — context inputs under their build, provisioning wrapper, tools under their turn, one block per user turn, nested tools under their parent tool. */
 function nestPiSpans(spansByPi: Map<string, TraceSpan[]>, index: EventSpanIndex): void {
   for (const [piId, list] of spansByPi.entries()) {
     const contextGrouped = groupContextInputsByBuild(list, index.typeById, index.protocolSpanIdById);
@@ -135,7 +151,8 @@ function nestPiSpans(spansByPi: Map<string, TraceSpan[]>, index: EventSpanIndex)
       index.typeById,
       index.runIdBySpanId,
     );
-    spansByPi.set(piId, groupSpansByUserMessage(turnGrouped, index.typeById));
+    const userGrouped = groupSpansByUserMessage(turnGrouped, index.typeById);
+    spansByPi.set(piId, nestToolSpans(userGrouped, index.typeById));
   }
 }
 
@@ -171,6 +188,8 @@ function wrapSpansInRuns(
 /**
  * Stage: PI sessions → agent spans; sub-agents nest under their spawner's
  * tool_call span (parentSessionId + parentToolUseId), the rest are roots.
+ * Call/decision sessions become node rows (roots here; attachRunScopedSpans
+ * places them under their parent run).
  */
 function buildAgentForest(
   piSessions: PiAgentSession[],
@@ -200,7 +219,14 @@ function buildAgentForest(
   });
 
   const agentSpansById = new Map<string, TraceSpan>();
+  const nodeRows: TraceSpan[] = [];
   for (const pi of piSessions) {
+    if (isNodeSession(pi)) {
+      const runs = runsByPi.get(pi.id) ?? [];
+      const spans = buckets.spansByPi.get(pi.id) ?? [];
+      nodeRows.push(...toNodeSpans(pi, runs, spans, buckets.index));
+      continue;
+    }
     const children = wrapSpansInRuns(
       pi.id,
       buckets.spansByPi.get(pi.id) ?? [],
@@ -230,6 +256,7 @@ function buildAgentForest(
     }
   }
 
+  roots.push(...nodeRows);
   roots.push(...buckets.orphanSpans);
   roots.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   return roots;
@@ -302,7 +329,8 @@ export function buildTraceSpans(
 
   const buckets = toEventSpans(pairEvents(events));
   nestPiSpans(buckets.spansByPi, buckets.index);
-  const roots = buildAgentForest(piSessions, agentRuns, buckets);
+  const forest = buildAgentForest(piSessions, agentRuns, buckets);
+  const roots = attachRunScopedSpans(foldGateChildren(forest), agentRuns);
 
   const phaseMap = extractPhaseSpans(events);
   const containerMap = collectContainerRanges(events, containers);

@@ -27,17 +27,28 @@ import type {
 
 export { EventType, TraceLevel } from "@agent-kernel/protocol";
 export type {
+	AbstainReason,
 	AgentRunEndData,
 	AgentRunStartData,
 	AgentSessionEndData,
 	AgentSessionStartData,
 	AssistantMessageData,
+	CallEndData,
+	CallStartData,
+	ConfidenceSource,
 	ContainerEndData,
 	ContainerStartData,
 	ContextBuildCompletedData,
 	ContextBuildStartedData,
 	ContextInputResolvedData,
+	Decision,
+	DecisionMadeData,
 	ErrorData,
+	GateCheckRecord,
+	GateEndData,
+	GateStartData,
+	ModelNodeKind,
+	NodeEngineId,
 	PhaseEndData,
 	PhaseStartData,
 	PiTurnEndData,
@@ -46,7 +57,10 @@ export type {
 	PiRequestSnapshotTool,
 	PostToolHookData,
 	PreToolHookData,
+	StepEndData,
+	StepStartData,
 	SystemPromptResolvedData,
+	ThresholdApplied,
 	ToolCallEndData,
 	ToolCallStartData,
 	TraceSource,
@@ -77,6 +91,17 @@ export interface UIAskAnsweredData {
 	exchanges?: unknown;
 	[key: string]: unknown;
 }
+
+/**
+ * Synthetic `event_type` attribute values on the rows built for model-node
+ * sessions (kind "call" / "decision"). A node row stands for one placement of
+ * a session; when that placement holds several runs (retry attempts), each run
+ * becomes an attempt row under the node row.
+ */
+export const CALL_CONTAINER = "call_container";
+export const DECISION_CONTAINER = "decision_container";
+export const CALL_ATTEMPT = "call_attempt";
+export const DECISION_ATTEMPT = "decision_attempt";
 
 /**
  * One container row as the viewer sees it — mirrors the kernel db
@@ -132,6 +157,8 @@ export type TraceEvent = TraceEventRow;
 export interface PiAgentSession {
 	id: string;
 	containerId: string;
+	/** Session kind: model-node sessions are "call" or "decision"; absent means "pi". */
+	kind?: "pi" | "call" | "decision" | (string & {}) | null;
 	parentSessionId?: string | null;
 	parentToolUseId?: string | null;
 	agentName: string;

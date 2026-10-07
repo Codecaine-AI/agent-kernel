@@ -5,16 +5,32 @@
  *   - toEventSpan: `id` = TraceEvent.eventId (flows back to page selectedId)
  *   - toAgentSpan: `id` = `pi:<piSessionUuid>` — attributes include event_type=pi_agent_container
  *   - toRunSpan:   `id` = `run:<agentRunUuid>` — attributes include event_type=run_container
+ *   - toNodeSpan:  model-node rows; the caller picks the id (`pi:<sessionId>`,
+ *                  `run:<runId>`, or `attempt:<runId>`) and the event_type
+ *                  (call/decision container or attempt), see model-nodes.ts
  */
 
 import type { TraceSpan, TraceSpanAttribute, TraceSpanStatus } from "@evilmartians/agent-prism-types";
 
-import type { AgentRun } from "../types";
+import type {
+  AgentRun,
+  CallEndData,
+  CallStartData,
+  DecisionMadeData,
+  TraceEvent,
+} from "../types";
 import type { PiAgentSession } from "../types";
 
 import type { PairedEvent } from "./pairEvents";
 import type { ContainerRange } from "./containerGrouping";
-import { categoryFor, extractSpanPayload, pushAttr, statusFor, titleFor } from "./spanAttributes";
+import {
+  callEndStatus,
+  categoryFor,
+  extractSpanPayload,
+  pushAttr,
+  statusFor,
+  titleFor,
+} from "./spanAttributes";
 
 function containerStatusFor(status: string | null | undefined): TraceSpanStatus {
   if (status === "error" || status === "failed" || status === "blocked") return "error";
@@ -135,5 +151,134 @@ export function toRunSpan(
     raw: JSON.stringify(run),
     attributes: attrs,
     children,
+  };
+}
+
+/** One model-node run's lifecycle events, as absorbed into its row. */
+export interface NodeRunSource {
+  run: AgentRun;
+  start: TraceEvent | null;
+  end: TraceEvent | null;
+  decision: TraceEvent | null;
+}
+
+type NodeAttrValue = string | number | boolean | null | undefined;
+
+export interface NodeSpanShape {
+  id: string;
+  /** call_container | decision_container | call_attempt | decision_attempt. */
+  eventType: string;
+  title: string;
+  /** The placement this row hangs under (parent run, gate). */
+  parentRunId: string | null;
+  gateSpanId: string | null;
+  children: TraceSpan[];
+  /** Overrides the source's start: a multi-attempt row starts at its first attempt. */
+  startTime?: Date;
+  /** Appended after the node attributes (attempt counters). */
+  extraAttrs?: ReadonlyArray<readonly [key: string, value: NodeAttrValue]>;
+}
+
+function nodeStatusFor(source: NodeRunSource): TraceSpanStatus {
+  const end = source.end?.eventData as CallEndData | null | undefined;
+  if (!end) {
+    const status = source.run.status;
+    if (status === "running") return "pending";
+    if (status === "error") return "error";
+    if (status === "aborted") return "warning";
+    return "success";
+  }
+  const status = callEndStatus(end.status);
+  const decision = source.decision?.eventData as DecisionMadeData | null | undefined;
+  return status === "success" && decision?.abstained === true ? "warning" : status;
+}
+
+/**
+ * A model-node row (call or decision, node row or attempt row) built from one
+ * run's call_start / call_end / decision_made. Status: call_end.status
+ * (ok → success, error → error, aborted → warning), an abstained decision is
+ * a warning, and a run with no call_end follows its run status (running →
+ * pending). A decision's output is its decision_made payload as JSON.
+ */
+export function toNodeSpan(
+  pi: PiAgentSession,
+  source: NodeRunSource,
+  shape: NodeSpanShape,
+): TraceSpan {
+  const start = source.start?.eventData as CallStartData | null | undefined;
+  const end = source.end?.eventData as CallEndData | null | undefined;
+  const decision = source.decision?.eventData as DecisionMadeData | null | undefined;
+  const { run } = source;
+
+  const startTime =
+    shape.startTime ?? new Date(source.start?.timestamp ?? run.startedAt);
+  const endIso = source.end?.timestamp ?? run.endedAt ?? null;
+  const lastChildEnd = Math.max(
+    startTime.getTime(),
+    ...shape.children.map((child) => child.endTime.getTime()),
+  );
+  const endTime = endIso ? new Date(endIso) : new Date(lastChildEnd);
+
+  const attrs: TraceSpanAttribute[] = [];
+  pushAttr(attrs, "event_type", shape.eventType);
+  pushAttr(attrs, "node_kind", start?.node_kind ?? end?.node_kind ?? pi.kind);
+  pushAttr(
+    attrs,
+    "function_name",
+    start?.function_name ?? end?.function_name ?? decision?.decision_name ?? run.agentName,
+  );
+  pushAttr(attrs, "engine", start?.engine ?? decision?.engine);
+  pushAttr(attrs, "transport", start?.transport);
+  pushAttr(attrs, "model", end?.resolved_model ?? decision?.model ?? start?.model ?? pi.model);
+  pushAttr(attrs, "requested_model", start?.model ?? decision?.requested_model);
+  pushAttr(attrs, "api", start?.api ?? decision?.api);
+  pushAttr(attrs, "provider", start?.provider ?? decision?.provider);
+  pushAttr(attrs, "status", end?.status ?? run.status);
+  pushAttr(attrs, "trigger", start?.trigger ?? run.trigger);
+  pushAttr(attrs, "run_id", run.id);
+  pushAttr(attrs, "parent_run_id", shape.parentRunId);
+  pushAttr(attrs, "prompt_hash", start?.prompt_hash);
+  pushAttr(attrs, "input_blob_hash", start?.input_blob_hash);
+  pushAttr(attrs, "output_blob_hash", end?.output_blob_hash);
+  pushAttr(attrs, "duration_ms", end?.duration_ms);
+  pushAttr(attrs, "attempts", end?.attempts);
+  pushAttr(attrs, "abstained", decision?.abstained);
+  pushAttr(attrs, "abstain_reason", decision?.abstain_reason);
+  pushAttr(attrs, "chosen", decision?.chosen);
+  pushAttr(attrs, "confidence_source", decision?.confidence_source);
+  pushAttr(attrs, "gate_span_id", shape.gateSpanId);
+  pushAttr(attrs, "container_id", run.containerId);
+  pushAttr(attrs, "piSessionUuid", pi.id);
+  pushAttr(attrs, "model_alias", start?.model_alias);
+  pushAttr(attrs, "parent_tool_use_id", start?.parent_tool_use_id ?? run.parentToolUseId);
+  pushAttr(attrs, "request_id", start?.request_id);
+  pushAttr(attrs, "attempt", start?.attempt);
+  pushAttr(attrs, "error_kind", end?.error?.kind ?? decision?.error_kind);
+  pushAttr(attrs, "error_message", end?.error?.message);
+  pushAttr(attrs, "http_status", end?.error?.http_status);
+  pushAttr(attrs, "input_tokens", end?.usage?.inputTokens);
+  pushAttr(attrs, "output_tokens", end?.usage?.outputTokens);
+  pushAttr(attrs, "cache_read_tokens", end?.usage?.cacheReadTokens);
+  pushAttr(attrs, "cache_write_tokens", end?.usage?.cacheWriteTokens);
+  pushAttr(attrs, "cost_estimate", end?.usage?.costEstimate);
+  for (const [key, value] of shape.extraAttrs ?? []) pushAttr(attrs, key, value);
+
+  return {
+    id: shape.id,
+    title: shape.title,
+    startTime,
+    endTime,
+    duration: endTime.getTime() - startTime.getTime(),
+    type: "llm_call",
+    status: nodeStatusFor(source),
+    raw: JSON.stringify({
+      run,
+      start: source.start,
+      end: source.end,
+      decision: source.decision,
+    }),
+    ...(decision ? { output: JSON.stringify(decision) } : {}),
+    attributes: attrs,
+    children: shape.children,
   };
 }
