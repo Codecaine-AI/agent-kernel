@@ -1,0 +1,220 @@
+{
+  "command": "bunx --bun tsc -p packages/tui/tsconfig.json --noEmit --pretty false",
+  "diagnostics": [
+    {
+      "file": "../canvas/packages/text-measure/src/backend.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/backend.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/backend.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/backend.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/coverage.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/coverage.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/coverage.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/font.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/index.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/index.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/index.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/index.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/index.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/index.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/measure.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/measure.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/measure.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/measure.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/measure.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/measure.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/measure.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/measure.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/pretext-binding.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/pretext-binding.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/pretext-context.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/pretext-context.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/pretext-context.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/pretext-runs.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/pretext-runs.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/pretext-runs.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/pretext-runs.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/pretext-segments.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/runs.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/runs.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/runs.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/runs.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/runs.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/runs.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/runs.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/table-backend.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/table-backend.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "../canvas/packages/text-measure/src/table-backend.ts",
+      "code": "TS5097",
+      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled."
+    },
+    {
+      "file": "catalog/docs-writer/tools/runtime.ts",
+      "code": "TS2678",
+      "message": "Type '\"quote\"' is not comparable to type '\"paragraph\" | \"code\" | \"image\" | \"heading\" | \"list-item\" | \"callout\" | \"divider\" | \"structured-table\" | \"file-tree\" | \"interaction-surface\" | \"state-shape\" | \"canvas\" | \"sequence\" | ... 8 more ... | \"file-explorer\"'."
+    }
+  ]
+}
