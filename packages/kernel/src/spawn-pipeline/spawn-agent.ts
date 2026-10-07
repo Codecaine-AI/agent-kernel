@@ -153,6 +153,19 @@ export interface KernelSpawnAgentResult {
 	responseText: string;
 	session: AgentSession;
 	aborted: boolean;
+	/**
+	 * The run this spawn opened — the same id `onRunStarted` reported. Pass it
+	 * as `parentRunId` to describe the finished run with a model node. On the
+	 * error path the spawn throws; capture the id with `onRunStarted` instead.
+	 *
+	 * The kernel's spawn pipeline always sets runId, containerId and
+	 * piSessionId; they are optional in the type only so results built by
+	 * hand (an app's spawn port and its test fakes) keep compiling.
+	 */
+	runId?: string;
+	containerId?: string;
+	/** The Pi session the run executed on (`session.sessionId`). */
+	piSessionId?: string;
 }
 
 export interface SpawnAgentLoggerLike {
@@ -576,6 +589,6 @@ export function createSpawnAgent(
 			sub.unsub();
 			sub.cleanupAbort();
 		}
-		return sub.readResult();
+		return { ...sub.readResult(), runId, containerId, piSessionId: session.sessionId };
 	};
 }

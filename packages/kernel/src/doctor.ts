@@ -5,8 +5,8 @@
  *
  *   1. Every trace_events.container_id exists in containers
  *   2. Every agent_runs.container_id and .pi_session_id resolve
- *   3. Every child session's parent_session_id resolves and carries
- *      parent_tool_use_id
+ *   3. Every child Pi session's parent_session_id resolves and carries
+ *      parent_tool_use_id (model-node sessions are checked by 9 instead)
  *   4. Every run reaches a terminal status, or its session is still active
  *   5. Every tool_call_start has a matching end, or its run ended abnormally
  *   6. The container tree has no cycles; every container has a kind
@@ -15,6 +15,17 @@
  *      session rollup, and the sum per container equals the container
  *      rollup. Rows written before Phase 2 carry all-zero usage on both
  *      sides and pass trivially.
+ *
+ * Model nodes (sessions of kind "call" / "decision"):
+ *
+ *   9. Node shape: a node run has no tool_call_start, a done node run has at
+ *      least one pi_turn_end, and a node session has no parent session
+ *  10. Node span pairing: every call_start has a call_end with the same
+ *      run_id unless that run is still running (recovery writes the aborted
+ *      end); every step_start / gate_start has its end by span_id unless
+ *      the envelope run is still running or ended abnormally
+ *  11. Every done decision run has exactly one decision_made
+ *  12. Every node run's inbound_event_id resolves to its own call_start
  */
 
 import { relative } from "node:path";
@@ -22,7 +33,9 @@ import { relative } from "node:path";
 import {
 	agentRuns,
 	containers,
+	piAgentSessionSelection,
 	piAgentSessions,
+	SESSION_KIND,
 	traceEvents,
 	type KernelDatabase,
 } from "@agent-kernel/db";
@@ -66,6 +79,12 @@ export interface DoctorReport {
 
 const TERMINAL_RUN_STATUSES = new Set(["done", "error", "aborted", "turn-limit"]);
 const ABNORMAL_RUN_STATUSES = new Set(["error", "aborted", "turn-limit"]);
+const NODE_SESSION_KINDS = new Set<string>([SESSION_KIND.CALL, SESSION_KIND.DECISION]);
+
+/** Rows written before the kind column existed read as Pi sessions. */
+function isPiSessionKind(kind: string | null | undefined): boolean {
+	return kind == null || kind === SESSION_KIND.PI;
+}
 
 interface ViolationCollector {
 	invariant: number;
@@ -109,6 +128,8 @@ export async function runTraceDoctor(db: KernelDatabase): Promise<DoctorReport> 
 			status: piAgentSessions.status,
 			usageInputTokens: piAgentSessions.usageInputTokens,
 			usageOutputTokens: piAgentSessions.usageOutputTokens,
+			// Reads as "pi" on a database that predates the column.
+			kind: piAgentSessionSelection(db).kind,
 		})
 		.from(piAgentSessions);
 	const runRows = await db
@@ -116,6 +137,7 @@ export async function runTraceDoctor(db: KernelDatabase): Promise<DoctorReport> 
 			id: agentRuns.id,
 			containerId: agentRuns.containerId,
 			piSessionId: agentRuns.piSessionId,
+			inboundEventId: agentRuns.inboundEventId,
 			status: agentRuns.status,
 			usageInputTokens: agentRuns.usageInputTokens,
 			usageOutputTokens: agentRuns.usageOutputTokens,
@@ -131,6 +153,7 @@ export async function runTraceDoctor(db: KernelDatabase): Promise<DoctorReport> 
 			runId: traceEvents.runId,
 			type: traceEvents.type,
 			eventData: traceEvents.eventData,
+			spanId: traceEvents.spanId,
 		})
 		.from(traceEvents);
 
@@ -163,6 +186,7 @@ export async function runTraceDoctor(db: KernelDatabase): Promise<DoctorReport> 
 	});
 
 	// 3. Child sessions: parent resolves and parent_tool_use_id is carried.
+	// Pi sessions only; a model-node session never has a parent (invariant 9).
 	collect(violations, {
 		invariant: 3,
 		name: "child-session-linkage",
@@ -171,6 +195,7 @@ export async function runTraceDoctor(db: KernelDatabase): Promise<DoctorReport> 
 		ids: sessionRows
 			.filter(
 				(s) =>
+					isPiSessionKind(s.kind) &&
 					s.parentSessionId != null &&
 					(!sessionById.has(s.parentSessionId) || !s.parentToolUseId),
 			)
@@ -335,6 +360,124 @@ export async function runTraceDoctor(db: KernelDatabase): Promise<DoctorReport> 
 			.map((c) => c.id),
 	});
 
+	// 9–12. Model nodes. One pass over the events gathers what each check
+	// needs; a node run is a run whose session kind is "call" or "decision".
+	const isNodeRun = (r: (typeof runRows)[number]) =>
+		NODE_SESSION_KINDS.has(sessionById.get(r.piSessionId)?.kind ?? SESSION_KIND.PI);
+	const nodeRuns = runRows.filter(isNodeRun);
+	const runIdsWithToolStart = new Set<string>();
+	const runIdsWithTurnEnd = new Set<string>();
+	const runIdsWithCallEnd = new Set<string>();
+	const endedSpanKeys = new Set<string>();
+	const decisionMadeCount = new Map<string, number>();
+	const callStartById = new Map<string, (typeof eventRows)[number]>();
+	for (const e of eventRows) {
+		switch (e.type) {
+			case "tool_call_start":
+				if (e.runId) runIdsWithToolStart.add(e.runId);
+				break;
+			case "pi_turn_end":
+				if (e.runId) runIdsWithTurnEnd.add(e.runId);
+				break;
+			case "call_start":
+				callStartById.set(e.eventId, e);
+				break;
+			case "call_end": {
+				const runId = nodeRunIdOf(e);
+				if (runId) runIdsWithCallEnd.add(runId);
+				break;
+			}
+			case "decision_made": {
+				const runId = nodeRunIdOf(e);
+				if (runId) decisionMadeCount.set(runId, (decisionMadeCount.get(runId) ?? 0) + 1);
+				break;
+			}
+			case "step_end":
+			case "gate_end":
+				if (e.spanId) endedSpanKeys.add(spanKey(e.type, e.spanId));
+				break;
+		}
+	}
+
+	// 9. Node shape: no tool calls, done means at least one turn, no parent session.
+	const nodeShapeIds = new Set<string>();
+	for (const r of nodeRuns) {
+		if (runIdsWithToolStart.has(r.id)) nodeShapeIds.add(r.id);
+		if (r.status === "done" && !runIdsWithTurnEnd.has(r.id)) nodeShapeIds.add(r.id);
+	}
+	for (const s of sessionRows) {
+		if (NODE_SESSION_KINDS.has(s.kind) && s.parentSessionId != null) {
+			nodeShapeIds.add(s.id);
+		}
+	}
+	collect(violations, {
+		invariant: 9,
+		name: "model-node-shape",
+		description:
+			"call/decision runs must carry no tool_call_start and, when done, at least one pi_turn_end; their sessions have no parent session",
+		ids: [...nodeShapeIds],
+	});
+
+	// 10. Node span pairing. call_start pairs by run_id; recovery synthesizes
+	// the aborted call_end, so only a still-running run is excused. Steps and
+	// gates pair by span id and are excused while their envelope run is
+	// running or after it ended abnormally.
+	collect(violations, {
+		invariant: 10,
+		name: "node-span-pairing",
+		description:
+			"call_start needs a call_end with the same run_id unless the run is running; step_start/gate_start need their end by span_id unless the run is running or ended abnormally",
+		ids: eventRows
+			.filter((e) => {
+				if (e.type === "call_start") {
+					const runId = nodeRunIdOf(e);
+					if (runId && runIdsWithCallEnd.has(runId)) return false;
+					const run = runId ? runById.get(runId) : undefined;
+					return run?.status !== "running";
+				}
+				if (e.type === "step_start" || e.type === "gate_start") {
+					const endType = e.type === "step_start" ? "step_end" : "gate_end";
+					if (e.spanId && endedSpanKeys.has(spanKey(endType, e.spanId))) return false;
+					const run = e.runId ? runById.get(e.runId) : undefined;
+					return !(
+						run &&
+						(run.status === "running" || ABNORMAL_RUN_STATUSES.has(run.status))
+					);
+				}
+				return false;
+			})
+			.map((e) => e.eventId),
+	});
+
+	// 11. Every done decision run has exactly one decision_made.
+	collect(violations, {
+		invariant: 11,
+		name: "decision-made",
+		description: "every done decision run must carry exactly one decision_made",
+		ids: nodeRuns
+			.filter(
+				(r) =>
+					r.status === "done" &&
+					sessionById.get(r.piSessionId)?.kind === SESSION_KIND.DECISION &&
+					(decisionMadeCount.get(r.id) ?? 0) !== 1,
+			)
+			.map((r) => r.id),
+	});
+
+	// 12. A node run's inbound_event_id is its own call_start.
+	collect(violations, {
+		invariant: 12,
+		name: "node-inbound-linkage",
+		description:
+			"call/decision agent_runs.inbound_event_id must resolve to that run's call_start",
+		ids: nodeRuns
+			.filter((r) => {
+				const start = r.inboundEventId ? callStartById.get(r.inboundEventId) : undefined;
+				return !start || nodeRunIdOf(start) !== r.id;
+			})
+			.map((r) => r.id),
+	});
+
 	const skipped: DoctorSkippedCheck[] = [];
 
 	return {
@@ -357,6 +500,19 @@ function toolUseIdOf(eventData: unknown): string | undefined {
 		if (typeof value === "string") return value;
 	}
 	return undefined;
+}
+
+/** The node run a call_start / call_end / decision_made describes: payload run_id, else the envelope. */
+function nodeRunIdOf(event: { runId: string | null; eventData: unknown }): string | undefined {
+	if (event.eventData && typeof event.eventData === "object") {
+		const value = (event.eventData as Record<string, unknown>).run_id;
+		if (typeof value === "string") return value;
+	}
+	return event.runId ?? undefined;
+}
+
+function spanKey(type: string, spanId: string): string {
+	return `${type}:${spanId}`;
 }
 
 /* ------------------------------------------------------------------------ *

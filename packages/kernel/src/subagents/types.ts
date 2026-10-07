@@ -90,4 +90,12 @@ export interface EnvInfo {
 
 export interface TraceWriterSink {
 	submit(event: TraceEvent): void;
+	/**
+	 * Optional. Writes a nested tool end that may replace a stored row with
+	 * the same event id: a `timing: "live"` event promotes an `"approximate"`
+	 * one, never the reverse. Emitters call it when present and fall back to
+	 * `submit`; a submit-only sink keeps working, but a late live end then
+	 * cannot replace an approximate row already stored.
+	 */
+	submitPromotable?(event: TraceEvent): void;
 }

@@ -66,6 +66,8 @@ export interface KernelPiSessionPayload {
 	eventCount: number;
 	usageInputTokens: number;
 	usageOutputTokens: number;
+	/** "pi" for agent conversations; "call" / "decision" for model-node sessions. */
+	kind: string;
 }
 
 export interface KernelAgentRunPayload {
@@ -260,6 +262,7 @@ function toPiSession(
 		eventCount: row.eventCount,
 		usageInputTokens: row.usageInputTokens,
 		usageOutputTokens: row.usageOutputTokens,
+		kind: row.kind ?? "pi",
 	};
 }
 

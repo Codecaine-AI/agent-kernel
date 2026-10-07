@@ -4,7 +4,11 @@
  * event_id). Writes are serialized behind an internal tail so the sync
  * `submit()` contract holds; read paths call `flush()` before serving.
  */
-import { insertTraceEventsBatch, type KernelDatabase } from "@agent-kernel/db";
+import {
+	insertTraceEventsBatch,
+	upsertPromotableTraceEvent,
+	type KernelDatabase,
+} from "@agent-kernel/db";
 import type { TraceEvent } from "@agent-kernel/protocol";
 
 import type { TraceWriterSink } from "./subagents/types";
@@ -24,19 +28,28 @@ export function createDbTraceWriter(
 ): KernelTraceWriter {
 	let tail: Promise<void> = Promise.resolve();
 
+	// Both write kinds share one tail, so a promotable end never overtakes
+	// the start it pairs with.
+	function enqueue(event: TraceEvent, write: () => Promise<unknown>): void {
+		tail = tail
+			.then(async () => {
+				await write();
+			})
+			.catch((error) => {
+				logger?.error("kernel trace write failed", {
+					error: error instanceof Error ? error.message : String(error),
+					eventId: event.eventId,
+					type: event.type,
+				});
+			});
+	}
+
 	return {
 		submit(event: TraceEvent): void {
-			tail = tail
-				.then(async () => {
-					await insertTraceEventsBatch(db, [event]);
-				})
-				.catch((error) => {
-					logger?.error("kernel trace write failed", {
-						error: error instanceof Error ? error.message : String(error),
-						eventId: event.eventId,
-						type: event.type,
-					});
-				});
+			enqueue(event, () => insertTraceEventsBatch(db, [event]));
+		},
+		submitPromotable(event: TraceEvent): void {
+			enqueue(event, () => upsertPromotableTraceEvent(db, event));
 		},
 		async flush(): Promise<void> {
 			let current = tail;

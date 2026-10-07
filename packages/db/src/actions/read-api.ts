@@ -23,7 +23,14 @@ export interface KernelTraceReadOptions {
   maxContainers?: number;
 }
 
-export interface PiAgentSessionWithEventCount extends PiAgentSession {
+/**
+ * `kind` is optional here so callers that build rows by hand (fixtures in
+ * linked consumers) keep compiling; reads always fill it, and a missing
+ * value means "pi".
+ */
+export interface PiAgentSessionWithEventCount
+  extends Omit<PiAgentSession, "kind"> {
+  kind?: PiAgentSession["kind"];
   eventCount: number;
 }
 
