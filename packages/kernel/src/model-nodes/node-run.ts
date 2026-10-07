@@ -287,20 +287,13 @@ async function runClaimed<TOutcome>(
 	} catch (error) {
 		clearTimeout(timer);
 		ctx.logger?.error("model node execute threw", { ...logIds, error: errorName(error) });
-		await persistOrLog(ctx, db, spec, handle, failedExecution(error), logIds);
+		// The execution error reaches the caller only once the error completion committed.
+		await persistOrReject(ctx, db, spec, handle, failedExecution(error), logIds, { executionError: error });
 		throw error;
 	}
 	clearTimeout(timer);
 
-	try {
-		await persist(db, spec, handle, execution);
-	} catch (error) {
-		ctx.logger?.error("model node completion write failed", { ...logIds, error: errorName(error) });
-		throw new KernelNodeError("row-write-failed", `${spec.kind} ${spec.name}: completion write failed`, {
-			cause: error,
-			value: execution.outcome,
-		});
-	}
+	await persistOrReject(ctx, db, spec, handle, execution, logIds, { value: execution.outcome });
 
 	return { outcome: execution.outcome, ids, replayed: false, coalesced: false, attempt: claim.attempt };
 }
@@ -363,18 +356,28 @@ async function persist<TOutcome>(
 	});
 }
 
-async function persistOrLog<TOutcome>(
+/**
+ * `persist`, or reject with KernelNodeError("row-write-failed") carrying the
+ * write failure as `cause` (the run stays "running"; §4.6). `attach` keeps the
+ * computed value, or the execution error of a run whose engine step threw.
+ */
+async function persistOrReject<TOutcome>(
 	ctx: ModelNodeContext,
 	db: KernelDatabase,
 	spec: NodeRunSpec<TOutcome>,
 	handle: NodeRunHandle,
 	execution: NodeExecution<TOutcome>,
 	logIds: Record<string, unknown>,
+	attach: { value: TOutcome } | { executionError: unknown },
 ): Promise<void> {
 	try {
 		await persist(db, spec, handle, execution);
 	} catch (error) {
 		ctx.logger?.error("model node completion write failed", { ...logIds, error: errorName(error) });
+		throw new KernelNodeError("row-write-failed", `${spec.kind} ${spec.name}: completion write failed`, {
+			cause: error,
+			...attach,
+		});
 	}
 }
 

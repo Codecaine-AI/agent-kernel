@@ -436,6 +436,39 @@ describe("runModelNode", () => {
 		await expectDoctorOk(temp.db);
 	});
 
+	test("an engine step that throws and then fails its completion write surfaces row-write-failed", async () => {
+		// The database rejects every call_end, so closing the failed run cannot commit.
+		temp.db.run(
+			sql.raw(
+				"CREATE TRIGGER reject_call_end BEFORE INSERT ON trace_events WHEN NEW.type = 'call_end' BEGIN SELECT RAISE(ABORT, 'call_end rejected'); END",
+			),
+		);
+		const boom = new Error("engine step failed");
+		let runId = "";
+		let sessionId = "";
+		const err = await expectNodeError(
+			runModelNode(
+				contextFor(temp.db),
+				fakeNodeSpec({
+					scope: scope(),
+					invoke(run) {
+						runId = run.ids.runId;
+						sessionId = run.ids.sessionId;
+						throw boom;
+					},
+				}),
+			),
+			"row-write-failed",
+		);
+		expect(err.cause).toBeInstanceOf(Error);
+		expect((err.cause as Error).message).toContain("call_end rejected");
+		expect(err.executionError).toBe(boom);
+		// Nothing of the error completion committed: the run is still running, its session active.
+		expect((await getAgentRun(temp.db, runId))?.status).toBe("running");
+		expect((await getPiAgentSession(temp.db, sessionId))?.status).toBe("active");
+		expect(await getTraceEventsForRun(temp.db, runId, ["call_end"])).toEqual([]);
+	});
+
 	test("a kernel without a database rejects with no-db before any work", async () => {
 		const ctx = createModelNodeContext({ kernelId: "no-db-kernel" });
 		let invocations = 0;

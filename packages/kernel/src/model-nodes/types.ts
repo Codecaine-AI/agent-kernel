@@ -68,12 +68,15 @@ export interface KernelNodeErrorOptions {
 	value?: unknown;
 	/** A computed gate result whose gate_end write failed (§3.6). */
 	gateResult?: GateResult;
+	/** The error a node's engine step threw, when closing that run then failed to write. */
+	executionError?: unknown;
 }
 
 export class KernelNodeError extends Error {
 	readonly code: KernelNodeErrorCode;
 	readonly value?: unknown;
 	readonly gateResult?: GateResult;
+	readonly executionError?: unknown;
 
 	constructor(code: KernelNodeErrorCode, message?: string, options: KernelNodeErrorOptions = {}) {
 		super(message ?? code, options.cause !== undefined ? { cause: options.cause } : undefined);
@@ -81,6 +84,7 @@ export class KernelNodeError extends Error {
 		this.code = code;
 		if ("value" in options) this.value = options.value;
 		if (options.gateResult !== undefined) this.gateResult = options.gateResult;
+		if ("executionError" in options) this.executionError = options.executionError;
 	}
 }
 
