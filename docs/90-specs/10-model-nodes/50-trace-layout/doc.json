@@ -85,18 +85,6 @@
       "props": {},
       "text": [
         {
-          "insert": "Status: proposal, nothing built. "
-        },
-        {
-          "insert": "spawnAgent",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " and its events exist today. "
-        },
-        {
           "insert": "kernel.call",
           "attributes": {
             "code": true
@@ -112,43 +100,55 @@
           }
         },
         {
+          "insert": ", "
+        },
+        {
+          "insert": "kernel.step",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
           "insert": ", and "
         },
         {
-          "insert": "kernel.step",
+          "insert": "kernel.gate",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " do not. "
+          "insert": " are built with their trace events on "
         },
         {
-          "insert": "kernel.step",
+          "insert": "feat/model-nodes",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " and its "
+          "insert": ". "
         },
         {
-          "insert": "step_start",
+          "insert": "spawnAgent",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " and "
+          "insert": " is unchanged. "
         },
         {
-          "insert": "step_end",
+          "insert": "Build Status and Deviations",
           "attributes": {
-            "code": true
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/80-build-status"
+            }
           }
         },
         {
-          "insert": " events are new in this spec."
+          "insert": " lists where the build departs from this page."
         }
       ],
       "children": []
@@ -192,7 +192,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Proposed flow. Decisions reach Jev only through Pi "
+          "insert": "Decisions reach Jev only through Pi "
         },
         {
           "insert": "classify()",
@@ -229,7 +229,7 @@
           }
         },
         {
-          "insert": " with the model alias "
+          "insert": " with the pinned model "
         },
         {
           "insert": "typesafe/jev-1.13.0",
@@ -409,7 +409,7 @@
                         "trace": true,
                         "steps": [
                           {
-                            "text": "The payload records `engine: \"jev\"`, `provider: \"typesafe\"`, `model: \"jev-1.13.0\"`, and `api: \"typesafe-system-one\"`.",
+                            "text": "The payload records `engine: \"jev\"`, `provider: \"typesafe\"`, served `model: \"typesafe/jev-1.13.0\"`, `requested_model: \"typesafe/jev-1.13.0\"`, and `api: \"typesafe-system-one\"`.",
                             "kind": "note"
                           },
                           {
@@ -431,7 +431,7 @@
                             "kind": "note"
                           },
                           {
-                            "text": "0.64 clears the 0.5 floor, so `abstained` is false and `abstainReason` is absent.",
+                            "text": "The top option, 0.71, clears the `minTop` floor and leads by at least `minMargin`, so `abstained` is false and `abstainReason` is absent.",
                             "kind": "note"
                           }
                         ]
@@ -509,16 +509,13 @@
       "props": {},
       "text": [
         {
-          "insert": "Two run fields place a call or decision in the tree: "
-        },
-        {
-          "insert": "parentRunId",
+          "insert": "agent_runs.parent_run_id",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " names the worker run, and "
+          "insert": " places a call or decision under the worker run. "
         },
         {
           "insert": "trigger",
@@ -527,37 +524,37 @@
           }
         },
         {
-          "insert": " says why it ran. Steps have no run of their own. A step attaches through the "
+          "insert": " records why it ran and plays no part in placement. A step attaches through the "
         },
         {
-          "insert": "runId",
+          "insert": "run_id",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " stamped on its event, the same explicit linkage "
+          "insert": " on its event, and "
         },
         {
-          "insert": "bucketSpansByRun",
+          "insert": "attachRunScopedSpans",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " uses in "
+          "insert": " in "
         },
         {
-          "insert": "packages/viewer-core/src/trace-builder/runBucketing.ts",
+          "insert": "packages/viewer-core/src/trace-builder/model-nodes.ts",
           "attributes": {
             "reference": {
               "kind": "source",
-              "path": "packages/viewer-core/src/trace-builder/runBucketing.ts"
+              "path": "packages/viewer-core/src/trace-builder/model-nodes.ts"
             }
           }
         },
         {
-          "insert": "."
+          "insert": " hangs it under that run."
         }
       ],
       "children": []
@@ -818,6 +815,15 @@
                 "insert": ", "
               },
               {
+                "insert": "pi_turn_*",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
                 "insert": "pi_request_snapshot",
                 "attributes": {
                   "code": true
@@ -969,13 +975,40 @@
           "insert": " span shape, "
         },
         {
-          "insert": "step(name, attrs, async (span) => ...)",
+          "insert": "step(name, opts, fn)",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": ". The span ends when the callback settles."
+          "insert": ", where "
+        },
+        {
+          "insert": "fn",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " receives a "
+        },
+        {
+          "insert": "StepSpan",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "opts.attributes",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " holds start facts. The span ends when the callback settles."
         }
       ],
       "children": []
@@ -1038,43 +1071,25 @@
       },
       "text": [
         {
-          "insert": "Today the viewer nests a subagent session under the "
+          "insert": "The viewer nests call and decision rows by "
         },
         {
-          "insert": "spawn_agent",
+          "insert": "parent_run_id",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " tool call by "
+          "insert": ", and steps and gates by "
         },
         {
-          "insert": "tool_use_id",
+          "insert": "run_id",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": ". Nesting by "
-        },
-        {
-          "insert": "parentRunId",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " and "
-        },
-        {
-          "insert": "trigger",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " is the viewer change this spec proposes."
+          "insert": "."
         }
       ],
       "children": []
@@ -1200,25 +1215,16 @@
             "Input blob and output blob",
             [
               {
-                "insert": "inputBlobHash",
+                "insert": "input_blob_hash",
                 "attributes": {
                   "code": true
                 }
               },
               {
-                "insert": " on "
+                "insert": " and "
               },
               {
-                "insert": "call_start",
-                "attributes": {
-                  "code": true
-                }
-              },
-              {
-                "insert": ", "
-              },
-              {
-                "insert": "outputBlobHash",
+                "insert": "output_blob_hash",
                 "attributes": {
                   "code": true
                 }
@@ -1233,13 +1239,16 @@
                 }
               },
               {
-                "insert": ", bytes in "
+                "insert": ". "
               },
               {
-                "insert": "trace_blobs",
+                "insert": "call_start.input_blob_hash",
                 "attributes": {
                   "code": true
                 }
+              },
+              {
+                "insert": " is a placeholder written at claim"
               }
             ],
             "Rerun the extraction on the same input and diff the result"
@@ -1273,19 +1282,37 @@
             "Decision",
             [
               {
-                "insert": "Per-option probabilities, "
+                "insert": "Per-question "
               },
               {
-                "insert": "chosen",
+                "insert": "answers",
                 "attributes": {
                   "code": true
                 }
               },
               {
-                "insert": ", "
+                "insert": " with probabilities, "
               },
               {
                 "insert": "confidence",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and "
+              },
+              {
+                "insert": "abstainReason",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", plus top-level "
+              },
+              {
+                "insert": "chosen",
                 "attributes": {
                   "code": true
                 }
@@ -1300,10 +1327,10 @@
                 }
               },
               {
-                "insert": ", "
+                "insert": ", and "
               },
               {
-                "insert": "abstainReason",
+                "insert": "abstain_reason",
                 "attributes": {
                   "code": true
                 }
@@ -1339,16 +1366,16 @@
             "Decision",
             [
               {
-                "insert": "confidenceSource",
+                "insert": "confidence_source",
                 "attributes": {
                   "code": true
                 }
               },
               {
-                "insert": " and "
+                "insert": " and per-question "
               },
               {
-                "insert": "thresholdApplied",
+                "insert": "threshold_applied",
                 "attributes": {
                   "code": true
                 }
@@ -1389,6 +1416,15 @@
                 "insert": ", "
               },
               {
+                "insert": "api",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", served "
+              },
+              {
                 "insert": "model",
                 "attributes": {
                   "code": true
@@ -1398,7 +1434,7 @@
                 "insert": ", and "
               },
               {
-                "insert": "api",
+                "insert": "requested_model",
                 "attributes": {
                   "code": true
                 }
@@ -1425,7 +1461,7 @@
                 "insert": ", "
               },
               {
-                "insert": "jev-1.13.0",
+                "insert": "typesafe-system-one",
                 "attributes": {
                   "code": true
                 }
@@ -1434,7 +1470,7 @@
                 "insert": ", and "
               },
               {
-                "insert": "typesafe-system-one",
+                "insert": "typesafe/jev-1.13.0",
                 "attributes": {
                   "code": true
                 }
@@ -1451,35 +1487,37 @@
                 "insert": " row"
               }
             ],
-            [
-              {
-                "insert": "Names the route and the exact model id that "
-              },
-              {
-                "insert": "classify()",
-                "attributes": {
-                  "code": true
-                }
-              },
-              {
-                "insert": " reported"
-              }
-            ]
+            "Names the route and the served model id read from the wire response"
           ],
           [
             "Call, decision",
             [
               {
-                "insert": "Model version and "
+                "insert": "Requested model and "
               },
               {
-                "insert": "promptHash",
+                "insert": "prompt_hash",
                 "attributes": {
                   "code": true
                 }
               },
               {
-                "insert": ". For a decision the hash covers the questions and criteria"
+                "insert": ". The served model is "
+              },
+              {
+                "insert": "call_end.resolved_model",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " or "
+              },
+              {
+                "insert": "decision_made.model",
+                "attributes": {
+                  "code": true
+                }
               }
             ],
             [
@@ -1615,7 +1653,7 @@
       },
       "text": [
         {
-          "insert": "It is null or absent when the decision did not abstain, as for "
+          "insert": "It is absent when the decision did not abstain, as for "
         },
         {
           "insert": "R3",
@@ -1666,7 +1704,16 @@
           }
         },
         {
-          "insert": ", and Pi's codemode tool uses it. The kernel must capture these calls live from Pi events to show them as child tool spans. "
+          "insert": ", and Pi's codemode tool uses it. The kernel captures these calls live from Pi events and backfills them from the parent tool result's "
+        },
+        {
+          "insert": "nestedCalls",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
         },
         {
           "insert": "Pi 1.0 Alignment",
@@ -1764,7 +1811,16 @@
       },
       "text": [
         {
-          "insert": "Pi does not write nested calls to the session transcript."
+          "insert": "Pi records nested calls on the parent tool result as "
+        },
+        {
+          "insert": "nestedCalls",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", without results or start times."
         }
       ],
       "children": [
@@ -1780,7 +1836,16 @@
       },
       "text": [
         {
-          "insert": "The kernel nests each live call under its parent tool span by "
+          "insert": "The kernel derives each parent from the call id minus its final "
+        },
+        {
+          "insert": "/<n>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". It keeps that parent when Pi's "
         },
         {
           "insert": "parentToolCallId",
@@ -1789,7 +1854,7 @@
           }
         },
         {
-          "insert": "."
+          "insert": " differs."
         }
       ],
       "children": []
@@ -1802,7 +1867,7 @@
       },
       "text": [
         {
-          "insert": "The JSONL backfill in "
+          "insert": "Backfill in "
         },
         {
           "insert": "Transcript Recovery",
@@ -1814,7 +1879,25 @@
           }
         },
         {
-          "insert": " cannot rebuild them."
+          "insert": " rebuilds them from "
+        },
+        {
+          "insert": "nestedCalls",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as approximate spans. Live and backfill rows share "
+        },
+        {
+          "insert": "nestedToolEventId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ids, so they dedupe."
         }
       ],
       "children": []
@@ -1851,7 +1934,7 @@
       },
       "text": [
         {
-          "insert": "Once it ships, it fills "
+          "insert": "The kernel sets "
         },
         {
           "insert": "duration_ms",
@@ -1860,7 +1943,7 @@
           }
         },
         {
-          "insert": ", which the kernel never sets today."
+          "insert": " on nested tool ends and model-node turn ends. Top-level tool and agent turn ends omit it."
         }
       ],
       "children": []

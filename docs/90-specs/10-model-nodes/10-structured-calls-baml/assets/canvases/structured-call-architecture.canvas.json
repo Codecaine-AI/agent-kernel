@@ -43,7 +43,7 @@
     {
       "id": "call-sites",
       "type": "rectangle",
-      "text": "Call sites\nworker-summarizer today, four more like it",
+      "text": "Call sites\nadvisory adjudication, librarian feed, calibration",
       "color": "green",
       "parentId": "group-harness",
       "geometry": {
@@ -69,7 +69,7 @@
     {
       "id": "baml-client",
       "type": "rectangle",
-      "text": "baml_client/\ngenerated, committed",
+      "text": "src/generated/baml_client/\ngenerated, committed",
       "color": "green",
       "parentId": "group-harness",
       "geometry": {
@@ -173,7 +173,7 @@
     {
       "id": "trace-db",
       "type": "rectangle",
-      "text": "Trace DB\npi_agent_sessions (kind), agent_runs, turns, blobs",
+      "text": "Trace DB\npi_agent_sessions (kind), agent_runs, trace_events, trace_blobs",
       "color": "violet",
       "parentId": null,
       "geometry": {
@@ -222,7 +222,7 @@
         "objectId": "kernel-call",
         "anchor": "left"
       },
-      "label": "injected via createKernel({ functions })",
+      "label": "injected via createKernel({ calls })",
       "style": "solid",
       "arrow": "forward"
     },
@@ -250,7 +250,7 @@
         "objectId": "client-registry",
         "anchor": "left"
       },
-      "label": "resolved model + credential from Pi's store",
+      "label": "route and credential from Pi's ModelRegistry",
       "style": "solid",
       "arrow": "forward"
     },
@@ -278,7 +278,7 @@
         "objectId": "provider",
         "anchor": "left"
       },
-      "label": "HTTP request; retries and fallbacks",
+      "label": "HTTP request with retries",
       "style": "solid",
       "arrow": "forward"
     },

@@ -120,7 +120,55 @@
       "props": {},
       "text": [
         {
-          "insert": "Decision record, 2026-10-07. Pi 1.0.4 is the latest release, and nothing here is built yet."
+          "insert": "Decision record, 2026-10-07. Pi 1.0.4 is the latest release. The upgrade to it, "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "kernel.step",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "kernel.gate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and nested tool spans are built on branch "
+        },
+        {
+          "insert": "feat/model-nodes",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", which is not merged. "
+        },
+        {
+          "insert": "Build Status and Deviations",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/80-build-status"
+            }
+          }
+        },
+        {
+          "insert": " lists where the build departs from this page."
         }
       ],
       "children": []
@@ -454,7 +502,7 @@
       },
       "text": [
         {
-          "insert": "The kernel keeps thresholds, abstain and escalation, the decision span, and the run link."
+          "insert": "The kernel keeps thresholds, abstains, the decision span, and the run link. Escalation stays in harness code."
         }
       ],
       "children": []
@@ -487,7 +535,7 @@
       },
       "text": [
         {
-          "insert": "The trace first needs nested tool spans. The Codemode in the Trace section gives that fix."
+          "insert": "The trace has nested tool spans, from live events and backfill."
         }
       ],
       "children": []
@@ -500,7 +548,7 @@
       },
       "text": [
         {
-          "insert": "After that fix, the kernel offers codemode as an opt-in tool profile."
+          "insert": "With those spans in place, the kernel can offer codemode as an opt-in tool profile."
         }
       ],
       "children": []
@@ -1275,7 +1323,7 @@
           }
         },
         {
-          "insert": ". "
+          "insert": ". Pi 1.0.4 does not include this provider. "
         },
         {
           "insert": "Decision Nodes",
@@ -1613,7 +1661,7 @@
       "props": {},
       "text": [
         {
-          "insert": "A codemode script shows in the kernel trace as one opaque tool call today. Pi emits events for the tool calls inside the script, but the kernel does not read them yet."
+          "insert": "The kernel records the tool calls inside a codemode script as nested tool spans. Pi emits events for those calls, and the kernel emitter reads them."
         }
       ],
       "children": []
@@ -1757,7 +1805,7 @@
       },
       "text": [
         {
-          "insert": "Why the trace misses them",
+          "insert": "How the trace records them",
           "attributes": {
             "bold": true
           }
@@ -1776,7 +1824,16 @@
       },
       "text": [
         {
-          "insert": "Pi does not write nested calls to the session transcript."
+          "insert": "Nested calls get no transcript entry of their own. Pi records them as "
+        },
+        {
+          "insert": "nestedCalls",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on the parent tool result."
         }
       ],
       "children": []
@@ -1789,7 +1846,25 @@
       },
       "text": [
         {
-          "insert": "The kernel emitter builds tool events from transcript messages, and backfill reads JSONL. Neither one sees a nested call."
+          "insert": "The emitter reads "
+        },
+        {
+          "insert": "tool_execution_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " events, and backfill reads "
+        },
+        {
+          "insert": "nestedCalls",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []
@@ -1802,7 +1877,7 @@
       },
       "text": [
         {
-          "insert": "The fix, about 2 to 3 hours",
+          "insert": "The fix",
           "attributes": {
             "bold": true
           }
@@ -1852,7 +1927,16 @@
       },
       "text": [
         {
-          "insert": "The fix covers live capture only. Backfill cannot recover nested calls."
+          "insert": "Backfill rebuilds approximate nested spans from "
+        },
+        {
+          "insert": "nestedCalls",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", with the same event ids as live capture."
         }
       ],
       "children": []
@@ -1936,7 +2020,7 @@
       },
       "text": [
         {
-          "insert": "run worker (pi)\n├─ tool codemode\n│  ├─ tool read     <parent>/1\n│  └─ tool bash     <parent>/2\n├─ call ExtractCheckpointNote (baml)\n└─ gate checkpoint-accepted           pass\n   ├─ step objdiff (code)             97.4%\n   └─ decide advisory-justified       classify:jev  p=0.91 ≥ 0.85"
+          "insert": "run worker (pi)\n├─ tool codemode\n│  ├─ tool read     <parent>/1\n│  └─ tool bash     <parent>/2\n├─ call ExtractCheckpointKnowledge (baml)\n└─ gate llm-review-advisories          pass\n   ├─ step justification:<id> (code)   pass\n   └─ decide JudgeAdvisory:<id>        classify:jev  p=0.91 ≥ 0.85"
         }
       ],
       "children": []
@@ -1960,13 +2044,13 @@
       "props": {},
       "text": [
         {
-          "insert": "kernel.gate(name, checks)",
+          "insert": "kernel.gate(name, opts, checks)",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " is a proposed span that groups code checks and model checks under one verdict."
+          "insert": " is a span that groups code checks and model checks under one verdict."
         }
       ],
       "children": []
@@ -2172,7 +2256,7 @@
       },
       "text": [
         {
-          "insert": "A probability between the two abstains and escalates."
+          "insert": "A probability between the two abstains. The harness decides whether to escalate."
         }
       ],
       "children": []
@@ -2392,7 +2476,7 @@
             ],
             [
               {
-                "insert": "packages/kernel/src/spawn-pipeline/pi-session-factory/create-session.ts:122",
+                "insert": "packages/kernel/src/spawn-pipeline/pi-session-factory/create-session.ts:126",
                 "attributes": {
                   "code": true
                 }
@@ -2573,7 +2657,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Three 1.0.4 behavior changes reach the kernel without a code change, and three gaps stay open."
+          "insert": "Three 1.0.4 behavior changes reach the kernel without a code change, and two gaps stay open."
         }
       ],
       "children": []
@@ -2733,13 +2817,13 @@
           "insert": " in "
         },
         {
-          "insert": "transcript-recovery/mapper.ts:218",
+          "insert": "transcript-recovery/mapper.ts:239",
           "attributes": {
             "code": true,
             "reference": {
               "kind": "source",
               "path": "packages/kernel/src/transcript-recovery/mapper.ts",
-              "line": 218
+              "line": 239
             }
           }
         },
@@ -2786,18 +2870,18 @@
           "insert": " in "
         },
         {
-          "insert": "transcript-recovery/types.ts:24",
+          "insert": "transcript-recovery/types.ts:50",
           "attributes": {
             "code": true,
             "reference": {
               "kind": "source",
               "path": "packages/kernel/src/transcript-recovery/types.ts",
-              "line": 24
+              "line": 50
             }
           }
         },
         {
-          "insert": " lacks "
+          "insert": " includes "
         },
         {
           "insert": "\"system\"",
@@ -2806,7 +2890,7 @@
           }
         },
         {
-          "insert": "."
+          "insert": ", so this gap is closed."
         }
       ],
       "children": []
@@ -2948,16 +3032,16 @@
           }
         },
         {
-          "insert": ". Nested tool spans can use them at "
+          "insert": ". Nested tool spans use them at "
         },
         {
-          "insert": "kernel-emitter.ts:433",
+          "insert": "kernel-emitter.ts:609",
           "attributes": {
             "code": true,
             "reference": {
               "kind": "source",
               "path": "packages/kernel/src/emitter/kernel-emitter.ts",
-              "line": 433
+              "line": 609
             }
           }
         },
@@ -3002,13 +3086,13 @@
           "insert": ", and a context preview. The emitter can read them at "
         },
         {
-          "insert": "kernel-emitter.ts:398",
+          "insert": "kernel-emitter.ts:574",
           "attributes": {
             "code": true,
             "reference": {
               "kind": "source",
               "path": "packages/kernel/src/emitter/kernel-emitter.ts",
-              "line": 398
+              "line": 574
             }
           }
         },
@@ -3346,7 +3430,25 @@
           }
         },
         {
-          "insert": " in the same change."
+          "insert": " and import Pi only through "
+        },
+        {
+          "insert": "@agent-kernel/kernel/pi-sdk",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The policy test "
+        },
+        {
+          "insert": "pi-single-copy.test.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " enforces one Pi copy."
         }
       ],
       "children": []
@@ -3464,10 +3566,19 @@
       },
       "text": [
         {
-          "insert": "Merge the Pi 1.0.4 upgrade (branch "
+          "insert": "Merge the Pi 1.0.4 upgrade (commit "
         },
         {
-          "insert": "chore/pi-1.0.4",
+          "insert": "84d0555",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on branch "
+        },
+        {
+          "insert": "feat/model-nodes",
           "attributes": {
             "code": true
           }

@@ -1,0 +1,2726 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-9b793f6552fb6468f3ea2787936d2acb",
+  "title": "Build Status and Deviations",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "bs-intro",
+        "bs-h-shipped",
+        "bs-shipped-lead",
+        "bs-sh-kernel",
+        "bs-sh-trace",
+        "bs-sh-adj",
+        "bs-sh-feed",
+        "bs-sh-cal",
+        "bs-h-dev",
+        "bs-dev-lead",
+        "bs-h-dev-api",
+        "bs-dev-api-lead",
+        "bs-dev-api-table",
+        "bs-h-dev-trace",
+        "bs-dev-trace-lead",
+        "bs-dev-trace-table",
+        "bs-h-dev-deps",
+        "bs-dev-deps-lead",
+        "bs-dev-deps-table",
+        "bs-h-dev-gc",
+        "bs-dev-gc-lead",
+        "bs-dev-gc-table",
+        "bs-h-live",
+        "bs-live-lead",
+        "bs-live-replay",
+        "bs-live-thr",
+        "bs-h-followups",
+        "bs-followups-lead",
+        "bs-fu-enforce",
+        "bs-fu-partition",
+        "bs-fu-runpi",
+        "bs-fu-order",
+        "bs-fu-toolbody"
+      ]
+    },
+    "bs-intro": {
+      "id": "bs-intro",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Branch "
+        },
+        {
+          "insert": "feat/model-nodes",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " builds the model nodes in agent-kernel and adopts them in a GameCube harness worktree on a branch of the same name. Neither branch is merged or pushed. This page lists what shipped, each place where the build departs from the spec pages and why, the first live findings, and the open follow-ups. Where this page and the code disagree, the code wins."
+        }
+      ],
+      "children": []
+    },
+    "bs-h-shipped": {
+      "id": "bs-h-shipped",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "What Shipped"
+        }
+      ],
+      "children": []
+    },
+    "bs-shipped-lead": {
+      "id": "bs-shipped-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The build covers five areas. Agent-kernel holds the first two, and the GameCube harness holds the other three. Each bullet names the main code location."
+        }
+      ],
+      "children": []
+    },
+    "bs-sh-kernel": {
+      "id": "bs-sh-kernel",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Kernel nodes",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "bs-sh-kernel-a",
+        "bs-sh-kernel-b"
+      ]
+    },
+    "bs-sh-kernel-a": {
+      "id": "bs-sh-kernel-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "packages/kernel/src/model-nodes/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " holds "
+        },
+        {
+          "insert": "call/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "decide/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "step-gate/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", plus claims, deadlines, redaction, and pricing."
+        }
+      ],
+      "children": []
+    },
+    "bs-sh-kernel-b": {
+      "id": "bs-sh-kernel-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " runs Pi "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " runs BAML through the "
+        },
+        {
+          "insert": "@agent-kernel/kernel/baml-engine",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " subpath, and the kernel declares no BAML dependency."
+        }
+      ],
+      "children": []
+    },
+    "bs-sh-trace": {
+      "id": "bs-sh-trace",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Trace and viewer",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "bs-sh-trace-a",
+        "bs-sh-trace-b"
+      ]
+    },
+    "bs-sh-trace-a": {
+      "id": "bs-sh-trace-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "packages/protocol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " adds the node events and deterministic ids. "
+        },
+        {
+          "insert": "packages/db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " adds the session "
+        },
+        {
+          "insert": "kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " column and acknowledged node writes."
+        }
+      ],
+      "children": []
+    },
+    "bs-sh-trace-b": {
+      "id": "bs-sh-trace-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Nested codemode tools arrive from live events and from transcript backfill. The viewer renders call, decision, step, and gate rows with detail cards."
+        }
+      ],
+      "children": []
+    },
+    "bs-sh-adj": {
+      "id": "bs-sh-adj",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "GameCube advisory adjudication",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "bs-sh-adj-a",
+        "bs-sh-adj-b"
+      ]
+    },
+    "bs-sh-adj-a": {
+      "id": "bs-sh-adj-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The worker adjudicates "
+        },
+        {
+          "insert": "detail.llm_review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " warnings with "
+        },
+        {
+          "insert": "ExtractCheckpointKnowledge",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and a Jev gate. "
+        },
+        {
+          "insert": "--advisory-adjudication",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " selects "
+        },
+        {
+          "insert": "off",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "shadow",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or "
+        },
+        {
+          "insert": "enforce",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "shadow",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the default."
+        }
+      ],
+      "children": []
+    },
+    "bs-sh-adj-b": {
+      "id": "bs-sh-adj-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Shadow runs out of band on the "
+        },
+        {
+          "insert": "checkpoint_adjudication",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " lane. Enforce runs inline at L1, and accepted advisories also pass L2 and the epoch scan."
+        }
+      ],
+      "children": []
+    },
+    "bs-sh-feed": {
+      "id": "bs-sh-feed",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Librarian feed",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "bs-sh-feed-a",
+        "bs-sh-feed-b"
+      ]
+    },
+    "bs-sh-feed-a": {
+      "id": "bs-sh-feed-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Each confirmed-good checkpoint of a settled epoch runs "
+        },
+        {
+          "insert": "ExtractConfirmedCheckpointKnowledge",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on the "
+        },
+        {
+          "insert": "checkpoint_knowledge",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " lane. The result becomes a "
+        },
+        {
+          "insert": "checkpoint_confirmed",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " librarian task."
+        }
+      ],
+      "children": []
+    },
+    "bs-sh-feed-b": {
+      "id": "bs-sh-feed-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The feed is on by default, with a cap of 50 checkpoints per epoch. Production runs leave the librarian consumer off unless you pass "
+        },
+        {
+          "insert": "--librarian-consumer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "bs-sh-cal": {
+      "id": "bs-sh-cal",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Calibration",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "bs-sh-cal-a",
+        "bs-sh-cal-b"
+      ]
+    },
+    "bs-sh-cal-a": {
+      "id": "bs-sh-cal-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "advisory-calibration",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " job has nine subcommands. They build the dataset, extract justifications, propose and review labels, split, calibrate, and replay a frozen fixture."
+        }
+      ],
+      "children": []
+    },
+    "bs-sh-cal-b": {
+      "id": "bs-sh-cal-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "calibrate --write",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " records each model's thresholds in the adjudication "
+        },
+        {
+          "insert": "config.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as "
+        },
+        {
+          "insert": "exploratory",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "enforcement-qualified",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "bs-h-dev": {
+      "id": "bs-h-dev",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Contract Deviations"
+        }
+      ],
+      "children": []
+    },
+    "bs-dev-lead": {
+      "id": "bs-dev-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The spec pages predate the build. The four tables below list each place where the build departs from them, with the reason. The code column names the file that implements the build behavior."
+        }
+      ],
+      "children": []
+    },
+    "bs-h-dev-api": {
+      "id": "bs-h-dev-api",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Kernel API"
+        }
+      ],
+      "children": []
+    },
+    "bs-dev-api-lead": {
+      "id": "bs-dev-api-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These rows compare "
+        },
+        {
+          "insert": "Structured Calls (BAML)",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/10-structured-calls-baml"
+            }
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "Decision Nodes",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/20-decision-nodes"
+            }
+          }
+        },
+        {
+          "insert": " with the kernel API. Code paths are relative to "
+        },
+        {
+          "insert": "packages/kernel/src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "bs-dev-api-table": {
+      "id": "bs-dev-api-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Spec Says",
+          "Build Does",
+          "Why",
+          "Code"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "functions: { client, sources }",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " config slot"
+              }
+            ],
+            [
+              {
+                "insert": "calls: { engine: bamlEngine({ client, baml, sources, manifests }) }",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "One BAML addon per process. The harness injects its own module.",
+            [
+              {
+                "insert": "model-nodes/baml-engine/index.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Credentials from "
+              },
+              {
+                "insert": "readStoredCredential",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Pi "
+              },
+              {
+                "insert": "ModelRegistry.find",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " plus "
+              },
+              {
+                "insert": "getApiKeyAndHeaders",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "The codex-lb key lives in "
+              },
+              {
+                "insert": "models.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", which "
+              },
+              {
+                "insert": "readStoredCredential",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " never reads."
+              }
+            ],
+            [
+              {
+                "insert": "model-nodes/pi-models.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Engine set by "
+              },
+              {
+                "insert": "models.aliases.decide",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "opts.model",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " or "
+              },
+              {
+                "insert": "models.defaults.decide",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", resolved through "
+              },
+              {
+                "insert": "models.aliases",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The catalog offers every alias key as an agent model.",
+            [
+              {
+                "insert": "model-nodes/decide/index.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "No classifier falls back to the BAML enum",
+            [
+              {
+                "insert": "Every answer abstains with "
+              },
+              {
+                "insert": "engine-error",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and "
+              },
+              {
+                "insert": "error.kind",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " is "
+              },
+              {
+                "insert": "not-configured",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "A kernel fallback is routing. The harness escalates through "
+              },
+              {
+                "insert": "kernel.call",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " instead."
+              }
+            ],
+            [
+              {
+                "insert": "model-nodes/decide/index.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "decide",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " returns "
+              },
+              {
+                "insert": "Record<questionId, Decision>",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "decide",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " returns "
+              },
+              {
+                "insert": "DecisionOutcome",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with "
+              },
+              {
+                "insert": "answers",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "chosen",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", run ids, "
+              },
+              {
+                "insert": "model",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "usage",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and "
+              },
+              {
+                "insert": "error",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The harness stores run ids and the served model in checkpoint metadata.",
+            [
+              {
+                "insert": "model-nodes/types.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "A bool's "
+              },
+              {
+                "insert": "choice",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " is "
+              },
+              {
+                "insert": "\"true\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " or "
+              },
+              {
+                "insert": "\"false\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " by probability"
+              }
+            ],
+            [
+              {
+                "insert": "An answered bool's "
+              },
+              {
+                "insert": "choice",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " follows the new "
+              },
+              {
+                "insert": "verdict",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " field. Pass gives "
+              },
+              {
+                "insert": "\"true\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and fail gives "
+              },
+              {
+                "insert": "\"false\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ],
+            [
+              {
+                "insert": "With "
+              },
+              {
+                "insert": "passAt",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " below 0.5, a probability label can contradict the verdict."
+              }
+            ],
+            [
+              {
+                "insert": "model-nodes/decide/thresholds.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "decide",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " accepts "
+              },
+              {
+                "insert": "images?",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "No "
+              },
+              {
+                "insert": "images",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " option"
+              }
+            ],
+            [
+              {
+                "insert": "The Pi 1.0.4 "
+              },
+              {
+                "insert": "ClassifierContext",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " has no images."
+              }
+            ],
+            [
+              {
+                "insert": "model-nodes/types.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "kernel.gate(name, checks)",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with no gate events"
+              }
+            ],
+            [
+              {
+                "insert": "kernel.gate(name, opts, checks)",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " writes "
+              },
+              {
+                "insert": "gate_start",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": "gate_end",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "A gate needs a scope and its own span.",
+            [
+              {
+                "insert": "model-nodes/step-gate/gate.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "step(name, attrs, fn)",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " in Trace Layout"
+              }
+            ],
+            [
+              {
+                "insert": "step(name, opts, fn)",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with "
+              },
+              {
+                "insert": "opts.attributes",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and a local "
+              },
+              {
+                "insert": "StepSpan",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "It joins the two spec forms without a "
+              },
+              {
+                "insert": "pi-telemetry",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " dependency."
+              }
+            ],
+            [
+              {
+                "insert": "model-nodes/step-gate/step.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ]
+        ],
+        "title": "Kernel API deviations"
+      },
+      "children": []
+    },
+    "bs-h-dev-trace": {
+      "id": "bs-h-dev-trace",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Trace and Viewer"
+        }
+      ],
+      "children": []
+    },
+    "bs-dev-trace-lead": {
+      "id": "bs-dev-trace-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These rows compare "
+        },
+        {
+          "insert": "Trace Layout",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/50-trace-layout"
+            }
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "Trace UI",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/60-trace-ui"
+            }
+          }
+        },
+        {
+          "insert": " with the protocol, the kernel writes, and the viewer. Code paths without a package prefix are relative to "
+        },
+        {
+          "insert": "packages/kernel/src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "bs-dev-trace-table": {
+      "id": "bs-dev-trace-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Spec Says",
+          "Build Does",
+          "Why",
+          "Code"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "Payload keys in camelCase, such as "
+              },
+              {
+                "insert": "functionName",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Top-level keys in snake_case, such as "
+              },
+              {
+                "insert": "function_name",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". Nested "
+              },
+              {
+                "insert": "Decision",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " objects stay camelCase."
+              }
+            ],
+            [
+              {
+                "insert": "It matches the protocol convention, such as "
+              },
+              {
+                "insert": "run_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ],
+            [
+              {
+                "insert": "packages/protocol/src/types.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "call_start",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " carries "
+              },
+              {
+                "insert": "inputBlobHash",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "call_start.input_blob_hash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " names a placeholder blob written at claim. "
+              },
+              {
+                "insert": "call_end.input_blob_hash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " carries the final input."
+              }
+            ],
+            "The full secret set for redaction is known only after the engine runs.",
+            [
+              {
+                "insert": "model-nodes/call/index.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "decision_made.model",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " is the id that "
+              },
+              {
+                "insert": "classify()",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " returns"
+              }
+            ],
+            [
+              {
+                "insert": "model",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " is the served "
+              },
+              {
+                "insert": "provider/id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " from the response body. "
+              },
+              {
+                "insert": "requested_model",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " holds the request."
+              }
+            ],
+            [
+              {
+                "insert": "Pi echoes the requested "
+              },
+              {
+                "insert": "jev-latest",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", while the server serves "
+              },
+              {
+                "insert": "jev-1.13.0",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ],
+            [
+              {
+                "insert": "model-nodes/decide/pi-engine.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Turn usage records a bare model id",
+            [
+              {
+                "insert": "Node turns record "
+              },
+              {
+                "insert": "provider/id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". Jev cost comes from "
+              },
+              {
+                "insert": "models.prices",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", because Pi reports 0."
+              }
+            ],
+            [
+              {
+                "insert": "Price tables are keyed by "
+              },
+              {
+                "insert": "provider/id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ],
+            [
+              {
+                "insert": "model-nodes/pricing.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Backfill cannot rebuild nested calls",
+            [
+              {
+                "insert": "Live events and backfill from "
+              },
+              {
+                "insert": "nestedCalls",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " share "
+              },
+              {
+                "insert": "nestedToolEventId",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " ids. Live data wins."
+              }
+            ],
+            [
+              {
+                "insert": "Pi persists "
+              },
+              {
+                "insert": "nestedCalls",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " on the parent tool result."
+              }
+            ],
+            [
+              {
+                "insert": "transcript-recovery/nested-calls.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "No rule for engine error text",
+            "Each engine error stores a fixed phrase per kind plus the HTTP status",
+            "Provider text can carry numbers or credentials into traces.",
+            [
+              {
+                "insert": "model-nodes/decide/pi-engine.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "No rule for snapshot order",
+            "Each attempt writes turn start, then the request snapshot, then turn end",
+            "It matches the order of chat turns.",
+            [
+              {
+                "insert": "model-nodes/call/attempts-to-events.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "A timeline column beside the span tree",
+            "Node rows carry a duration chip. The timeline, header tiles, KINDS legend, and collapsed turn rows are deferred.",
+            "A timeline changes every row and the existing viewer snapshots.",
+            [
+              {
+                "insert": "packages/viewer-ui/src/trace-viewer/",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ]
+        ],
+        "title": "Trace and viewer deviations"
+      },
+      "children": []
+    },
+    "bs-h-dev-deps": {
+      "id": "bs-h-dev-deps",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Dependencies and Engines"
+        }
+      ],
+      "children": []
+    },
+    "bs-dev-deps-lead": {
+      "id": "bs-dev-deps-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These rows compare "
+        },
+        {
+          "insert": "Pi 1.0 Alignment",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/70-pi-alignment"
+            }
+          }
+        },
+        {
+          "insert": " and Decision Nodes with the installed dependencies. Code paths are relative to "
+        },
+        {
+          "insert": "packages/kernel/src/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "bs-dev-deps-table": {
+      "id": "bs-dev-deps-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Spec Says",
+          "Build Does",
+          "Why",
+          "Code"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "Bump Pi to "
+              },
+              {
+                "insert": "^1.0.4",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Both repos declare "
+              },
+              {
+                "insert": "^1.0.4",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", the lockfiles resolve 1.0.4, and cache warming is off. GameCube loads Pi only through "
+              },
+              {
+                "insert": "@agent-kernel/kernel/pi-sdk",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ],
+            [
+              {
+                "insert": "A second Pi copy breaks "
+              },
+              {
+                "insert": "ModelRegistry",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", which has private fields."
+              }
+            ],
+            [
+              {
+                "insert": "pi-sdk.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "The kernel receives the BAML client and sources",
+            [
+              {
+                "insert": "GameCube pins "
+              },
+              {
+                "insert": "@boundaryml/baml",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " "
+              },
+              {
+                "insert": "0.226.2",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " exactly. The kernel has no BAML dependency and uses structural types."
+              }
+            ],
+            "One addon per process, and no type clash with the hoisted 0.222.0 in core.",
+            [
+              {
+                "insert": "model-nodes/baml-engine/baml-runtime-types.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "openai-decisions",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with "
+              },
+              {
+                "insert": "gpt-6-luna",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The engine label exists, but nothing selects it",
+            [
+              {
+                "insert": "Pi 1.0.4 does not ship the "
+              },
+              {
+                "insert": "openai-decisions",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " classifier API."
+              }
+            ],
+            [
+              {
+                "insert": "model-nodes/decide/pi-engine.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Pinned id "
+              },
+              {
+                "insert": "typesafe/jev-1.13.0",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Accepted. The kernel clones the listed classifier with the pinned id.",
+            [
+              {
+                "insert": "Pi 1.0.4 lists only "
+              },
+              {
+                "insert": "jev-latest",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ],
+            [
+              {
+                "insert": "model-nodes/decide/pi-engine.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ]
+        ],
+        "title": "Dependency and engine deviations"
+      },
+      "children": []
+    },
+    "bs-h-dev-gc": {
+      "id": "bs-h-dev-gc",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "GameCube Adoption"
+        }
+      ],
+      "children": []
+    },
+    "bs-dev-gc-lead": {
+      "id": "bs-dev-gc-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "These rows compare "
+        },
+        {
+          "insert": "GameCube Adoption",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/30-gamecube-adoption"
+            }
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "Walkthrough: One Worker Job",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/40-walkthrough"
+            }
+          }
+        },
+        {
+          "insert": " with the harness branch. Code paths are relative to the harness folder "
+        },
+        {
+          "insert": "apps/server/src/core/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The adjudication folder is "
+        },
+        {
+          "insert": "agent-catalog/agents/running/worker/advisory-adjudication/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "bs-dev-gc-table": {
+      "id": "bs-dev-gc-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Spec Says",
+          "Build Does",
+          "Why",
+          "Code"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "llm_review",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " means "
+              },
+              {
+                "insert": "type_erasing_cast",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and spNN locals"
+              }
+            ],
+            [
+              {
+                "insert": "Routing reads "
+              },
+              {
+                "insert": "detail.llm_review",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". Four rules carry it, and only "
+              },
+              {
+                "insert": "warning",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " findings reach a model."
+              }
+            ],
+            "The flag is the contract, so TypeScript holds no rule ids.",
+            [
+              {
+                "insert": "validation/qa/advisory-fingerprint.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Five parse sites become calls",
+            "The note keeps its JSON parse. BAML extraction runs only for advisory candidates and confirmed-good checkpoints.",
+            "A model call on every attempt adds cost and a failure mode. Owner decision D2 defers the summarizer.",
+            [
+              {
+                "insert": "advisory-adjudication/index.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "The worker job runs the decision",
+            [
+              {
+                "insert": "Shadow runs out of band on the "
+              },
+              {
+                "insert": "checkpoint_adjudication",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " lane. Only enforce runs inline, within a deadline budget."
+              }
+            ],
+            "An inline call changes worker timing and the post-return check.",
+            [
+              {
+                "insert": "model-node-work/handlers/adjudication.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Confirmed good means "
+              },
+              {
+                "insert": "validation_state = 'confirmed'",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Confirmed good means integrated, settled, an ancestor of the save point, and no score drop in the frozen report",
+            [
+              {
+                "insert": "No production caller runs the confirmation pass, so every checkpoint stays "
+              },
+              {
+                "insert": "tentative",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ],
+            [
+              {
+                "insert": "knowledge-v2/checkpoint-feed/confirmed-good.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "An unsure decision escalates to a BAML judge, then an operator",
+            [
+              {
+                "insert": "Escalation runs only in enforce with "
+              },
+              {
+                "insert": "escalateLowConfidence",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", which ships off. No operator queue exists."
+              }
+            ],
+            "Owner decision D4 keeps escalation off.",
+            [
+              {
+                "insert": "advisory-adjudication/config.json",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ]
+        ],
+        "title": "GameCube adoption deviations"
+      },
+      "children": []
+    },
+    "bs-h-live": {
+      "id": "bs-h-live",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Live Findings"
+        }
+      ],
+      "children": []
+    },
+    "bs-live-lead": {
+      "id": "bs-live-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "One live replay has run Jev on real advisories. All four decisions abstained, so no shipped threshold can turn on enforce yet."
+        }
+      ],
+      "children": []
+    },
+    "bs-live-replay": {
+      "id": "bs-live-replay",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Replay of run ",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": "4a45af8a",
+          "attributes": {
+            "bold": true,
+            "code": true
+          }
+        },
+        {
+          "insert": ", attempt 2",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "bs-live-replay-a",
+        "bs-live-replay-b",
+        "bs-live-replay-c"
+      ]
+    },
+    "bs-live-replay-a": {
+      "id": "bs-live-replay-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The frozen fixture "
+        },
+        {
+          "insert": "analysis/advisory-adjudication/replay/4a45af8a-attempt-2/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in the harness holds the four "
+        },
+        {
+          "insert": "llm_review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " findings of that attempt."
+        }
+      ],
+      "children": []
+    },
+    "bs-live-replay-b": {
+      "id": "bs-live-replay-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Extraction succeeded. Jev "
+        },
+        {
+          "insert": "typesafe/jev-1.13.0",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " scored p = 0.46, 0.47, 0.47, and 0.47 on the four advisories."
+        }
+      ],
+      "children": []
+    },
+    "bs-live-replay-c": {
+      "id": "bs-live-replay-c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Each p falls between "
+        },
+        {
+          "insert": "failAt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " 0.15 and "
+        },
+        {
+          "insert": "passAt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " 0.85, so each decision abstained as "
+        },
+        {
+          "insert": "low-confidence",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and the gate verdict was "
+        },
+        {
+          "insert": "abstain",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The run output is not committed."
+        }
+      ],
+      "children": []
+    },
+    "bs-live-thr": {
+      "id": "bs-live-thr",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Thresholds stay exploratory",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "bs-live-thr-a",
+        "bs-live-thr-b"
+      ]
+    },
+    "bs-live-thr-a": {
+      "id": "bs-live-thr-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The shipped thresholds in the adjudication "
+        },
+        {
+          "insert": "config.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " carry "
+        },
+        {
+          "insert": "\"qualification\": \"exploratory\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". An "
+        },
+        {
+          "insert": "enforce",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " request therefore runs as shadow, and the checkpoint records "
+        },
+        {
+          "insert": "downgraded_reason",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "bs-live-thr-b": {
+      "id": "bs-live-thr-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Qualification needs at least 29 independent held-out negative groups and 10 positive groups. The one-sided 95% Clopper-Pearson upper bound on the false-accept rate must be 0.10 or less."
+        }
+      ],
+      "children": []
+    },
+    "bs-h-followups": {
+      "id": "bs-h-followups",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Open Follow-Ups"
+        }
+      ],
+      "children": []
+    },
+    "bs-followups-lead": {
+      "id": "bs-followups-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Five follow-ups stay open after the build. The build tracks them in "
+        },
+        {
+          "insert": ".work/model-nodes/reviews/deferred.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and none of them blocks shadow mode."
+        }
+      ],
+      "children": []
+    },
+    "bs-fu-enforce": {
+      "id": "bs-fu-enforce",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Enforce deferral runs scoped checks",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "bs-fu-enforce-a",
+        "bs-fu-enforce-b"
+      ]
+    },
+    "bs-fu-enforce-a": {
+      "id": "bs-fu-enforce-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A deferred enforce attempt stays "
+        },
+        {
+          "insert": "passed",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " through "
+        },
+        {
+          "insert": "validateWidenedChange",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so scoped checks run where the pre-build worker skips them."
+        }
+      ],
+      "children": []
+    },
+    "bs-fu-enforce-b": {
+      "id": "bs-fu-enforce-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "After an adjudication failure, the status and the QA reason match the pre-build worker, but the "
+        },
+        {
+          "insert": "scopedChecks",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " evidence and the widening record differ. Revisit this before you turn on enforce."
+        }
+      ],
+      "children": []
+    },
+    "bs-fu-partition": {
+      "id": "bs-fu-partition",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Advisory partition only when needed",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "bs-fu-partition-a"
+      ]
+    },
+    "bs-fu-partition-a": {
+      "id": "bs-fu-partition-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The worker attaches the advisory partition only when "
+        },
+        {
+          "insert": "retainPreQa",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "deferAdvisories",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is set. This keeps the "
+        },
+        {
+          "insert": "off",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " mode byte-identical to the pre-build worker."
+        }
+      ],
+      "children": []
+    },
+    "bs-fu-runpi": {
+      "id": "bs-fu-runpi",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Dead ",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": "runPiAgent",
+          "attributes": {
+            "bold": true,
+            "code": true
+          }
+        },
+        {
+          "insert": " path",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "bs-fu-runpi-a"
+      ]
+    },
+    "bs-fu-runpi-a": {
+      "id": "bs-fu-runpi-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The non-dry "
+        },
+        {
+          "insert": "runPiAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " path in "
+        },
+        {
+          "insert": "apps/server/src/infrastructure/agent-runtime/runtime/pi-agent.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is dead on both Pi versions, because "
+        },
+        {
+          "insert": "AuthStorage.create",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "ModelRegistry.create",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " no longer exist. A cleanup PR deletes it."
+        }
+      ],
+      "children": []
+    },
+    "bs-fu-order": {
+      "id": "bs-fu-order",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Turn order in real traces",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "bs-fu-order-a",
+        "bs-fu-order-b",
+        "bs-fu-order-c"
+      ]
+    },
+    "bs-fu-order-a": {
+      "id": "bs-fu-order-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The kernel emitter maps "
+        },
+        {
+          "insert": "user_message",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " one microtask after Pi's "
+        },
+        {
+          "insert": "message_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so the event lands 1 to 3 ms after "
+        },
+        {
+          "insert": "agent_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "turn_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "bs-fu-order-b": {
+      "id": "bs-fu-order-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "eventOrder.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " reorders only same-millisecond events. Turn 0 tools then nest under "
+        },
+        {
+          "insert": "user_message",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and a later run's provisioning can nest inside the previous run's "
+        },
+        {
+          "insert": "user_message",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "bs-fu-order-c": {
+      "id": "bs-fu-order-c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The same behavior exists at base commit "
+        },
+        {
+          "insert": "84d0555",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The demo fixture orders "
+        },
+        {
+          "insert": "user_message",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " first, which hides it."
+        }
+      ],
+      "children": []
+    },
+    "bs-fu-toolbody": {
+      "id": "bs-fu-toolbody",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Clipped tool JSON",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "bs-fu-toolbody-a"
+      ]
+    },
+    "bs-fu-toolbody-a": {
+      "id": "bs-fu-toolbody-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The shared "
+        },
+        {
+          "insert": "ToolBody",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " JSON viewer clips long lines, such as a codemode call input. A wrap option on the shared viewer fixes every tool card at once."
+        }
+      ],
+      "children": []
+    }
+  }
+}

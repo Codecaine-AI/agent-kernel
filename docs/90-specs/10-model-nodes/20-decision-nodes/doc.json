@@ -65,6 +65,7 @@
         "b-dn-res-lead",
         "b-dn-res-1",
         "b-dn-res-2",
+        "b-dn-res-3",
         "b-dn-20",
         "b-dn-21",
         "b-dn-22",
@@ -153,7 +154,40 @@
       "props": {},
       "text": [
         {
-          "insert": "Status: proposal, nothing built. Jev is usable now through early access. The OpenAI Decisions API entered public beta on 2026-10-06. The kernel can use it once Pi publishes its next release and an "
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "kernel.gate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are built on branch "
+        },
+        {
+          "insert": "feat/model-nodes",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and run Jev through Pi 1.0.4. The OpenAI Decisions API entered public beta on 2026-10-06. The kernel can use it once a Pi release ships the "
+        },
+        {
+          "insert": "openai-decisions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " classifier API and an "
         },
         {
           "insert": "OPENAI_API_KEY",
@@ -162,7 +196,19 @@
           }
         },
         {
-          "insert": " exists."
+          "insert": " exists. "
+        },
+        {
+          "insert": "Build Status and Deviations",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/80-build-status"
+            }
+          }
+        },
+        {
+          "insert": " lists where the build departs from this page."
         }
       ],
       "children": []
@@ -321,6 +367,15 @@
           }
         },
         {
+          "insert": " inside "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
           "insert": ", and the BAML enum runs through "
         },
         {
@@ -330,7 +385,7 @@
           }
         },
         {
-          "insert": " as the fallback and the escalation judge."
+          "insert": " as the harness's escalation judge."
         }
       ],
       "children": []
@@ -354,16 +409,16 @@
             "Usable now. Early access since 2026-09-15",
             [
               {
-                "insert": "typesafe/jev-1.13.0",
+                "insert": "typesafe/jev-latest",
                 "attributes": {
                   "code": true
                 }
               },
               {
-                "insert": ", alias "
+                "insert": " is the only Jev model in the Pi 1.0.4 catalog. The kernel also accepts the pinned "
               },
               {
-                "insert": "typesafe/jev-latest",
+                "insert": "typesafe/jev-1.13.0",
                 "attributes": {
                   "code": true
                 }
@@ -505,25 +560,16 @@
           }
         },
         {
-          "insert": " sends all of its questions in one call to "
+          "insert": " sends all of its questions in one "
         },
         {
-          "insert": "classify(model, { state, questions, images? })",
+          "insert": "classify(model, { state, questions }, options)",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " from "
-        },
-        {
-          "insert": "@earendil-works/pi-ai",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": ". Pi added "
+          "insert": " call on Pi's model registry. Pi added "
         },
         {
           "insert": "classify()",
@@ -564,13 +610,31 @@
           "insert": "Set "
         },
         {
-          "insert": "models.aliases.decide",
+          "insert": "models.defaults.decide",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " to a Pi model id, such as "
+          "insert": ", or pass "
+        },
+        {
+          "insert": "opts.model",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", to a Pi model id or a "
+        },
+        {
+          "insert": "models.aliases",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " key, such as "
         },
         {
           "insert": "\"typesafe/jev-1.13.0\"",
@@ -601,16 +665,34 @@
       },
       "text": [
         {
-          "insert": "If no classifier is configured, "
+          "insert": "If no classifier is configured, every answer abstains with "
         },
         {
-          "insert": "kernel.decide",
+          "insert": "engine-error",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " falls back to the BAML enum."
+          "insert": ", and "
+        },
+        {
+          "insert": "error.kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is "
+        },
+        {
+          "insert": "not-configured",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". No request is sent."
         }
       ],
       "children": []
@@ -1378,7 +1460,7 @@
       "id": "b-dn-19",
       "type": "state-shape",
       "props": {
-        "example": "{\n  \"kind\": \"bool\",\n  \"choice\": \"true\",\n  \"probability\": 0.91,\n  \"confidence\": 0.91,\n  \"confidenceSource\": \"native\",\n  \"evidence\": [{ \"runId\": \"run_7f3a\", \"blobHash\": \"sha256:9c1e04\" }],\n  \"abstained\": false\n}",
+        "example": "{\n  \"kind\": \"bool\",\n  \"choice\": \"true\",\n  \"probability\": 0.91,\n  \"confidence\": 0.91,\n  \"confidenceSource\": \"native\",\n  \"verdict\": \"pass\",\n  \"abstained\": false,\n  \"thresholdApplied\": { \"passAt\": 0.85, \"failAt\": 0.15 }\n}",
         "fields": [
           {
             "name": "kind",
@@ -1390,7 +1472,7 @@
             "name": "choice",
             "type": "string",
             "required": false,
-            "description": "The winning label of a choice, or \"true\" or \"false\" for a bool. Absent after a refusal or an engine error."
+            "description": "The winning label of a choice. An answered bool is \"true\" on pass and \"false\" on fail. A low-confidence abstain keeps the p ≥ 0.5 label. Absent after a refusal or an engine error."
           },
           {
             "name": "probability",
@@ -1408,7 +1490,7 @@
             "name": "distribution",
             "type": "Record<label, number>",
             "required": false,
-            "description": "Probability per label. Native choice answers only."
+            "description": "Probability per choice label, or per score level when the wire returns them."
           },
           {
             "name": "confidence",
@@ -1423,10 +1505,16 @@
             "description": "Tells the caller whether a threshold on confidence means anything."
           },
           {
+            "name": "verdict",
+            "type": "\"pass\" | \"fail\"",
+            "required": false,
+            "description": "bool only. Set when the answer did not abstain."
+          },
+          {
             "name": "rationale",
             "type": "string",
             "required": false,
-            "description": "BAML engine only. Native engines return none."
+            "description": "Reserved for self-reported engines. kernel.decide never sets it."
           },
           {
             "name": "checks",
@@ -1443,7 +1531,7 @@
           {
             "name": "abstained",
             "type": "boolean",
-            "required": false,
+            "required": true,
             "description": "True when the answer gives the harness no verdict."
           },
           {
@@ -1451,6 +1539,12 @@
             "type": "\"low-confidence\" | \"refusal\" | \"engine-error\"",
             "required": false,
             "description": "Why the answer abstained. Set only when abstained is true."
+          },
+          {
+            "name": "thresholdApplied",
+            "type": "ThresholdApplied",
+            "required": true,
+            "description": "The thresholds applied to this answer. Empty after an engine error."
           }
         ],
         "name": "Decision result"
@@ -1472,7 +1566,7 @@
           }
         },
         {
-          "insert": " in two cases."
+          "insert": " in three cases."
         }
       ],
       "children": []
@@ -1485,7 +1579,7 @@
       },
       "text": [
         {
-          "insert": "A Pi "
+          "insert": "Any failed engine result abstains every answer in the call. This covers a Pi "
         },
         {
           "insert": "stopReason: \"error\"",
@@ -1494,7 +1588,7 @@
           }
         },
         {
-          "insert": " abstains every answer in the call."
+          "insert": " and a request that the kernel never sends."
         }
       ],
       "children": [
@@ -1524,7 +1618,7 @@
           }
         },
         {
-          "insert": " when OpenAI refused a question, and "
+          "insert": " when the engine reports a refusal, and "
         },
         {
           "insert": "\"engine-error\"",
@@ -1556,6 +1650,46 @@
         },
         {
           "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-res-3": {
+      "id": "b-dn-res-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A missing or malformed answer abstains with "
+        },
+        {
+          "insert": "engine-error",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "error.kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is "
+        },
+        {
+          "insert": "malformed-answer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The other answers in the call are unaffected."
         }
       ],
       "children": []
@@ -1609,8 +1743,7 @@
         "operations": [
           {
             "name": "decide",
-            "kind": "action",
-            "description": "Runs kernel.decide(name, state, opts). Sends every question in one Pi classify() call. An answer with no verdict returns abstained: true instead of throwing.",
+            "description": "Runs kernel.decide(name, state, opts). Sends every question in one Pi classify() call, unless no model is configured or the state is over budget. An answer with no verdict returns abstained: true instead of throwing.",
             "params": [
               {
                 "name": "name",
@@ -1648,9 +1781,9 @@
                       },
                       {
                         "name": "criteria",
-                        "type": "Record<label, string>",
+                        "type": "{ true, false } | Record<label, string> | string[]",
                         "required": true,
-                        "description": "Defines each choice, each score level, or the true and false meanings of a bool."
+                        "description": "The true and false meanings of a bool, each choice label, or the list of score levels."
                       },
                       {
                         "name": "passAt",
@@ -1685,15 +1818,10 @@
                     ]
                   },
                   {
-                    "name": "images",
-                    "type": "ImageContent[]",
-                    "required": false,
-                    "description": "Pi image parts for engines that accept images, such as gpt-6-luna. Jev is text only."
-                  },
-                  {
                     "name": "containerId",
                     "type": "string",
-                    "required": true
+                    "required": false,
+                    "description": "Defaults to the parent run's container, then the ambient run's container."
                   },
                   {
                     "name": "parentRunId",
@@ -1702,14 +1830,15 @@
                   },
                   {
                     "name": "trigger",
-                    "type": "\"judge\" | \"post-run\" | \"system\"",
-                    "required": false
+                    "type": "\"judge\" | \"post-run\" | \"parent-tool\" | \"system\"",
+                    "required": false,
+                    "description": "Defaults to judge."
                   },
                   {
                     "name": "model",
                     "type": "string",
                     "required": false,
-                    "description": "A Pi model id or alias, such as typesafe/jev-1.13.0. Defaults to models.aliases.decide."
+                    "description": "A Pi model id or a models.aliases key, such as typesafe/jev-1.13.0. Defaults to models.defaults.decide."
                   },
                   {
                     "name": "signal",
@@ -1719,11 +1848,11 @@
                 ]
               }
             ],
-            "returns": "Record<questionId, Decision result>"
+            "returns": "A DecisionOutcome with answers keyed by question id, plus chosen, abstained, ids, model, requestedModel, usage, and error.",
+            "kind": "action"
           },
           {
             "name": "decision_made",
-            "kind": "event",
             "params": [
               {
                 "name": "payload",
@@ -1731,7 +1860,12 @@
                 "required": true,
                 "fields": [
                   {
-                    "name": "decisionName",
+                    "name": "run_id",
+                    "type": "string",
+                    "required": true
+                  },
+                  {
+                    "name": "decision_name",
                     "type": "string",
                     "required": true
                   },
@@ -1744,10 +1878,10 @@
                     "name": "chosen",
                     "type": "string",
                     "required": true,
-                    "description": "The label the harness acts on."
+                    "description": "The label the harness acts on, or \"abstain\" for an abstained answer."
                   },
                   {
-                    "name": "confidenceSource",
+                    "name": "confidence_source",
                     "type": "\"native\" | \"self-reported\" | \"none\"",
                     "required": true
                   },
@@ -1757,15 +1891,15 @@
                     "required": true
                   },
                   {
-                    "name": "abstainReason",
+                    "name": "abstain_reason",
                     "type": "\"low-confidence\" | \"refusal\" | \"engine-error\"",
                     "required": false
                   },
                   {
-                    "name": "thresholdApplied",
-                    "type": "object",
-                    "required": false,
-                    "description": "The passAt and failAt, minTop and minMargin, or abstainBelow values that the kernel applied."
+                    "name": "threshold_applied",
+                    "type": "Record<questionId, ThresholdApplied>",
+                    "required": true,
+                    "description": "The thresholds applied per question."
                   },
                   {
                     "name": "engine",
@@ -1777,23 +1911,41 @@
                     "name": "provider",
                     "type": "string",
                     "required": true,
-                    "description": "The provider that classify() reports, or the BAML client's provider."
-                  },
-                  {
-                    "name": "model",
-                    "type": "string",
-                    "required": true,
-                    "description": "The exact model id that classify() returns. For gpt-6-luna it is the only version record."
+                    "description": "The provider that classify() reports."
                   },
                   {
                     "name": "api",
                     "type": "string",
                     "required": false,
-                    "description": "The Pi API id, such as typesafe-system-one, openai-decisions, or llama-cpp-classify. Absent on the BAML fallback."
+                    "description": "The Pi API id, such as typesafe-system-one or openai-decisions. Absent when the kernel cannot resolve the model."
+                  },
+                  {
+                    "name": "model",
+                    "type": "string",
+                    "required": true,
+                    "description": "The served model, read from the response body as provider/id."
+                  },
+                  {
+                    "name": "requested_model",
+                    "type": "string",
+                    "required": true,
+                    "description": "The model the kernel asked for."
+                  },
+                  {
+                    "name": "error_kind",
+                    "type": "string",
+                    "required": false
+                  },
+                  {
+                    "name": "gate_span_id",
+                    "type": "string",
+                    "required": false,
+                    "description": "Set when the decision runs inside a gate."
                   }
                 ]
               }
-            ]
+            ],
+            "kind": "event"
           }
         ]
       },
@@ -1987,13 +2139,31 @@
       "props": {},
       "text": [
         {
-          "insert": "kernel.gate(name, checks)",
+          "insert": "kernel.gate(name, opts, checks)",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " is the proposed composite for the gate pattern. It records one span for the whole gate."
+          "insert": " is the composite for the gate pattern. It records one span for the whole gate, as "
+        },
+        {
+          "insert": "gate_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "gate_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " events."
         }
       ],
       "children": []
@@ -2018,22 +2188,22 @@
           "insert": " code check or a "
         },
         {
-          "insert": "bool",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " question asked through "
-        },
-        {
           "insert": "kernel.decide",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": "."
+          "insert": " check that asks "
+        },
+        {
+          "insert": "bool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " questions only."
         }
       ],
       "children": []
@@ -2046,7 +2216,7 @@
       },
       "text": [
         {
-          "insert": "The gate fails when any check fails, abstains when no check fails but one abstains, and passes otherwise."
+          "insert": "The gate fails when any check fails, and passes only when every check passes. Otherwise it abstains, which covers an abstained or skipped check."
         }
       ],
       "children": []
@@ -2141,7 +2311,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The kernel applies thresholds per question and records them as "
+          "insert": "The kernel applies thresholds per question. It records them in each answer's "
         },
         {
           "insert": "thresholdApplied",
@@ -2150,10 +2320,10 @@
           }
         },
         {
-          "insert": " in "
+          "insert": " and in "
         },
         {
-          "insert": "decision_made",
+          "insert": "decision_made.threshold_applied",
           "attributes": {
             "code": true
           }
@@ -2303,7 +2473,7 @@
       },
       "text": [
         {
-          "insert": "Luna has no pinned version, so every decision records the exact "
+          "insert": "Luna has no pinned version, so every decision records the served model from the response body. Pi's own "
         },
         {
           "insert": "model",
@@ -2312,16 +2482,7 @@
           }
         },
         {
-          "insert": " that "
-        },
-        {
-          "insert": "classify()",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " returned."
+          "insert": " field only echoes the request."
         }
       ],
       "children": [
@@ -2491,10 +2652,6 @@
                   },
                   {
                     "text": "Pi `classify()` answers every question in one call"
-                  },
-                  {
-                    "text": "Kernel emits `decision_made` with `engine`, `model`, `api`, and `confidenceSource: \"native\"`",
-                    "trace": true
                   }
                 ]
               },
@@ -2503,6 +2660,10 @@
                 "steps": [
                   {
                     "text": "Kernel compares each answer with the thresholds of its question"
+                  },
+                  {
+                    "text": "Kernel emits `decision_made` with the answers, `threshold_applied`, `engine`, `model`, and `api`",
+                    "trace": true
                   },
                   {
                     "text": "A clear verdict ends the flow, and the harness branches on `chosen`.",
@@ -2605,7 +2766,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Five questions stay open before the first spike."
+          "insert": "Five questions were open before the first spike. The build settles the first two, and three stay open."
         }
       ],
       "children": []
@@ -2624,7 +2785,16 @@
           }
         },
         {
-          "insert": " for native engines. A classifier has no prompt template, so the hash would cover the questions and criteria instead."
+          "insert": " for native engines is settled. Native engines record "
+        },
+        {
+          "insert": "dq1-",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " plus a SHA-256 of the questions without thresholds."
         }
       ],
       "children": []
@@ -2637,7 +2807,7 @@
       },
       "text": [
         {
-          "insert": "The retry, timeout, and abort defaults of Pi's "
+          "insert": "The "
         },
         {
           "insert": "classify()",
@@ -2646,7 +2816,34 @@
           }
         },
         {
-          "insert": " are unverified. Check them before the spike relies on them."
+          "insert": " defaults are settled. The kernel passes "
+        },
+        {
+          "insert": "timeoutMs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " 5000, "
+        },
+        {
+          "insert": "maxRetries",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " 1, "
+        },
+        {
+          "insert": "maxRetryDelayMs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " 2000, and the caller's signal on every call."
         }
       ],
       "children": []

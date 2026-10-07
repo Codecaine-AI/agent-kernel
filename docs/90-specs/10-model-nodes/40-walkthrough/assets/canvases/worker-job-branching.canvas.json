@@ -47,7 +47,8 @@
     {
       "id": "extract",
       "type": "process",
-      "text": "ExtractCheckpointNote (call)\nBAML, R2 and R6",
+      "text": "ExtractCheckpointKnowledge (call)",
+      "detail": "BAML, advisory candidates only",
       "color": "violet",
       "parentId": "flow",
       "geometry": {
@@ -124,9 +125,9 @@
     },
     {
       "id": "operator",
-      "type": "ellipse",
-      "text": "Operator review queue (human)",
-      "color": "pink",
+      "type": "rectangle",
+      "text": "fail closed (enforce)",
+      "color": "gray",
       "parentId": "flow",
       "geometry": {
         "x": -460,
@@ -393,7 +394,7 @@
         "objectId": "rationale",
         "anchor": "right"
       },
-      "label": "0.4 <= p < 0.85: unsure",
+      "label": "0.15 < p < 0.85: abstain, escalation off by default",
       "style": "dashed",
       "arrow": "forward",
       "color": "gray"
@@ -408,7 +409,7 @@
         "objectId": "repair",
         "anchor": "left"
       },
-      "label": "p < 0.4: rejected",
+      "label": "p <= 0.15: rejected",
       "style": "dashed",
       "arrow": "forward",
       "color": "gray"
@@ -468,7 +469,7 @@
         "objectId": "gate",
         "anchor": "right"
       },
-      "label": "retry_new_strategy 0.71, c=0.64",
+      "label": "retry_new_strategy: top 0.71",
       "style": "solid",
       "arrow": "forward",
       "color": "green"
@@ -498,7 +499,7 @@
         "objectId": "budget",
         "anchor": "left"
       },
-      "label": "abstained: c < 0.5",
+      "label": "abstained: top < 0.6 or margin < 0.2",
       "style": "dashed",
       "arrow": "forward",
       "color": "gray"

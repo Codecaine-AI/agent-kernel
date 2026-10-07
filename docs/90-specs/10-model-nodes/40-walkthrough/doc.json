@@ -83,7 +83,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Status: proposal. The code below is pseudocode, not a real API. "
+          "insert": "The code below is pseudocode. "
         },
         {
           "insert": "spawnAgent",
@@ -92,7 +92,7 @@
           }
         },
         {
-          "insert": " exists today. "
+          "insert": ", "
         },
         {
           "insert": "kernel.call",
@@ -110,7 +110,7 @@
           }
         },
         {
-          "insert": ", and "
+          "insert": ", "
         },
         {
           "insert": "kernel.step",
@@ -119,7 +119,46 @@
           }
         },
         {
-          "insert": " do not."
+          "insert": ", and "
+        },
+        {
+          "insert": "kernel.gate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " exist. "
+        },
+        {
+          "insert": "ContinueOrStop",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "SummarizeWorkerRun",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the operator queue do not. "
+        },
+        {
+          "insert": "Build Status and Deviations",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/80-build-status"
+            }
+          }
+        },
+        {
+          "insert": " lists where the build departs from this page."
         }
       ],
       "children": []
@@ -149,10 +188,10 @@
           }
         },
         {
-          "insert": " runs one claimed target, and a comment on every branch names who decides it: code, a model, or a human. The tags R1 to R7 and S1 to S3 match the steps in What This Run Did. The "
+          "insert": " runs one claimed target, and a comment on every branch names who decides it: code or a model. The tags R1 to R7 and S1 to S3 match the steps in What This Run Did. The questions are "
         },
         {
-          "insert": "bool",
+          "insert": "BoolQuestion",
           "attributes": {
             "code": true
           }
@@ -161,13 +200,13 @@
           "insert": " and "
         },
         {
-          "insert": "choice",
+          "insert": "ChoiceQuestion",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " helpers build Pi question types, as defined in "
+          "insert": " objects, as defined in "
         },
         {
           "insert": "Decision Nodes",
@@ -179,7 +218,25 @@
           }
         },
         {
-          "insert": ". No line calls Jev directly, because "
+          "insert": ". The kernel exports no "
+        },
+        {
+          "insert": "bool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "choice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " helper. No line calls Jev directly, because "
         },
         {
           "insert": "kernel.decide",
@@ -219,7 +276,7 @@
       },
       "text": [
         {
-          "insert": "// Pseudocode for a proposed API. Not runnable.\nasync function runWorkerJob(target: Target) {\n  const ids = { containerId: `worker-job/${target.fn}` }; // worker-job/fn_8003A1C4\n  const claim = await claimTarget(target);\n  let attempt = 0;\n  let session: string | undefined;\n  let lastRunId: string | undefined;\n  let hint: string | undefined;\n  let stopReason: string | undefined;\n\n  // code decides: no attempt starts after the claim deadline or budget\n  while (!claim.deadlinePassed() && attempt < claim.attemptBudget) {\n    attempt += 1;\n\n    // agent does the work (R1, then R5 in the same session)\n    const run = await spawnAgent(\"worker\", {\n      ...ids, session, trigger: attempt === 1 ? \"system\" : \"steer\",\n      prompt: workerPrompt(target, hint),\n    });\n    session = run.sessionId;\n    lastRunId = run.id;\n    const under = { ...ids, parentRunId: run.id };\n\n    // call extracts a typed note from the transcript (R2, R6)\n    const note = await kernel.call(\"ExtractCheckpointNote\", run.transcript, {\n      ...under, trigger: \"post-run\",\n    });\n\n    // code step: objdiff, micro-gates, review_lint (S1, S2)\n    const v = await kernel.step(\"validate\", under, () => validate(target, run.diff));\n\n    // code decides: exact match, gates pass, lint clean ends the job\n    if (v.objdiff === 100 && v.gatesPassed && v.lint.length === 0) {\n      stopReason = \"exact_match\";\n      break;\n    }\n\n    // model decides: is each kept advisory justified? (R3)\n    // kernel.decide runs Pi classify(), and Pi calls the Jev System One API\n    for (const adv of note.keptAdvisories) {\n      const { justified } = await kernel.decide(\"JudgeAdvisory\", adv, {\n        ...under, trigger: \"judge\", model: \"typesafe/jev-1.13.0\",\n        questions: { justified: bool(\"The original asm needs this hunk as written.\") },\n      });\n      const p = justified.distribution.true;\n      if (p >= 0.85) continue; // code decides: accepted\n      if (p < 0.4) { hint = repairInstruction(adv); continue; } // code decides: rejected\n\n      // call decides: the unsure band gets a BAML judge with a rationale\n      const second = await kernel.call(\"JudgeAdvisoryWithRationale\", adv, { ...under, trigger: \"judge\" });\n      if (second.verdict === \"rejected\") hint = repairInstruction(adv, second.rationale);\n      if (second.verdict === \"needs_info\") {\n        await operatorQueue.push(adv, second.rationale); // human decides\n        stopReason = \"operator_review\";\n      }\n    }\n    if (stopReason) break;\n\n    // model decides: retry, change strategy, or stop (R4), again through Pi classify()\n    const { next } = await kernel.decide(\"ContinueOrStop\", { note, validation: v }, {\n      ...under, trigger: \"judge\", model: \"typesafe/jev-1.13.0\", abstainBelow: 0.5,\n      questions: { next: choice([\"retry_same_approach\", \"retry_new_strategy\", \"stop_blocked\"]) },\n    });\n    if (next.abstained) continue; // code decides: the attempt budget takes over\n    if (next.choice === \"stop_blocked\") { stopReason = \"blocked\"; break; }\n    if (next.choice === \"retry_new_strategy\") hint = strategyHint(note);\n  }\n\n  // code step: record why the job ended (S3). No model involved.\n  await kernel.step(\"stop\", ids, () => ({ reason: stopReason ?? \"deadline_or_budget\" }));\n  // call writes the narrative to the knowledge DB (R7)\n  await kernel.call(\"SummarizeWorkerRun\", { session }, {\n    ...ids, parentRunId: lastRunId, trigger: \"post-run\",\n  });\n}"
+          "insert": "// Pseudocode. Not runnable.\nasync function runWorkerJob(target: Target) {\n  const ids = { containerId: `worker-job/${target.fn}` }; // worker-job/fn_8003A1C4\n  const claim = await claimTarget(target);\n  let attempt = 0;\n  let session: string | undefined;\n  let lastRunId: string | undefined;\n  let hint: string | undefined;\n  let stopReason: string | undefined;\n\n  // code decides: no attempt starts after the claim deadline or budget\n  while (!claim.deadlinePassed() && attempt < claim.attemptBudget) {\n    attempt += 1;\n\n    // agent does the work (R1, then R5 in the same session)\n    const run = await spawnAgent(\"worker\", {\n      ...ids, session, trigger: attempt === 1 ? \"system\" : \"steer\",\n      prompt: workerPrompt(target, hint),\n    });\n    session = run.sessionId;\n    lastRunId = run.id;\n    const under = { ...ids, parentRunId: run.id };\n\n    // call maps each advisory to the note's justification (R2)\n    const note = await kernel.call(\"ExtractCheckpointKnowledge\", [noteText, findings], {\n      ...under, trigger: \"post-run\",\n    });\n\n    // code step: objdiff, micro-gates, review_lint (S1, S2)\n    const v = await kernel.step(\"validate\", under, () => validate(target, run.diff));\n\n    // code decides: exact match, gates pass, lint clean ends the job\n    if (v.objdiff === 100 && v.gatesPassed && v.lint.length === 0) {\n      stopReason = \"exact_match\";\n      break;\n    }\n\n    // model decides: is each kept advisory justified? (R3)\n    // kernel.decide runs Pi classify(), and Pi calls the Jev System One API\n    for (const adv of note.advisories.filter((a) => a.kept)) {\n      const { answers: { justified } } = await kernel.decide(\"JudgeAdvisory\", adv, {\n        ...under, trigger: \"judge\", model: \"typesafe/jev-1.13.0\",\n        questions: { justified: {\n          type: \"bool\", instructions: \"Does the original asm need this hunk as written?\",\n          criteria: { true: \"needed as written\", false: \"not needed\" }, passAt: 0.85, failAt: 0.15,\n        } },\n      });\n      const p = justified.probability; // the kernel sets justified.verdict from passAt and failAt\n      if (justified.verdict === \"pass\") continue; // p >= 0.85: accepted\n      if (justified.verdict === \"fail\") { hint = repairInstruction(adv); continue; } // p <= 0.15: rejected\n\n      // call decides the unsure band only in enforce with escalateLowConfidence, which ships off\n      const second = await kernel.call(\"JudgeAdvisoryWithRationale\", [adv], { ...under, trigger: \"judge\" });\n      if (second.verdict === \"REJECTED\") hint = repairInstruction(adv, second.rationale);\n      // NEEDS_INFO leaves the abstain: enforce fails closed. No operator queue exists.\n    }\n\n    // model decides: retry, change strategy, or stop (R4), again through Pi classify()\n    const { answers: { next } } = await kernel.decide(\"ContinueOrStop\", { note, validation: v }, {\n      ...under, trigger: \"judge\", model: \"typesafe/jev-1.13.0\",\n      questions: { next: {\n        type: \"choice\", instructions: \"What should the next attempt do?\", minTop: 0.6, minMargin: 0.2,\n        criteria: { retry_same_approach: \"close\", retry_new_strategy: \"stuck\", stop_blocked: \"blocked\" },\n      } },\n    });\n    if (next.abstained) continue; // code decides: the attempt budget takes over\n    if (next.choice === \"stop_blocked\") { stopReason = \"blocked\"; break; }\n    if (next.choice === \"retry_new_strategy\") hint = strategyHint(note);\n  }\n\n  // code step: record why the job ended (S3). No model involved.\n  await kernel.step(\"stop\", ids, () => ({ reason: stopReason ?? \"deadline_or_budget\" }));\n  // call writes the narrative to the knowledge DB (R7)\n  await kernel.call(\"SummarizeWorkerRun\", { session }, {\n    ...ids, parentRunId: lastRunId, trigger: \"post-run\",\n  });\n}"
         }
       ],
       "children": []
@@ -293,25 +350,34 @@
       },
       "text": [
         {
-          "insert": "With it, a reader sees "
+          "insert": "With it, a reader sees step "
         },
         {
-          "insert": "validate",
+          "insert": "justification:<id>",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " report objdiff 97.4% right before "
+          "insert": " before each "
         },
         {
-          "insert": "JudgeAdvisory",
+          "insert": "JudgeAdvisory:<id>",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " starts. That number is why the job did not stop."
+          "insert": " inside gate "
+        },
+        {
+          "insert": "llm-review-advisories",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []
@@ -335,7 +401,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Code decides anything that is a fact or a count. A model decides only where the answer needs judgment. A human gets the case only when both the decision node and the BAML judge are unsure."
+          "insert": "Code decides anything that is a fact or a count. A model decides only where the answer needs judgment. No human path is built. An unsure advisory fails closed in enforce and is recorded in shadow."
         }
       ],
       "children": []
@@ -373,7 +439,29 @@
                 }
               }
             ],
-            "Reading a justification against a hunk is judgment. Jev returns a native probability that code can threshold at 0.85."
+            [
+              {
+                "insert": "Reading a justification against a hunk is judgment. Jev returns a native probability. The kernel applies "
+              },
+              {
+                "insert": "passAt",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " 0.85 and "
+              },
+              {
+                "insert": "failAt",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " 0.15 from the question."
+              }
+            ]
           ],
           [
             "Continue or stop",
@@ -401,17 +489,27 @@
                 "attributes": {
                   "code": true
                 }
-              },
-              {
-                "insert": ", then a human"
               }
             ],
-            "A p between 0.4 and 0.85 is too unsure to act on. The BAML judge adds a rationale. Its confidence is self-reported, so code does not threshold it."
+            [
+              {
+                "insert": "A p between 0.15 and 0.85 abstains. Escalation runs only in enforce with "
+              },
+              {
+                "insert": "escalateLowConfidence",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", which ships off. The judge's confidence is self-reported, so code does not threshold it."
+              }
+            ]
           ],
           [
             "Abstained",
-            "Code routes it, a human or the budget decides",
-            "Abstained is a normal result, not an error. An advisory goes to the operator review queue. A ContinueOrStop abstain falls back to the attempt budget counter."
+            "Code routes it, and the mode or the budget decides",
+            "Abstained is a normal result, not an error. An advisory fails closed in enforce and is recorded in shadow. A ContinueOrStop abstain falls back to the attempt budget counter."
           ]
         ]
       },
@@ -541,22 +639,13 @@
           "insert": "R2 "
         },
         {
-          "insert": "ExtractCheckpointNote",
+          "insert": "ExtractCheckpointKnowledge",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " was a BAML call that took 1.8s and cost $0.004. It returned status "
-        },
-        {
-          "insert": "partial",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " and one kept advisory, "
+          "insert": " was a BAML call that took 1.8s and cost $0.004. It returned one kept advisory, "
         },
         {
           "insert": "type_erasing_cast",
@@ -645,7 +734,25 @@
           }
         },
         {
-          "insert": ", and it took 110 ms. It returned justified p=0.91 with native confidence, at or above 0.85, so code accepted the advisory."
+          "insert": ", and it took 110 ms. It returned justified p=0.91 with native confidence, and the kernel applied "
+        },
+        {
+          "insert": "passAt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " 0.85 and returned "
+        },
+        {
+          "insert": "pass",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []
@@ -685,7 +792,25 @@
           }
         },
         {
-          "insert": " 0.71 with native confidence 0.64, above the 0.5 floor, so code retried with a strategy hint."
+          "insert": ", and top 0.71 cleared "
+        },
+        {
+          "insert": "minTop",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " 0.6 and "
+        },
+        {
+          "insert": "minMargin",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " 0.2, so code retried with a strategy hint."
         }
       ],
       "children": []
@@ -742,16 +867,7 @@
       },
       "text": [
         {
-          "insert": "R6 "
-        },
-        {
-          "insert": "ExtractCheckpointNote",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " was a call that took 1.8s, and S2 "
+          "insert": "S2 "
         },
         {
           "insert": "validate",
@@ -760,7 +876,22 @@
           }
         },
         {
-          "insert": " was a code step that took 5.4s. S2 reported objdiff 100% exact, gates 5/5, and a clean lint."
+          "insert": " was a code step that took 5.4s and reported objdiff 100% exact, gates 5/5, and a clean lint."
+        }
+      ],
+      "children": [
+        "wt-a2-2a"
+      ]
+    },
+    "wt-a2-2a": {
+      "id": "wt-a2-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Attempt 2 had no advisory, so no extraction ran. Code parsed the note."
         }
       ],
       "children": []

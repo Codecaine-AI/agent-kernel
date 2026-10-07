@@ -106,7 +106,16 @@
       "props": {},
       "text": [
         {
-          "insert": "Status: proposal, nothing built. The first step is a one-day spike that compares three engines on the "
+          "insert": "Adoption is built on the GameCube "
+        },
+        {
+          "insert": "feat/model-nodes",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " branch. "
         },
         {
           "insert": "llm_review",
@@ -115,7 +124,37 @@
           }
         },
         {
-          "insert": " question."
+          "insert": " adjudication defaults to "
+        },
+        {
+          "insert": "shadow",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and an "
+        },
+        {
+          "insert": "enforce",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " request runs as shadow until calibrated thresholds qualify. "
+        },
+        {
+          "insert": "Build Status and Deviations",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/80-build-status"
+            }
+          }
+        },
+        {
+          "insert": " lists where the build departs from this page."
         }
       ],
       "children": []
@@ -142,7 +181,7 @@
           "insert": "The orchestrator loop starts at "
         },
         {
-          "insert": "harness-runtime/phases/running/run-loop.ts:882",
+          "insert": "harness-runtime/phases/running/scheduler/run-loop.ts:907",
           "attributes": {
             "code": true
           }
@@ -204,7 +243,7 @@
                     "text": "Orchestrator runs knowledge maintenance"
                   },
                   {
-                    "text": "The summarizer and librarian lanes run as background consumers.",
+                    "text": "The summarizer lane, the `checkpoint_adjudication` and `checkpoint_knowledge` lanes, and the librarian lane with `--librarian-consumer` run in the background.",
                     "kind": "note"
                   }
                 ]
@@ -247,7 +286,7 @@
                     "text": "Pi worker edits the target [AGENT]"
                   },
                   {
-                    "text": "Worker job parses the checkpoint note [CALL]"
+                    "text": "Worker job parses the note with `parseWorkerCheckpointNote`, a deterministic JSON parse"
                   },
                   {
                     "text": "Worker job checks the change in code",
@@ -265,10 +304,14 @@
                     ]
                   },
                   {
-                    "text": "Worker job adjudicates `llm_review` advisories [DECISION, new]"
+                    "text": "In enforce, the worker job adjudicates `llm_review` advisories inline [CALL, DECISION, new]. In shadow, the `checkpoint_adjudication` lane adjudicates them out of band."
                   },
                   {
-                    "text": "Worker job records the checkpoint and decides whether to continue [DECISION]"
+                    "text": "Worker job records the checkpoint and decides whether to continue"
+                  },
+                  {
+                    "text": "The worker job runs in a `worker-task` child process.",
+                    "kind": "note"
                   }
                 ]
               },
@@ -276,7 +319,7 @@
                 "text": "Close the Tick",
                 "steps": [
                   {
-                    "text": "Orchestrator enqueues integration and the worker summary [CALL]"
+                    "text": "Orchestrator enqueues integration and the worker summary [AGENT]"
                   },
                   {
                     "text": "Orchestrator checks stop conditions"
@@ -361,7 +404,20 @@
               }
             ],
             "Pi agent with a structured envelope, one retry on rejects",
-            "Agent run plus a declared result (phase 2)"
+            [
+              {
+                "insert": "Agent run. A "
+              },
+              {
+                "insert": "checkpoint_confirmed",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " pathway feeds it."
+              }
+            ]
           ],
           [
             "Build fixer",
@@ -418,7 +474,7 @@
               }
             ],
             "Zero-tool Pi agent plus a hand parse",
-            "Call"
+            "Agent run, unchanged. A call is deferred."
           ],
           [
             "Renarrate",
@@ -441,7 +497,7 @@
                 }
               }
             ],
-            "Call"
+            "Agent run, unchanged. A call is deferred."
           ],
           [
             "Worker checkpoint note",
@@ -456,14 +512,14 @@
                 "insert": ", called at "
               },
               {
-                "insert": "worker-cycle.ts:1859",
+                "insert": "worker-cycle.ts:2157",
                 "attributes": {
                   "code": true
                 }
               }
             ],
             "Hand parse of the final message",
-            "Call"
+            "Hand parse, unchanged. BAML extraction runs only for advisory candidates and confirmed-good checkpoints."
           ],
           [
             "Shared parser",
@@ -495,7 +551,7 @@
                 }
               }
             ],
-            "Deleted once calls own their schemas"
+            "Kept. The note parse still uses it."
           ],
           [
             [
@@ -538,7 +594,7 @@
                 "insert": ", "
               },
               {
-                "insert": "validation/jobs/qa-gate.ts:33",
+                "insert": "validation/jobs/qa-gate.ts:123",
                 "attributes": {
                   "code": true
                 }
@@ -614,7 +670,7 @@
             "Continuation",
             [
               {
-                "insert": "worker-cycle.ts:745",
+                "insert": "worker-cycle.ts:776",
                 "attributes": {
                   "code": true
                 }
@@ -735,16 +791,25 @@
           }
         },
         {
-          "insert": " adjudication goes first because the current path is broken in three places. "
+          "insert": " adjudication goes first because the "
         },
         {
-          "insert": "review_lint",
+          "insert": "off",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " flags "
+          "insert": " path is broken in three places. Four rules carry "
+        },
+        {
+          "insert": "detail.llm_review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", which routes a finding to LLM review. "
         },
         {
           "insert": "type_erasing_cast",
@@ -762,19 +827,37 @@
           }
         },
         {
-          "insert": " locals as "
+          "insert": " locals are warnings. "
         },
         {
-          "insert": "llm_review",
+          "insert": "cancelling_arithmetic",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": ", which means route to LLM review. The worker prompt asks the worker to justify any it keeps ("
+          "insert": " and "
         },
         {
-          "insert": "knowledge/decomp-context.ts:193",
+          "insert": "layout_cue_local",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are "
+        },
+        {
+          "insert": "info",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and never block. The worker prompt asks the worker to justify any it keeps ("
+        },
+        {
+          "insert": "knowledge/decomp-context.ts:203",
           "attributes": {
             "code": true
           }
@@ -783,13 +866,22 @@
           "insert": ", "
         },
         {
-          "insert": "worker/context.ts:610",
+          "insert": "worker/context.ts:620",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": ")."
+          "insert": "). In shadow and enforce, the prompt asks for a "
+        },
+        {
+          "insert": "kept_advisories",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " note field."
         }
       ],
       "children": []
@@ -802,7 +894,43 @@
       },
       "text": [
         {
-          "insert": "Nothing reads the justification."
+          "insert": "In "
+        },
+        {
+          "insert": "off",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", nothing reads the justification. In "
+        },
+        {
+          "insert": "shadow",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "enforce",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "ExtractCheckpointKnowledge",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " reads it."
         }
       ],
       "children": []
@@ -815,7 +943,43 @@
       },
       "text": [
         {
-          "insert": "L1 and L2 reject every warning, so a checkpoint that keeps an advisory is never accepted."
+          "insert": "In "
+        },
+        {
+          "insert": "off",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "shadow",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", L1 and L2 reject every warning. In "
+        },
+        {
+          "insert": "enforce",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", an accepted advisory passes L1, the epoch scan, and L2 with "
+        },
+        {
+          "insert": "--run-id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []
@@ -839,7 +1003,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The proposed chain reads the justification and turns it into a gate input:"
+          "insert": "The chain reads the justification and turns it into a gate input:"
         }
       ],
       "children": []
@@ -850,23 +1014,23 @@
       "props": {
         "steps": [
           {
-            "text": "Proposed `llm_review` Adjudication",
+            "text": "`llm_review` Adjudication",
             "steps": [
               {
                 "text": "Pi worker keeps an advisory and writes a justification [AGENT]"
               },
               {
-                "text": "`kernel.call` on the checkpoint note extracts `{finding, hunk, justification}` for each kept advisory [CALL]"
+                "text": "`kernel.call` runs `ExtractCheckpointKnowledge(note, findings)` for `{finding_id, kept, justification, evidence}` per advisory, and code reads the hunk from the patch [CALL]"
               },
               {
-                "text": "`kernel.decide` asks Pi `classify()` one `bool` question per finding, \"is this justified?\" [DECISION]"
+                "text": "`kernel.gate` runs a `justification:<id>` step per warning, then `JudgeAdvisory:<id>` only when a justification exists [DECISION]"
               },
               {
-                "text": "Low confidence escalates to a BAML judge that returns a rationale, then to operator review.",
+                "text": "Escalation to `JudgeAdvisoryWithRationale` runs only in enforce with `escalateLowConfidence`, which ships off. No operator queue exists.",
                 "kind": "note"
               },
               {
-                "text": "Worker job feeds the verdicts into `workerCheckpointHardGatesPassed` (`worker-cycle.ts:439`)"
+                "text": "In enforce, the worker job keeps the validation `passed` only when every warning is accepted (`worker-cycle.ts:470`)"
               }
             ]
           }
@@ -893,7 +1057,16 @@
       "props": {},
       "text": [
         {
-          "insert": "Two prerequisites must be met before phase 0 starts. The spike stays one day of work once both are met."
+          "insert": "Two prerequisites gated phase 0. Both are met on branch "
+        },
+        {
+          "insert": "feat/model-nodes",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []
@@ -906,7 +1079,34 @@
       },
       "text": [
         {
-          "insert": "The Pi upgrade from 0.82.1 to 1.0.4 is merged from its separate branch."
+          "insert": "The build bumps Pi from 0.82.1 to "
+        },
+        {
+          "insert": "^1.0.4",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on "
+        },
+        {
+          "insert": "feat/model-nodes",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Harness Pi imports go through "
+        },
+        {
+          "insert": "@agent-kernel/kernel/pi-sdk",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": [
@@ -957,22 +1157,25 @@
       },
       "text": [
         {
+          "insert": "The build needs "
+        },
+        {
           "insert": "TYPESAFE_API_KEY",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " and "
+          "insert": ", and BAML calls run on "
         },
         {
-          "insert": "OPENAI_API_KEY",
+          "insert": "codex-lb/gpt-5.6-sol",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " are available to the harness."
+          "insert": "."
         }
       ],
       "children": [
@@ -1007,7 +1210,7 @@
       "props": {},
       "text": [
         {
-          "insert": "If the next Pi release has not shipped, the spike calls OpenAI Decisions directly with "
+          "insert": "The build did not need the spike shortcut through "
         },
         {
           "insert": "client.decisions.create()",
@@ -1016,7 +1219,7 @@
           }
         },
         {
-          "insert": " from openai-node 7.30.0. This shortcut is for the spike only."
+          "insert": ", and no harness or kernel code calls it."
         }
       ],
       "children": []
@@ -1293,7 +1496,16 @@
       },
       "text": [
         {
-          "insert": "The results decide which engine backs the first decision node."
+          "insert": "No three-engine spike ran. Owner decision O8 pins Jev "
+        },
+        {
+          "insert": "typesafe/jev-1.13.0",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for the first decision node."
         }
       ],
       "children": []
@@ -1360,10 +1572,10 @@
             "0. Prerequisites and spike",
             [
               {
-                "insert": "Pi 1.0.4 merged, and "
+                "insert": "Pi "
               },
               {
-                "insert": "TYPESAFE_API_KEY",
+                "insert": "^1.0.4",
                 "attributes": {
                   "code": true
                 }
@@ -1372,28 +1584,13 @@
                 "insert": " and "
               },
               {
-                "insert": "OPENAI_API_KEY",
+                "insert": "TYPESAFE_API_KEY",
                 "attributes": {
                   "code": true
                 }
               },
               {
-                "insert": " available. Then the BAML judge, Jev, and OpenAI Decisions compared on "
-              },
-              {
-                "insert": "llm_review",
-                "attributes": {
-                  "code": true
-                }
-              },
-              {
-                "insert": ", written to "
-              },
-              {
-                "insert": "spikes/model-nodes/RESULTS.md",
-                "attributes": {
-                  "code": true
-                }
+                "insert": ". Jev pinned by owner decision."
               }
             ],
             "One day once the prerequisites are met"
@@ -1418,16 +1615,7 @@
                 }
               },
               {
-                "insert": " in the kernel. "
-              },
-              {
-                "insert": "worker-summarizer",
-                "attributes": {
-                  "code": true
-                }
-              },
-              {
-                "insert": " and the four other parse sites replaced."
+                "insert": " in the kernel. BAML extraction for advisory candidates and confirmed-good checkpoints. The note parse, summarizer, and renarrate stay as they are."
               }
             ],
             "About a week"
@@ -1470,7 +1658,7 @@
                 }
               },
               {
-                "insert": " adjudication wired into the hard gates."
+                "insert": " adjudication in shadow by default. Enforce gates L1, L2, and the epoch scan once thresholds are calibrated."
               }
             ],
             "A few days"

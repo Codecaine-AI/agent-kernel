@@ -39,7 +39,9 @@
         "mn-page-5",
         "mn-page-6",
         "mn-pages-pi-lead",
-        "mn-page-7"
+        "mn-page-7",
+        "mn-pages-build-lead",
+        "mn-page-8"
       ]
     },
     "mn-intro": {
@@ -86,16 +88,16 @@
       "props": {},
       "text": [
         {
-          "insert": "Status: proposal, nothing built. "
+          "insert": "The model nodes are built on branch "
         },
         {
-          "insert": "spawnAgent",
+          "insert": "feat/model-nodes",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " exists today, and "
+          "insert": ", which is not merged or pushed. "
         },
         {
           "insert": "kernel.call",
@@ -113,7 +115,7 @@
           }
         },
         {
-          "insert": ", and "
+          "insert": ", "
         },
         {
           "insert": "kernel.step",
@@ -122,16 +124,28 @@
           }
         },
         {
-          "insert": " do not. Jev is usable now through early access. The OpenAI Decisions API is a public beta that waits on the next Pi release and an "
+          "insert": ", and "
         },
         {
-          "insert": "OPENAI_API_KEY",
+          "insert": "kernel.gate",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": "."
+          "insert": " write trace events, and the trace viewer renders them. The GameCube harness adopts them behind flags, with advisory adjudication in shadow mode by default. "
+        },
+        {
+          "insert": "Build Status and Deviations",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/80-build-status"
+            }
+          }
+        },
+        {
+          "insert": " lists what shipped and where the build differs from these pages."
         }
       ],
       "children": []
@@ -247,9 +261,6 @@
                 "attributes": {
                   "code": true
                 }
-              },
-              {
-                "insert": ", or a BAML enum fallback"
               }
             ]
           ],
@@ -553,7 +564,7 @@
           }
         },
         {
-          "insert": " (lines 13 to 21). "
+          "insert": " (lines 13 to 25). "
         },
         {
           "insert": "RunTrigger",
@@ -704,6 +715,15 @@
           }
         },
         {
+          "insert": ", "
+        },
+        {
+          "insert": "requested_model",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
           "insert": ", and "
         },
         {
@@ -722,16 +742,7 @@
           }
         },
         {
-          "insert": " is the exact id that Pi's "
-        },
-        {
-          "insert": "classify()",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " returns, and "
+          "insert": " is the served id from the response body, and "
         },
         {
           "insert": "api",
@@ -836,12 +847,12 @@
             "reference": {
               "kind": "source",
               "path": "packages/viewer-core/src/trace-builder/pairEvents.ts",
-              "line": 34
+              "line": 36
             }
           }
         },
         {
-          "insert": ", lines 34 to 50) and "
+          "insert": ", lines 36 to 67) and "
         },
         {
           "insert": "EVENT_SPECS",
@@ -859,12 +870,12 @@
             "reference": {
               "kind": "source",
               "path": "packages/viewer-core/src/trace-builder/spanAttributes.ts",
-              "line": 236
+              "line": 401
             }
           }
         },
         {
-          "insert": ", line 236)."
+          "insert": ", line 401)."
         }
       ],
       "children": []
@@ -877,7 +888,7 @@
       },
       "text": [
         {
-          "insert": "Branch "
+          "insert": "Route call and decision sessions to node spans instead of "
         },
         {
           "insert": "toAgentSpan",
@@ -895,21 +906,12 @@
             "reference": {
               "kind": "source",
               "path": "packages/viewer-core/src/trace-builder/spanFactories.ts",
-              "line": 56
+              "line": 74
             }
           }
         },
         {
-          "insert": ", line 56) on "
-        },
-        {
-          "insert": "kind",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": ", so calls and decisions do not render as "
+          "insert": ", line 74), so they do not render as "
         },
         {
           "insert": "agent_invocation",
@@ -1003,7 +1005,7 @@
           "insert": "Add "
         },
         {
-          "insert": "kernel.gate(name, checks)",
+          "insert": "kernel.gate(name, opts, checks)",
           "attributes": {
             "code": true
           }
@@ -1488,7 +1490,7 @@
           }
         },
         {
-          "insert": " on Jev, the OpenAI Decisions API, or a BAML enum fallback, plus the "
+          "insert": " on Jev or the OpenAI Decisions API, plus the "
         },
         {
           "insert": "Decision",
@@ -1596,7 +1598,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The last page checks the spec against the Pi 1.0 release."
+          "insert": "The next page checks the spec against the Pi 1.0 release."
         }
       ],
       "children": []
@@ -1619,6 +1621,48 @@
         },
         {
           "insert": " records which Pi 1.0 pieces the kernel adopts or skips, and what the 1.0.4 upgrade touches."
+        }
+      ],
+      "children": []
+    },
+    "mn-pages-build-lead": {
+      "id": "mn-pages-build-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The last page records the build against this spec."
+        }
+      ],
+      "children": []
+    },
+    "mn-page-8": {
+      "id": "mn-page-8",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Build Status and Deviations",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/80-build-status"
+            }
+          }
+        },
+        {
+          "insert": " lists what shipped on "
+        },
+        {
+          "insert": "feat/model-nodes",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", each contract deviation with its reason, live findings, and open follow-ups."
         }
       ],
       "children": []

@@ -207,7 +207,7 @@
       "from": "p1",
       "to": "p2",
       "line": "sync",
-      "text": "kernel.step(validate, fn)"
+      "text": "kernel.step(validate, opts, fn)"
     },
     {
       "kind": "message",
@@ -294,7 +294,7 @@
       "from": "p2",
       "to": "p8",
       "line": "async",
-      "text": "decision_made, call_end (110 ms)"
+      "text": "pi_turn_*, pi_request_snapshot, decision_made, call_end (110 ms)"
     },
     {
       "kind": "message",
@@ -365,7 +365,7 @@
       "from": "p2",
       "to": "p8",
       "line": "async",
-      "text": "decision_made, call_end (95 ms)"
+      "text": "pi_turn_*, pi_request_snapshot, decision_made, call_end (95 ms)"
     },
     {
       "kind": "message",
@@ -456,7 +456,7 @@
               "from": "p1",
               "to": "p2",
               "line": "sync",
-              "text": "kernel.step(stop, fn)"
+              "text": "kernel.step(stop, opts, fn)"
             },
             {
               "kind": "message",
@@ -478,13 +478,21 @@
               "kind": "message",
               "id": "m47",
               "from": "p2",
+              "to": "p8",
+              "line": "async",
+              "text": "call_start (R7, engine baml)"
+            },
+            {
+              "kind": "message",
+              "id": "m48",
+              "from": "p2",
               "to": "p4",
               "line": "sync",
               "text": "invoke with collector"
             },
             {
               "kind": "message",
-              "id": "m48",
+              "id": "m49",
               "from": "p4",
               "to": "p5",
               "line": "sync",
@@ -492,7 +500,7 @@
             },
             {
               "kind": "message",
-              "id": "m49",
+              "id": "m50",
               "from": "p5",
               "to": "p4",
               "line": "return",
@@ -500,7 +508,7 @@
             },
             {
               "kind": "message",
-              "id": "m50",
+              "id": "m51",
               "from": "p4",
               "to": "p2",
               "line": "return",
@@ -508,15 +516,15 @@
             },
             {
               "kind": "message",
-              "id": "m51",
+              "id": "m52",
               "from": "p2",
               "to": "p8",
               "line": "async",
-              "text": "call_start, pi_turn_*, call_end (R7)"
+              "text": "pi_turn_*, call_end (R7)"
             },
             {
               "kind": "message",
-              "id": "m52",
+              "id": "m53",
               "from": "p2",
               "to": "p1",
               "line": "return",

@@ -23,6 +23,7 @@
         "tu-h-second",
         "tu-second-lead",
         "tu-mock-cards",
+        "tu-mock-gaps",
         "tu-h-changes",
         "tu-changes-lead",
         "tu-change-1",
@@ -38,7 +39,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The trace viewer shows a blended job as one tree on one timeline. Agent runs, calls, decisions, and code steps each get their own color and badge, and they nest under the worker run they serve."
+          "insert": "The trace viewer shows a blended job as one tree. Calls are teal and decisions are pink. Call, decision, step, and gate rows carry a kind badge, and they nest under the worker run they serve."
         }
       ],
       "children": []
@@ -49,16 +50,19 @@
       "props": {},
       "text": [
         {
-          "insert": "Status: mockup of the proposed UI, not built. Today the viewer renders every session as "
+          "insert": "The build renders call and decision sessions as node rows, and steps and gates as their own kinds. The timeline column, header tiles, KINDS legend, and collapsed turn rows in the mockups are deferred. "
         },
         {
-          "insert": "agent_invocation",
+          "insert": "Build Status and Deviations",
           "attributes": {
-            "code": true
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/80-build-status"
+            }
           }
         },
         {
-          "insert": " and has no call, decision, or step kinds. The timeline column is also new."
+          "insert": " lists where the build departs from this page."
         }
       ],
       "children": []
@@ -147,15 +151,6 @@
           "insert": "Each row is one node, and its badge names the kind: "
         },
         {
-          "insert": "AGENT",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": ", "
-        },
-        {
           "insert": "CALL",
           "attributes": {
             "code": true
@@ -171,7 +166,7 @@
           }
         },
         {
-          "insert": ", or "
+          "insert": ", "
         },
         {
           "insert": "STEP",
@@ -180,7 +175,16 @@
           }
         },
         {
-          "insert": "."
+          "insert": ", or "
+        },
+        {
+          "insert": "GATE",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Agent rows keep their existing look."
         }
       ],
       "children": [
@@ -195,7 +199,7 @@
       },
       "text": [
         {
-          "insert": "Purple rows are an agent run's turns, collapsed to a count such as \"14 turns, 31 tools\"."
+          "insert": "Agent runs keep their existing turn rows. Collapsed turn summaries such as \"14 turns, 31 tools\" are deferred."
         }
       ],
       "children": []
@@ -208,16 +212,25 @@
       },
       "text": [
         {
-          "insert": "Calls, decisions, and steps sit under the worker run they serve, R1 or R5. The link is "
+          "insert": "Calls, decisions, and steps sit under the worker run they serve, R1 or R5. Calls and decisions link by "
         },
         {
-          "insert": "parentRunId",
+          "insert": "parent_run_id",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": ", not a tool call."
+          "insert": ", and steps and gates by "
+        },
+        {
+          "insert": "run_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []
@@ -246,7 +259,7 @@
       },
       "text": [
         {
-          "insert": "A decision shows its choice, such as \"accepted p=0.91\"."
+          "insert": "A decision shows its choice, such as \"pass p=0.91\"."
         }
       ],
       "children": []
@@ -272,7 +285,25 @@
       },
       "text": [
         {
-          "insert": "The timeline column places every node on the job clock. Decisions take about 100 ms, so they draw as diamonds."
+          "insert": "Each call, decision, step, and gate row shows a duration chip, such as "
+        },
+        {
+          "insert": "110 ms",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "1.8 s",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The timeline column is deferred."
         }
       ],
       "children": []
@@ -285,7 +316,40 @@
       },
       "text": [
         {
-          "insert": "The right panel is the decision card. It shows the probability bars against the 0.85 threshold, the native confidence source (jev-1.13.0), the run it decided for, the input state, evidence links, usage, and the harness action."
+          "insert": "The right panel is the decision card. It leads with the verdict and the "
+        },
+        {
+          "insert": "native",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "jev · jev-1.13.0",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " badges."
+        }
+      ],
+      "children": [
+        "tu-read-5a"
+      ]
+    },
+    "tu-read-5a": {
+      "id": "tu-read-5a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Probability bars against the 0.85 threshold, the input state, and a facts table follow. The card has no evidence links, parent-run link, or harness action."
         }
       ],
       "children": []
@@ -318,7 +382,16 @@
           }
         },
         {
-          "insert": " uses the same decision card with three options. Its marker is the 0.5 confidence floor, and 0.64 clears it. R2 "
+          "insert": " uses the same decision card with three options. Each option bar carries the "
+        },
+        {
+          "insert": "minTop",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " floor marker, and the top option, 0.71, clears it. R2 "
         },
         {
           "insert": "ExtractCheckpointNote",
@@ -343,6 +416,26 @@
       },
       "children": []
     },
+    "tu-mock-gaps": {
+      "id": "tu-mock-gaps",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The build has no timeline, header tiles, KINDS legend, "
+        },
+        {
+          "insert": "AGENT",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " badge, collapsed turn rows, evidence or harness-action boxes, or confidence-floor bar for choice questions."
+        }
+      ],
+      "children": []
+    },
     "tu-h-changes": {
       "id": "tu-h-changes",
       "type": "heading",
@@ -351,7 +444,7 @@
       },
       "text": [
         {
-          "insert": "Viewer Changes Needed"
+          "insert": "Viewer Changes"
         }
       ],
       "children": []
@@ -362,7 +455,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Five changes in viewer-core and viewer-ui produce this view."
+          "insert": "Five changes in viewer-core and viewer-ui are built, and they produce the node rows and detail cards."
         }
       ],
       "children": []
@@ -374,27 +467,6 @@
         "ordered": true
       },
       "text": [
-        {
-          "insert": "Register the "
-        },
-        {
-          "insert": "call_*",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " and "
-        },
-        {
-          "insert": "step_*",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " start and end pairs in "
-        },
         {
           "insert": "KEYED_PAIRINGS",
           "attributes": {
@@ -411,12 +483,48 @@
             "reference": {
               "kind": "source",
               "path": "packages/viewer-core/src/trace-builder/pairEvents.ts",
-              "line": 34
+              "line": 36
             }
           }
         },
         {
-          "insert": ", lines 34 to 50). Today it pairs only agent runs, context builds, and UI asks."
+          "insert": ", lines 36 to 67) pairs "
+        },
+        {
+          "insert": "call_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " by "
+        },
+        {
+          "insert": "run_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "step_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "gate_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " by span id."
         }
       ],
       "children": []
@@ -429,16 +537,13 @@
       },
       "text": [
         {
-          "insert": "Add "
-        },
-        {
           "insert": "EVENT_SPECS",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " entries with categories for call, decision, and step events ("
+          "insert": " ("
         },
         {
           "insert": "packages/viewer-core/src/trace-builder/spanAttributes.ts",
@@ -447,12 +552,12 @@
             "reference": {
               "kind": "source",
               "path": "packages/viewer-core/src/trace-builder/spanAttributes.ts",
-              "line": 236
+              "line": 401
             }
           }
         },
         {
-          "insert": ", line 236). Without them, "
+          "insert": ", line 401) gives call, decision, step, and gate events their categories. Without those entries, "
         },
         {
           "insert": "categoryFor",
@@ -461,7 +566,7 @@
           }
         },
         {
-          "insert": " (line 566) returns the generic "
+          "insert": " (line 832) returns the generic "
         },
         {
           "insert": "event",
@@ -483,7 +588,45 @@
       },
       "text": [
         {
-          "insert": "Branch "
+          "insert": "buildAgentForest",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ("
+        },
+        {
+          "insert": "packages/viewer-core/src/build-trace-spans.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/viewer-core/src/build-trace-spans.ts",
+              "line": 194
+            }
+          }
+        },
+        {
+          "insert": ", line 194) routes call and decision sessions to "
+        },
+        {
+          "insert": "toNodeSpans",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "toNodeSpan",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
         },
         {
           "insert": "toAgentSpan",
@@ -501,21 +644,12 @@
             "reference": {
               "kind": "source",
               "path": "packages/viewer-core/src/trace-builder/spanFactories.ts",
-              "line": 56
+              "line": 74
             }
           }
         },
         {
-          "insert": ", line 56) on the session "
-        },
-        {
-          "insert": "kind",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": ". It hardcodes "
+          "insert": ", line 74) builds "
         },
         {
           "insert": "agent_invocation",
@@ -524,7 +658,16 @@
           }
         },
         {
-          "insert": " for every session today."
+          "insert": " for "
+        },
+        {
+          "insert": "pi",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sessions."
         }
       ],
       "children": []
@@ -537,7 +680,13 @@
       },
       "text": [
         {
-          "insert": "Add a decision detail card with probability bars, a threshold or floor marker, and the confidence source badge. Register it in "
+          "insert": "DecisionBody",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is registered in "
         },
         {
           "insert": "packages/viewer-ui/src/trace-viewer/detail-panel/rendererRegistry.ts",
@@ -546,15 +695,15 @@
             "reference": {
               "kind": "source",
               "path": "packages/viewer-ui/src/trace-viewer/detail-panel/rendererRegistry.ts",
-              "line": 11
+              "line": 33
             }
           }
         },
         {
-          "insert": " next to "
+          "insert": " for "
         },
         {
-          "insert": "ToolBody",
+          "insert": "decision_container",
           "attributes": {
             "code": true
           }
@@ -563,7 +712,34 @@
           "insert": " and "
         },
         {
-          "insert": "TurnBody",
+          "insert": "decision_attempt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", beside "
+        },
+        {
+          "insert": "CallBody",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "StepBody",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "GateBody",
           "attributes": {
             "code": true
           }
@@ -582,16 +758,16 @@
       },
       "text": [
         {
-          "insert": "Nest post-run and judge runs under their parent run by "
+          "insert": "Call and decision rows nest under their parent run by "
         },
         {
-          "insert": "parentRunId",
+          "insert": "parent_run_id",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": "."
+          "insert": ", whatever their trigger."
         }
       ],
       "children": [
