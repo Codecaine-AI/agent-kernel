@@ -1,14 +1,593 @@
 /**
- * `kernel.decide` (plan §3.5). M1 skeleton: rejects with
- * KernelNodeError("no-engine") until M2 implements it.
+ * `kernel.decide` (plan §3.5): closed questions through a DecisionEngine
+ * (default: Pi `classify()`), answers validated and thresholded, recorded
+ * intent-first through the shared node lifecycle (`runModelNode`).
+ *
+ * decide rejects only with KernelDecideValidationError (before any row) or
+ * KernelNodeError (scope, `in-flight-elsewhere`, `row-write-failed`). Every
+ * engine failure resolves: all answers abstain and the outcome carries the
+ * error. Logs carry ids, names, model refs and error kinds only (§4.7).
  */
-import type { ModelNodeContext } from "../context";
-import { KernelNodeError, type KernelDecideFn } from "../types";
+import { createHash } from "node:crypto";
 
-/** Called once per kernel from createKernel; may validate `ctx.decide` and throw. */
+import type { TraceBlobInput } from "@agent-kernel/db";
+import {
+	createDecisionMadeEvent,
+	createPiRequestSnapshotEvent,
+	createPiTurnEndEvent,
+	createPiTurnStartEvent,
+	type CallEndData,
+	type DecisionMadeData,
+	type TraceEvent,
+	type TurnUsage,
+} from "@agent-kernel/protocol";
+import type { ClassifierQuestion, JsonObject as PiJsonObject } from "@earendil-works/pi-ai";
+
+import { canonicalJson, jsonBlob } from "../blobs";
+import { resolveModelAlias, type ModelNodeContext } from "../context";
+import { runModelNode, type NodeExecution, type NodeReplayInput, type NodeRunHandle } from "../node-run";
+import { splitModelRef } from "../pi-models";
+import { priceNodeUsage } from "../pricing";
+import { mergeSecrets, redactDeep, redactText } from "../redact";
+import { resolveNodeScope } from "../scope";
+import {
+	DEFAULT_DECIDE_MAX_RETRIES,
+	DEFAULT_DECIDE_MAX_RETRY_DELAY_MS,
+	DEFAULT_DECIDE_TIMEOUT_MS,
+	KernelDecideValidationError,
+	KernelNodeError,
+	toPiQuestions,
+	type Decision,
+	type DecisionEngine,
+	type DecisionOutcome,
+	type DecisionQuestion,
+	type DecisionState,
+	type EngineErrorKind,
+	type EngineResult,
+	type KernelDecideFn,
+	type KernelDecideOptions,
+	type NodeIds,
+	type ThresholdApplied,
+} from "../types";
+import { budgetFor, DEFAULT_TOKEN_BUDGETS, estimateDecisionTokens } from "./budget";
+import { createPiDecisionEngine, isDescribedEngine, type PiEngineRequest } from "./pi-engine";
+import {
+	applyThresholds,
+	chosenLabel,
+	DEFAULT_THRESHOLDS,
+	mostSevereReason,
+	outcomeConfidenceSource,
+} from "./thresholds";
+import { callOptionIssues, checkState, decideConfigIssues, questionIssues } from "./validate";
+import { DEFAULT_WIRE_PRECISION, malformedAnswers, precisionFor } from "./validate-answers";
+
+export {
+	classifyError,
+	createPiDecisionEngine,
+	engineIdForApi,
+	type DecisionRoute,
+	type PiDecisionEngine,
+	type PiDecisionEngineOptions,
+	type PiEngineRequest,
+} from "./pi-engine";
+export { DEFAULT_THRESHOLDS } from "./thresholds";
+export { DEFAULT_TOKEN_BUDGETS } from "./budget";
+export { DEFAULT_WIRE_PRECISION } from "./validate-answers";
+
+/** Internal options for a decide run on behalf of another node (M4 gates). */
+export interface DecideInternalOptions {
+	/** The enclosing gate's span id: written as `gate_span_id` on call_start, decision_made and call_end. */
+	gateSpanId?: string;
+}
+
+/** Called once per kernel from createKernel; validates `ctx.decide` and throws KernelDecideValidationError. */
 export function createDecide(ctx: ModelNodeContext): KernelDecideFn {
-	void ctx;
-	return async () => {
-		throw new KernelNodeError("no-engine", "not implemented");
+	const decider = deciderFor(ctx);
+	return (name, state, opts) => decider.run(name, state, opts, {});
+}
+
+/** `kernel.decide` with internal options (gate checks). Same contract as kernel.decide. */
+export function decideInternal<Q extends Record<string, DecisionQuestion>>(
+	ctx: ModelNodeContext,
+	name: string,
+	state: DecisionState,
+	opts: KernelDecideOptions<Q>,
+	internal: DecideInternalOptions,
+): Promise<DecisionOutcome<Q>> {
+	return deciderFor(ctx).run(name, state, opts, internal);
+}
+
+/**
+ * Throws KernelDecideValidationError when `questions` (thresholds merged
+ * with this kernel's defaults) or `state` are invalid. No rows, no network:
+ * gates call it for every decide check before gate_start.
+ */
+export function validateDecideRequest(
+	ctx: ModelNodeContext,
+	state: DecisionState,
+	questions: Record<string, DecisionQuestion>,
+): void {
+	deciderFor(ctx).validate(state, questions, {});
+}
+
+// ── per-kernel decider ─────────────────────────────────────────────────────────
+
+interface ResolvedDecideConfig {
+	engine: DecisionEngine;
+	timeoutMs: number;
+	maxRetries: number;
+	maxRetryDelayMs: number;
+	tokenBudgets: Readonly<Record<string, number>>;
+	defaults: Required<ThresholdApplied>;
+	wirePrecision: Readonly<Record<string, number>>;
+}
+
+interface Decider {
+	/** `name` is checked only when given (kernel.decide always gives it; gate pre-validation has none yet). */
+	validate(
+		state: DecisionState,
+		questions: unknown,
+		opts: { timeoutMs?: unknown; maxRetries?: unknown },
+		name?: { value: unknown },
+	): { state: PiJsonObject; stateJson: string };
+	run<Q extends Record<string, DecisionQuestion>>(
+		name: string,
+		state: DecisionState,
+		opts: KernelDecideOptions<Q>,
+		internal: DecideInternalOptions,
+	): Promise<DecisionOutcome<Q>>;
+}
+
+const deciders = new WeakMap<ModelNodeContext, Decider>();
+
+function deciderFor(ctx: ModelNodeContext): Decider {
+	let decider = deciders.get(ctx);
+	if (!decider) {
+		decider = buildDecider(ctx);
+		deciders.set(ctx, decider);
+	}
+	return decider;
+}
+
+function resolveConfig(ctx: ModelNodeContext): ResolvedDecideConfig {
+	const config = ctx.decide;
+	const issues = decideConfigIssues(config);
+	if (issues.length > 0) throw new KernelDecideValidationError(issues);
+	const maxRetryDelayMs = config?.maxRetryDelayMs ?? DEFAULT_DECIDE_MAX_RETRY_DELAY_MS;
+	const models = config?.models;
+	return {
+		engine:
+			config?.engine ??
+			createPiDecisionEngine({
+				models: models ?? (async () => ctx.piModels().registry()),
+				maxRetryDelayMs,
+			}),
+		timeoutMs: config?.timeoutMs ?? DEFAULT_DECIDE_TIMEOUT_MS,
+		maxRetries: config?.maxRetries ?? DEFAULT_DECIDE_MAX_RETRIES,
+		maxRetryDelayMs,
+		tokenBudgets: { ...DEFAULT_TOKEN_BUDGETS, ...config?.tokenBudgets },
+		defaults: { ...(config?.defaults ?? DEFAULT_THRESHOLDS) },
+		wirePrecision: { ...DEFAULT_WIRE_PRECISION, ...config?.wirePrecision },
+	};
+}
+
+function buildDecider(ctx: ModelNodeContext): Decider {
+	const config = resolveConfig(ctx);
+
+	const validate: Decider["validate"] = (state, questions, opts, name) => {
+		const issues: string[] = [];
+		if (name !== undefined && !(typeof name.value === "string" && name.value.trim().length > 0)) {
+			issues.push("decision name must be a non-empty string");
+		}
+		const checked = checkState(state);
+		if (!checked.ok) issues.push(...checked.issues);
+		issues.push(...questionIssues(questions, config.defaults), ...callOptionIssues(opts));
+		if (issues.length > 0 || !checked.ok) throw new KernelDecideValidationError(issues);
+		return { state: checked.state, stateJson: checked.json };
+	};
+
+	return {
+		validate,
+		async run<Q extends Record<string, DecisionQuestion>>(
+			name: string,
+			rawState: DecisionState,
+			opts: KernelDecideOptions<Q>,
+			internal: DecideInternalOptions,
+		): Promise<DecisionOutcome<Q>> {
+			const { state, stateJson } = validate(rawState, opts?.questions, opts ?? {}, { value: name });
+			const questions: Record<string, DecisionQuestion> = opts.questions;
+			const scope = await resolveNodeScope(
+				{
+					...(opts.containerId !== undefined && { containerId: opts.containerId }),
+					...(opts.parentRunId !== undefined && { parentRunId: opts.parentRunId }),
+					...(opts.parentToolUseId !== undefined && { parentToolUseId: opts.parentToolUseId }),
+					...(opts.displayLabel !== undefined && { displayLabel: opts.displayLabel }),
+					...(opts.trigger !== undefined && { trigger: opts.trigger }),
+				},
+				{ db: ctx.db(), defaultTrigger: "judge" },
+			);
+
+			const piQuestions = toPiQuestions(questions);
+			const requestedRef = opts.model ?? ctx.models.defaults.decide;
+			const modelRef = requestedRef !== undefined ? resolveModelAlias(requestedRef, ctx.models.aliases) : undefined;
+			const timeoutMs = opts.timeoutMs ?? config.timeoutMs;
+			const maxRetries = opts.maxRetries ?? config.maxRetries;
+			// §4.6: every request and every server-allowed retry delay fits inside one operation deadline.
+			const deadlineMs = timeoutMs * (maxRetries + 1) + maxRetries * config.maxRetryDelayMs;
+
+			const synthetic = preflight(modelRef, stateJson, piQuestions, config.tokenBudgets);
+			const route = modelRef && isDescribedEngine(config.engine) ? await config.engine.describe(modelRef) : undefined;
+			const split = modelRef ? splitModelRef(modelRef) : undefined;
+			const label = {
+				engine: route?.engine ?? ("pi-ai" as const),
+				provider: route?.provider ?? split?.provider ?? "",
+				...(route?.api ? { api: route.api } : {}),
+			};
+
+			const contextValue = { state, questions: piQuestions };
+			const promptHash = `dq1-${createHash("sha256").update(canonicalJson({ questions: piQuestions })).digest("hex")}`;
+			const input = jsonBlob("classifier-context", contextValue, new Date(ctx.clock.now()).toISOString());
+			const logIds = { name, model: modelRef ?? null };
+
+			const result = await runModelNode<DecisionOutcome<Q>>(ctx, {
+				kind: "decision",
+				name,
+				scope,
+				...(opts.requestId !== undefined && { requestId: opts.requestId }),
+				...(opts.signal !== undefined && { signal: opts.signal }),
+				...(opts.onNodeStarted !== undefined && { onNodeStarted: opts.onNodeStarted }),
+				deadlineMs,
+				start: {
+					engine: label.engine,
+					model: modelRef ?? "",
+					...(requestedRef !== undefined && requestedRef !== modelRef && { model_alias: requestedRef }),
+					...(label.provider && { provider: label.provider }),
+					...(label.api && { api: label.api }),
+					prompt_hash: promptHash,
+					input_blob_hash: input.hash,
+					...(internal.gateSpanId !== undefined && { gate_span_id: internal.gateSpanId }),
+				},
+				startBlobs: [input.blob],
+				async execute(handle) {
+					const engineResult: EngineResult = synthetic
+						? syntheticResult(synthetic, modelRef ?? "", label)
+						: await invokeEngine(config.engine, {
+								model: modelRef!,
+								state,
+								questions: piQuestions,
+								signal: handle.signal,
+								timeoutMs,
+								maxRetries,
+								maxRetryDelayMs: config.maxRetryDelayMs,
+							});
+					const execution = buildExecution<Q>({
+						handle,
+						name,
+						questions,
+						contextValue,
+						promptHash,
+						engineResult,
+						callerAborted: opts.signal?.aborted === true,
+						gateSpanId: internal.gateSpanId,
+						config,
+						ctx,
+					});
+					const o = execution.outcome;
+					ctx.logger?.debug("decision made", {
+						...logIds,
+						runId: handle.ids.runId,
+						servedModel: o.model,
+						abstained: o.abstained,
+						...(o.error && { errorKind: o.error.kind }),
+					});
+					return execution;
+				},
+				replay: (prior) => replayOutcome<Q>(prior),
+			});
+			return { ...result.outcome, ids: result.ids, replayed: result.replayed, coalesced: result.coalesced };
+		},
+	};
+}
+
+/** No network for an unconfigured model or an over-budget request (§4.3 token budget). */
+function preflight(
+	modelRef: string | undefined,
+	stateJson: string,
+	questions: Record<string, ClassifierQuestion>,
+	budgets: Readonly<Record<string, number>>,
+): { kind: EngineErrorKind; message: string } | undefined {
+	if (!modelRef) {
+		return { kind: "not-configured", message: "no decision model: pass opts.model or set models.defaults.decide" };
+	}
+	const budget = budgetFor(modelRef, budgets);
+	if (budget === undefined) return undefined;
+	const estimate = estimateDecisionTokens(stateJson, questions);
+	if (estimate <= budget) return undefined;
+	return { kind: "too-large", message: `estimated ${estimate} tokens exceeds the ${budget}-token budget of ${modelRef}` };
+}
+
+function syntheticResult(
+	failure: { kind: EngineErrorKind; message: string },
+	modelRef: string,
+	label: { engine: EngineResult["engine"]; provider: string; api?: string },
+): EngineResult {
+	return {
+		ok: false,
+		engine: label.engine,
+		api: label.api ?? "",
+		provider: label.provider,
+		requestedModel: modelRef,
+		resolvedModel: modelRef,
+		answers: {},
+		latencyMs: 0,
+		attempts: 0,
+		startedAtMs: Date.now(),
+		error: failure,
+		secrets: [],
+	};
+}
+
+/** The engine contract is "never rejects"; a rejecting engine is mapped to a provider error, never propagated. */
+async function invokeEngine(engine: DecisionEngine, request: PiEngineRequest): Promise<EngineResult> {
+	try {
+		const result = await engine.classify(request);
+		if (result === null || typeof result !== "object") throw new TypeError("decision engine returned no result");
+		return {
+			...result,
+			answers: result.answers ?? {},
+			secrets: Array.isArray(result.secrets) ? result.secrets : [],
+		};
+	} catch (error) {
+		const split = splitModelRef(request.model);
+		return {
+			ok: false,
+			engine: "pi-ai",
+			api: "",
+			provider: split?.provider ?? "",
+			requestedModel: request.model,
+			resolvedModel: request.model,
+			answers: {},
+			latencyMs: 0,
+			attempts: 0,
+			startedAtMs: Date.now(),
+			error: {
+				kind: request.signal?.aborted ? "aborted" : "provider",
+				message: `decision engine threw ${error instanceof Error ? error.name : typeof error}`,
+			},
+			secrets: [],
+		};
+	}
+}
+
+// ── outcome and events ─────────────────────────────────────────────────────────
+
+interface BuildExecutionInput {
+	handle: NodeRunHandle;
+	name: string;
+	questions: Record<string, DecisionQuestion>;
+	contextValue: { state: PiJsonObject; questions: Record<string, ClassifierQuestion> };
+	promptHash: string;
+	engineResult: EngineResult;
+	callerAborted: boolean;
+	gateSpanId: string | undefined;
+	config: ResolvedDecideConfig;
+	ctx: ModelNodeContext;
+}
+
+function buildExecution<Q extends Record<string, DecisionQuestion>>(
+	input: BuildExecutionInput,
+): NodeExecution<DecisionOutcome<Q>> {
+	const { handle, name, questions, engineResult: r, config, ctx } = input;
+	// The kernel's second scrub pass (§4.7) over everything engine-supplied that gets persisted.
+	const secrets = mergeSecrets(r.secrets);
+	const wireRequest = r.wireRequest !== undefined ? redactDeep(r.wireRequest, secrets) : undefined;
+	const wireResponse = r.wireResponse !== undefined ? redactDeep(r.wireResponse, secrets) : undefined;
+
+	const aborted = !r.ok && r.error?.kind === "aborted";
+	const deadline = aborted && handle.deadlineExceeded() && !input.callerAborted;
+	const malformed = r.ok ? malformedAnswers(r.answers, questions, precisionFor(r.api, config.wirePrecision)) : [];
+	const answers = applyThresholds(r, questions, config.defaults, new Set(malformed));
+	const abstainReason = mostSevereReason(Object.values(answers));
+	const abstained = Object.values(answers).some((d) => d.abstained);
+
+	let error: DecisionOutcome<Q>["error"];
+	if (deadline) {
+		error = { kind: "timeout", message: "decision operation deadline exceeded" };
+	} else if (r.error && !r.ok) {
+		error = {
+			kind: r.error.kind,
+			message: redactText(r.error.message, secrets),
+			...(r.error.httpStatus !== undefined && { httpStatus: r.error.httpStatus }),
+		};
+	} else if (malformed.length > 0) {
+		error = { kind: "malformed-answer", message: `malformed answers: ${malformed.join(", ")}` };
+	}
+	const runStatus = aborted ? "aborted" : abstainReason === "engine-error" ? "error" : "done";
+	// A done decision was answered (a refusal is an answer), so the engine reached the model at least once.
+	const attempts = runStatus === "done" ? Math.max(1, r.attempts) : r.attempts;
+
+	const requestedModel = r.requestedModel;
+	const servedModel = r.resolvedModel || requestedModel;
+	const usage: TurnUsage | undefined = r.usage
+		? priceNodeUsage(
+				{
+					inputTokens: r.usage.inputTokens,
+					outputTokens: r.usage.outputTokens,
+					cacheReadTokens: 0,
+					cacheWriteTokens: 0,
+					model: servedModel,
+				},
+				ctx.models.prices,
+			)
+		: undefined;
+
+	const events: TraceEvent[] = [];
+	const blobs: TraceBlobInput[] = [];
+	const addBlob = (kind: string, value: unknown, at: string) => {
+		const blob = jsonBlob(kind, value, at);
+		blobs.push(blob.blob);
+		return blob.hash;
+	};
+
+	if (attempts > 0) {
+		const attemptStart = Number.isFinite(r.startedAtMs) ? r.startedAtMs : handle.startedAtMs;
+		const snapshotMs = Math.max(attemptStart, handle.startedAtMs + 1);
+		const window = handle.turnWindow(snapshotMs + 1, Number.isFinite(r.latencyMs) ? r.latencyMs : null);
+		const snapshotAt = new Date(snapshotMs).toISOString();
+		const text = JSON.stringify(input.contextValue, null, 2);
+		const messageHash = addBlob(
+			"message",
+			{ role: "classifier_context", content: [{ type: "text", text }] },
+			snapshotAt,
+		);
+		const rawRequestHash = wireRequest !== undefined ? addBlob("classifier-request", wireRequest, snapshotAt) : undefined;
+		const responseHash = wireResponse !== undefined ? addBlob("call-response", wireResponse, window.end) : undefined;
+		events.push(
+			createPiRequestSnapshotEvent(
+				handle.traceIds,
+				{
+					turn_number: 0,
+					system_prompt_blob_hash: null,
+					prompt_hash: input.promptHash,
+					message_count: 1,
+					message_refs: [
+						{
+							blob_hash: messageHash,
+							role: "classifier_context",
+							index: 0,
+							text_chars: text.length,
+							image_count: 0,
+							tool_call_count: 0,
+						},
+					],
+					total_text_chars: text.length,
+					total_image_count: 0,
+					...(rawRequestHash !== undefined && { raw_request_blob_hash: rawRequestHash }),
+					request_kind: "classifier",
+				},
+				{ eventId: handle.eventId(0, "pi_request_snapshot"), parentEventId: handle.startEventId, timestamp: snapshotAt },
+			),
+			createPiTurnStartEvent(handle.traceIds, {
+				turnNumber: 0,
+				eventId: handle.eventId(0, "pi_turn_start"),
+				parentEventId: handle.startEventId,
+				timestamp: window.start,
+			}),
+			createPiTurnEndEvent(handle.traceIds, {
+				turnNumber: 0,
+				stopReason: r.ok ? "stop" : aborted ? "aborted" : "error",
+				...(usage && { usage }),
+				...(responseHash !== undefined && { responseBlobHash: responseHash }),
+				...(r.error?.httpStatus !== undefined && { httpStatus: r.error.httpStatus }),
+				...(Number.isFinite(r.latencyMs) && { durationMs: r.latencyMs }),
+				eventId: handle.eventId(0, "pi_turn_end"),
+				parentEventId: handle.startEventId,
+				timestamp: window.end,
+			}),
+		);
+	}
+
+	const thresholdApplied: Record<string, ThresholdApplied> = {};
+	for (const [id, decision] of Object.entries(answers)) thresholdApplied[id] = decision.thresholdApplied;
+	const chosen = chosenLabel(answers);
+	const confidenceSource = outcomeConfidenceSource(Object.values(answers));
+	const madeAt = handle.timestamp();
+	const made: DecisionMadeData = {
+		run_id: handle.ids.runId,
+		decision_name: name,
+		answers,
+		chosen,
+		confidence_source: confidenceSource,
+		abstained,
+		...(abstainReason && { abstain_reason: abstainReason }),
+		threshold_applied: thresholdApplied,
+		engine: r.engine,
+		provider: r.provider,
+		...(r.api && { api: r.api }),
+		model: servedModel,
+		requested_model: requestedModel,
+		...(error && { error_kind: error.kind }),
+		...(input.gateSpanId !== undefined && { gate_span_id: input.gateSpanId }),
+	};
+	events.push(
+		createDecisionMadeEvent(handle.traceIds, made, {
+			eventId: handle.eventId(0, "decision_made"),
+			parentEventId: handle.startEventId,
+			timestamp: madeAt,
+		}),
+	);
+	const outputHash = addBlob("call-output", answers, madeAt);
+
+	return {
+		outcome: {
+			decisionName: name,
+			ids: handle.ids,
+			answers: answers as DecisionOutcome<Q>["answers"],
+			chosen,
+			abstained,
+			...(abstainReason && { abstainReason }),
+			confidenceSource,
+			engine: r.engine,
+			provider: r.provider,
+			...(r.api && { api: r.api }),
+			model: servedModel,
+			requestedModel,
+			...(usage && { usage }),
+			latencyMs: r.latencyMs,
+			...(error && { error }),
+			replayed: false,
+			coalesced: false,
+		},
+		runStatus,
+		end: {
+			status: runStatus === "done" ? "ok" : runStatus,
+			output_blob_hash: outputHash,
+			...(error && {
+				error: {
+					kind: error.kind,
+					message: error.message,
+					...(error.httpStatus !== undefined && { http_status: error.httpStatus }),
+				},
+			}),
+			...(usage && { usage }),
+			attempts,
+			resolved_model: servedModel,
+		},
+		events,
+		blobs,
+	};
+}
+
+/** Rebuilds a prior done run's outcome from its decision_made and call_end; writes nothing. */
+function replayOutcome<Q extends Record<string, DecisionQuestion>>(prior: NodeReplayInput): DecisionOutcome<Q> {
+	const made = prior.events.find((e) => e.type === "decision_made")?.eventData as DecisionMadeData | undefined;
+	const end = prior.events.find((e) => e.type === "call_end")?.eventData as CallEndData | undefined;
+	if (!made) {
+		throw new KernelNodeError("invalid-request", `decision run ${prior.ids.runId} has no decision_made to replay`);
+	}
+	return {
+		decisionName: made.decision_name,
+		ids: prior.ids as NodeIds,
+		answers: made.answers as Record<string, Decision> as DecisionOutcome<Q>["answers"],
+		chosen: made.chosen,
+		abstained: made.abstained,
+		...(made.abstain_reason && { abstainReason: made.abstain_reason }),
+		confidenceSource: made.confidence_source,
+		engine: made.engine,
+		provider: made.provider,
+		...(made.api && { api: made.api }),
+		model: made.model,
+		requestedModel: made.requested_model,
+		...(end?.usage && { usage: end.usage }),
+		latencyMs: end?.duration_ms ?? 0,
+		...(end?.error && {
+			error: {
+				kind: end.error.kind as EngineErrorKind,
+				message: end.error.message,
+				...(end.error.http_status !== undefined && { httpStatus: end.error.http_status }),
+			},
+		}),
+		replayed: true,
+		coalesced: false,
 	};
 }

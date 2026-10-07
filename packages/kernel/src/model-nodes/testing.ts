@@ -30,3 +30,14 @@ export {
 	type FakePiModels,
 	type FakePiModelsOptions,
 } from "./call/__fixtures__/fake-call-engine";
+export {
+	createFakeClassifier,
+	createFakeClassifierRegistry,
+	FAKE_CLASSIFIER_API,
+	FAKE_CLASSIFIER_MODEL,
+	FAKE_CLASSIFIER_PROVIDER,
+	type FakeClassifier,
+	type FakeClassifierOptions,
+	type FakeReply,
+	type FakeScript,
+} from "./__fixtures__/fake-classifier";

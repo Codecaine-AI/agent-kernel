@@ -94,7 +94,7 @@ async function expectNoEngine(promise: Promise<unknown>): Promise<void> {
 }
 
 describe("model-node stubs (default-off)", () => {
-	test("createKernel without calls/decide still spawns; call throws no-engine", async () => {
+	test("createKernel without calls/decide still spawns; call throws no-engine, decide abstains not-configured", async () => {
 		const { kernel, faux } = fauxKernel();
 		try {
 			const result = await spawnOnce(kernel, faux, temp.containerId);
@@ -102,24 +102,30 @@ describe("model-node stubs (default-off)", () => {
 
 			const call = kernel.call as unknown as (name: string, args: unknown[]) => Promise<unknown>;
 			await expectNoEngine(call("Anything", []));
-			await expectNoEngine(
-				kernel.decide("judge", { text: "x" }, {
-					containerId: temp.containerId,
-					questions: { ok: { type: "bool", instructions: "ok?", criteria: { true: "yes", false: "no" } } },
-				}),
-			);
-			let stepRan = false;
-			await expectNoEngine(
-				kernel.step("s", { containerId: temp.containerId }, () => {
-					stepRan = true;
-				}),
-			);
-			expect(stepRan).toBe(false);
-			await expectNoEngine(kernel.gate("g", { containerId: temp.containerId }, []));
 
-			// The stubs wrote nothing: the only session is the spawned agent's.
-			const kinds = temp.db.all<{ kind: string }>(sql`SELECT kind FROM pi_agent_sessions`);
-			expect(kinds).toEqual([{ kind: "pi" }]);
+			// No decide model configured: a fully traced abstain, no network (plan §2 row 4).
+			const outcome = await kernel.decide("judge", { text: "x" }, {
+				containerId: temp.containerId,
+				questions: { ok: { type: "bool", instructions: "ok?", criteria: { true: "yes", false: "no" } } },
+			});
+			expect(outcome.error?.kind).toBe("not-configured");
+			expect(outcome.abstained).toBe(true);
+
+			// Steps need no engine.
+			let stepRan = false;
+			await kernel.step("s", { containerId: temp.containerId }, () => {
+				stepRan = true;
+			});
+			expect(stepRan).toBe(true);
+
+			// An empty gate is an invalid request, rejected before any row.
+			await expect(kernel.gate("g", { containerId: temp.containerId }, [])).rejects.toMatchObject({
+				code: "invalid-request",
+			});
+
+			// The spawned agent's session plus the decision's own session.
+			const kinds = temp.db.all<{ kind: string }>(sql`SELECT kind FROM pi_agent_sessions ORDER BY kind`);
+			expect(kinds).toEqual([{ kind: "decision" }, { kind: "pi" }]);
 		} finally {
 			await kernel.traceWriter.flush();
 			kernel.dispose();

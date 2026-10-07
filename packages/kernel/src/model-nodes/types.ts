@@ -341,6 +341,8 @@ export interface EngineRequest {
 	signal?: AbortSignal;
 	timeoutMs: number;
 	maxRetries: number;
+	/** Pi rejects a server Retry-After above this (it does not shorten it). */
+	maxRetryDelayMs?: number;
 }
 export interface EngineAnswer {
 	type: "bool" | "choice" | "score";

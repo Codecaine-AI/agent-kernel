@@ -17,6 +17,7 @@ export {
 	type ModelNodeLogger,
 	type PiModelsSource,
 } from "./context";
+export { createPiDecisionEngine, type PiDecisionEngine, type PiDecisionEngineOptions } from "./decide";
 
 /**
  * Builds the four node functions for one kernel. Each factory runs once,
