@@ -36,7 +36,11 @@
     "./spawn-pipeline/system-prompt-resolver": "./src/spawn-pipeline/system-prompt-resolver/index.ts",
     "./spawn-pipeline/trace": "./src/spawn-pipeline/trace/index.ts",
     "./subagents": "./src/subagents/index.ts",
-    "./transcript-recovery": "./src/transcript-recovery/index.ts"
+    "./transcript-recovery": "./src/transcript-recovery/index.ts",
+    "./model-nodes": "./src/model-nodes/index.ts",
+    "./model-nodes/testing": "./src/model-nodes/testing.ts",
+    "./baml-engine": "./src/model-nodes/baml-engine/index.ts",
+    "./pi-sdk": "./src/pi-sdk.ts"
   },
   "dependencies": {
     "@agent-kernel/db": "workspace:*",

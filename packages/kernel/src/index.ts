@@ -8,7 +8,7 @@
  * appContext, loaders, sharedTools, createSessionBinding, logger.
  */
 import type { ExtensionContext, ExtensionFactory } from "@earendil-works/pi-coding-agent";
-import type { KernelDatabase } from "@agent-kernel/db";
+import { upgradeKernelObservabilitySchema, type KernelDatabase } from "@agent-kernel/db";
 
 import {
 	buildRegistry,
@@ -31,6 +31,26 @@ import {
 } from "./context";
 import { runTraceDoctor, type DoctorReport } from "./doctor";
 import type { ModelPriceTable } from "./emitter";
+import { createModelNodeContext, createModelNodes } from "./model-nodes";
+import { createPiModels, type PiModelsHandle } from "./model-nodes/pi-models";
+import type {
+	CallArgs,
+	DecisionOutcome,
+	DecisionQuestion,
+	DecisionState,
+	FnName,
+	GateCheckSpec,
+	GateResult,
+	KernelCallOptions,
+	KernelCallResult,
+	KernelCallsConfig,
+	KernelDecideConfig,
+	KernelDecideOptions,
+	KernelGateOptions,
+	KernelNodesConfig,
+	KernelStepOptions,
+	StepSpan,
+} from "./model-nodes/types";
 import { createContainerReadService, type KernelReadApiService } from "./read-service";
 import type { RunStateManagerLike } from "./run-context";
 import { resolveSpawnConfig } from "./spawn-config";
@@ -65,6 +85,8 @@ export interface KernelModelsConfig {
 	aliases?: Record<string, string>;
 	/** Prices per resolved model string — powers per-turn costEstimate. */
 	prices?: ModelPriceTable;
+	/** Default model refs for model nodes. Values may be aliases. Not listed as agent models. */
+	defaults?: { call?: string; decide?: string };
 }
 
 export interface KernelLogger {
@@ -89,7 +111,7 @@ export interface KernelAppContextInput {
 	options: KernelSpawnOptions;
 }
 
-export interface CreateKernelConfig<TToolRuntime = unknown> {
+export interface CreateKernelConfig<TToolRuntime = unknown, TCalls = unknown> {
 	id?: string;
 	/**
 	 * Kernel trace database handle (SQLite by default — see
@@ -145,9 +167,15 @@ export interface CreateKernelConfig<TToolRuntime = unknown> {
 	 */
 	captureRequestSnapshots?: boolean;
 	logger?: KernelLogger;
+	/** Typed model calls (`kernel.call`) through a CallEngine, e.g. the BAML engine. */
+	calls?: KernelCallsConfig<TCalls>;
+	/** Decisions (`kernel.decide`) through Pi classify(). */
+	decide?: KernelDecideConfig;
+	/** Model-node lifecycle settings. */
+	nodes?: KernelNodesConfig;
 }
 
-export interface KernelInstance<TToolRuntime = unknown> {
+export interface KernelInstance<TToolRuntime = unknown, TCalls = unknown> {
 	readonly id: string;
 	readonly concurrency: ResolvedKernelConcurrencyConfig;
 	readonly db: KernelDatabase | undefined;
@@ -188,6 +216,22 @@ export interface KernelInstance<TToolRuntime = unknown> {
 	registry(): Promise<AgentRegistry>;
 	/** Run the trace doctor over the kernel db (flushes pending writes first). */
 	doctor(): Promise<DoctorReport>;
+	/** One typed model call through `config.calls.engine`, traced as a call node (plan §3.4). */
+	call<K extends FnName<TCalls>>(
+		name: K,
+		args: CallArgs<TCalls, K>,
+		opts?: KernelCallOptions,
+	): Promise<KernelCallResult<TCalls, K>>;
+	/** One classification through Pi classify(), traced as a decision node (plan §3.5). */
+	decide<Q extends Record<string, DecisionQuestion>>(
+		name: string,
+		state: DecisionState,
+		opts: KernelDecideOptions<Q>,
+	): Promise<DecisionOutcome<Q>>;
+	/** A traced span around deterministic harness code (plan §3.6). */
+	step<T>(name: string, opts: KernelStepOptions<T>, fn: (span: StepSpan) => T | Promise<T>): Promise<T>;
+	/** Ordered step/decide checks combined into one verdict (plan §3.6). */
+	gate(name: string, opts: KernelGateOptions, checks: readonly GateCheckSpec[]): Promise<GateResult>;
 	setMaxBackgroundAgents(limit: number): void;
 	dispose(): void;
 }
@@ -208,9 +252,9 @@ function defaultSessionBinding(opts: KernelSpawnOptions): SessionBindingInput {
 	};
 }
 
-export function createKernel<TToolRuntime = unknown>(
-	config: CreateKernelConfig<TToolRuntime> = {},
-): KernelInstance<TToolRuntime> {
+export function createKernel<TToolRuntime = unknown, TCalls = unknown>(
+	config: CreateKernelConfig<TToolRuntime, TCalls> = {},
+): KernelInstance<TToolRuntime, TCalls> {
 	const id = config.id ?? "agent-kernel";
 	let maxBackgroundAgents = normalizeBackgroundAgentLimit(
 		config.concurrency?.maxBackgroundAgents,
@@ -224,6 +268,56 @@ export function createKernel<TToolRuntime = unknown>(
 		}
 		return config.db;
 	}
+
+	// Lazy, once per kernel: additive columns an older database lacks, before
+	// the first write (spawnAgent, call, decide, step, gate). A read-only or
+	// failing upgrade only warns; readers stay compatible (read-compat.ts).
+	let schemaUpgrade: Promise<void> | null = null;
+	function ensureSchema(): Promise<void> {
+		const db = config.db;
+		if (!db) return Promise.resolve();
+		if (!schemaUpgrade) {
+			schemaUpgrade = upgradeKernelObservabilitySchema(db).then(
+				(report) => {
+					if (report.readOnly) {
+						config.logger?.warn("kernel schema upgrade skipped: database is read-only", {
+							skipped: report.skipped,
+						});
+					}
+				},
+				(error: unknown) => {
+					config.logger?.warn("kernel schema upgrade failed", {
+						error: error instanceof Error ? error.message : String(error),
+					});
+				},
+			);
+		}
+		return schemaUpgrade;
+	}
+
+	let piModelsInstance: PiModelsHandle | null = null;
+	const modelNodes = createModelNodes(
+		createModelNodeContext<TCalls>({
+			kernelId: id,
+			db: () => config.db,
+			ensureSchema,
+			...(config.logger !== undefined && { logger: config.logger }),
+			models: {
+				...(config.models?.aliases !== undefined && { aliases: config.models.aliases }),
+				...(config.models?.prices !== undefined && { prices: config.models.prices }),
+				...(config.models?.defaults !== undefined && { defaults: config.models.defaults }),
+			},
+			...(config.calls !== undefined && { calls: config.calls }),
+			...(config.decide !== undefined && { decide: config.decide }),
+			piModels: () => {
+				piModelsInstance ??= createPiModels(
+					config.piAgentDir !== undefined ? { piAgentDir: config.piAgentDir } : {},
+				);
+				return piModelsInstance;
+			},
+			...(config.nodes?.staleAfterMs !== undefined && { staleAfterMs: config.nodes.staleAfterMs }),
+		}),
+	);
 
 	let traceWriterInstance: KernelTraceWriter | null = null;
 	function traceWriter(): KernelTraceWriter {
@@ -331,6 +425,7 @@ export function createKernel<TToolRuntime = unknown>(
 		ctx?: ExtensionContext | null,
 		opts: KernelSpawnOptions = {},
 	): Promise<KernelSpawnAgentResult> {
+		await ensureSchema();
 		const { registry, spawn } = await runtime();
 		// Disk-freshness: a prompt.json rewritten out-of-band hot-swaps in (and
 		// registers its disk-sync revision) before the spawn freezes a prompt.
@@ -409,6 +504,10 @@ export function createKernel<TToolRuntime = unknown>(
 			if (traceWriterInstance) await traceWriterInstance.flush();
 			return runTraceDoctor(db);
 		},
+		call: modelNodes.call,
+		decide: modelNodes.decide,
+		step: modelNodes.step,
+		gate: modelNodes.gate,
 		setMaxBackgroundAgents(limit: number) {
 			maxBackgroundAgents = normalizeBackgroundAgentLimit(limit);
 			agentManager.setMaxConcurrent(maxBackgroundAgents);
@@ -435,3 +534,4 @@ export * from "./trace-writer";
 export * from "./read-service";
 export * from "./catalog-service";
 export * from "./prompt-edit-session";
+export * from "./model-nodes/types";
