@@ -43,18 +43,23 @@ describe("CallBody utils", () => {
 		expect(rowsByKey(callErrorRows(stale)).error_kind).toBe("abandoned");
 	});
 
-	test("outputFields: one field per top-level key, nested values as compact JSON", () => {
+	test("outputFields: one field per top-level key, nested values as one spaced line of JSON", () => {
 		expect(
 			outputFields(JSON.stringify({ kept: ["A1"], note: "cast is safe", count: 2, done: true, extra: null })),
 		).toEqual([
-			{ key: "kept", value: '["A1"]', nested: true },
+			{ key: "kept", value: '[ "A1" ]', nested: true },
 			{ key: "note", value: "cast is safe", nested: false },
 			{ key: "count", value: "2", nested: false },
 			{ key: "done", value: "true", nested: false },
 			{ key: "extra", value: "null", nested: false },
 		]);
-		expect(outputFields("[1,2]")).toEqual([{ key: "value", value: "[1,2]", nested: true }]);
+		expect(outputFields("[1,2]")).toEqual([{ key: "value", value: "[ 1, 2 ]", nested: true }]);
 		expect(outputFields('"just text"')).toEqual([{ key: "value", value: "just text", nested: false }]);
 		expect(outputFields("not json")).toBeNull();
+		// Nested entries are separated by spaces, so a long value wraps between them;
+		// a newline inside a string stays escaped.
+		expect(outputFields(JSON.stringify({ kept: [{ finding_id: "A1", note: "two\nlines" }] }))?.[0]?.value).toBe(
+			'[ { "finding_id": "A1", "note": "two\\nlines" } ]',
+		);
 	});
 });

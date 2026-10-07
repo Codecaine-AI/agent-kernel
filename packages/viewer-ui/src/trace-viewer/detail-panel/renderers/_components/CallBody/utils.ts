@@ -62,10 +62,20 @@ export function callErrorRows(span: TraceSpan): FactRow[] {
 
 export type OutputField = {
 	key: string;
-	/** Strings as written; numbers, booleans and null as JSON; nested values as compact JSON. */
+	/** Strings as written; numbers, booleans and null as JSON; nested values as one-line JSON. */
 	value: string;
 	nested: boolean;
 };
+
+/**
+ * One line of JSON with a space after every `,` and `:` (`[{ "kept": true, … }]`),
+ * so a long nested value wraps between its entries instead of mid-word.
+ * Newlines inside strings stay escaped, so only the formatting's own breaks fold.
+ */
+export function inlineJson(value: unknown): string {
+	const pretty = JSON.stringify(value, null, 1);
+	return pretty === undefined ? String(value) : pretty.replace(/\n\s*/g, " ");
+}
 
 /**
  * A typed output as one field per top-level key. A non-object value is one
@@ -81,7 +91,7 @@ export function outputFields(text: string): OutputField[] | null {
 	const field = (key: string, value: unknown): OutputField => {
 		if (typeof value === "string") return { key, value, nested: false };
 		const nested = value !== null && typeof value === "object";
-		return { key, value: JSON.stringify(value) ?? String(value), nested };
+		return { key, value: nested ? inlineJson(value) : (JSON.stringify(value) ?? String(value)), nested };
 	};
 	if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
 		return Object.entries(parsed).map(([key, value]) => field(key, value));

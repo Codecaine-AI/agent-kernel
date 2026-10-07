@@ -26,7 +26,10 @@ describe("CallBody", () => {
 		expect(blockIds(markup)).toEqual(["call-output", "call-output-json", "call-input", "call-summary"]);
 		const output = markup.slice(markup.indexOf('data-detail-block="call-output"'));
 		expect(output).toContain('data-field="kept"');
-		expect(output).toContain("[&quot;A1&quot;]");
+		expect(output).toContain("[ &quot;A1&quot; ]");
+		// Values wrap at spaces and break a long token only where they must.
+		expect(output).toMatch(/data-field="justification" class="[^"]*" style="overflow-wrap:anywhere"/);
+		expect(output).not.toContain("break-all");
 		expect(output).toContain('data-field="justification"');
 		expect(output).toContain("the cast is layout-safe");
 		// The raw JSON is a data figure, pretty-printed.

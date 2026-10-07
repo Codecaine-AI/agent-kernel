@@ -11,6 +11,20 @@ export type ProbabilityBarsProps = {
 
 const LABEL_TEXT = "font-mono text-[length:var(--ds-font-size-ui-xs)]";
 
+/**
+ * Kept geometry (a proportion; the design system has no ratio token): the
+ * label column fits the longest label up to 40% of the card and wraps past
+ * it; the bars share the remaining width; the values size to their text.
+ */
+const BAR_COLUMNS = { gridTemplateColumns: "fit-content(40%) minmax(0, 1fr) max-content" };
+
+/**
+ * A label past the cap wraps: at its spaces first, inside a long identifier
+ * (`retry_same_approach`) only where it must. `anywhere` also lets the column
+ * shrink below one unbroken identifier, so the cap holds.
+ */
+const WRAP_ANYWHERE = { overflowWrap: "anywhere" } as const;
+
 /** Every distinct marker of the question, once, for the legend under the bars. */
 function legendOf(question: BarQuestion): BarMarker[] {
 	const seen = new Map<string, BarMarker>();
@@ -55,35 +69,39 @@ export function ProbabilityBars({ question }: ProbabilityBarsProps) {
 					No probability came back for this question.
 				</p>
 			) : (
-				question.rows.map((row) => (
-					<div key={row.label} data-bar-row={row.label} className="flex min-w-0 items-center gap-2">
-						<span title={row.label} className={cn(LABEL_TEXT, "w-24 shrink-0 truncate text-foreground")}>
-							{row.label}
-						</span>
-						<span className="relative h-2 min-w-0 flex-1 rounded-pill bg-muted">
-							<span
-								data-bar-fill={row.chosen ? "chosen" : "other"}
-								className={cn(
-									"absolute inset-y-0 left-0 rounded-pill",
-									row.chosen ? "bg-pink-solid" : "bg-pink-line",
-								)}
-								style={{ width: `${row.widthPct}%` }}
-							/>
-							{row.markers.map((marker) => (
+				<div data-bars-grid="" className="grid min-w-0 items-center gap-x-2 gap-y-1.5" style={BAR_COLUMNS}>
+					{question.rows.map((row) => (
+						// `contents`: the row's three cells join the shared grid, so every bar
+						// starts and ends on the same lines whatever its label's length.
+						<div key={row.label} data-bar-row={row.label} className="contents">
+							<span title={row.label} className={cn(LABEL_TEXT, "min-w-0 text-foreground")} style={WRAP_ANYWHERE}>
+								{row.label}
+							</span>
+							<span className="relative h-2 min-w-0 rounded-pill bg-muted">
 								<span
-									key={marker.kind}
-									data-bar-marker={marker.kind}
-									title={marker.label}
-									className="absolute -inset-y-1 -translate-x-1/2 border-l-rail border-rule-strong"
-									style={{ left: `${marker.positionPct}%` }}
+									data-bar-fill={row.chosen ? "chosen" : "other"}
+									className={cn(
+										"absolute inset-y-0 left-0 rounded-pill",
+										row.chosen ? "bg-pink-solid" : "bg-pink-line",
+									)}
+									style={{ width: `${row.widthPct}%` }}
 								/>
-							))}
-						</span>
-						<span className={cn(LABEL_TEXT, "w-10 shrink-0 text-right tabular-nums text-foreground")}>
-							{row.value === null ? "—" : formatP(row.value)}
-						</span>
-					</div>
-				))
+								{row.markers.map((marker) => (
+									<span
+										key={marker.kind}
+										data-bar-marker={marker.kind}
+										title={marker.label}
+										className="absolute -inset-y-1 -translate-x-1/2 border-l-rail border-rule-strong"
+										style={{ left: `${marker.positionPct}%` }}
+									/>
+								))}
+							</span>
+							<span className={cn(LABEL_TEXT, "text-right tabular-nums text-foreground")}>
+								{row.value === null ? "—" : formatP(row.value)}
+							</span>
+						</div>
+					))}
+				</div>
 			)}
 			{legend.length > 0 ? (
 				<div className="flex flex-wrap gap-x-3 text-[length:var(--ds-font-size-ui-2xs)] text-muted-foreground">

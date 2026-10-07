@@ -65,8 +65,12 @@ describe("DecisionBody", () => {
 		expect(bars.match(/data-bar-marker="floor"[^>]*style="left:50%"/g)).toHaveLength(3);
 		expect(bars).toContain("floor 0.50");
 		expect(bars).toContain(">continue</span>");
-		// Option labels may truncate in their column; the full label is the tooltip.
-		expect(bars).toMatch(/<span title="escalate"[^>]*>escalate<\/span>/);
+		// Every row's cells join one shared grid, so the bars line up; labels wrap
+		// rather than truncate, and keep their full text as a tooltip.
+		expect(bars.match(/data-bars-grid=""/g)).toHaveLength(1);
+		expect(bars.match(/data-bar-row="[^"]+" class="contents"/g)).toHaveLength(3);
+		expect(bars).toMatch(/<span title="escalate" class="[^"]*" style="overflow-wrap:anywhere">escalate<\/span>/);
+		expect(bars).not.toMatch(/title="escalate" class="[^"]*truncate/);
 	});
 
 	test("an engine-error attempt has no bars: it says why it abstained and which error", () => {
