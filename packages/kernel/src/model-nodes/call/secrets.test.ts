@@ -9,7 +9,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { getAgentRun, getTraceBlob, getTraceEventsForRun, type KernelDatabase } from "@agent-kernel/db";
-import type { CallStartData } from "@agent-kernel/protocol";
+import type { CallEndData, CallStartData } from "@agent-kernel/protocol";
 
 import { disableNetwork } from "../__fixtures__/temp-kernel";
 import { SHORT_CREDENTIAL_MESSAGE } from "../pi-models";
@@ -59,13 +59,21 @@ function hits(db: KernelDatabase, values: readonly string[]): string[] {
 	return values.filter((value) => rows.some((row) => row.includes(value)));
 }
 
-/** The stored call-input blob call_start names, or null when it was withheld. */
-async function storedInput(db: KernelDatabase, runId: string): Promise<unknown> {
+/**
+ * The call-input blobs of a run: call_start's (the claim's placeholder) and
+ * call_end's (the final input; null when call_end names none).
+ */
+async function storedInputs(db: KernelDatabase, runId: string): Promise<{ start: unknown; end: unknown }> {
 	const [start] = await getTraceEventsForRun(db, runId, ["call_start"]);
-	const hash = (start?.eventData as CallStartData | undefined)?.input_blob_hash;
-	if (!hash) throw new Error(`run ${runId} has no call_start input hash`);
-	const blob = await getTraceBlob(db, hash);
-	return blob ? (JSON.parse(Buffer.from(blob.data).toString("utf8")) as unknown) : null;
+	const [end] = await getTraceEventsForRun(db, runId, ["call_end"]);
+	const read = async (hash: string | undefined) => {
+		const blob = hash ? await getTraceBlob(db, hash) : null;
+		return blob ? (JSON.parse(Buffer.from(blob.data).toString("utf8")) as unknown) : null;
+	};
+	return {
+		start: await read((start?.eventData as CallStartData | undefined)?.input_blob_hash),
+		end: await read((end?.eventData as CallEndData | undefined)?.input_blob_hash),
+	};
 }
 
 async function rejection(promise: Promise<unknown>): Promise<KernelCallError> {
@@ -146,7 +154,7 @@ describe("call secrets (S4)", () => {
 			expect(k.engine.invocations).toHaveLength(0);
 			expect((await getAgentRun(k.temp.db, error.runId))?.status).toBe("error");
 			expect(hits(k.temp.db, [c.value])).toEqual([]);
-			expect(await storedInput(k.temp.db, error.runId)).toEqual({ omitted: expect.any(String) });
+			expect(await storedInputs(k.temp.db, error.runId)).toEqual({ start: { omitted: expect.any(String) }, end: null });
 		});
 	}
 
@@ -161,10 +169,12 @@ describe("call secrets (S4)", () => {
 			});
 		}) as unknown as typeof fetch;
 		let transportSecrets: string[] = [];
+		let placeholder: unknown;
 		const k: CallKit = await kit({
 			transport: "pi",
 			pi: { apiKey: API_KEY },
 			async respond(req) {
+				placeholder = (await storedInputs(k.temp.db, req.tags.runId!)).start;
 				// The credential changes between route resolution and the send.
 				await k.pi.rotateApiKey(ROTATED_KEY);
 				const out = await req.transport.complete({ messages: [{ role: "user", text: "note" }] });
@@ -185,7 +195,12 @@ describe("call secrets (S4)", () => {
 		expect(transportSecrets).toContain(ROTATED_KEY);
 		expect(JSON.stringify(error.failure)).not.toContain(ROTATED_KEY);
 		expect(hits(k.temp.db, [ROTATED_KEY, API_KEY])).toEqual([]);
-		// Redacting with the complete set changes the arguments, so the input is withheld.
-		expect(await storedInput(k.temp.db, error.runId)).toBeNull();
+		// A "pi" transport resolves credentials again at send time: its placeholder holds no arguments;
+		// the final input is redacted with the complete set, the rotated credential included.
+		expect(placeholder).toEqual({ pending: true });
+		expect(await storedInputs(k.temp.db, error.runId)).toEqual({
+			start: { pending: true },
+			end: ["note quoting <redacted>"],
+		});
 	});
 });

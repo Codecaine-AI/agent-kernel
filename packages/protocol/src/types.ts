@@ -465,6 +465,14 @@ export interface CallEndData {
   node_kind: ModelNodeKind;
   function_name: string;
   status: "ok" | "error" | "aborted";
+  /**
+   * Calls: the final call-input blob, the arguments redacted with the
+   * complete credential set (known only after the engine ran). Supersedes
+   * call_start.input_blob_hash, which names the claim's pending placeholder.
+   * Absent when the arguments were not recorded (route failure) and on
+   * decisions.
+   */
+  input_blob_hash?: string;
   /** ok: JSON(value) or decision answers; error: raw model text when present. */
   output_blob_hash?: string;
   /** `message` never contains prompt text. */

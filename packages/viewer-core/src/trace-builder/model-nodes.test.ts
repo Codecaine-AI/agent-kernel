@@ -124,6 +124,8 @@ interface NodeRunSpec {
   error?: CallEndData["error"];
   decision?: DecisionSpec;
   displayLabel?: string;
+  /** Completed runs: call_end records the final input as `final-<runId>` (call_start keeps `in-<runId>`). */
+  finalInput?: boolean;
 }
 
 interface Trace {
@@ -263,7 +265,7 @@ function nodeSession(
       );
     }
     const endStatus = spec.endStatus ?? "ok";
-    const end: CallEndData = {
+    const end: CallEndData & { input_blob_hash?: string } = {
       run_id: spec.runId,
       node_kind: kind,
       function_name: name,
@@ -275,6 +277,7 @@ function nodeSession(
       duration_ms: spec.endMs - spec.startMs,
       resolved_model: start.model,
       ...(spec.gateSpanId !== undefined && { gate_span_id: spec.gateSpanId }),
+      ...(spec.finalInput === true && { input_blob_hash: `final-${spec.runId}` }),
     };
     events.push(ev(EventType.CALL_END, spec.endMs, end, envelope));
   });
@@ -554,6 +557,54 @@ describe("model-node sessions (buildTraceSpans)", () => {
     expect(attr(node, "attempt_count")).toBeUndefined();
     expect(attr(node, "selected_attempt")).toBeUndefined();
     expect(findSpan(spans, "attempt:R2")).toBeUndefined();
+  });
+
+  it("the input blob is call_end's final input when recorded, else call_start's (running, completed, withheld)", () => {
+    const running = nodeSession("call", "K1", "Running", [{ runId: "R2", parentRunId: "R1", startMs: 200 }]);
+    const completed = nodeSession("call", "K2", "Completed", [
+      { runId: "R3", parentRunId: "R1", startMs: 300, endMs: 400, finalInput: true },
+    ]);
+    const withheld = nodeSession("call", "K3", "Withheld", [
+      { runId: "R4", parentRunId: "R1", startMs: 500, endMs: 600 },
+    ]);
+    const retried = nodeSession("decision", "K4", "Retried", [
+      {
+        runId: "A1",
+        parentRunId: "R1",
+        startMs: 700,
+        endMs: 750,
+        endStatus: "error",
+        error: { kind: "http", message: "Retried failed: http" },
+        decision: { abstainReason: "engine-error" },
+        finalInput: true,
+      },
+      { runId: "A2", parentRunId: "R1", startMs: 760, endMs: 800, decision: { probability: 0.9, passAt: 0.85 } },
+    ]);
+    const spans = build(
+      merge(worker([workerRun("R1", 0, 1000)], workerTurn("R1", 10)), running, completed, withheld, retried),
+    );
+
+    expect(attr(mustFind(spans, "pi:K1"), "input_blob_hash")).toBe("in-R2");
+    expect(attr(mustFind(spans, "pi:K2"), "input_blob_hash")).toBe("final-R3");
+    expect(attr(mustFind(spans, "pi:K3"), "input_blob_hash")).toBe("in-R4");
+    // Per attempt row; the summary follows its selected attempt (A2, withheld).
+    expect(attr(mustFind(spans, "attempt:A1"), "input_blob_hash")).toBe("final-A1");
+    expect(attr(mustFind(spans, "attempt:A2"), "input_blob_hash")).toBe("in-A2");
+    expect(attr(mustFind(spans, "pi:K4"), "input_blob_hash")).toBe("in-A2");
+  });
+
+  it("a call pair span outside a node session also prefers call_end's input blob", () => {
+    const completed = nodeSession("call", "K", "Completed", [
+      { runId: "R3", parentRunId: "R1", startMs: 300, endMs: 400, finalInput: true },
+    ]);
+    // Without a kind the session renders as an agent holding the plain call span.
+    const asAgent = { ...completed, sessions: completed.sessions.map((s) => ({ ...s, kind: undefined })) };
+    const spans = build(merge(worker([workerRun("R1", 0, 1000)], workerTurn("R1", 10)), asAgent));
+    const callSpan = mustFind(spans, eventIdOf(asAgent.events, EventType.CALL_START));
+
+    expect(attr(callSpan, "event_type")).toBe(EventType.CALL_START);
+    expect(attr(callSpan, "input_blob_hash")).toBe("final-R3");
+    expect(callSpan.attributes?.filter((a) => a.key === "input_blob_hash")).toHaveLength(1);
   });
 
   it("a failed call shows its error, and an abstained decision is a warning", () => {

@@ -26,6 +26,8 @@ import type { ContainerRange } from "./containerGrouping";
 import {
   callEndStatus,
   categoryFor,
+  nodeInputBlobHash,
+  type CallEndWithInput,
   extractSpanPayload,
   pushAttr,
   statusFor,
@@ -198,7 +200,8 @@ function nodeStatusFor(source: NodeRunSource): TraceSpanStatus {
  * run's call_start / call_end / decision_made. Status: call_end.status
  * (ok → success, error → error, aborted → warning), an abstained decision is
  * a warning, and a run with no call_end follows its run status (running →
- * pending). A decision's output is its decision_made payload as JSON.
+ * pending). A decision's output is its decision_made payload as JSON. The
+ * input blob is call_end's final input when recorded, else call_start's.
  */
 export function toNodeSpan(
   pi: PiAgentSession,
@@ -206,7 +209,7 @@ export function toNodeSpan(
   shape: NodeSpanShape,
 ): TraceSpan {
   const start = source.start?.eventData as CallStartData | null | undefined;
-  const end = source.end?.eventData as CallEndData | null | undefined;
+  const end = source.end?.eventData as CallEndWithInput | null | undefined;
   const decision = source.decision?.eventData as DecisionMadeData | null | undefined;
   const { run } = source;
 
@@ -238,7 +241,7 @@ export function toNodeSpan(
   pushAttr(attrs, "run_id", run.id);
   pushAttr(attrs, "parent_run_id", shape.parentRunId);
   pushAttr(attrs, "prompt_hash", start?.prompt_hash);
-  pushAttr(attrs, "input_blob_hash", start?.input_blob_hash);
+  pushAttr(attrs, "input_blob_hash", nodeInputBlobHash(start, end));
   pushAttr(attrs, "output_blob_hash", end?.output_blob_hash);
   pushAttr(attrs, "duration_ms", end?.duration_ms);
   pushAttr(attrs, "attempts", end?.attempts);

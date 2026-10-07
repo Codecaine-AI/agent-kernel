@@ -16,13 +16,16 @@
  * Secrets (§4.7): the engine receives the preflight set (route api key and
  * sensitive route headers). The Pi transport handed to the engine reads the
  * actual outbound headers; the kernel wraps it to collect every set it
- * returns, and redacts all persisted content again with the union. That
- * union is only complete after the engine ran, so the call-input blob is
- * written with the completion, not the claim: call_start names its hash
- * (the arguments redacted with the preflight set) and the completion stores
- * it only when the complete set redacts them to the same bytes. Otherwise
- * the arguments hold a credential first seen at send time and the input is
- * withheld. A route failure records no argument contents at all.
+ * returns, and redacts all persisted content again with the union.
+ *
+ * Input: that union is only complete after the engine ran, so the claim
+ * commits a pending call-input placeholder (call_start.input_blob_hash) and
+ * the completion stores the arguments redacted with the complete set under
+ * call_end.input_blob_hash. The placeholder carries the preflight-redacted
+ * arguments only for the "baml-http" transport, whose requests carry exactly
+ * the route's credentials; a "pi" transport resolves credentials again at
+ * send time, so its placeholder is a bare pending marker. A route failure
+ * records no argument contents at all.
  *
  * Cancellation wins over a late result: once the caller's signal or the
  * operation deadline fired, the call ends aborted (kind "aborted" or
@@ -62,6 +65,8 @@ const REASONING_LEVELS: readonly string[] = ["low", "medium", "high"];
 
 /** Stands in for the arguments when the route fails: the credential set that would scrub them is unknown or refused. */
 const ROUTE_FAILURE_INPUT = { omitted: "arguments are not recorded when the route fails" } as const;
+/** call_start's input until the completion records the final one on call_end. */
+type PendingInput = { pending: true; redacted?: unknown };
 
 /** What one call node resolves to; KernelCallError is thrown after the completion committed. */
 type CallOutcome = { ok: true; value: unknown } | { ok: false; error: KernelCallError };
@@ -116,10 +121,13 @@ export function createCall<TCalls>(ctx: CallNodeContext<TCalls>): KernelCallFn<T
 		const route = await resolveRoute(ctx, model, reasoning);
 		const preflight = route.ok ? route.secrets : [];
 		const promptHash = engine.promptHash(name);
-		// The hash call_start names; the blob itself lands with the completion (see the header).
+		// The claim's placeholder input; the final input lands on call_end (see the header).
+		const transport = engine.transportFor(name);
+		const pending: PendingInput =
+			transport === "baml-http" ? { pending: true, redacted: redactDeep(args, preflight) } : { pending: true };
 		const input = jsonBlob(
 			"call-input",
-			route.ok ? redactDeep(args, preflight) : ROUTE_FAILURE_INPUT,
+			route.ok ? pending : ROUTE_FAILURE_INPUT,
 			new Date(ctx.clock.now()).toISOString(),
 		);
 		const provider = route.ok ? route.route.provider : splitModelRef(model)?.provider;
@@ -136,7 +144,7 @@ export function createCall<TCalls>(ctx: CallNodeContext<TCalls>): KernelCallFn<T
 				deadlineMs: timeoutMs,
 				start: {
 					engine: engine.engine,
-					transport: engine.transportFor(name),
+					transport,
 					model,
 					...(modelRef !== model && { model_alias: modelRef }),
 					...(provider !== undefined && { provider }),
@@ -144,7 +152,7 @@ export function createCall<TCalls>(ctx: CallNodeContext<TCalls>): KernelCallFn<T
 					prompt_hash: promptHash,
 					input_blob_hash: input.hash,
 				},
-				startBlobs: [],
+				startBlobs: [input.blob],
 				execute: (run) =>
 					executeCall(ctx, run, {
 						engine,
@@ -153,7 +161,6 @@ export function createCall<TCalls>(ctx: CallNodeContext<TCalls>): KernelCallFn<T
 						route,
 						timeoutMs,
 						promptHash,
-						input,
 						...(opts.signal !== undefined && { callerSignal: opts.signal }),
 					}),
 				async replay({ db: replayDb, ids, events }) {
@@ -182,8 +189,6 @@ interface ExecuteCallInput<TCalls, K extends FnName<TCalls>> {
 	route: CallRoute;
 	timeoutMs: number;
 	promptHash: string;
-	/** The call-input blob named by call_start (preflight redaction, or the route-failure stand-in). */
-	input: { hash: string; blob: TraceBlobInput };
 	callerSignal?: AbortSignal;
 }
 
@@ -195,7 +200,7 @@ async function executeCall<TCalls, K extends FnName<TCalls>>(
 ): Promise<NodeExecution<CallOutcome>> {
 	const { route, name } = input;
 	if (!route.ok) {
-		return failedExecution(ctx, run, name, route.failure, { attempts: [], rawText: null }, [], [input.input.blob]);
+		return failedExecution(ctx, run, name, route.failure, { attempts: [], rawText: null }, [], undefined);
 	}
 
 	// Outbound credential sets the Pi transport returns (it reads the real request headers).
@@ -224,7 +229,8 @@ async function executeCall<TCalls, K extends FnName<TCalls>>(
 		secrets: route.secrets,
 	});
 	const secrets = mergeSecrets(route.secrets, ...outbound);
-	const inputBlobs = completedInput(ctx, run, input, secrets);
+	// The final input: the arguments redacted with the complete set, referenced from call_end.
+	const finalInput = jsonBlob("call-input", redactDeep(input.args, secrets), run.timestamp());
 
 	// Checked before the outcome: a value that arrives after an abort or the deadline never makes the run done.
 	const aborted = run.signal.aborted || (!outcome.ok && outcome.failure.kind === "aborted");
@@ -234,7 +240,7 @@ async function executeCall<TCalls, K extends FnName<TCalls>>(
 				? { kind: "timeout" }
 				: { kind: "aborted" }
 			: (outcome as Extract<typeof outcome, { ok: false }>).failure;
-		return failedExecution(ctx, run, name, failure, outcome, secrets, inputBlobs, {
+		return failedExecution(ctx, run, name, failure, outcome, secrets, finalInput, {
 			aborted,
 			promptHash: input.promptHash,
 			provider: route.route.provider,
@@ -257,35 +263,15 @@ async function executeCall<TCalls, K extends FnName<TCalls>>(
 		runStatus: "done",
 		end: {
 			status: "ok",
+			input_blob_hash: finalInput.hash,
 			output_blob_hash: output.hash,
 			...(usage !== undefined && { usage }),
 			attempts: outcome.attempts.length,
 			...(turns.resolvedModel !== undefined && { resolved_model: turns.resolvedModel }),
 		},
 		events: turns.events,
-		blobs: [...inputBlobs, ...turns.blobs, output.blob],
+		blobs: [finalInput.blob, ...turns.blobs, output.blob],
 	};
-}
-
-/**
- * The call-input blob for the completion: stored only when the complete
- * secret set redacts the arguments to the bytes call_start's hash names;
- * otherwise (a credential first seen at send time is in the arguments) it is
- * withheld, so call_start's input stays unresolved rather than leaking.
- */
-function completedInput<TCalls, K extends FnName<TCalls>>(
-	ctx: CallNodeContext<TCalls>,
-	run: NodeRunHandle,
-	input: ExecuteCallInput<TCalls, K>,
-	secrets: readonly string[],
-): TraceBlobInput[] {
-	const complete = jsonBlob("call-input", redactDeep(input.args, secrets), input.input.blob.createdAt);
-	if (complete.hash === input.input.hash) return [input.input.blob];
-	ctx.logger?.warn("model call input withheld: it holds a credential first seen at send time", {
-		name: input.name,
-		runId: run.ids.runId,
-	});
-	return [];
 }
 
 /**
@@ -302,7 +288,8 @@ function failedExecution<TCalls>(
 	failure: CallFailure,
 	engineOutcome: { attempts: readonly EngineAttempt[]; rawText: string | null },
 	secrets: readonly string[],
-	inputBlobs: readonly TraceBlobInput[],
+	/** The final call-input; undefined when the arguments are not recorded (route failure). */
+	finalInput: { hash: string; blob: TraceBlobInput } | undefined,
 	opts: { aborted?: boolean; promptHash?: string; provider?: string } = {},
 ): NodeExecution<CallOutcome> {
 	const scrubbed = redactDeep(failure, secrets);
@@ -322,6 +309,7 @@ function failedExecution<TCalls>(
 	const usage = turns ? sumNodeUsage(turns.usages) : undefined;
 	const end: NodeEndFields = {
 		status: opts.aborted ? "aborted" : "error",
+		...(finalInput !== undefined && { input_blob_hash: finalInput.hash }),
 		...(raw !== undefined && { output_blob_hash: raw.hash }),
 		error: {
 			kind: scrubbed.kind,
@@ -343,7 +331,7 @@ function failedExecution<TCalls>(
 		runStatus: opts.aborted ? "aborted" : "error",
 		end,
 		events: turns?.events ?? [],
-		blobs: [...inputBlobs, ...(turns?.blobs ?? []), ...(raw ? [raw.blob] : [])],
+		blobs: [...(finalInput ? [finalInput.blob] : []), ...(turns?.blobs ?? []), ...(raw ? [raw.blob] : [])],
 	};
 }
 

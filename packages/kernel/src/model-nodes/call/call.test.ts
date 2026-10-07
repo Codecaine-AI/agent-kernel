@@ -156,12 +156,14 @@ describe("kernel.call", () => {
 				const run = await getAgentRun(k.temp.db, runId);
 				const session = run ? await getPiAgentSession(k.temp.db, run.piSessionId) : null;
 				const [start] = await eventsOf(k.temp.db, runId, "call_start");
+				const input = await readBlob(k.temp.db, (start?.eventData as CallStartData | undefined)?.input_blob_hash);
 				seen = {
 					startedFired: started?.runId === runId,
 					runStatus: run?.status,
 					sessionKind: session?.kind,
 					inbound: run?.inboundEventId,
 					startId: start?.eventId,
+					input: { kind: input.kind, value: JSON.parse(input.text) as unknown },
 				};
 				return fakeOk(VALUE);
 			},
@@ -181,6 +183,8 @@ describe("kernel.call", () => {
 			sessionKind: "call",
 			inbound: startId,
 			startId,
+			// The claim's placeholder input is readable while the engine runs.
+			input: { kind: "call-input", value: { pending: true, redacted: ["note"] } },
 		});
 		expect(started).toMatchObject({ runId, containerId: k.temp.containerId, parentRunId: parent.runId });
 		const [req] = k.engine.invocations;
@@ -342,9 +346,10 @@ describe("kernel.call", () => {
 		const output = await readBlob(k.temp.db, end.output_blob_hash);
 		expect(output.kind).toBe("call-output");
 		expect(JSON.parse(output.text)).toEqual(VALUE);
+		// The final input is referenced from call_end; call_start keeps naming the placeholder.
+		expect(await readBlob(k.temp.db, end.input_blob_hash)).toEqual({ kind: "call-input", text: canonicalJson(["note"]) });
 		const start = await callStart(k.temp.db, runId);
-		const input = await readBlob(k.temp.db, start.eventData.input_blob_hash);
-		expect(input).toEqual({ kind: "call-input", text: canonicalJson(["note"]) });
+		expect(start.eventData.input_blob_hash).not.toBe(end.input_blob_hash);
 		const run = await getAgentRun(k.temp.db, runId);
 		expect(run?.status).toBe("done");
 		expect(run?.outboundEventId).toBe(kernelNodeEventId(runId, 0, "call_end"));

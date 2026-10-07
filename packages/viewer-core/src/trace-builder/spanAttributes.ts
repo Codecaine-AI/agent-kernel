@@ -240,6 +240,21 @@ function nestedToolAttrs(
 // node-row builder (model-nodes.ts) absorbs a node run's lifecycle events, so
 // these entries mostly show when a node event renders as a plain span.
 
+/**
+ * call_end as the kernel writes it once a call's final, scrubbed input is
+ * recorded: `input_blob_hash` then supersedes call_start's (a placeholder
+ * while the call runs). Absent when the input was withheld.
+ */
+export type CallEndWithInput = CallEndData & { input_blob_hash?: string };
+
+/** The node's input blob: call_end's final input when recorded, else call_start's. */
+export function nodeInputBlobHash(
+  start: CallStartData | null | undefined,
+  end: CallEndWithInput | null | undefined,
+): string | undefined {
+  return end?.input_blob_hash ?? start?.input_blob_hash;
+}
+
 /** call_end.status → span status: ok → success, error → error, aborted → warning. */
 export function callEndStatus(status: string | null | undefined): TraceSpanStatus {
   if (status === "error") return "error";
@@ -261,7 +276,7 @@ export function gateVerdictStatus(verdict: string | null | undefined): TraceSpan
   return "success";
 }
 
-function callStartAttrs(d: CallStartData | null): AttrEntry[] {
+function callStartAttrs(d: CallStartData | null, end: CallEndWithInput | null = null): AttrEntry[] {
   return [
     ["run_id", d?.run_id],
     ["node_kind", d?.node_kind],
@@ -273,7 +288,7 @@ function callStartAttrs(d: CallStartData | null): AttrEntry[] {
     ["provider", d?.provider],
     ["api", d?.api],
     ["prompt_hash", d?.prompt_hash],
-    ["input_blob_hash", d?.input_blob_hash],
+    ["input_blob_hash", nodeInputBlobHash(d, end)],
     ["trigger", d?.trigger],
     ["parent_run_id", d?.parent_run_id],
     ["parent_tool_use_id", d?.parent_tool_use_id],
@@ -664,16 +679,16 @@ const EVENT_SPECS: Record<string, EventSpec> = {
   [EventType.PHASE_END]: spec<PhaseEndData>({
     title: (d) => d.phase,
   }),
-  [EventType.CALL_START]: spec<CallStartData, CallEndData>({
+  [EventType.CALL_START]: spec<CallStartData, CallEndWithInput>({
     category: "llm_call",
     title: (d) => d.display_label ?? d.function_name,
     status: "pending",
     point: (d) => ({ attrs: callStartAttrs(d) }),
     pair: (start, end) => ({
-      attrs: [...callStartAttrs(start), ...callEndAttrs(end)],
+      attrs: [...callStartAttrs(start, end), ...callEndAttrs(end)],
     }),
   }),
-  [EventType.CALL_END]: spec<CallEndData, CallEndData>({
+  [EventType.CALL_END]: spec<CallEndWithInput, CallEndWithInput>({
     category: "llm_call",
     title: (d) => d.function_name,
     status: (d) => callEndStatus(d?.status),
@@ -682,6 +697,7 @@ const EVENT_SPECS: Record<string, EventSpec> = {
         ["run_id", d?.run_id],
         ["node_kind", d?.node_kind],
         ["function_name", d?.function_name],
+        ["input_blob_hash", d?.input_blob_hash],
         ["gate_span_id", d?.gate_span_id],
         ...callEndAttrs(d),
       ],
