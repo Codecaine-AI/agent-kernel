@@ -13,6 +13,7 @@ import { kernelNodeEventId, kernelRequestId, type GateCheckRecord } from "@agent
 import { createKernel } from "../../index";
 import { runTraceDoctor } from "../../doctor";
 import { createTempKernel, disableNetwork, type TempKernel } from "../__fixtures__/temp-kernel";
+import { gateCheckRequestId } from "./gate";
 import {
 	KernelDecideValidationError,
 	KernelGateError,
@@ -500,15 +501,45 @@ describe("kernel.gate decide checks", () => {
 		expect(second.verdict).toBe(first.verdict);
 		expect(countRows(db, "trace_events")).toBe(rows);
 
-		// Derived key `${gateRequestId}:check:${name}`; a check's own requestId wins.
+		// Derived key gateCheckRequestId(gateRequestId, name); a check's own requestId wins.
 		const sessions = eventsOfType(db, "call_start").map((e) => e.piSessionId).sort();
 		expect(sessions).toEqual(
 			[
-				kernelRequestId(kernelId, "session", "checkpoint-7:check:judge"),
+				kernelRequestId(kernelId, "session", gateCheckRequestId("checkpoint-7", "judge")),
 				kernelRequestId(kernelId, "session", "locals-key"),
 			].sort(),
 		);
 		await expectDoctorOk(db);
+	});
+
+	test("derived check requestIds cannot collide across gates", async () => {
+		// Under plain concatenation, gate "g" + check "a:check:b" and gate "g:check:a" + check "b" shared one key,
+		// so the second gate replayed the first gate's passing decision without judging its own state.
+		const byState: DecisionEngine & { calls: number } = {
+			calls: 0,
+			async classify(request) {
+				byState.calls++;
+				return answered(request, { cast_ok: request.state.text === "good" ? 0.97 : 0.02 });
+			},
+		};
+		const own = await createTempKernel({ decide: { engine: byState }, models: { defaults: { decide: JUDGE_MODEL } } });
+		try {
+			const containerId = own.tempDb.containerId;
+			const check = (name: string, text: string): GateCheckSpec => ({
+				kind: "decide",
+				name,
+				state: { text },
+				questions: { cast_ok: boolQuestion() },
+			});
+			const first = await own.kernel.gate("first", { containerId, requestId: "g" }, [check("a:check:b", "good")]);
+			const second = await own.kernel.gate("second", { containerId, requestId: "g:check:a" }, [check("b", "bad")]);
+			expect(first.verdict).toBe("pass");
+			expect(second.verdict).toBe("fail");
+			expect(byState.calls).toBe(2);
+			expect(gateCheckRequestId("g", "a:check:b")).not.toBe(gateCheckRequestId("g:check:a", "b"));
+		} finally {
+			own.cleanup();
+		}
 	});
 
 	test("decide check rejecting with in-flight-elsewhere closes the gate", async () => {

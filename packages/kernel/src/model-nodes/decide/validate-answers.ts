@@ -58,6 +58,7 @@ function isAnswerValid(answer: EngineAnswer, question: DecisionQuestion, precisi
 		const value = answer[field];
 		if (value !== undefined && !isFiniteNumber(value)) return false;
 	}
+	// A present distribution must be a record of finite numbers (null, arrays and strings are malformed).
 	if (answer.distribution !== undefined && !isNumberRecord(answer.distribution)) return false;
 
 	switch (question.type) {

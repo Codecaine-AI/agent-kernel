@@ -114,6 +114,39 @@ export function classifyError(message: string, aborted: boolean): { kind: Engine
 	return { kind: "provider" };
 }
 
+const ENGINE_ERROR_SUMMARIES: Record<EngineErrorKind, string> = {
+	aborted: "decision request aborted",
+	timeout: "decision request timed out",
+	auth: "provider authentication failed",
+	"too-large": "request exceeds the model's input limit",
+	"unknown-model": "unknown classifier model",
+	"invalid-request": "provider rejected the request",
+	"rate-limit": "provider rate limit",
+	refusal: "the model refused to answer",
+	provider: "provider error",
+	"not-configured": "provider is not configured",
+	"malformed-answer": "malformed answers",
+};
+
+/** Engine-authored constants with no provider text, kept verbatim. */
+const VERBATIM_ENGINE_MESSAGES: ReadonlySet<string> = new Set([SHORT_CREDENTIAL_MESSAGE]);
+
+/**
+ * The bounded summary of an engine error that the kernel returns and
+ * persists (call_end.error.message): kind, HTTP status, and digits read from
+ * Pi's own phrasing; never provider body text, which can echo state and
+ * instructions. The scrubbed response itself stays in the response blob.
+ */
+export function summarizeEngineError(error: { kind: EngineErrorKind; message: string; httpStatus?: number }): string {
+	if (VERBATIM_ENGINE_MESSAGES.has(error.message)) return error.message;
+	let summary = ENGINE_ERROR_SUMMARIES[error.kind] ?? "decision engine error";
+	const timedOut = /timed out after (\d+)ms/i.exec(error.message);
+	if (error.kind === "timeout" && timedOut) summary = `decision request timed out after ${timedOut[1]}ms`;
+	const delay = /Server requested (\d+)s retry delay \(max: (\d+)s\)/i.exec(error.message);
+	if (error.kind === "rate-limit" && delay) summary = `server requested a ${delay[1]}s retry delay (max ${delay[2]}s)`;
+	return error.httpStatus !== undefined ? `${summary} (HTTP ${error.httpStatus})` : summary;
+}
+
 export function createPiDecisionEngine(options: PiDecisionEngineOptions): PiDecisionEngine {
 	const clones = new Map<string, ClassifierModel<string>>();
 	const loadModels = async (): Promise<PiDecisionModels> =>
@@ -259,19 +292,17 @@ function normalizeAnswer(answer: ClassifierAnswer, raw: unknown): EngineAnswer {
 	if (answer.type === "choice") {
 		return { type: "choice", choice: answer.choice, distribution: answer.probabilities, confidence: answer.confidence };
 	}
-	// Pi drops System One's per-level probabilities; recover them from the wire when present.
-	const probabilities = (raw as { probabilities?: unknown } | undefined)?.probabilities;
+	// Pi drops System One's per-level probabilities; recover them from the wire when present. A present
+	// but malformed value (string entries, null, an array) is passed through as-is, never dropped, so
+	// answer validation rejects it as malformed-answer.
+	const wire = raw !== null && typeof raw === "object" ? (raw as Record<string, unknown>) : undefined;
+	const present = wire !== undefined && Object.hasOwn(wire, "probabilities");
 	return {
 		type: "score",
 		score: answer.score,
 		confidence: answer.confidence,
-		...(isNumberRecord(probabilities) && { distribution: probabilities }),
+		...(present && { distribution: wire.probabilities as Record<string, number> }),
 	};
-}
-
-function isNumberRecord(value: unknown): value is Record<string, number> {
-	if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
-	return Object.values(value).every((v) => typeof v === "number");
 }
 
 // ── the wrapping fetch ────────────────────────────────────────────────────────

@@ -51,7 +51,7 @@ import {
 	type ThresholdApplied,
 } from "../types";
 import { budgetFor, DEFAULT_TOKEN_BUDGETS, estimateDecisionTokens } from "./budget";
-import { createPiDecisionEngine, isDescribedEngine, type PiEngineRequest } from "./pi-engine";
+import { createPiDecisionEngine, isDescribedEngine, summarizeEngineError, type PiEngineRequest } from "./pi-engine";
 import {
 	applyThresholds,
 	chosenLabel,
@@ -66,6 +66,7 @@ export {
 	classifyError,
 	createPiDecisionEngine,
 	engineIdForApi,
+	summarizeEngineError,
 	type DecisionRoute,
 	type PiDecisionEngine,
 	type PiDecisionEngineOptions,
@@ -318,12 +319,15 @@ function preflight(
 	return { kind: "too-large", message: `estimated ${estimate} tokens exceeds the ${budget}-token budget of ${modelRef}` };
 }
 
+/** Results the kernel built itself (preflight, a rejecting engine): their messages carry no provider text. */
+const kernelAuthored = new WeakSet<EngineResult>();
+
 function syntheticResult(
 	failure: { kind: EngineErrorKind; message: string },
 	modelRef: string,
 	label: { engine: EngineResult["engine"]; provider: string; api?: string },
 ): EngineResult {
-	return {
+	const result: EngineResult = {
 		ok: false,
 		engine: label.engine,
 		api: label.api ?? "",
@@ -337,6 +341,8 @@ function syntheticResult(
 		error: failure,
 		secrets: [],
 	};
+	kernelAuthored.add(result);
+	return result;
 }
 
 /** The engine contract is "never rejects"; a rejecting engine is mapped to a provider error, never propagated. */
@@ -351,7 +357,7 @@ async function invokeEngine(engine: DecisionEngine, request: PiEngineRequest): P
 		};
 	} catch (error) {
 		const split = splitModelRef(request.model);
-		return {
+		const result: EngineResult = {
 			ok: false,
 			engine: "pi-ai",
 			api: "",
@@ -368,6 +374,8 @@ async function invokeEngine(engine: DecisionEngine, request: PiEngineRequest): P
 			},
 			secrets: [],
 		};
+		kernelAuthored.add(result);
+		return result;
 	}
 }
 
@@ -408,7 +416,8 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 	} else if (r.error && !r.ok) {
 		error = {
 			kind: r.error.kind,
-			message: redactText(r.error.message, secrets),
+			// Engine messages can quote provider bodies that echo state and instructions (§4.4): summary only.
+			message: kernelAuthored.has(r) ? redactText(r.error.message, secrets) : summarizeEngineError(r.error),
 			...(r.error.httpStatus !== undefined && { httpStatus: r.error.httpStatus }),
 		};
 	} else if (malformed.length > 0) {

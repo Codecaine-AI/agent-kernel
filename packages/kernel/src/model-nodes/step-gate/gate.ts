@@ -324,9 +324,21 @@ function isJsonPrimitive(value: unknown): value is JsonPrimitive {
 	);
 }
 
+/**
+ * The requestId a decide check derives from its gate's requestId: an
+ * unambiguous, domain-separated tuple encoding, so no (gate requestId, check
+ * name) pair can produce another pair's key (plain `${gate}:check:${name}`
+ * made "g" + "a:check:b" equal "g:check:a" + "b"). Names are unique within a
+ * gate, so the pair is unique.
+ */
+export function gateCheckRequestId(gateRequestId: string, checkName: string): string {
+	return JSON.stringify(["gate-check", gateRequestId, checkName]);
+}
+
 async function runDecideCheck(ctx: ModelNodeContext, check: DecideCheck, opts: CheckLoopOptions): Promise<CheckOutcome> {
 	// A re-run of an idempotent gate replays its decisions instead of asking again; the check's own requestId wins.
-	const requestId = check.requestId ?? (opts.requestId !== undefined ? `${opts.requestId}:check:${check.name}` : undefined);
+	const requestId =
+		check.requestId ?? (opts.requestId !== undefined ? gateCheckRequestId(opts.requestId, check.name) : undefined);
 	const outcome = await decideInternal(
 		ctx,
 		check.name,

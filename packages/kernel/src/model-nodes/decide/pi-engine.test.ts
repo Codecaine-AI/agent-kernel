@@ -225,6 +225,88 @@ describe("answers and secrets through kernel.decide", () => {
 		await expectDoctorOk(temp.tempDb.db);
 	});
 
+	test("malformed score distributions from the real adapter abstain, never vanish", async () => {
+		for (const probabilities of [{ "0": "bad", "3": 1 }, null, [0, 0, 0, 1]]) {
+			const { fetch } = wireFetch(() =>
+				wire({
+					model: "jev-1.13.0",
+					answers: { quality: { type: "score", score: 3, confidence: 1, probabilities } },
+				}),
+			);
+			const temp = await typesafeKernel(fetch, { decide: { maxRetries: 0 } });
+			const outcome = await temp.kernel.decide("score-dist", { a: 1 }, {
+				containerId: temp.tempDb.containerId,
+				questions: { quality: scoreQ(4) },
+			});
+			const label = JSON.stringify(probabilities);
+			expect(outcome.answers.quality, label).toMatchObject({ abstained: true, abstainReason: "engine-error" });
+			expect(outcome.error, label).toEqual({ kind: "malformed-answer", message: "malformed answers: quality" });
+		}
+		// An absent distribution stays valid.
+		const { fetch } = wireFetch(() =>
+			wire({ model: "jev-1.13.0", answers: { quality: { type: "score", score: 3, confidence: 1 } } }),
+		);
+		const temp = await typesafeKernel(fetch, { decide: { maxRetries: 0 } });
+		const fine = await temp.kernel.decide("score-dist", { a: 1 }, {
+			containerId: temp.tempDb.containerId,
+			questions: { quality: scoreQ(4) },
+		});
+		expect(fine.answers.quality).toMatchObject({ abstained: false, score: 3 });
+	});
+
+	test("provider error bodies never reach error messages in the outcome or the trace", async () => {
+		const stateMarker = "STATE-ECHO-7f3a";
+		const instructionMarker = "INSTRUCTION-ECHO-91bc";
+		// The service echoes the request (state and instructions) in its 400 body.
+		const { fetch } = wireFetch((_n, sent) => wire({ detail: { rejected_input: sent.body } }, 400));
+		const temp = await typesafeKernel(fetch, { decide: { maxRetries: 0 } });
+		const outcome = await temp.kernel.decide("echo", { note: stateMarker }, {
+			containerId: temp.tempDb.containerId,
+			questions: { justified: boolQ({ instructions: `Judge ${instructionMarker}` }) },
+		});
+		expect(outcome.error).toEqual({ kind: "invalid-request", message: "provider rejected the request (HTTP 400)", httpStatus: 400 });
+		const events = await eventsOf(temp.tempDb.db, outcome.ids.runId);
+		for (const type of ["call_end", "decision_made", "pi_turn_end"]) {
+			const data = JSON.stringify(events.find((e) => e.type === type)!.eventData);
+			expect(data, type).not.toContain(stateMarker);
+			expect(data, type).not.toContain(instructionMarker);
+		}
+		// The scrubbed body itself stays in the response blob.
+		const turnEnd = events.find((e) => e.type === "pi_turn_end")!.eventData as { response_blob_hash?: string };
+		expect(turnEnd.response_blob_hash).toBeDefined();
+
+		// A custom engine's message is summarized the same way.
+		const custom = await createTempKernel({
+			decide: {
+				engine: {
+					async classify(req) {
+						return {
+							ok: false,
+							engine: "pi-ai",
+							api: "custom",
+							provider: "custom",
+							requestedModel: req.model,
+							resolvedModel: req.model,
+							answers: {},
+							latencyMs: 1,
+							attempts: 1,
+							startedAtMs: Date.now(),
+							error: { kind: "provider", message: `upstream said: ${stateMarker}` },
+							secrets: [],
+						};
+					},
+				},
+			},
+			models: { defaults: { decide: "custom/model" } },
+		});
+		temps.push(custom);
+		const customOutcome = await custom.kernel.decide("echo", { note: stateMarker }, {
+			containerId: custom.tempDb.containerId,
+			questions: { justified: boolQ() },
+		});
+		expect(customOutcome.error).toEqual({ kind: "provider", message: "provider error" });
+	});
+
 	test("decision fetch secrets are scrubbed", async () => {
 		// The service echoes the credential in a 200 JSON body, then in a 400 error text.
 		const { fetch, sent } = wireFetch((n, request) =>
@@ -238,9 +320,11 @@ describe("answers and secrets through kernel.decide", () => {
 		const failed = await temp.kernel.decide("secret-error", { a: 2 }, opts);
 		expect(sent.map((s) => s.auth)).toEqual([`Bearer ${TS_KEY}`, `Bearer ${TS_KEY}`]);
 		expect(echoed.answers.justified.verdict).toBe("pass");
-		expect(failed.error).toMatchObject({ kind: "invalid-request", httpStatus: 400 });
-		expect(failed.error!.message).toContain("<redacted>");
-		expect(failed.error!.message).not.toContain(TS_KEY);
+		expect(failed.error).toEqual({
+			kind: "invalid-request",
+			message: "provider rejected the request (HTTP 400)",
+			httpStatus: 400,
+		});
 		// The wire response was persisted, scrubbed.
 		const [turnEnd] = (await eventsOf(temp.tempDb.db, echoed.ids.runId)).filter((e) => e.type === "pi_turn_end");
 		expect((turnEnd!.eventData as { response_blob_hash?: string }).response_blob_hash).toBeDefined();
@@ -317,6 +401,15 @@ describe("error classification", () => {
 	});
 
 	test("a served model echoing the credential is scrubbed everywhere", async () => {
+		// The engine's own result: the outbound bearer value echoed in wire.model never leaves it unscrubbed.
+		const direct = wireFetch((_n, sent) => wire({ ...SYSTEM_ONE_REPLY, model: `jev-${sent.auth}` }));
+		const engineResult = await createPiDecisionEngine({ models: await typesafeRegistry(), fetch: direct.fetch }).classify(
+			request("typesafe/jev-latest", { maxRetries: 0 }),
+		);
+		expect(engineResult.resolvedModel).toBe("typesafe/jev-<redacted>");
+		expect(JSON.stringify(engineResult.wireResponse)).not.toContain(TS_KEY);
+		expect(engineResult.secrets).toContain(TS_KEY);
+
 		const { fetch } = wireFetch(() => wire({ ...SYSTEM_ONE_REPLY, model: `jev-${TS_KEY}` }));
 		const temp = await typesafeKernel(fetch, { decide: { maxRetries: 0 } });
 		const outcome = await temp.kernel.decide("served-echo", { a: 1 }, {
@@ -345,7 +438,7 @@ describe("retries and the operation deadline", () => {
 		expect(performance.now() - started).toBeLessThan(1_000);
 		expect(sent).toHaveLength(1);
 		expect(outcome.error?.kind).toBe("rate-limit");
-		expect(outcome.error?.message).toContain("Server requested 60s retry delay");
+		expect(outcome.error?.message).toBe("server requested a 60s retry delay (max 2s) (HTTP 429)");
 		expect(outcome.answers.justified).toMatchObject({ abstained: true, abstainReason: "engine-error" });
 		expect((await getAgentRun(temp.tempDb.db, outcome.ids.runId))?.status).toBe("error");
 	});
@@ -403,7 +496,7 @@ describe("retries and the operation deadline", () => {
 			questions: { justified: boolQ() },
 		});
 		expect(outcome.error?.kind).toBe("timeout");
-		expect(outcome.error?.message).toContain("timed out after 1000ms");
+		expect(outcome.error?.message).toBe("decision request timed out after 1000ms");
 		expect((await getAgentRun(temp.tempDb.db, outcome.ids.runId))?.status).toBe("error");
 		const events = await eventsOf(temp.tempDb.db, outcome.ids.runId);
 		const start = events.find((e) => e.type === "call_start")!;
