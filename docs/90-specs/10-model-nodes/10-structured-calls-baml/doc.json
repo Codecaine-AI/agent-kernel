@@ -906,6 +906,12 @@
                     "name": "prompt_hash",
                     "type": "string",
                     "required": true
+                  },
+                  {
+                    "name": "request_fingerprint",
+                    "type": "string",
+                    "required": false,
+                    "description": "Set only for a call with a requestId. A later call with the same requestId and a different fingerprint fails invalid-request instead of a replay."
                   }
                 ]
               }

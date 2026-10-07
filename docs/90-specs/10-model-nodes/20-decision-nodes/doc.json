@@ -1592,7 +1592,8 @@
         }
       ],
       "children": [
-        "b-dn-res-1a"
+        "b-dn-res-1a",
+        "b-dn-res-1b"
       ]
     },
     "b-dn-res-1a": {
@@ -1628,6 +1629,55 @@
         },
         {
           "insert": " for any other error."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-res-1b": {
+      "id": "b-dn-res-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Once the caller's signal or the kernel's deadline fires, every answer abstains with "
+        },
+        {
+          "insert": "\"engine-error\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", even if the engine answers later. "
+        },
+        {
+          "insert": "error.kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is then "
+        },
+        {
+          "insert": "aborted",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "timeout",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []

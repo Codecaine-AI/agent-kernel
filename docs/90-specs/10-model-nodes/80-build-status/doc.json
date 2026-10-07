@@ -31,6 +31,10 @@
         "bs-h-dev-gc",
         "bs-dev-gc-lead",
         "bs-dev-gc-table",
+        "bs-h-ident",
+        "bs-ident-lead",
+        "bs-ident-claim",
+        "bs-ident-gate",
         "bs-h-live",
         "bs-live-lead",
         "bs-live-replay",
@@ -38,8 +42,7 @@
         "bs-h-followups",
         "bs-followups-lead",
         "bs-fu-enforce",
-        "bs-fu-partition",
-        "bs-fu-runpi",
+        "bs-fu-gc",
         "bs-fu-order",
         "bs-fu-toolbody"
       ]
@@ -608,7 +611,7 @@
           }
         },
         {
-          "insert": " and "
+          "insert": ", "
         },
         {
           "insert": "Decision Nodes",
@@ -620,7 +623,19 @@
           }
         },
         {
-          "insert": " with the kernel API. Code paths are relative to "
+          "insert": ", and "
+        },
+        {
+          "insert": "Pi 1.0 Alignment",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/70-pi-alignment"
+            }
+          }
+        },
+        {
+          "insert": " with the kernel API. Code paths without a package prefix are relative to "
         },
         {
           "insert": "packages/kernel/src/",
@@ -1191,6 +1206,158 @@
                 }
               }
             ]
+          ],
+          [
+            [
+              {
+                "insert": "requestId",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " is an idempotency key"
+              }
+            ],
+            [
+              {
+                "insert": "The claim transaction and in-process coalescing compare request fingerprints. A different request under the same "
+              },
+              {
+                "insert": "requestId",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " fails "
+              },
+              {
+                "insert": "invalid-request",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and writes nothing. Runs without a fingerprint still replay."
+              }
+            ],
+            "A replay or a coalesced result must never answer a different request.",
+            [
+              {
+                "insert": "model-nodes/node-run.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "packages/db/src/actions/node-sessions.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "No rule for a result that arrives after cancellation",
+            [
+              {
+                "insert": "Once the caller's signal or the operation deadline fires, a decision ends "
+              },
+              {
+                "insert": "aborted",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with every answer abstained. Its error kind is "
+              },
+              {
+                "insert": "aborted",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " or "
+              },
+              {
+                "insert": "timeout",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", even if the engine answers later. A completed decision still replays under an aborted signal."
+              }
+            ],
+            "A cancelled caller never acts on a late verdict. Replay runs at the claim, before any engine work.",
+            [
+              {
+                "insert": "model-nodes/decide/index.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "No operation deadline. The kernel passes Pi "
+              },
+              {
+                "insert": "timeoutMs",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "maxRetries",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and "
+              },
+              {
+                "insert": "maxRetryDelayMs",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
+              }
+            ],
+            [
+              {
+                "insert": "decide",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " has one operation deadline over every attempt and retry delay, plus a grace of 10% clamped to 50 to 1,000 ms. The defaults give 13 s."
+              }
+            ],
+            "The deadline clock starts before the claim. Without the grace, it fires before Pi's own attempt timeout.",
+            [
+              {
+                "insert": "model-nodes/decide/index.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
           ]
         ],
         "title": "Kernel API deviations"
@@ -1358,13 +1525,31 @@
                 }
               },
               {
-                "insert": " carries the final input."
+                "insert": " carries the final input. For a decision, the placeholder is "
+              },
+              {
+                "insert": "{pending: true}",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and the final input is the scrubbed classifier context."
               }
             ],
             "The full secret set for redaction is known only after the engine runs.",
             [
               {
                 "insert": "model-nodes/call/index.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "model-nodes/decide/index.ts",
                 "attributes": {
                   "code": true
                 }
@@ -1551,9 +1736,27 @@
           ],
           [
             "No rule for engine error text",
-            "Each engine error stores a fixed phrase per kind plus the HTTP status",
-            "Provider text can carry numbers or credentials into traces.",
+            "Each persisted call or decision error message is a fixed phrase per kind, plus an HTTP status, a count, or a finish reason from a fixed list. No route, call, or decision error quotes provider or caller text.",
+            "Provider or caller text can carry numbers or credentials into traces.",
             [
+              {
+                "insert": "model-nodes/call/index.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "model-nodes/pi-models.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
               {
                 "insert": "model-nodes/decide/pi-engine.ts",
                 "attributes": {
@@ -1582,6 +1785,135 @@
             [
               {
                 "insert": "packages/viewer-ui/src/trace-viewer/",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "No request fingerprint on "
+              },
+              {
+                "insert": "call_start",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "With a "
+              },
+              {
+                "insert": "requestId",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "call_start.request_fingerprint",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " hashes the name, input, model, "
+              },
+              {
+                "insert": "parentRunId",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and "
+              },
+              {
+                "insert": "parentToolUseId",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". A call adds its prompt hash and reasoning, and a decision adds its questions with effective thresholds. "
+              },
+              {
+                "insert": "containerId",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " is left out."
+              }
+            ],
+            "A container can differ per job for the same request.",
+            [
+              {
+                "insert": "model-nodes/call/index.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "model-nodes/decide/index.ts",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "No rule for a "
+              },
+              {
+                "insert": "__proto__",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " key"
+              }
+            ],
+            [
+              {
+                "insert": "Canonical JSON, redaction, choice distributions, and header maps define own properties. An own "
+              },
+              {
+                "insert": "__proto__",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " key survives."
+              }
+            ],
+            "Assignment calls the prototype setter, which drops the key from hashes and blobs.",
+            [
+              {
+                "insert": "model-nodes/blobs.ts",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "model-nodes/redact.ts",
                 "attributes": {
                   "code": true
                 }
@@ -2062,6 +2394,150 @@
       },
       "children": []
     },
+    "bs-h-ident": {
+      "id": "bs-h-ident",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Identifier Contract"
+        }
+      ],
+      "children": []
+    },
+    "bs-ident-lead": {
+      "id": "bs-ident-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Some caller-chosen identifiers reach the trace without a credential scrub. The kernel does not check them, so callers must not put credentials in identifiers."
+        }
+      ],
+      "children": []
+    },
+    "bs-ident-claim": {
+      "id": "bs-ident-claim",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Written at claim",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "bs-ident-claim-a"
+      ]
+    },
+    "bs-ident-claim-a": {
+      "id": "bs-ident-claim-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The claim writes the decision name, "
+        },
+        {
+          "insert": "requestId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "displayLabel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "parentToolUseId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to "
+        },
+        {
+          "insert": "call_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and to the session and run rows. The full credential set exists only after the engine sends."
+        }
+      ],
+      "children": []
+    },
+    "bs-ident-gate": {
+      "id": "bs-ident-gate",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Written raw on ",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": "gate_end",
+          "attributes": {
+            "bold": true,
+            "code": true
+          }
+        }
+      ],
+      "children": [
+        "bs-ident-gate-a"
+      ]
+    },
+    "bs-ident-gate-a": {
+      "id": "bs-ident-gate-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "gate_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " records the question ids of each decision check as "
+        },
+        {
+          "insert": "question_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " without a scrub."
+        }
+      ],
+      "children": []
+    },
     "bs-h-live": {
       "id": "bs-h-live",
       "type": "heading",
@@ -2321,7 +2797,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Five follow-ups stay open after the build. The build tracks them in "
+          "insert": "Nine follow-ups stay open after the build, in four groups. None of them blocks shadow mode. The build tracks all of them except the prompt-hash export in "
         },
         {
           "insert": ".work/model-nodes/reviews/deferred.md",
@@ -2330,7 +2806,7 @@
           }
         },
         {
-          "insert": ", and none of them blocks shadow mode."
+          "insert": "."
         }
       ],
       "children": []
@@ -2343,7 +2819,7 @@
       },
       "text": [
         {
-          "insert": "Enforce deferral runs scoped checks",
+          "insert": "Enforce",
           "attributes": {
             "bold": true
           }
@@ -2407,22 +2883,26 @@
       ],
       "children": []
     },
-    "bs-fu-partition": {
-      "id": "bs-fu-partition",
+    "bs-fu-gc": {
+      "id": "bs-fu-gc",
       "type": "list-item",
       "props": {
         "ordered": false
       },
       "text": [
         {
-          "insert": "Advisory partition only when needed",
+          "insert": "GameCube integration",
           "attributes": {
             "bold": true
           }
         }
       ],
       "children": [
-        "bs-fu-partition-a"
+        "bs-fu-partition-a",
+        "bs-fu-runpi-a",
+        "bs-fu-gc-hash",
+        "bs-fu-gc-confirm",
+        "bs-fu-gc-preview"
       ]
     },
     "bs-fu-partition-a": {
@@ -2464,37 +2944,6 @@
         }
       ],
       "children": []
-    },
-    "bs-fu-runpi": {
-      "id": "bs-fu-runpi",
-      "type": "list-item",
-      "props": {
-        "ordered": false
-      },
-      "text": [
-        {
-          "insert": "Dead ",
-          "attributes": {
-            "bold": true
-          }
-        },
-        {
-          "insert": "runPiAgent",
-          "attributes": {
-            "bold": true,
-            "code": true
-          }
-        },
-        {
-          "insert": " path",
-          "attributes": {
-            "bold": true
-          }
-        }
-      ],
-      "children": [
-        "bs-fu-runpi-a"
-      ]
     },
     "bs-fu-runpi-a": {
       "id": "bs-fu-runpi-a",
@@ -2541,6 +2990,135 @@
         },
         {
           "insert": " no longer exist. A cleanup PR deletes it."
+        }
+      ],
+      "children": []
+    },
+    "bs-fu-gc-hash": {
+      "id": "bs-fu-gc-hash",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "GameCube reimplements the kernel's BAML prompt hash in "
+        },
+        {
+          "insert": "apps/server/src/application/jobs/advisory-calibration/request-ids.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Exporting "
+        },
+        {
+          "insert": "bamlPromptHash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from "
+        },
+        {
+          "insert": "@agent-kernel/kernel/baml-engine",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " removes the copy."
+        }
+      ],
+      "children": []
+    },
+    "bs-fu-gc-confirm": {
+      "id": "bs-fu-gc-confirm",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Settlement could record "
+        },
+        {
+          "insert": "confirmation_pass",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as "
+        },
+        {
+          "insert": "disabled",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "ran",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or "
+        },
+        {
+          "insert": "skipped",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in the save-point payload. This optional change is not done, because it changes default runs, which "
+        },
+        {
+          "insert": ".work/model-nodes/plan/PLAN.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " §11 #14 keeps byte-identical."
+        }
+      ],
+      "children": []
+    },
+    "bs-fu-gc-preview": {
+      "id": "bs-fu-gc-preview",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The dashboard preview-mode selector stays declined, because "
+        },
+        {
+          "insert": "PLAN.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " §11 #18 leaves the GameCube frontend untouched. A ready patch is in "
+        },
+        {
+          "insert": ".work/model-nodes/followups/dashboard-preview-mode.patch",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []
@@ -2690,14 +3268,15 @@
       },
       "text": [
         {
-          "insert": "Clipped tool JSON",
+          "insert": "Viewer",
           "attributes": {
             "bold": true
           }
         }
       ],
       "children": [
-        "bs-fu-toolbody-a"
+        "bs-fu-toolbody-a",
+        "bs-fu-viewer-happydom"
       ]
     },
     "bs-fu-toolbody-a": {
@@ -2718,6 +3297,46 @@
         },
         {
           "insert": " JSON viewer clips long lines, such as a codemode call input. A wrap option on the shared viewer fixes every tool card at once."
+        }
+      ],
+      "children": []
+    },
+    "bs-fu-viewer-happydom": {
+      "id": "bs-fu-viewer-happydom",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The mounted "
+        },
+        {
+          "insert": "useTraceBlob",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " test uses "
+        },
+        {
+          "insert": "happy-dom",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", which viewer-ui does not declare in its devDependencies. Run viewer-ui tests from "
+        },
+        {
+          "insert": "packages/viewer-ui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", because a run from the agent-kernel root hangs."
         }
       ],
       "children": []

@@ -1211,7 +1211,7 @@
             "The full input behind p=0.91, with no hidden prompt"
           ],
           [
-            "Call",
+            "Call, decision",
             "Input blob and output blob",
             [
               {
