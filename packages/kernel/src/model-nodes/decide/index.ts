@@ -417,7 +417,12 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 		error = {
 			kind: r.error.kind,
 			// Engine messages can quote provider bodies that echo state and instructions (§4.4): summary only.
-			message: kernelAuthored.has(r) ? redactText(r.error.message, secrets) : summarizeEngineError(r.error),
+			message: redactText(
+				kernelAuthored.has(r)
+					? r.error.message
+					: summarizeEngineError({ ...r.error, message: redactText(r.error.message, secrets) }),
+				secrets,
+			),
 			...(r.error.httpStatus !== undefined && { httpStatus: r.error.httpStatus }),
 		};
 	} else if (malformed.length > 0) {
@@ -456,9 +461,10 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 	};
 
 	if (attempts > 0) {
-		const snapshotMs = Math.max(timing.attemptStartMs, handle.startedAtMs + 1);
-		const window = handle.turnWindow(snapshotMs + 1, timing.latencyMs);
-		const snapshotAt = new Date(snapshotMs).toISOString();
+		// pi_turn_start < pi_request_snapshot < pi_turn_end, as a chat turn orders them (the snapshot is
+		// recorded at its turn_start); the window spans at least 2 ms so no two share a timestamp.
+		const window = handle.turnWindow(timing.attemptStartMs, Math.max(timing.latencyMs, 2));
+		const snapshotAt = new Date(Date.parse(window.start) + 1).toISOString();
 		const text = JSON.stringify(input.contextValue, null, 2);
 		const messageHash = addBlob(
 			"message",
@@ -468,6 +474,12 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 		const rawRequestHash = wireRequest !== undefined ? addBlob("classifier-request", wireRequest, snapshotAt) : undefined;
 		const responseHash = wireResponse !== undefined ? addBlob("call-response", wireResponse, window.end) : undefined;
 		events.push(
+			createPiTurnStartEvent(handle.traceIds, {
+				turnNumber: 0,
+				eventId: handle.eventId(0, "pi_turn_start"),
+				parentEventId: handle.startEventId,
+				timestamp: window.start,
+			}),
 			createPiRequestSnapshotEvent(
 				handle.traceIds,
 				{
@@ -492,12 +504,6 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 				},
 				{ eventId: handle.eventId(0, "pi_request_snapshot"), parentEventId: handle.startEventId, timestamp: snapshotAt },
 			),
-			createPiTurnStartEvent(handle.traceIds, {
-				turnNumber: 0,
-				eventId: handle.eventId(0, "pi_turn_start"),
-				parentEventId: handle.startEventId,
-				timestamp: window.start,
-			}),
 			createPiTurnEndEvent(handle.traceIds, {
 				turnNumber: 0,
 				stopReason: r.ok ? "stop" : aborted ? "aborted" : "error",

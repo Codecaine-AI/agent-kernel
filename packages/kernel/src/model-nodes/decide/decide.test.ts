@@ -34,6 +34,7 @@ import {
 	countRows,
 	expectDoctorOk,
 	FAKE_REF,
+	rowsContaining,
 	scoreQ,
 	scriptedEngine,
 	SYSTEM_ONE_REPLY,
@@ -129,8 +130,8 @@ describe("kernel.decide", () => {
 		const events = await getTraceEventsForRun(db, outcome.ids.runId);
 		expect(events.map((e) => e.type)).toEqual([
 			"call_start",
-			"pi_request_snapshot",
 			"pi_turn_start",
+			"pi_request_snapshot",
 			"pi_turn_end",
 			"decision_made",
 			"call_end",
@@ -162,7 +163,7 @@ describe("kernel.decide", () => {
 			questions: { ...questions, justified: { ...questions.justified } },
 		});
 
-		const snapshot = events[1]!.eventData as PiRequestSnapshotData;
+		const snapshot = events[2]!.eventData as PiRequestSnapshotData;
 		expect(snapshot).toMatchObject({ turn_number: 0, message_count: 1, request_kind: "classifier", prompt_hash: start.prompt_hash });
 		expect(snapshot.message_refs[0]).toMatchObject({ role: "classifier_context", index: 0 });
 		const message = (await blobJson(db, snapshot.message_refs[0]!.blob_hash)) as { role: string; content: Array<{ text: string }> };
@@ -269,6 +270,28 @@ describe("kernel.decide", () => {
 		await expectDoctorOk(db);
 	});
 
+	test("engine error summaries carry no provider-derived numbers: numeric credentials never persist", async () => {
+		const numericKey = "8675309142857";
+		const numericToken = "5551234567890";
+		for (const error of [
+			{ kind: "timeout" as const, message: `Request timed out after ${numericKey}ms` },
+			{
+				kind: "rate-limit" as const,
+				message: `Server requested ${numericToken}s retry delay (max: ${numericKey}s). returned 429`,
+				httpStatus: 429,
+			},
+		]) {
+			const engine = scriptedEngine(() => ({ ok: false, attempts: 1, error, secrets: [numericKey, numericToken] }));
+			const temp = await kernel({ decide: { engine } });
+			const outcome = await temp.kernel.decide("numeric", { a: 1 }, { containerId: temp.tempDb.containerId, questions: JUDGE });
+			expect(outcome.error!.message).toBe(error.kind === "timeout" ? "decision request timed out" : "provider rate limit (HTTP 429)");
+			for (const secret of [numericKey, numericToken]) {
+				expect(JSON.stringify(outcome)).not.toContain(secret);
+				expect(rowsContaining(temp.tempDb.db, secret)).toEqual([]);
+			}
+		}
+	});
+
 	test("a refusal is an answer: abstain refusal, run done", async () => {
 		// Through the Pi engine: the in-process provider refuses without any fetch.
 		const { fake, registry } = await createFakeClassifierRegistry();
@@ -351,14 +374,17 @@ describe("kernel.decide", () => {
 			const events = await getTraceEventsForRun(temp.tempDb.db, outcome.ids.runId);
 			expect(events.map((e) => e.type)).toEqual([
 				"call_start",
-				"pi_request_snapshot",
 				"pi_turn_start",
+				"pi_request_snapshot",
 				"pi_turn_end",
 				"decision_made",
 				"call_end",
 			]);
-			const start = Date.parse(events[0]!.timestamp);
-			const end = Date.parse(events[5]!.timestamp);
+			// Strictly increasing even for a zero or unknown latency: no two events share a timestamp.
+			const stamps = events.map((e) => Date.parse(e.timestamp));
+			for (let i = 1; i < stamps.length; i++) expect(stamps[i]).toBeGreaterThan(stamps[i - 1]!);
+			const start = stamps[0]!;
+			const end = stamps[5]!;
 			for (const event of events.slice(1, 4)) {
 				expect(Date.parse(event.timestamp)).toBeGreaterThan(start);
 				expect(Date.parse(event.timestamp)).toBeLessThan(end);

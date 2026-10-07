@@ -133,18 +133,16 @@ const VERBATIM_ENGINE_MESSAGES: ReadonlySet<string> = new Set([SHORT_CREDENTIAL_
 
 /**
  * The bounded summary of an engine error that the kernel returns and
- * persists (call_end.error.message): kind, HTTP status, and digits read from
- * Pi's own phrasing; never provider body text, which can echo state and
- * instructions. The scrubbed response itself stays in the response blob.
+ * persists (call_end.error.message): a constant per kind plus the HTTP
+ * status, nothing copied from the message. Engine messages quote provider
+ * bodies, which can echo state, instructions and credentials (numeric ones
+ * included); the scrubbed response itself stays in the response blob.
  */
 export function summarizeEngineError(error: { kind: EngineErrorKind; message: string; httpStatus?: number }): string {
 	if (VERBATIM_ENGINE_MESSAGES.has(error.message)) return error.message;
-	let summary = ENGINE_ERROR_SUMMARIES[error.kind] ?? "decision engine error";
-	const timedOut = /timed out after (\d+)ms/i.exec(error.message);
-	if (error.kind === "timeout" && timedOut) summary = `decision request timed out after ${timedOut[1]}ms`;
-	const delay = /Server requested (\d+)s retry delay \(max: (\d+)s\)/i.exec(error.message);
-	if (error.kind === "rate-limit" && delay) summary = `server requested a ${delay[1]}s retry delay (max ${delay[2]}s)`;
-	return error.httpStatus !== undefined ? `${summary} (HTTP ${error.httpStatus})` : summary;
+	const summary = ENGINE_ERROR_SUMMARIES[error.kind] ?? "decision engine error";
+	const status = Number.isInteger(error.httpStatus) && error.httpStatus! >= 100 && error.httpStatus! <= 599;
+	return status ? `${summary} (HTTP ${error.httpStatus})` : summary;
 }
 
 export function createPiDecisionEngine(options: PiDecisionEngineOptions): PiDecisionEngine {

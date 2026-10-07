@@ -50,7 +50,7 @@ describe("applyThresholds", () => {
 		});
 	});
 
-	test("the bool label follows the verdict when a threshold sits across 0.5", () => {
+	test("intended (approved contract revision): an answered bool's label follows its verdict, even with a threshold across 0.5", () => {
 		// failAt 0.5: p = 0.5 fails, so its label is "false", never "true".
 		const failed = decideOne(boolQ({ passAt: 0.9, failAt: 0.5 }), { type: "bool", probability: 0.5 });
 		expect(failed).toMatchObject({ verdict: "fail", choice: "false", abstained: false });

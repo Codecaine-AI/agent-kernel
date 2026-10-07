@@ -438,7 +438,7 @@ describe("retries and the operation deadline", () => {
 		expect(performance.now() - started).toBeLessThan(1_000);
 		expect(sent).toHaveLength(1);
 		expect(outcome.error?.kind).toBe("rate-limit");
-		expect(outcome.error?.message).toBe("server requested a 60s retry delay (max 2s) (HTTP 429)");
+		expect(outcome.error?.message).toBe("provider rate limit (HTTP 429)");
 		expect(outcome.answers.justified).toMatchObject({ abstained: true, abstainReason: "engine-error" });
 		expect((await getAgentRun(temp.tempDb.db, outcome.ids.runId))?.status).toBe("error");
 	});
@@ -496,7 +496,7 @@ describe("retries and the operation deadline", () => {
 			questions: { justified: boolQ() },
 		});
 		expect(outcome.error?.kind).toBe("timeout");
-		expect(outcome.error?.message).toBe("decision request timed out after 1000ms");
+		expect(outcome.error?.message).toBe("decision request timed out");
 		expect((await getAgentRun(temp.tempDb.db, outcome.ids.runId))?.status).toBe("error");
 		const events = await eventsOf(temp.tempDb.db, outcome.ids.runId);
 		const start = events.find((e) => e.type === "call_start")!;

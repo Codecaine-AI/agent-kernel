@@ -8,6 +8,8 @@
  *     the whole redacted request as a `call-request` blob
  *     (`raw_request_blob_hash`). Only when the attempt has a request.
  *   - pi_turn_start / pi_turn_end: the attempt's window on the node clock,
+ *     with the snapshot 1 ms after the turn start, as a chat turn orders them
+ *     (pi_turn_start, then the snapshot recorded at that turn_start);
  *     the response (or SSE frames) as a `call-response` blob, HTTP status,
  *     duration, reasoning tokens, and usage keyed by the served
  *     "provider/id" and priced from the kernel's price table.
@@ -47,7 +49,7 @@ export interface AttemptEventsInput {
 }
 
 export interface AttemptEvents {
-	/** Snapshot, turn start, turn end per attempt, in attempt order. */
+	/** Turn start, snapshot, turn end per attempt, in attempt order. */
 	events: TraceEvent[];
 	/** Deduplicated by hash. */
 	blobs: TraceBlobInput[];
@@ -71,19 +73,23 @@ export function attemptsToEvents(run: NodeRunHandle, input: AttemptEventsInput):
 	const ordered = [...input.attempts].sort((a, b) => a.startedAtMs - b.startedAtMs);
 	ordered.forEach((raw, i) => {
 		const attempt = redactAttempt(raw, input.secrets);
-		const window = run.turnWindow(attempt.startedAtMs, attempt.durationMs);
+		// pi_turn_start < pi_request_snapshot < pi_turn_end: the window spans at least 2 ms.
+		const window = run.turnWindow(attempt.startedAtMs, Math.max(attempt.durationMs ?? 0, 2));
+		const snapshotAt = new Date(Date.parse(window.start) + 1).toISOString();
 		const opts = (type: string, timestamp: string) => ({
 			eventId: run.eventId(i, type),
 			parentEventId: run.startEventId,
 			timestamp,
 		});
 
+		events.push(createPiTurnStartEvent(run.traceIds, { turnNumber: i, ...opts("pi_turn_start", window.start) }));
+
 		if (attempt.request) {
 			const parsed = requestMessages(attempt.request.body);
 			const systemPromptHash =
-				parsed.system === null ? null : addBlob(textBlob("text", parsed.system, window.start));
+				parsed.system === null ? null : addBlob(textBlob("text", parsed.system, snapshotAt));
 			const refs: PiRequestSnapshotMessageRef[] = parsed.messages.map((message, index) => ({
-				blob_hash: addBlob(jsonBlob("message", message.blob, window.start)),
+				blob_hash: addBlob(jsonBlob("message", message.blob, snapshotAt)),
 				role: message.blob.role,
 				index,
 				text_chars: message.textChars,
@@ -101,15 +107,13 @@ export function attemptsToEvents(run: NodeRunHandle, input: AttemptEventsInput):
 						message_refs: refs,
 						total_text_chars: refs.reduce((sum, ref) => sum + ref.text_chars, 0),
 						total_image_count: refs.reduce((sum, ref) => sum + ref.image_count, 0),
-						raw_request_blob_hash: addBlob(jsonBlob("call-request", attempt.request, window.start)),
+						raw_request_blob_hash: addBlob(jsonBlob("call-request", attempt.request, snapshotAt)),
 						request_kind: attempt.transport === "pi" ? "pi-transport" : "baml-http",
 					},
-					opts("pi_request_snapshot", window.start),
+					opts("pi_request_snapshot", snapshotAt),
 				),
 			);
 		}
-
-		events.push(createPiTurnStartEvent(run.traceIds, { turnNumber: i, ...opts("pi_turn_start", window.start) }));
 
 		let usage: TurnUsage | undefined;
 		if (attempt.usage) {
