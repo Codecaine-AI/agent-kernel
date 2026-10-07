@@ -16,9 +16,19 @@
  * Secrets (§4.7): the engine receives the preflight set (route api key and
  * sensitive route headers). The Pi transport handed to the engine reads the
  * actual outbound headers; the kernel wraps it to collect every set it
- * returns, and redacts all persisted content again with the union.
+ * returns, and redacts all persisted content again with the union. That
+ * union is only complete after the engine ran, so the call-input blob is
+ * written with the completion, not the claim: call_start names its hash
+ * (the arguments redacted with the preflight set) and the completion stores
+ * it only when the complete set redacts them to the same bytes. Otherwise
+ * the arguments hold a credential first seen at send time and the input is
+ * withheld. A route failure records no argument contents at all.
+ *
+ * Cancellation wins over a late result: once the caller's signal or the
+ * operation deadline fired, the call ends aborted (kind "aborted" or
+ * "timeout") even if the engine still returned a value.
  */
-import { getTraceBlob } from "@agent-kernel/db";
+import { getTraceBlob, type TraceBlobInput } from "@agent-kernel/db";
 import type { CallEndData } from "@agent-kernel/protocol";
 import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
 
@@ -49,6 +59,9 @@ import { attemptsToEvents } from "./attempts-to-events";
 
 type Reasoning = "low" | "medium" | "high";
 const REASONING_LEVELS: readonly string[] = ["low", "medium", "high"];
+
+/** Stands in for the arguments when the route fails: the credential set that would scrub them is unknown or refused. */
+const ROUTE_FAILURE_INPUT = { omitted: "arguments are not recorded when the route fails" } as const;
 
 /** What one call node resolves to; KernelCallError is thrown after the completion committed. */
 type CallOutcome = { ok: true; value: unknown } | { ok: false; error: KernelCallError };
@@ -103,7 +116,12 @@ export function createCall<TCalls>(ctx: CallNodeContext<TCalls>): KernelCallFn<T
 		const route = await resolveRoute(ctx, model, reasoning);
 		const preflight = route.ok ? route.secrets : [];
 		const promptHash = engine.promptHash(name);
-		const input = jsonBlob("call-input", redactDeep(args, preflight), new Date(ctx.clock.now()).toISOString());
+		// The hash call_start names; the blob itself lands with the completion (see the header).
+		const input = jsonBlob(
+			"call-input",
+			route.ok ? redactDeep(args, preflight) : ROUTE_FAILURE_INPUT,
+			new Date(ctx.clock.now()).toISOString(),
+		);
 		const provider = route.ok ? route.route.provider : splitModelRef(model)?.provider;
 
 		let outcome: CallOutcome;
@@ -126,7 +144,7 @@ export function createCall<TCalls>(ctx: CallNodeContext<TCalls>): KernelCallFn<T
 					prompt_hash: promptHash,
 					input_blob_hash: input.hash,
 				},
-				startBlobs: [input.blob],
+				startBlobs: [],
 				execute: (run) =>
 					executeCall(ctx, run, {
 						engine,
@@ -135,6 +153,7 @@ export function createCall<TCalls>(ctx: CallNodeContext<TCalls>): KernelCallFn<T
 						route,
 						timeoutMs,
 						promptHash,
+						input,
 						...(opts.signal !== undefined && { callerSignal: opts.signal }),
 					}),
 				async replay({ db: replayDb, ids, events }) {
@@ -163,6 +182,8 @@ interface ExecuteCallInput<TCalls, K extends FnName<TCalls>> {
 	route: CallRoute;
 	timeoutMs: number;
 	promptHash: string;
+	/** The call-input blob named by call_start (preflight redaction, or the route-failure stand-in). */
+	input: { hash: string; blob: TraceBlobInput };
 	callerSignal?: AbortSignal;
 }
 
@@ -173,7 +194,9 @@ async function executeCall<TCalls, K extends FnName<TCalls>>(
 	input: ExecuteCallInput<TCalls, K>,
 ): Promise<NodeExecution<CallOutcome>> {
 	const { route, name } = input;
-	if (!route.ok) return failedExecution(ctx, run, name, route.failure, { attempts: [], rawText: null }, []);
+	if (!route.ok) {
+		return failedExecution(ctx, run, name, route.failure, { attempts: [], rawText: null }, [], [input.input.blob]);
+	}
 
 	// Outbound credential sets the Pi transport returns (it reads the real request headers).
 	const outbound: string[][] = [];
@@ -201,15 +224,17 @@ async function executeCall<TCalls, K extends FnName<TCalls>>(
 		secrets: route.secrets,
 	});
 	const secrets = mergeSecrets(route.secrets, ...outbound);
+	const inputBlobs = completedInput(ctx, run, input, secrets);
 
-	if (!outcome.ok) {
-		const aborted = outcome.failure.kind === "aborted" || run.signal.aborted;
+	// Checked before the outcome: a value that arrives after an abort or the deadline never makes the run done.
+	const aborted = run.signal.aborted || (!outcome.ok && outcome.failure.kind === "aborted");
+	if (aborted || !outcome.ok) {
 		const failure: CallFailure = aborted
 			? input.callerSignal?.aborted !== true && run.deadlineExceeded()
 				? { kind: "timeout" }
 				: { kind: "aborted" }
-			: outcome.failure;
-		return failedExecution(ctx, run, name, failure, outcome, secrets, {
+			: (outcome as Extract<typeof outcome, { ok: false }>).failure;
+		return failedExecution(ctx, run, name, failure, outcome, secrets, inputBlobs, {
 			aborted,
 			promptHash: input.promptHash,
 			provider: route.route.provider,
@@ -238,8 +263,29 @@ async function executeCall<TCalls, K extends FnName<TCalls>>(
 			...(turns.resolvedModel !== undefined && { resolved_model: turns.resolvedModel }),
 		},
 		events: turns.events,
-		blobs: [...turns.blobs, output.blob],
+		blobs: [...inputBlobs, ...turns.blobs, output.blob],
 	};
+}
+
+/**
+ * The call-input blob for the completion: stored only when the complete
+ * secret set redacts the arguments to the bytes call_start's hash names;
+ * otherwise (a credential first seen at send time is in the arguments) it is
+ * withheld, so call_start's input stays unresolved rather than leaking.
+ */
+function completedInput<TCalls, K extends FnName<TCalls>>(
+	ctx: CallNodeContext<TCalls>,
+	run: NodeRunHandle,
+	input: ExecuteCallInput<TCalls, K>,
+	secrets: readonly string[],
+): TraceBlobInput[] {
+	const complete = jsonBlob("call-input", redactDeep(input.args, secrets), input.input.blob.createdAt);
+	if (complete.hash === input.input.hash) return [input.input.blob];
+	ctx.logger?.warn("model call input withheld: it holds a credential first seen at send time", {
+		name: input.name,
+		runId: run.ids.runId,
+	});
+	return [];
 }
 
 /**
@@ -256,6 +302,7 @@ function failedExecution<TCalls>(
 	failure: CallFailure,
 	engineOutcome: { attempts: readonly EngineAttempt[]; rawText: string | null },
 	secrets: readonly string[],
+	inputBlobs: readonly TraceBlobInput[],
 	opts: { aborted?: boolean; promptHash?: string; provider?: string } = {},
 ): NodeExecution<CallOutcome> {
 	const scrubbed = redactDeep(failure, secrets);
@@ -296,7 +343,7 @@ function failedExecution<TCalls>(
 		runStatus: opts.aborted ? "aborted" : "error",
 		end,
 		events: turns?.events ?? [],
-		blobs: [...(turns?.blobs ?? []), ...(raw ? [raw.blob] : [])],
+		blobs: [...inputBlobs, ...(turns?.blobs ?? []), ...(raw ? [raw.blob] : [])],
 	};
 }
 

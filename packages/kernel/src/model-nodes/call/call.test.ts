@@ -388,9 +388,18 @@ describe("kernel.call", () => {
 		await expectDoctorOk(k.temp.db);
 	});
 
-	const cancellations: Array<{ name: string; expected: CallFailure["kind"]; timeoutMs?: number; abortAfterMs?: number }> = [
+	const cancellations: Array<{
+		name: string;
+		expected: CallFailure["kind"];
+		timeoutMs?: number;
+		abortAfterMs?: number;
+		/** The engine ignores the abort and still returns a value afterwards. */
+		lateSuccess?: boolean;
+	}> = [
 		{ name: "the caller aborts", expected: "aborted", abortAfterMs: 5 },
 		{ name: "the operation deadline passes", expected: "timeout", timeoutMs: 50 },
+		{ name: "the caller aborts and the engine still returns a value", expected: "aborted", abortAfterMs: 5, lateSuccess: true },
+		{ name: "the deadline passes and the engine still returns a value", expected: "timeout", timeoutMs: 50, lateSuccess: true },
 	];
 	for (const c of cancellations) {
 		test(`abort ends the run aborted when ${c.name}`, async () => {
@@ -399,8 +408,10 @@ describe("kernel.call", () => {
 				async respond(req) {
 					if (c.abortAfterMs !== undefined) setTimeout(() => controller.abort(), c.abortAfterMs);
 					await untilAborted(req.signal);
+					const attempt = fakeAttempt({ status: null, usage: null, durationMs: 5 });
+					if (c.lateSuccess) return fakeOk(VALUE, [{ ...attempt, status: 200 }]);
 					// BAML reports both as an abort: the deadline is an abort signal too.
-					return fakeFailure({ kind: "aborted" }, [fakeAttempt({ status: null, usage: null, durationMs: 5 })]);
+					return fakeFailure({ kind: "aborted" }, [attempt]);
 				},
 			});
 			const started = Date.now();

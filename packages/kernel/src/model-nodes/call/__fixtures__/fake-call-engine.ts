@@ -194,6 +194,8 @@ export interface FakePiModelsOptions {
 	headers?: Record<string, string>;
 	/** Default "openai-responses". */
 	api?: Api;
+	/** Default FAKE_CALL_BASE_URL (unroutable); a local mock server's URL for real-engine tests. */
+	baseUrl?: string;
 }
 
 export interface FakePiModels extends PiModelsSource {
@@ -218,7 +220,7 @@ export function fakePiModels(opts: FakePiModelsOptions = {}): FakePiModels {
 		});
 		created.registerProvider(FAKE_CALL_PROVIDER, {
 			name: "Fake",
-			baseUrl: FAKE_CALL_BASE_URL,
+			baseUrl: opts.baseUrl ?? FAKE_CALL_BASE_URL,
 			api: opts.api ?? "openai-responses",
 			...(opts.headers !== undefined && { headers: opts.headers }),
 			models: [
