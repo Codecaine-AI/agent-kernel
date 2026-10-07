@@ -724,15 +724,16 @@ function nestedCallEvents(
 	const base = { spanId: nested.id, parentToolUseId, nested: true } as const;
 	const durationMs = nested.endMs - nested.startMs;
 	const approximateEndMs = nested.approximateEndMs ?? nested.endMs;
+	const agent = (event: TraceEvent): TraceEvent => ({ ...event, source: "agent" });
 	return {
-		start: createToolCallStartEvent(ids, nested.name, nested.id, {
+		start: agent(createToolCallStartEvent(ids, nested.name, nested.id, {
 			...base,
 			toolInput: { raw: nested.args },
 			timing: "live",
 			eventId: startId,
 			timestamp: at(nested.startMs),
-		}),
-		liveEnd: createToolCallEndEvent(ids, nested.name, nested.id, {
+		})),
+		liveEnd: agent(createToolCallEndEvent(ids, nested.name, nested.id, {
 			...base,
 			toolOutput: nested.output,
 			durationMs,
@@ -740,15 +741,15 @@ function nestedCallEvents(
 			timing: "live",
 			eventId: endId,
 			timestamp: at(nested.endMs),
-		}),
-		approximateStart: createToolCallStartEvent(ids, nested.name, nested.id, {
+		})),
+		approximateStart: agent(createToolCallStartEvent(ids, nested.name, nested.id, {
 			...base,
 			toolInput: { raw: nested.args },
 			timing: "approximate",
 			eventId: startId,
 			timestamp: at(approximateEndMs - durationMs),
-		}),
-		approximateEnd: createToolCallEndEvent(ids, nested.name, nested.id, {
+		})),
+		approximateEnd: agent(createToolCallEndEvent(ids, nested.name, nested.id, {
 			...base,
 			toolOutput: nested.output,
 			durationMs,
@@ -756,7 +757,7 @@ function nestedCallEvents(
 			timing: "approximate",
 			eventId: endId,
 			timestamp: at(approximateEndMs),
-		}),
+		})),
 	};
 }
 
@@ -804,6 +805,8 @@ async function claimNode(
 	const traceIds: RunTraceEventIds = { containerId: CONTAINER_ID, runId: scope.runId, piSessionUuid: sessionId };
 	const startEventId = kernelNodeEventId(scope.runId, 0, "call_start");
 	const deadlineAt = at(scope.startMs + scope.deadlineMs);
+	// kernel.gate's decide checks pass no displayLabel: the row is titled by the decision name.
+	const displayLabel = scope.gateSpanId === undefined ? scope.displayLabel : undefined;
 	const startData: CallStartData = {
 		run_id: scope.runId,
 		node_kind: scope.kind,
@@ -814,7 +817,7 @@ async function claimNode(
 		parent_run_id: scope.parentRunId,
 		request_id: scope.requestId,
 		deadline_at: deadlineAt,
-		display_label: scope.displayLabel,
+		...(displayLabel !== undefined && { display_label: displayLabel }),
 	};
 	const claim = await claimAndStartNode(db, {
 		kind: scope.kind,
@@ -823,7 +826,7 @@ async function claimNode(
 		requestId: scope.requestId,
 		containerId: CONTAINER_ID,
 		agentName: scope.name,
-		displayLabel: scope.displayLabel,
+		displayLabel: displayLabel ?? null,
 		model: start.model,
 		promptHash: start.prompt_hash,
 		parentRunId: scope.parentRunId,
@@ -1188,7 +1191,9 @@ async function writeDecision(db: KernelDatabase, spec: DecisionNodeSpec): Promis
 					answers: spec.wireAnswers,
 					usage: { input_tokens: usage.inputTokens, output_tokens: usage.outputTokens },
 				})
-			: undefined;
+			: spec.engineAttempt.httpStatus !== undefined
+				? jsonBlob("call-response", { detail: "upstream: Service Unavailable" })
+				: undefined;
 	const events = attemptEvents(
 		node,
 		0,
