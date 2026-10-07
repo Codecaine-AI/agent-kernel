@@ -1285,7 +1285,7 @@
         "provider": "codex-lb",
         "api": "openai-responses",
         "prompt_hash": "baml1-c1149548056f20b8ac68ccca5e1519aff08b54ff1d7622eab240bcaeecd79bcc",
-        "input_blob_hash": "b1-2b6b74bd36911c519c33eb73ef87b39aaa276d193a20da7555bd7941e7f4f914",
+        "input_blob_hash": "b1-6f58c2863dfba65a480a75335a0b0612cc8f8802e29d67a3db8cc9f879b17fa6",
         "trigger": "post-run",
         "parent_run_id": "c467a0e4-fade-c38a-e866-5adc448c190a",
         "request_id": "checkpoint:ckpt-1:extract",
@@ -1346,7 +1346,7 @@
       },
       "spanId": null,
       "parentEventId": "28b8c28d-c87e-1ac9-23a5-1c20a62d12cc",
-      "timestamp": "2026-10-07T09:04:12.101Z"
+      "timestamp": "2026-10-07T09:04:12.102Z"
     },
     {
       "eventId": "c29d9216-8067-b045-7d49-15f924b07acd",
@@ -1392,6 +1392,7 @@
         "node_kind": "call",
         "function_name": "ExtractCheckpointKnowledge",
         "status": "ok",
+        "input_blob_hash": "b1-2b6b74bd36911c519c33eb73ef87b39aaa276d193a20da7555bd7941e7f4f914",
         "output_blob_hash": "b1-7ba1c30fda8fdd59fffa8dcd2cd0e5f1f15c679574b59b94a08e78153f571033",
         "usage": {
           "inputTokens": 3812,
@@ -1664,6 +1665,23 @@
       "timestamp": "2026-10-07T09:04:20.405Z"
     },
     {
+      "eventId": "ad6590cd-a4b7-f230-80a1-06f4cb188c69",
+      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
+      "runId": "1b6ceb7f-32f4-375f-ac39-8717b8eaece7",
+      "piSessionId": "f043aaeb-f070-1a1a-01fe-3f09bee6bea3",
+      "agentId": null,
+      "userId": null,
+      "type": "pi_turn_start",
+      "source": "agent",
+      "traceLevel": 3,
+      "eventData": {
+        "turn_number": 0
+      },
+      "spanId": null,
+      "parentEventId": "7b696ce9-3514-ab06-c86f-3b5967c229a2",
+      "timestamp": "2026-10-07T09:04:20.406Z"
+    },
+    {
       "eventId": "381101de-3926-90f0-1584-08de3baad124",
       "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
       "runId": "1b6ceb7f-32f4-375f-ac39-8717b8eaece7",
@@ -1695,23 +1713,6 @@
       },
       "spanId": null,
       "parentEventId": "7b696ce9-3514-ab06-c86f-3b5967c229a2",
-      "timestamp": "2026-10-07T09:04:20.406Z"
-    },
-    {
-      "eventId": "ad6590cd-a4b7-f230-80a1-06f4cb188c69",
-      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
-      "runId": "1b6ceb7f-32f4-375f-ac39-8717b8eaece7",
-      "piSessionId": "f043aaeb-f070-1a1a-01fe-3f09bee6bea3",
-      "agentId": null,
-      "userId": null,
-      "type": "pi_turn_start",
-      "source": "agent",
-      "traceLevel": 3,
-      "eventData": {
-        "turn_number": 0
-      },
-      "spanId": null,
-      "parentEventId": "7b696ce9-3514-ab06-c86f-3b5967c229a2",
       "timestamp": "2026-10-07T09:04:20.407Z"
     },
     {
@@ -1736,7 +1737,7 @@
           "costEstimate": 0.00005930400000000001
         },
         "response_blob_hash": "b1-8225672f088b59578803092eb2b9452358dd49e77c73c3f128f7d7cb11bd68f8",
-        "duration_ms": 106
+        "duration_ms": 107
       },
       "spanId": null,
       "parentEventId": "7b696ce9-3514-ab06-c86f-3b5967c229a2",
@@ -1897,6 +1898,23 @@
       "timestamp": "2026-10-07T09:04:20.522Z"
     },
     {
+      "eventId": "cefb9f6d-7d4a-1c23-d12e-5a7e688978e6",
+      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
+      "runId": "bc5fe794-9348-bf6a-ccf3-e8d5371c2e72",
+      "piSessionId": "8134f162-fa96-131f-ced3-0b901de081b2",
+      "agentId": null,
+      "userId": null,
+      "type": "pi_turn_start",
+      "source": "agent",
+      "traceLevel": 3,
+      "eventData": {
+        "turn_number": 0
+      },
+      "spanId": null,
+      "parentEventId": "4426454e-cf20-62c9-5ea1-a34cd0f3b15c",
+      "timestamp": "2026-10-07T09:04:20.523Z"
+    },
+    {
       "eventId": "bba9767f-c547-f721-3c91-45e87f71d8ac",
       "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
       "runId": "bc5fe794-9348-bf6a-ccf3-e8d5371c2e72",
@@ -1928,23 +1946,6 @@
       },
       "spanId": null,
       "parentEventId": "4426454e-cf20-62c9-5ea1-a34cd0f3b15c",
-      "timestamp": "2026-10-07T09:04:20.523Z"
-    },
-    {
-      "eventId": "cefb9f6d-7d4a-1c23-d12e-5a7e688978e6",
-      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
-      "runId": "bc5fe794-9348-bf6a-ccf3-e8d5371c2e72",
-      "piSessionId": "8134f162-fa96-131f-ced3-0b901de081b2",
-      "agentId": null,
-      "userId": null,
-      "type": "pi_turn_start",
-      "source": "agent",
-      "traceLevel": 3,
-      "eventData": {
-        "turn_number": 0
-      },
-      "spanId": null,
-      "parentEventId": "4426454e-cf20-62c9-5ea1-a34cd0f3b15c",
       "timestamp": "2026-10-07T09:04:20.524Z"
     },
     {
@@ -1962,7 +1963,7 @@
         "stop_reason": "error",
         "response_blob_hash": "b1-939d95bcaf76bc622f6fe2df4fedc4e4ded4dfaf0e19793fabc4c561aa7d65a1",
         "http_status": 503,
-        "duration_ms": 1236
+        "duration_ms": 1237
       },
       "spanId": null,
       "parentEventId": "4426454e-cf20-62c9-5ea1-a34cd0f3b15c",
@@ -2027,7 +2028,7 @@
         "output_blob_hash": "b1-90f72d6bf2059de32a7fbac96dbb7e6cc31d37d6934bf3c1948ac3cb2285ec01",
         "error": {
           "kind": "provider",
-          "message": "typesafe-system-one answered HTTP 503",
+          "message": "provider error (HTTP 503)",
           "http_status": 503
         },
         "attempts": 2,
@@ -2071,6 +2072,23 @@
       "timestamp": "2026-10-07T09:04:50.000Z"
     },
     {
+      "eventId": "8bae316e-3338-8926-51b1-c5bc740368f2",
+      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
+      "runId": "b069edde-61c5-c6dc-819a-e6d526e4a4a9",
+      "piSessionId": "8134f162-fa96-131f-ced3-0b901de081b2",
+      "agentId": null,
+      "userId": null,
+      "type": "pi_turn_start",
+      "source": "agent",
+      "traceLevel": 3,
+      "eventData": {
+        "turn_number": 0
+      },
+      "spanId": null,
+      "parentEventId": "6e9f9c2d-1af3-8457-731d-d431a966aa6e",
+      "timestamp": "2026-10-07T09:04:50.001Z"
+    },
+    {
       "eventId": "b6a904c3-2272-fdab-570b-0d433d6b01ad",
       "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
       "runId": "b069edde-61c5-c6dc-819a-e6d526e4a4a9",
@@ -2102,23 +2120,6 @@
       },
       "spanId": null,
       "parentEventId": "6e9f9c2d-1af3-8457-731d-d431a966aa6e",
-      "timestamp": "2026-10-07T09:04:50.001Z"
-    },
-    {
-      "eventId": "8bae316e-3338-8926-51b1-c5bc740368f2",
-      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
-      "runId": "b069edde-61c5-c6dc-819a-e6d526e4a4a9",
-      "piSessionId": "8134f162-fa96-131f-ced3-0b901de081b2",
-      "agentId": null,
-      "userId": null,
-      "type": "pi_turn_start",
-      "source": "agent",
-      "traceLevel": 3,
-      "eventData": {
-        "turn_number": 0
-      },
-      "spanId": null,
-      "parentEventId": "6e9f9c2d-1af3-8457-731d-d431a966aa6e",
       "timestamp": "2026-10-07T09:04:50.002Z"
     },
     {
@@ -2143,7 +2144,7 @@
           "costEstimate": 0.000058296000000000006
         },
         "response_blob_hash": "b1-0e3c0f187291c95576d7040b2caaf5e90bb3bffbfb336e58080188a9043e9d9a",
-        "duration_ms": 116
+        "duration_ms": 117
       },
       "spanId": null,
       "parentEventId": "6e9f9c2d-1af3-8457-731d-d431a966aa6e",
@@ -2304,6 +2305,23 @@
       "timestamp": "2026-10-07T09:04:50.132Z"
     },
     {
+      "eventId": "c5f4bdb3-27f6-aae4-8bd5-143001d407b2",
+      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
+      "runId": "a025caac-0663-81ac-d1db-f72d62e24d4b",
+      "piSessionId": "a05f851e-7ef5-e78a-8f41-e77f93fd55de",
+      "agentId": null,
+      "userId": null,
+      "type": "pi_turn_start",
+      "source": "agent",
+      "traceLevel": 3,
+      "eventData": {
+        "turn_number": 0
+      },
+      "spanId": null,
+      "parentEventId": "c8a41292-3c7e-7cfb-26aa-19d7ef1bc679",
+      "timestamp": "2026-10-07T09:04:50.133Z"
+    },
+    {
       "eventId": "765993cb-6acb-29c7-b7d9-66d29d4797d6",
       "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
       "runId": "a025caac-0663-81ac-d1db-f72d62e24d4b",
@@ -2335,23 +2353,6 @@
       },
       "spanId": null,
       "parentEventId": "c8a41292-3c7e-7cfb-26aa-19d7ef1bc679",
-      "timestamp": "2026-10-07T09:04:50.133Z"
-    },
-    {
-      "eventId": "c5f4bdb3-27f6-aae4-8bd5-143001d407b2",
-      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
-      "runId": "a025caac-0663-81ac-d1db-f72d62e24d4b",
-      "piSessionId": "a05f851e-7ef5-e78a-8f41-e77f93fd55de",
-      "agentId": null,
-      "userId": null,
-      "type": "pi_turn_start",
-      "source": "agent",
-      "traceLevel": 3,
-      "eventData": {
-        "turn_number": 0
-      },
-      "spanId": null,
-      "parentEventId": "c8a41292-3c7e-7cfb-26aa-19d7ef1bc679",
       "timestamp": "2026-10-07T09:04:50.134Z"
     },
     {
@@ -2376,7 +2377,7 @@
           "costEstimate": 0.00006031200000000001
         },
         "response_blob_hash": "b1-eb18de63e13ff483b87cda117c1a0599642110599cfab312d37d7c89a943edd8",
-        "duration_ms": 96
+        "duration_ms": 97
       },
       "spanId": null,
       "parentEventId": "c8a41292-3c7e-7cfb-26aa-19d7ef1bc679",
@@ -2581,7 +2582,7 @@
         "provider": "codex-lb",
         "api": "openai-responses",
         "prompt_hash": "baml1-789ff1a4634d53c0c40aec43a3291523ad5efb3537e441d73e8e24e7b48ff4e6",
-        "input_blob_hash": "b1-ba0d23be1ee398065c5f8802a9904b6d9f6bbd001377003719d92ae4a46c368c",
+        "input_blob_hash": "b1-c73e6ab8d921a2c2e444b9b337f0630f432e422e516d186e69f81456afb795db",
         "trigger": "judge",
         "parent_run_id": "c467a0e4-fade-c38a-e866-5adc448c190a",
         "request_id": "checkpoint:ckpt-1:judge:A3",
@@ -2592,6 +2593,23 @@
       "spanId": null,
       "parentEventId": null,
       "timestamp": "2026-10-07T09:04:50.400Z"
+    },
+    {
+      "eventId": "f530d2ab-f765-8cd1-4d78-0b5ff4bc66b7",
+      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
+      "runId": "7d8b6009-7db9-c7b2-026a-e69c7f558d82",
+      "piSessionId": "ec0ec929-734a-a20c-50fa-9972a7af3019",
+      "agentId": null,
+      "userId": null,
+      "type": "pi_turn_start",
+      "source": "agent",
+      "traceLevel": 3,
+      "eventData": {
+        "turn_number": 0
+      },
+      "spanId": null,
+      "parentEventId": "77d54e4f-fc34-789c-6a0d-a2eadeb9e67b",
+      "timestamp": "2026-10-07T09:04:50.401Z"
     },
     {
       "eventId": "0f591c5f-ddc6-af39-d4f6-178e235b1956",
@@ -2625,24 +2643,7 @@
       },
       "spanId": null,
       "parentEventId": "77d54e4f-fc34-789c-6a0d-a2eadeb9e67b",
-      "timestamp": "2026-10-07T09:04:50.401Z"
-    },
-    {
-      "eventId": "f530d2ab-f765-8cd1-4d78-0b5ff4bc66b7",
-      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
-      "runId": "7d8b6009-7db9-c7b2-026a-e69c7f558d82",
-      "piSessionId": "ec0ec929-734a-a20c-50fa-9972a7af3019",
-      "agentId": null,
-      "userId": null,
-      "type": "pi_turn_start",
-      "source": "agent",
-      "traceLevel": 3,
-      "eventData": {
-        "turn_number": 0
-      },
-      "spanId": null,
-      "parentEventId": "77d54e4f-fc34-789c-6a0d-a2eadeb9e67b",
-      "timestamp": "2026-10-07T09:04:50.401Z"
+      "timestamp": "2026-10-07T09:04:50.402Z"
     },
     {
       "eventId": "7e754948-3281-126a-432f-0491f1a7c415",
@@ -2688,6 +2689,7 @@
         "node_kind": "call",
         "function_name": "JudgeAdvisoryWithRationale",
         "status": "error",
+        "input_blob_hash": "b1-ba0d23be1ee398065c5f8802a9904b6d9f6bbd001377003719d92ae4a46c368c",
         "output_blob_hash": "b1-a13cc29b44bebbcc47a919a397c4cd8e381d30369c8c72b90a9f65dcfcdfa196",
         "error": {
           "kind": "parse",
@@ -2741,6 +2743,23 @@
       "timestamp": "2026-10-07T09:04:52.700Z"
     },
     {
+      "eventId": "cdc752cc-c95c-2fa7-cc94-ac9646bf7d5b",
+      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
+      "runId": "0480936d-abdf-bd8c-8876-936e38816de4",
+      "piSessionId": "670eb4d1-9b4c-683a-3ddc-d6dbab03a36a",
+      "agentId": null,
+      "userId": null,
+      "type": "pi_turn_start",
+      "source": "agent",
+      "traceLevel": 3,
+      "eventData": {
+        "turn_number": 0
+      },
+      "spanId": null,
+      "parentEventId": "1ac7a4d3-8c2b-9a5a-bf5a-328bd0001992",
+      "timestamp": "2026-10-07T09:04:52.701Z"
+    },
+    {
       "eventId": "dbde074d-31c5-d90c-c67c-419515c6ba64",
       "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
       "runId": "0480936d-abdf-bd8c-8876-936e38816de4",
@@ -2772,23 +2791,6 @@
       },
       "spanId": null,
       "parentEventId": "1ac7a4d3-8c2b-9a5a-bf5a-328bd0001992",
-      "timestamp": "2026-10-07T09:04:52.701Z"
-    },
-    {
-      "eventId": "cdc752cc-c95c-2fa7-cc94-ac9646bf7d5b",
-      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
-      "runId": "0480936d-abdf-bd8c-8876-936e38816de4",
-      "piSessionId": "670eb4d1-9b4c-683a-3ddc-d6dbab03a36a",
-      "agentId": null,
-      "userId": null,
-      "type": "pi_turn_start",
-      "source": "agent",
-      "traceLevel": 3,
-      "eventData": {
-        "turn_number": 0
-      },
-      "spanId": null,
-      "parentEventId": "1ac7a4d3-8c2b-9a5a-bf5a-328bd0001992",
       "timestamp": "2026-10-07T09:04:52.702Z"
     },
     {
@@ -2813,7 +2815,7 @@
           "costEstimate": 0.000040656000000000005
         },
         "response_blob_hash": "b1-ddaa4d2619de65fd75e0a842f8115f99292b2bb645ad7a3487a0bbf873492a2f",
-        "duration_ms": 90
+        "duration_ms": 91
       },
       "spanId": null,
       "parentEventId": "1ac7a4d3-8c2b-9a5a-bf5a-328bd0001992",
@@ -2921,7 +2923,7 @@
         "provider": "codex-lb",
         "api": "openai-responses",
         "prompt_hash": "baml1-91a973100ac8742b77e7a51b3f95f5fd126e7d01b22f0568c5b34e16a7c3af25",
-        "input_blob_hash": "b1-42861d3a23bc070b0e2222e72faedabb92c276761f3c9ba0b932f4070e6dc4a7",
+        "input_blob_hash": "b1-a87a8eb62de8e7d3b4aa854a293d26add2e3de584142dc3aa8e00c5b8b394265",
         "trigger": "post-run",
         "parent_run_id": "c467a0e4-fade-c38a-e866-5adc448c190a",
         "request_id": "worker-job:fn_8003A1C4:summary",
@@ -2982,7 +2984,7 @@
       },
       "spanId": null,
       "parentEventId": "9a75db8b-4223-cb29-9ce0-39ca9c644cc6",
-      "timestamp": "2026-10-07T09:04:52.901Z"
+      "timestamp": "2026-10-07T09:04:52.902Z"
     },
     {
       "eventId": "9ec17fd6-8526-e52e-9de1-816f8be07dc4",
@@ -3054,7 +3056,7 @@
       },
       "spanId": null,
       "parentEventId": "9a75db8b-4223-cb29-9ce0-39ca9c644cc6",
-      "timestamp": "2026-10-07T09:04:53.650Z"
+      "timestamp": "2026-10-07T09:04:53.651Z"
     },
     {
       "eventId": "046dbeeb-714a-b014-1413-3063d62e9d81",
@@ -3092,6 +3094,7 @@
         "node_kind": "call",
         "function_name": "SummarizeWorkerRun",
         "status": "error",
+        "input_blob_hash": "b1-42861d3a23bc070b0e2222e72faedabb92c276761f3c9ba0b932f4070e6dc4a7",
         "error": {
           "kind": "http",
           "message": "HTTP 502",
@@ -3782,7 +3785,7 @@
         "provider": "codex-lb",
         "api": "openai-responses",
         "prompt_hash": "baml1-c1149548056f20b8ac68ccca5e1519aff08b54ff1d7622eab240bcaeecd79bcc",
-        "input_blob_hash": "b1-3847a13a55bf520e7acd4515b632b6ffa21e158bf0c9f069a1d8ede8d8d0bb10",
+        "input_blob_hash": "b1-446d46dbdf6c827124170395f2a799be9c59272b449ec47549a942ac099c010f",
         "trigger": "post-run",
         "parent_run_id": "22d3cb0e-2f41-78c2-8c1f-9e786912ffbe",
         "request_id": "checkpoint:ckpt-2:extract",
@@ -3793,6 +3796,23 @@
       "spanId": null,
       "parentEventId": null,
       "timestamp": "2026-10-07T09:07:40.100Z"
+    },
+    {
+      "eventId": "aa375845-d9b0-5528-7b8f-061d1ddd7384",
+      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
+      "runId": "38707ff5-a898-3997-73b1-5a7670781cb9",
+      "piSessionId": "b769aba7-65b3-b655-b10b-f90298462a74",
+      "agentId": null,
+      "userId": null,
+      "type": "pi_turn_start",
+      "source": "agent",
+      "traceLevel": 3,
+      "eventData": {
+        "turn_number": 0
+      },
+      "spanId": null,
+      "parentEventId": "a7237c79-a0ca-ed1b-e804-57698a471d3a",
+      "timestamp": "2026-10-07T09:07:40.101Z"
     },
     {
       "eventId": "67f98947-3a03-c916-7b46-f1bde79404a4",
@@ -3826,24 +3846,7 @@
       },
       "spanId": null,
       "parentEventId": "a7237c79-a0ca-ed1b-e804-57698a471d3a",
-      "timestamp": "2026-10-07T09:07:40.101Z"
-    },
-    {
-      "eventId": "aa375845-d9b0-5528-7b8f-061d1ddd7384",
-      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
-      "runId": "38707ff5-a898-3997-73b1-5a7670781cb9",
-      "piSessionId": "b769aba7-65b3-b655-b10b-f90298462a74",
-      "agentId": null,
-      "userId": null,
-      "type": "pi_turn_start",
-      "source": "agent",
-      "traceLevel": 3,
-      "eventData": {
-        "turn_number": 0
-      },
-      "spanId": null,
-      "parentEventId": "a7237c79-a0ca-ed1b-e804-57698a471d3a",
-      "timestamp": "2026-10-07T09:07:40.101Z"
+      "timestamp": "2026-10-07T09:07:40.102Z"
     },
     {
       "eventId": "f27ec2f6-d7b8-8517-f80a-1d6ab23d3a3d",
@@ -3889,6 +3892,7 @@
         "node_kind": "call",
         "function_name": "ExtractCheckpointKnowledge",
         "status": "ok",
+        "input_blob_hash": "b1-3847a13a55bf520e7acd4515b632b6ffa21e158bf0c9f069a1d8ede8d8d0bb10",
         "output_blob_hash": "b1-6a76f37c6a4e9903d4ed5ae6da37bc71b4a3ea2c5775077d228a3855996c94e5",
         "usage": {
           "inputTokens": 3120,
@@ -4048,7 +4052,7 @@
         "provider": "codex-lb",
         "api": "openai-responses",
         "prompt_hash": "baml1-91a973100ac8742b77e7a51b3f95f5fd126e7d01b22f0568c5b34e16a7c3af25",
-        "input_blob_hash": "b1-8ac0b4ec1788e1f5146b1fec55e351d1130d043e36a55f3991cc30816da58c9e",
+        "input_blob_hash": "b1-f7aeb1adec997509cb047004385235086250617753a28f1a6166fab7c236cfbc",
         "trigger": "post-run",
         "parent_run_id": "22d3cb0e-2f41-78c2-8c1f-9e786912ffbe",
         "request_id": "worker-job:fn_8003A1C4:summary",
@@ -4109,7 +4113,7 @@
       },
       "spanId": null,
       "parentEventId": "2d152049-536a-d29d-0e67-4052ed6105a4",
-      "timestamp": "2026-10-07T09:07:47.601Z"
+      "timestamp": "2026-10-07T09:07:47.602Z"
     },
     {
       "eventId": "34b9d8c4-fa4e-eba0-f1b3-83dfb1799008",
@@ -4155,6 +4159,7 @@
         "node_kind": "call",
         "function_name": "SummarizeWorkerRun",
         "status": "ok",
+        "input_blob_hash": "b1-8ac0b4ec1788e1f5146b1fec55e351d1130d043e36a55f3991cc30816da58c9e",
         "output_blob_hash": "b1-bb15a6d24a58d48d567169ce993a31ba7529aac5653ad0e416dd7b5d521168b5",
         "usage": {
           "inputTokens": 5960,
@@ -4192,7 +4197,7 @@
         "provider": "codex-lb",
         "api": "openai-responses",
         "prompt_hash": "baml1-5609907e93ccef3bc81eaccaf8797e670ed769309c43b251b9a8dd2b58659d82",
-        "input_blob_hash": "b1-8ee4a5d50a8f0e4466c0fb8434ba347ea3e4e4bedc1babc774f905b86b7bc342",
+        "input_blob_hash": "b1-4bbad69650f5a1f923945b2ff414c055fa1187c595e39d5b5ab1128810d32af0",
         "trigger": "post-run",
         "parent_run_id": "22d3cb0e-2f41-78c2-8c1f-9e786912ffbe",
         "request_id": "checkpoint_confirmed:ckpt-2",
@@ -4250,7 +4255,7 @@
         "provider": "codex-lb",
         "api": "openai-responses",
         "prompt_hash": "baml1-5609907e93ccef3bc81eaccaf8797e670ed769309c43b251b9a8dd2b58659d82",
-        "input_blob_hash": "b1-8ee4a5d50a8f0e4466c0fb8434ba347ea3e4e4bedc1babc774f905b86b7bc342",
+        "input_blob_hash": "b1-4bbad69650f5a1f923945b2ff414c055fa1187c595e39d5b5ab1128810d32af0",
         "trigger": "post-run",
         "parent_run_id": "22d3cb0e-2f41-78c2-8c1f-9e786912ffbe",
         "request_id": "checkpoint_confirmed:ckpt-2",
@@ -4261,6 +4266,23 @@
       "spanId": null,
       "parentEventId": null,
       "timestamp": "2026-10-07T09:13:10.001Z"
+    },
+    {
+      "eventId": "c121f873-f1cb-5610-9680-07a585d4144f",
+      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
+      "runId": "813b760d-f1d5-c212-3965-214e71773ac3",
+      "piSessionId": "7951d981-e0e3-529f-95e9-ab909343d99b",
+      "agentId": null,
+      "userId": null,
+      "type": "pi_turn_start",
+      "source": "agent",
+      "traceLevel": 3,
+      "eventData": {
+        "turn_number": 0
+      },
+      "spanId": null,
+      "parentEventId": "f8daa534-87bb-bd47-f2b3-09726ec47a75",
+      "timestamp": "2026-10-07T09:13:10.002Z"
     },
     {
       "eventId": "187301e3-2de9-1ef4-767f-a158def2abee",
@@ -4294,24 +4316,7 @@
       },
       "spanId": null,
       "parentEventId": "f8daa534-87bb-bd47-f2b3-09726ec47a75",
-      "timestamp": "2026-10-07T09:13:10.002Z"
-    },
-    {
-      "eventId": "c121f873-f1cb-5610-9680-07a585d4144f",
-      "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
-      "runId": "813b760d-f1d5-c212-3965-214e71773ac3",
-      "piSessionId": "7951d981-e0e3-529f-95e9-ab909343d99b",
-      "agentId": null,
-      "userId": null,
-      "type": "pi_turn_start",
-      "source": "agent",
-      "traceLevel": 3,
-      "eventData": {
-        "turn_number": 0
-      },
-      "spanId": null,
-      "parentEventId": "f8daa534-87bb-bd47-f2b3-09726ec47a75",
-      "timestamp": "2026-10-07T09:13:10.002Z"
+      "timestamp": "2026-10-07T09:13:10.003Z"
     },
     {
       "eventId": "bd6423e6-0ddd-b111-79cb-b85ba8669801",
@@ -4357,6 +4362,7 @@
         "node_kind": "call",
         "function_name": "ExtractConfirmedCheckpointKnowledge",
         "status": "ok",
+        "input_blob_hash": "b1-8ee4a5d50a8f0e4466c0fb8434ba347ea3e4e4bedc1babc774f905b86b7bc342",
         "output_blob_hash": "b1-89133bde718c1a5617c51a166c148c2e163680d499d6233b655ed84b858e1066",
         "usage": {
           "inputTokens": 6410,

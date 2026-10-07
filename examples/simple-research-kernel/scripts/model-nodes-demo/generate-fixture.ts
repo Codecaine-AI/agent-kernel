@@ -888,12 +888,12 @@ async function completeNode(
 }
 
 /**
- * One engine attempt: a request snapshot, a turn start and a turn end
- * (ordinal = attempt index), shaped like call/attempts-to-events.ts and the
- * decide lifecycle write them.
+ * One engine attempt: a turn start, a request snapshot 1 ms later and a turn
+ * end (ordinal = attempt index), shaped like call/attempts-to-events.ts and
+ * the decide lifecycle write them.
  */
 interface EngineAttemptSpec {
-	/** Snapshot time; a call's turn starts here, a decision's turn 1 ms later. */
+	/** Turn start; the request snapshot is stamped 1 ms later. */
 	startMs: number;
 	endMs: number;
 	/** Recorded on pi_turn_end (a decision records it only for a failed request). */
@@ -918,7 +918,6 @@ function attemptEvents(
 	responseBlob: TraceBlobInput | undefined,
 ): TraceEvent[] {
 	const parentEventId = node.startEventId;
-	const turnStartMs = snapshot.requestKind === "classifier" ? attempt.startMs + 1 : attempt.startMs;
 	const eventId = (type: string) => kernelNodeEventId(node.scope.runId, index, type);
 	const refs: PiRequestSnapshotMessageRef[] = snapshot.messages.map((message, refIndex) => ({
 		blob_hash: message.blob.hash,
@@ -929,6 +928,12 @@ function attemptEvents(
 		tool_call_count: 0,
 	}));
 	return [
+		createPiTurnStartEvent(node.traceIds, {
+			turnNumber: index,
+			parentEventId,
+			eventId: eventId("pi_turn_start"),
+			timestamp: at(attempt.startMs),
+		}),
 		createPiRequestSnapshotEvent(
 			node.traceIds,
 			{
@@ -942,21 +947,15 @@ function attemptEvents(
 				raw_request_blob_hash: snapshot.requestBlob.hash,
 				request_kind: snapshot.requestKind,
 			},
-			{ parentEventId, eventId: eventId("pi_request_snapshot"), timestamp: at(attempt.startMs) },
+			{ parentEventId, eventId: eventId("pi_request_snapshot"), timestamp: at(attempt.startMs + 1) },
 		),
-		createPiTurnStartEvent(node.traceIds, {
-			turnNumber: index,
-			parentEventId,
-			eventId: eventId("pi_turn_start"),
-			timestamp: at(turnStartMs),
-		}),
 		createPiTurnEndEvent(node.traceIds, {
 			turnNumber: index,
 			stopReason: attempt.stopReason,
 			...(attempt.usage && { usage: attempt.usage }),
 			...(responseBlob && { responseBlobHash: responseBlob.hash }),
 			...(attempt.httpStatus !== undefined && { httpStatus: attempt.httpStatus }),
-			durationMs: attempt.endMs - turnStartMs,
+			durationMs: attempt.endMs - attempt.startMs,
 			parentEventId,
 			eventId: eventId("pi_turn_end"),
 			timestamp: at(attempt.endMs),
@@ -1027,7 +1026,10 @@ function sseResponse(text: string, usage: TurnUsage): unknown {
 }
 
 async function writeCall(db: KernelDatabase, spec: CallNodeSpec): Promise<void> {
-	const inputBlob = jsonBlob("call-input", spec.args);
+	// The claim commits a pending placeholder (baml-http: the preflight-redacted
+	// arguments); the completion records the final arguments on call_end.
+	const inputBlob = jsonBlob("call-input", { pending: true, redacted: spec.args });
+	const finalInputBlob = jsonBlob("call-input", spec.args);
 	const promptHash = bamlPromptHash(spec.name);
 	const node = await claimNode(
 		db,
@@ -1078,13 +1080,14 @@ async function writeCall(db: KernelDatabase, spec: CallNodeSpec): Promise<void> 
 			runStatus: "done",
 			end: {
 				status: "ok",
+				input_blob_hash: finalInputBlob.hash,
 				output_blob_hash: outputBlob.hash,
 				...(usage && { usage }),
 				attempts: spec.attempts.length,
 				resolved_model: WORKER_MODEL,
 			},
 			events,
-			blobs: [...blobs, outputBlob],
+			blobs: [finalInputBlob, ...blobs, outputBlob],
 		});
 		return;
 	}
@@ -1094,6 +1097,7 @@ async function writeCall(db: KernelDatabase, spec: CallNodeSpec): Promise<void> 
 		runStatus: "error",
 		end: {
 			status: "error",
+			input_blob_hash: finalInputBlob.hash,
 			...(rawBlob && { output_blob_hash: rawBlob.hash }),
 			error: spec.result.error,
 			...(usage && { usage }),
@@ -1101,7 +1105,7 @@ async function writeCall(db: KernelDatabase, spec: CallNodeSpec): Promise<void> 
 			...(usage && { resolved_model: WORKER_MODEL }),
 		},
 		events,
-		blobs: rawBlob ? [...blobs, rawBlob] : blobs,
+		blobs: [finalInputBlob, ...blobs, ...(rawBlob ? [rawBlob] : [])],
 	});
 }
 
@@ -1727,7 +1731,7 @@ async function generate(db: KernelDatabase): Promise<void> {
 		endMs: 261_762,
 		answers: { justified: ENGINE_ERROR_ANSWER },
 		chosen: "abstain",
-		error: { kind: "provider", message: "typesafe-system-one answered HTTP 503", http_status: 503 },
+		error: { kind: "provider", message: "provider error (HTTP 503)", http_status: 503 },
 	});
 
 	// JudgeAdvisory:A2 attempt 2 (same requestId, after the job retry): p = 0.88 → pass.
@@ -2060,7 +2064,7 @@ async function generate(db: KernelDatabase): Promise<void> {
 			advisories: FINDING_REFS.slice(0, 1),
 		},
 	];
-	const confirmedInput = jsonBlob("call-input", confirmedArgs);
+	const confirmedInput = jsonBlob("call-input", { pending: true, redacted: confirmedArgs });
 	const confirmedStart: NodeStartFields = {
 		engine: "baml",
 		transport: "baml-http",

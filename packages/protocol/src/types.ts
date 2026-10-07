@@ -446,7 +446,11 @@ export interface CallStartData {
   api?: string;
   /** "baml1-…" | "dq1-…" */
   prompt_hash: string;
-  /** call: canonical JSON of args; decision: classifier context. */
+  /**
+   * call: a pending placeholder committed with the claim (preflight-redacted
+   * args, or a pending/omitted marker); the final scrubbed args are on
+   * `call_end.input_blob_hash` when present. decision: classifier context.
+   */
   input_blob_hash: string;
   trigger: string;
   parent_run_id?: string;
