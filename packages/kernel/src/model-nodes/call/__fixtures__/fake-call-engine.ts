@@ -8,10 +8,7 @@
  * Used by the call core tests and, through `@agent-kernel/kernel/model-nodes/testing`,
  * by step/gate, viewer fixture and harness tests.
  */
-import {
-	InMemoryCredentialStore,
-	type Api,
-} from "@earendil-works/pi-ai";
+import { InMemoryCredentialStore, type Api, type CredentialStore } from "@earendil-works/pi-ai";
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
 
 import type { PiModelsSource } from "../../context";
@@ -188,8 +185,15 @@ export const FAKE_CALL_MODEL_REF = `${FAKE_CALL_PROVIDER}/${FAKE_CALL_MODEL}`;
 export const FAKE_CALL_BASE_URL = "http://fake.invalid/v1";
 
 export interface FakePiModelsOptions {
-	/** Runtime api key of the fake provider (≥ 8 characters unless a test wants a refusal). Default "sk-fake-call-key-0123456789". */
-	apiKey?: string;
+	/**
+	 * Runtime api key of the fake provider (≥ 8 characters unless a test wants a refusal).
+	 * Default "sk-fake-call-key-0123456789"; null sets none, so auth goes through `credentials`.
+	 */
+	apiKey?: string | null;
+	/** The runtime's credential store. Default an empty in-memory store. */
+	credentials?: CredentialStore;
+	/** The provider requires an auth header, so a missing credential is an auth failure. */
+	authHeader?: boolean;
 	/** Extra provider headers, e.g. a custom auth header. */
 	headers?: Record<string, string>;
 	/** Default "openai-responses". */
@@ -199,7 +203,7 @@ export interface FakePiModelsOptions {
 }
 
 export interface FakePiModels extends PiModelsSource {
-	readonly apiKey: string;
+	readonly apiKey: string | null;
 	/** Changes the provider's runtime key (rotation after preflight). */
 	rotateApiKey(apiKey: string): Promise<void>;
 }
@@ -209,12 +213,12 @@ export interface FakePiModels extends PiModelsSource {
  * an in-memory runtime (no auth.json, no models.json, no network).
  */
 export function fakePiModels(opts: FakePiModelsOptions = {}): FakePiModels {
-	const apiKey = opts.apiKey ?? "sk-fake-call-key-0123456789";
+	const apiKey = opts.apiKey === undefined ? "sk-fake-call-key-0123456789" : opts.apiKey;
 	let runtime: ModelRuntime | undefined;
 	const build = async () => {
 		if (runtime) return runtime;
 		const created = await ModelRuntime.create({
-			credentials: new InMemoryCredentialStore(),
+			credentials: opts.credentials ?? new InMemoryCredentialStore(),
 			modelsPath: null,
 			refreshOnCreate: false,
 		});
@@ -223,6 +227,7 @@ export function fakePiModels(opts: FakePiModelsOptions = {}): FakePiModels {
 			baseUrl: opts.baseUrl ?? FAKE_CALL_BASE_URL,
 			api: opts.api ?? "openai-responses",
 			...(opts.headers !== undefined && { headers: opts.headers }),
+			...(opts.authHeader !== undefined && { authHeader: opts.authHeader }),
 			models: [
 				{
 					id: FAKE_CALL_MODEL,
@@ -235,7 +240,7 @@ export function fakePiModels(opts: FakePiModelsOptions = {}): FakePiModels {
 				},
 			],
 		});
-		await created.setRuntimeApiKey(FAKE_CALL_PROVIDER, apiKey);
+		if (apiKey !== null) await created.setRuntimeApiKey(FAKE_CALL_PROVIDER, apiKey);
 		runtime = created;
 		return created;
 	};

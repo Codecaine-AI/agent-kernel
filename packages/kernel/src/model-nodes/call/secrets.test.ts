@@ -4,15 +4,18 @@
  * unredacted in a request, a JSON body, an SSE frame, raw output, an HTTP
  * error, or a value; short credentials are refused before any request; and
  * credentials the Pi transport reads from the actual outbound headers after
- * preflight are scrubbed by the kernel's second pass.
+ * preflight are scrubbed by the kernel's second pass. Error summaries are
+ * constants: neither Pi's auth diagnostics nor a provider's finish reason is
+ * persisted as text.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
 import { getAgentRun, getTraceBlob, getTraceEventsForRun, type KernelDatabase } from "@agent-kernel/db";
-import type { CallEndData, CallStartData } from "@agent-kernel/protocol";
+import type { CallEndData, CallStartData, PiTurnEndData } from "@agent-kernel/protocol";
+import { InMemoryCredentialStore } from "@earendil-works/pi-ai";
 
 import { disableNetwork } from "../__fixtures__/temp-kernel";
-import { SHORT_CREDENTIAL_MESSAGE } from "../pi-models";
+import { ROUTE_FAILURE_MESSAGES, SHORT_CREDENTIAL_MESSAGE } from "../pi-models";
 import { KernelCallError } from "../types";
 import { createCallKit, type CallKit, type CallKitOptions } from "./__fixtures__/call-kit";
 import { fakeAttempt, fakeFailure, type FakeCallResponse } from "./__fixtures__/fake-call-engine";
@@ -41,6 +44,15 @@ afterEach(() => {
 const API_KEY = "sk-live-call-key-QWERTYUIOP";
 const HEADER_TOKEN = "hdr-custom-token-ZXCVBNM";
 const ROTATED_KEY = "sk-rotated-call-key-ASDFGHJKL";
+const STORE_CREDENTIAL = "sk-store-credential-POIUYTREWQ";
+const FINISH_SENTINEL = "FINISH-REASON-MODEL-TEXT-SENTINEL";
+
+/** A credential store whose read fails with a message that quotes a credential (Pi passes it through). */
+class UnreadableCredentialStore extends InMemoryCredentialStore {
+	override async read(): Promise<undefined> {
+		throw new Error(`credential store unreadable near ${STORE_CREDENTIAL}`);
+	}
+}
 
 /** Every persisted trace row and blob, as text. */
 function persisted(db: KernelDatabase): string[] {
@@ -139,6 +151,53 @@ describe("call secrets (S4)", () => {
 		expect(JSON.stringify(failures.map((e) => [e.message, e.failure]))).not.toContain(API_KEY);
 		expect(JSON.stringify(failures.map((e) => [e.message, e.failure]))).not.toContain(HEADER_TOKEN);
 		expect(hits(k.temp.db, [API_KEY, HEADER_TOKEN])).toEqual([]);
+	});
+
+	const authFailures: Array<{ name: string; pi: () => CallKitOptions["pi"]; message: string }> = [
+		{
+			name: "a credential store error that quotes a credential",
+			pi: () => ({ apiKey: null, credentials: new UnreadableCredentialStore() }),
+			message: ROUTE_FAILURE_MESSAGES["auth-failed"],
+		},
+		{
+			name: "no credential for a provider that requires one",
+			pi: () => ({ apiKey: null, authHeader: true }),
+			message: ROUTE_FAILURE_MESSAGES["missing-credential"],
+		},
+	];
+	for (const c of authFailures) {
+		test(`an auth failure (${c.name}) persists only a constant route summary`, async () => {
+			const k = await kit({ pi: c.pi() });
+			const error = await rejection(k.call("Extract", ["note"]));
+			expect(error.failure).toEqual({ kind: "route", message: c.message });
+			expect(k.engine.invocations).toHaveLength(0);
+			const [end] = await getTraceEventsForRun(k.temp.db, error.runId, ["call_end"]);
+			expect((end?.eventData as CallEndData).error).toEqual({ kind: "route", message: c.message });
+			expect(hits(k.temp.db, [STORE_CREDENTIAL])).toEqual([]);
+		});
+	}
+
+	test("a provider finish reason is persisted only through a fixed vocabulary", async () => {
+		const cases = [
+			{ finishReason: `stopped by ${FINISH_SENTINEL}`, message: "model stopped: unexpected finish reason", stop: "unexpected" },
+			{ finishReason: "MAX_TOKENS", message: "model stopped: length", stop: "length" },
+		];
+		const k = await kit({
+			respond: (_req, index) =>
+				fakeFailure({ kind: "finish_reason", finishReason: cases[index]!.finishReason, rawOutput: "truncated {" }, [
+					fakeAttempt({ output: "truncated {" }),
+				]),
+		});
+		for (const c of cases) {
+			const error = await rejection(k.call("Extract", ["note"]));
+			const [end] = await getTraceEventsForRun(k.temp.db, error.runId, ["call_end"]);
+			const [turnEnd] = await getTraceEventsForRun(k.temp.db, error.runId, ["pi_turn_end"]);
+			expect({
+				error: (end?.eventData as CallEndData).error,
+				stop: (turnEnd?.eventData as PiTurnEndData).stop_reason,
+			}).toEqual({ error: { kind: "finish_reason", message: c.message }, stop: c.stop });
+		}
+		expect(hits(k.temp.db, [FINISH_SENTINEL])).toEqual([]);
 	});
 
 	const shortCredentials: Array<{ name: string; pi: CallKitOptions["pi"]; value: string }> = [

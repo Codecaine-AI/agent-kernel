@@ -11,6 +11,7 @@ import {
 	getPiAgentSession,
 	getTraceBlob,
 	getTraceEventsForRun,
+	upsertContainer,
 	type KernelDatabase,
 } from "@agent-kernel/db";
 import {
@@ -42,6 +43,7 @@ import {
 	wire,
 	wireFetch,
 } from "./__fixtures__/decide-harness";
+import { REQUEST_MISMATCH_MESSAGE } from "../node-run";
 import { createDecide, decideInternal } from "./index";
 import { createPiDecisionEngine } from "./pi-engine";
 
@@ -158,9 +160,11 @@ describe("kernel.decide", () => {
 			parent_run_id: parent.runId,
 		});
 		expect(start.prompt_hash).toMatch(/^dq1-[0-9a-f]{64}$/);
-		expect(await blobJson(db, start.input_blob_hash)).toEqual({
+		// The claim commits a pending placeholder; the scrubbed context lands on call_end.
+		expect(await blobJson(db, start.input_blob_hash)).toEqual({ pending: true });
+		expect(await blobJson(db, (events[5]!.eventData as CallEndData).input_blob_hash)).toEqual({
 			state: { text: "the cast keeps the ABI" },
-			questions: { ...questions, justified: { ...questions.justified } },
+			questions,
 		});
 
 		const snapshot = events[2]!.eventData as PiRequestSnapshotData;
@@ -342,23 +346,165 @@ describe("kernel.decide", () => {
 	test("a requestId reused for a different decision is rejected, not replayed", async () => {
 		const engine = answeringEngine({ justified: { type: "bool", probability: 0.9 }, other: { type: "bool", probability: 0.9 } });
 		const temp = await kernel({ decide: { engine } });
+		const parent = await temp.tempDb.seedParentRun();
 		const base = { containerId: temp.tempDb.containerId, requestId: "req-reused" };
-		await temp.kernel.decide("first", { a: 1 }, { ...base, questions: JUDGE });
+		const first = await temp.kernel.decide("first", { a: 1 }, { ...base, questions: JUDGE });
 		/** The rejection, or undefined when the decision resolved. */
-		const rejected = (promise: Promise<unknown>) => promise.then(
-			() => undefined,
-			(error: unknown) => error,
+		const rejected = (promise: Promise<unknown>) =>
+			promise.then(
+				() => undefined,
+				(error: unknown) => error,
+			);
+		const changes: Array<[string, Promise<unknown>]> = [
+			["questions", temp.kernel.decide("first", { a: 1 }, { ...base, questions: { other: boolQ() } })],
+			// Thresholds decide the verdict: a changed threshold is a different request.
+			["thresholds", temp.kernel.decide("first", { a: 1 }, { ...base, questions: { justified: boolQ({ passAt: 0.95 }) } })],
+			["state", temp.kernel.decide("first", { a: 2 }, { ...base, questions: JUDGE })],
+			["model", temp.kernel.decide("first", { a: 1 }, { ...base, questions: JUDGE, model: "fake-decide/other" })],
+			["scope", temp.kernel.decide("first", { a: 1 }, { ...base, questions: JUDGE, parentRunId: parent.runId })],
+			["name", temp.kernel.decide("second", { a: 1 }, { ...base, questions: JUDGE })],
+		];
+		for (const [label, promise] of changes) {
+			const error = await rejected(promise);
+			expect(error, label).toBeInstanceOf(KernelNodeError);
+			expect((error as KernelNodeError).code, label).toBe("invalid-request");
+			expect((error as KernelNodeError).message, label).toBe(REQUEST_MISMATCH_MESSAGE);
+		}
+		// The identical request still replays; nothing above reached the engine or wrote a run.
+		const again = await temp.kernel.decide("first", { a: 1 }, { ...base, questions: JUDGE });
+		expect(again).toMatchObject({ replayed: true, ids: { runId: first.ids.runId } });
+		// Where it is filed is not part of the request (a harness container can differ per job): it replays too.
+		const elsewhere = await upsertContainer(temp.tempDb.db, {
+			id: "second-container",
+			kernelId: temp.tempDb.kernelId,
+			kind: "test",
+			appKey: ["second-container"],
+			createdAt: new Date().toISOString(),
+		});
+		const filedElsewhere = await temp.kernel.decide("first", { a: 1 }, { ...base, containerId: elsewhere.id, questions: JUDGE });
+		expect(filedElsewhere).toMatchObject({ replayed: true, ids: { runId: first.ids.runId } });
+		expect(engine.requests).toHaveLength(1);
+		expect(countRows(temp.tempDb.db, "agent_runs")).toBe(2); // the decision and the seeded parent
+	});
+
+	test("concurrent same-requestId decisions with different requests: one runs, the other is rejected", async () => {
+		const release = { fn: () => {} };
+		const held = new Promise<void>((resolve) => {
+			release.fn = resolve;
+		});
+		const engine = scriptedEngine(async () => {
+			await held;
+			return { answers: { justified: { type: "bool", probability: 0.9 } } };
+		});
+		const temp = await kernel({ decide: { engine } });
+		const base = { containerId: temp.tempDb.containerId, requestId: "req-concurrent" };
+		const settle = (promise: Promise<unknown>) =>
+			promise.then(
+				(value) => ({ value }),
+				(error: unknown) => ({ error }),
+			);
+		// Same kernel: the second would coalesce onto the first; a different request must not.
+		const a = settle(temp.kernel.decide("concurrent", { a: 1 }, { ...base, questions: JUDGE }));
+		while (engine.requests.length === 0) await Bun.sleep(1);
+		const sameKernel = await settle(temp.kernel.decide("concurrent", { a: 2 }, { ...base, questions: JUDGE }));
+		// Another kernel instance on its own handle: the claim sees the running attempt of a different request.
+		const other = createDecide(
+			createModelNodeContext({
+				kernelId: temp.tempDb.kernelId,
+				db: temp.tempDb.openHandle().db,
+				models: { defaults: { decide: FAKE_REF } },
+				decide: { engine },
+			}),
 		);
-		const otherQuestions = await rejected(temp.kernel.decide("first", { a: 1 }, { ...base, questions: { other: boolQ() } }));
-		expect(otherQuestions).toBeInstanceOf(KernelNodeError);
-		expect((otherQuestions as KernelNodeError).code).toBe("invalid-request");
-		const otherThresholds = await rejected(
-			temp.kernel.decide("first", { a: 1 }, { ...base, questions: { justified: boolQ({ passAt: 0.95 }) } }),
+		const otherKernel = await settle(other("concurrent", { a: 3 }, { ...base, questions: JUDGE }));
+		release.fn();
+		const winner = await a;
+		for (const result of [sameKernel, otherKernel]) {
+			expect("error" in result && (result.error as KernelNodeError).code).toBe("invalid-request");
+		}
+		expect("value" in winner && (winner.value as { answers: { justified: { verdict?: string } } }).answers.justified.verdict).toBe(
+			"pass",
 		);
-		// Thresholds are kernel-side (not in the prompt hash): the stored answer replays.
-		expect(otherThresholds).toBeUndefined();
-		const otherName = await rejected(temp.kernel.decide("second", { a: 1 }, { ...base, questions: JUDGE }));
-		expect((otherName as KernelNodeError).code).toBe("invalid-request");
+		expect(engine.requests).toHaveLength(1);
+		expect(countRows(temp.tempDb.db, "agent_runs")).toBe(1);
+		await expectDoctorOk(temp.tempDb.db);
+	});
+
+	test("a run written before request fingerprints still replays", async () => {
+		const engine = answeringEngine({ justified: { type: "bool", probability: 0.9 } });
+		const temp = await kernel({ decide: { engine } });
+		const opts = { containerId: temp.tempDb.containerId, questions: JUDGE, requestId: "req-legacy" };
+		const first = await temp.kernel.decide("legacy", { a: 1 }, opts);
+		// Strip the fingerprint, as a database written before this change would have it.
+		temp.tempDb.db.run(
+			sql`UPDATE trace_events SET event_data = json_remove(event_data, '$.request_fingerprint') WHERE type = 'call_start'`,
+		);
+		const [start] = await getTraceEventsForRun(temp.tempDb.db, first.ids.runId, ["call_start"]);
+		expect((start!.eventData as { request_fingerprint?: string }).request_fingerprint).toBeUndefined();
+		const again = await temp.kernel.decide("legacy", { a: 1 }, opts);
+		expect(again).toMatchObject({ replayed: true, ids: { runId: first.ids.runId } });
+		expect(engine.requests).toHaveLength(1);
+	});
+
+	test("a late success after the caller aborted ends aborted, every answer abstained", async () => {
+		const ac = new AbortController();
+		// The engine ignores the signal and answers after the caller gave up.
+		const engine = scriptedEngine(() => {
+			ac.abort();
+			return { answers: { justified: { type: "bool", probability: 0.95 } } };
+		});
+		const temp = await kernel({ decide: { engine } });
+		const outcome = await temp.kernel.decide("late", { a: 1 }, {
+			containerId: temp.tempDb.containerId,
+			questions: JUDGE,
+			signal: ac.signal,
+		});
+		expect(outcome).toMatchObject({
+			abstained: true,
+			abstainReason: "engine-error",
+			error: { kind: "aborted", message: "decision request aborted" },
+		});
+		expect(outcome.answers.justified.verdict).toBeUndefined();
+		expect((await getAgentRun(temp.tempDb.db, outcome.ids.runId))?.status).toBe("aborted");
+		const events = await getTraceEventsForRun(temp.tempDb.db, outcome.ids.runId);
+		expect((events.find((e) => e.type === "call_end")!.eventData as CallEndData).status).toBe("aborted");
+		expect((events.find((e) => e.type === "pi_turn_end")!.eventData as PiTurnEndData).stop_reason).toBe("aborted");
+		await expectDoctorOk(temp.tempDb.db);
+	});
+
+	test("a late success after the operation deadline ends aborted with kind timeout", async () => {
+		// Deadline 50 + 50 ms grace; the engine ignores the signal and answers well after it.
+		const engine = scriptedEngine(async () => {
+			await Bun.sleep(250);
+			return { answers: { justified: { type: "bool", probability: 0.95 } } };
+		});
+		const temp = await kernel({ decide: { engine, timeoutMs: 50, maxRetries: 0 } });
+		const outcome = await temp.kernel.decide("late-deadline", { a: 1 }, {
+			containerId: temp.tempDb.containerId,
+			questions: JUDGE,
+		});
+		expect(outcome).toMatchObject({
+			abstained: true,
+			error: { kind: "timeout", message: "decision operation deadline exceeded" },
+		});
+		expect(outcome.answers.justified.verdict).toBeUndefined();
+		expect((await getAgentRun(temp.tempDb.db, outcome.ids.runId))?.status).toBe("aborted");
+		await expectDoctorOk(temp.tempDb.db);
+	});
+
+	test("a completed decision replays by requestId even when the signal is already aborted", async () => {
+		const engine = answeringEngine({ justified: { type: "bool", probability: 0.9 } });
+		const temp = await kernel({ decide: { engine } });
+		const opts = { containerId: temp.tempDb.containerId, questions: JUDGE, requestId: "req-replay-aborted" };
+		const first = await temp.kernel.decide("served", { a: 1 }, opts);
+		const replay = await temp.kernel.decide("served", { a: 1 }, { ...opts, signal: AbortSignal.abort() });
+		expect(replay).toMatchObject({
+			replayed: true,
+			model: first.model,
+			answers: { justified: { verdict: "pass" } },
+			ids: { runId: first.ids.runId },
+		});
+		expect(replay.error).toBeUndefined();
 		expect(engine.requests).toHaveLength(1);
 	});
 

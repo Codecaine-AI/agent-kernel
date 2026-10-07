@@ -447,15 +447,22 @@ export interface CallStartData {
   /** "baml1-…" | "dq1-…" */
   prompt_hash: string;
   /**
-   * call: a pending placeholder committed with the claim (preflight-redacted
-   * args, or a pending/omitted marker); the final scrubbed args are on
-   * `call_end.input_blob_hash` when present. decision: classifier context.
+   * A pending placeholder committed with the claim (calls: preflight-redacted
+   * args, or a pending/omitted marker; decisions: a pending marker); the final
+   * scrubbed input is on `call_end.input_blob_hash` when present.
    */
   input_blob_hash: string;
   trigger: string;
   parent_run_id?: string;
   parent_tool_use_id?: string;
   request_id?: string;
+  /**
+   * Canonical hash of the request (name, input, model, prompt or questions
+   * with effective thresholds, parent scope). A later request with the same
+   * requestId and a different fingerprint is rejected, never replayed.
+   * Absent on runs written before fingerprints, which still replay.
+   */
+  request_fingerprint?: string;
   /** 1-based attempt within a requestId session. */
   attempt?: number;
   /** ISO operation deadline; the claim's stale rule reads it. */
@@ -470,11 +477,11 @@ export interface CallEndData {
   function_name: string;
   status: "ok" | "error" | "aborted";
   /**
-   * Calls: the final call-input blob, the arguments redacted with the
-   * complete credential set (known only after the engine ran). Supersedes
-   * call_start.input_blob_hash, which names the claim's pending placeholder.
-   * Absent when the arguments were not recorded (route failure) and on
-   * decisions.
+   * The final input blob, redacted with the complete credential set (known
+   * only after the engine ran): call arguments, or a decision's classifier
+   * context. Supersedes call_start.input_blob_hash, which names the claim's
+   * pending placeholder. Absent when the input was not recorded (a route
+   * failure, or a run written before this field).
    */
   input_blob_hash?: string;
   /** ok: JSON(value) or decision answers; error: raw model text when present. */

@@ -25,6 +25,7 @@ import {
 import { runTraceDoctor } from "../../doctor";
 import { createTempKernel, disableNetwork } from "../__fixtures__/temp-kernel";
 import { canonicalJson } from "../blobs";
+import { ROUTE_FAILURE_MESSAGES } from "../pi-models";
 import type { ModelNodeLogger } from "../context";
 import { KernelCallError, KernelNodeError, type CallFailure, type NodeIds } from "../types";
 import { createCallKit, readBlob, type CallKit, type CallKitOptions, type TestClient } from "./__fixtures__/call-kit";
@@ -444,7 +445,7 @@ describe("kernel.call", () => {
 	test("a route failure is recorded and thrown as KernelCallError(route) without invoking the engine", async () => {
 		const k = await kit();
 		const error = await rejection(k.call("Extract", ["note"], { model: "fake/missing-model" }), KernelCallError);
-		expect(error.failure).toEqual({ kind: "route", message: 'unknown model "fake/missing-model"' });
+		expect(error.failure).toEqual({ kind: "route", message: ROUTE_FAILURE_MESSAGES["unknown-model"] });
 		expect(k.engine.invocations).toHaveLength(0);
 		const run = await getAgentRun(k.temp.db, error.runId);
 		expect(run?.status).toBe("error");
@@ -452,7 +453,7 @@ describe("kernel.call", () => {
 		expect(await callEnd(k.temp.db, error.runId)).toMatchObject({
 			status: "error",
 			attempts: 0,
-			error: { kind: "route", message: 'unknown model "fake/missing-model"' },
+			error: { kind: "route", message: ROUTE_FAILURE_MESSAGES["unknown-model"] },
 		});
 		await expectDoctorOk(k.temp.db);
 	});

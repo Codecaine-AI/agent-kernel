@@ -4,9 +4,22 @@
  * intent-first through the shared node lifecycle (`runModelNode`).
  *
  * decide rejects only with KernelDecideValidationError (before any row) or
- * KernelNodeError (scope, `in-flight-elsewhere`, `row-write-failed`). Every
+ * KernelNodeError (scope, `in-flight-elsewhere`, `row-write-failed`, and
+ * `invalid-request` for a requestId reused for a different request). Every
  * engine failure resolves: all answers abstain and the outcome carries the
  * error. Logs carry ids, names, model refs and error kinds only (§4.7).
+ *
+ * Secrets (§4.7): decision credentials are known only from the outbound
+ * request headers, so the claim commits a pending classifier-context
+ * placeholder and the completion stores the context scrubbed with the
+ * complete set under call_end.input_blob_hash; the snapshot, wire request and
+ * response, answers, model ids and error summaries are scrubbed the same way.
+ *
+ * Cancellation wins over a late result (§4.6): once the caller's signal or
+ * the operation deadline fired, the decision ends aborted (error kind
+ * "aborted" or "timeout") with every answer abstained. A requestId whose
+ * decision already completed replays its stored outcome even with an
+ * aborted signal: replay happens at the claim, before any engine work.
  */
 import { createHash } from "node:crypto";
 
@@ -26,7 +39,13 @@ import type { ClassifierQuestion, JsonObject as PiJsonObject } from "@earendil-w
 
 import { canonicalJson, jsonBlob } from "../blobs";
 import { resolveModelAlias, type ModelNodeContext } from "../context";
-import { runModelNode, type NodeExecution, type NodeReplayInput, type NodeRunHandle } from "../node-run";
+import {
+	requestFingerprint,
+	runModelNode,
+	type NodeExecution,
+	type NodeReplayInput,
+	type NodeRunHandle,
+} from "../node-run";
 import { splitModelRef } from "../pi-models";
 import { priceNodeUsage } from "../pricing";
 import { mergeSecrets, redactDeep, redactText } from "../redact";
@@ -59,7 +78,7 @@ import {
 	mostSevereReason,
 	outcomeConfidenceSource,
 } from "./thresholds";
-import { callOptionIssues, checkState, decideConfigIssues, questionIssues } from "./validate";
+import { callOptionIssues, checkState, decideConfigIssues, effectiveThresholds, questionIssues } from "./validate";
 import { DEFAULT_WIRE_PRECISION, malformedAnswers, precisionFor } from "./validate-answers";
 
 export {
@@ -227,7 +246,24 @@ function buildDecider(ctx: ModelNodeContext): Decider {
 
 			const contextValue = { state, questions: piQuestions };
 			const promptHash = `dq1-${createHash("sha256").update(canonicalJson({ questions: piQuestions })).digest("hex")}`;
-			const input = jsonBlob("classifier-context", contextValue, new Date(ctx.clock.now()).toISOString());
+			// The credential set is complete only after the engine sent (§4.7): the claim commits a pending
+			// placeholder, and the completion stores the scrubbed context under call_end.input_blob_hash.
+			const input = jsonBlob("classifier-context", PENDING_CONTEXT, new Date(ctx.clock.now()).toISOString());
+			// One requestId names one request: everything that decides the outcome, thresholds included.
+			const fingerprint = requestFingerprint({
+				kind: "decision",
+				name,
+				state,
+				questions: Object.fromEntries(
+					Object.entries(questions).map(([id, q]) => [
+						id,
+						{ question: piQuestions[id], thresholds: effectiveThresholds(q, config.defaults) },
+					]),
+				),
+				model: modelRef ?? null,
+				// The run it describes, not where it is filed: a container can legitimately differ per job.
+				scope: { parentRunId: scope.parentRunId ?? null, parentToolUseId: scope.parentToolUseId ?? null },
+			});
 			const logIds = { name, model: modelRef ?? null };
 
 			const result = await runModelNode<DecisionOutcome<Q>>(ctx, {
@@ -238,6 +274,7 @@ function buildDecider(ctx: ModelNodeContext): Decider {
 				...(opts.signal !== undefined && { signal: opts.signal }),
 				...(opts.onNodeStarted !== undefined && { onNodeStarted: opts.onNodeStarted }),
 				deadlineMs,
+				fingerprint,
 				start: {
 					engine: label.engine,
 					model: modelRef ?? "",
@@ -318,6 +355,9 @@ function preflight(
 	if (estimate <= budget) return undefined;
 	return { kind: "too-large", message: `estimated ${estimate} tokens exceeds the ${budget}-token budget of ${modelRef}` };
 }
+
+/** The claim-time classifier-context: the scrubbed context is written with the completion. */
+const PENDING_CONTEXT = { pending: true } as const;
 
 /** Results the kernel built itself (preflight, a rejecting engine): their messages carry no provider text. */
 const kernelAuthored = new WeakSet<EngineResult>();
@@ -403,16 +443,26 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 	const wireRequest = r.wireRequest !== undefined ? redactDeep(r.wireRequest, secrets) : undefined;
 	const wireResponse = r.wireResponse !== undefined ? redactDeep(r.wireResponse, secrets) : undefined;
 
-	const aborted = !r.ok && r.error?.kind === "aborted";
+	// Cancellation wins over a late result (§4.6): once the caller's signal or the operation deadline
+	// fired, the decision ends aborted with every answer abstained, even if the engine still answered.
+	const aborted = handle.signal.aborted || (!r.ok && r.error?.kind === "aborted");
 	const deadline = aborted && handle.deadlineExceeded() && !input.callerAborted;
-	const malformed = r.ok ? malformedAnswers(r.answers, questions, precisionFor(r.api, config.wirePrecision)) : [];
-	const answers = applyThresholds(r, questions, config.defaults, new Set(malformed));
+	const accepted = !aborted && r.ok;
+	const malformed = accepted ? malformedAnswers(r.answers, questions, precisionFor(r.api, config.wirePrecision)) : [];
+	const answers = applyThresholds(
+		aborted ? { ok: false, answers: {}, error: { kind: "aborted", message: "aborted" } } : r,
+		questions,
+		config.defaults,
+		new Set(malformed),
+	);
 	const abstainReason = mostSevereReason(Object.values(answers));
 	const abstained = Object.values(answers).some((d) => d.abstained);
 
 	let error: DecisionOutcome<Q>["error"];
 	if (deadline) {
 		error = { kind: "timeout", message: "decision operation deadline exceeded" };
+	} else if (aborted) {
+		error = { kind: "aborted", message: "decision request aborted" };
 	} else if (r.error && !r.ok) {
 		error = {
 			kind: r.error.kind,
@@ -459,13 +509,15 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 		blobs.push(blob.blob);
 		return blob.hash;
 	};
+	// Every persisted copy of the request goes through the complete credential set (§4.7).
+	const context = redactDeep(input.contextValue, secrets);
 
 	if (attempts > 0) {
 		// pi_turn_start < pi_request_snapshot < pi_turn_end, as a chat turn orders them (the snapshot is
 		// recorded at its turn_start); the window spans at least 2 ms so no two share a timestamp.
 		const window = handle.turnWindow(timing.attemptStartMs, Math.max(timing.latencyMs, 2));
 		const snapshotAt = new Date(Date.parse(window.start) + 1).toISOString();
-		const text = JSON.stringify(input.contextValue, null, 2);
+		const text = JSON.stringify(context, null, 2);
 		const messageHash = addBlob(
 			"message",
 			{ role: "classifier_context", content: [{ type: "text", text }] },
@@ -506,7 +558,7 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 			),
 			createPiTurnEndEvent(handle.traceIds, {
 				turnNumber: 0,
-				stopReason: r.ok ? "stop" : aborted ? "aborted" : "error",
+				stopReason: aborted ? "aborted" : r.ok ? "stop" : "error",
 				...(usage && { usage }),
 				...(responseHash !== undefined && { responseBlobHash: responseHash }),
 				...(r.error?.httpStatus !== undefined && { httpStatus: r.error.httpStatus }),
@@ -523,11 +575,13 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 	const chosen = chosenLabel(answers);
 	const confidenceSource = outcomeConfidenceSource(Object.values(answers));
 	const madeAt = handle.timestamp();
+	// Labels are caller-declared; the persisted copies are scrubbed all the same.
+	const persistedAnswers = redactDeep(answers, secrets);
 	const made: DecisionMadeData = {
 		run_id: handle.ids.runId,
 		decision_name: name,
-		answers,
-		chosen,
+		answers: persistedAnswers,
+		chosen: redactText(chosen, secrets),
 		confidence_source: confidenceSource,
 		abstained,
 		...(abstainReason && { abstain_reason: abstainReason }),
@@ -547,7 +601,8 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 			timestamp: madeAt,
 		}),
 	);
-	const outputHash = addBlob("call-output", answers, madeAt);
+	const outputHash = addBlob("call-output", persistedAnswers, madeAt);
+	const inputHash = addBlob("classifier-context", context, madeAt);
 
 	return {
 		outcome: {
@@ -572,6 +627,7 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 		runStatus,
 		end: {
 			status: runStatus === "done" ? "ok" : runStatus,
+			input_blob_hash: inputHash,
 			output_blob_hash: outputHash,
 			...(error && {
 				error: {

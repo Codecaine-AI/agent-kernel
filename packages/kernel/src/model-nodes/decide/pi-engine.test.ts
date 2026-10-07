@@ -6,9 +6,10 @@
  */
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { getAgentRun, getTraceEventsForRun, type KernelDatabase } from "@agent-kernel/db";
+import { getAgentRun, getTraceBlob, getTraceEventsForRun, type KernelDatabase } from "@agent-kernel/db";
 import type { CallEndData, CallStartData } from "@agent-kernel/protocol";
 import { createModels } from "@earendil-works/pi-ai";
+import { ModelRegistry } from "@earendil-works/pi-coding-agent";
 
 import { createModelNodeContext } from "../context";
 import { createFakeClassifier, createFakeClassifierRegistry } from "../__fixtures__/fake-classifier";
@@ -22,12 +23,13 @@ import {
 	rowsContaining,
 	scoreQ,
 	SYSTEM_ONE_REPLY,
+	testRuntime,
 	TS_KEY,
 	typesafeRegistry,
 	wire,
 	wireFetch,
 } from "./__fixtures__/decide-harness";
-import { createDecide } from "./index";
+import { createDecide, operationDeadlineMs } from "./index";
 import { classifyError, createPiDecisionEngine } from "./pi-engine";
 
 let restoreFetch: () => void;
@@ -70,6 +72,12 @@ function request(model: string, extra: { maxRetries?: number; signal?: AbortSign
 		maxRetries: extra.maxRetries ?? 1,
 		...(extra.signal !== undefined && { signal: extra.signal }),
 	};
+}
+
+async function blobText(db: KernelDatabase, hash: string | undefined): Promise<string> {
+	const blob = hash ? await getTraceBlob(db, hash) : undefined;
+	if (!blob) throw new Error(`blob ${hash} missing`);
+	return Buffer.from(blob.data).toString("utf8");
 }
 
 async function eventsOf(db: KernelDatabase, runId: string) {
@@ -307,6 +315,42 @@ describe("answers and secrets through kernel.decide", () => {
 		expect(customOutcome.error).toEqual({ kind: "provider", message: "provider error" });
 	});
 
+	test("decision inputs never persist the credential sent: in state, in instructions, and after rotation", async () => {
+		const ROTATED = "ts-rotated-key-9876543210";
+		const runtime = await testRuntime();
+		await runtime.setRuntimeApiKey("typesafe", TS_KEY);
+		const { fetch, sent } = wireFetch(() => wire(SYSTEM_ONE_REPLY));
+		const temp = await createTempKernel({
+			decide: { engine: createPiDecisionEngine({ models: new ModelRegistry(runtime), fetch }), maxRetries: 0 },
+			models: { defaults: { decide: "typesafe/jev-1.13.0" } },
+		});
+		temps.push(temp);
+		const containerId = temp.tempDb.containerId;
+		const withKey = (key: string) => ({
+			containerId,
+			questions: { justified: boolQ({ instructions: `Is the cast justified? (ignore ${key})` }) },
+		});
+		const first = await temp.kernel.decide("in-state", { note: `token=${TS_KEY}` }, withKey(TS_KEY));
+		// Rotated after the kernel and engine were built: the outbound header carries the new value.
+		await runtime.setRuntimeApiKey("typesafe", ROTATED);
+		const second = await temp.kernel.decide("rotated", `the key is ${ROTATED}`, withKey(ROTATED));
+		expect(sent.map((s) => s.auth)).toEqual([`Bearer ${TS_KEY}`, `Bearer ${ROTATED}`]);
+		expect(first.answers.justified.verdict).toBe("pass");
+		expect(second.answers.justified.verdict).toBe("pass");
+
+		const db = temp.tempDb.db;
+		expect(rowsContaining(db, TS_KEY)).toEqual([]);
+		expect(rowsContaining(db, ROTATED)).toEqual([]);
+		// The claim committed a placeholder; the scrubbed context is referenced from call_end.
+		for (const outcome of [first, second]) {
+			const events = await eventsOf(db, outcome.ids.runId);
+			const start = events.find((e) => e.type === "call_start")!.eventData as CallStartData;
+			const end = events.find((e) => e.type === "call_end")!.eventData as CallEndData;
+			expect(await blobText(db, start.input_blob_hash)).toBe(JSON.stringify({ pending: true }));
+			expect(await blobText(db, end.input_blob_hash)).toContain("<redacted>");
+		}
+	});
+
 	test("decision fetch secrets are scrubbed", async () => {
 		// The service echoes the credential in a 200 JSON body, then in a 400 error text.
 		const { fetch, sent } = wireFetch((n, request) =>
@@ -425,7 +469,7 @@ describe("error classification", () => {
 });
 
 describe("retries and the operation deadline", () => {
-	const backoffConfig = { timeoutMs: 100, maxRetries: 1, maxRetryDelayMs: 50 };
+	const backoffConfig = { timeoutMs: 50, maxRetries: 1, maxRetryDelayMs: 1 };
 
 	test("an oversized server Retry-After is an immediate engine error", async () => {
 		const { fetch, sent } = wireFetch(() => wire({ detail: "slow down" }, 429, { "retry-after": "60" }));
@@ -462,25 +506,26 @@ describe("retries and the operation deadline", () => {
 	});
 
 	test("the operation deadline cancels a request during backoff", async () => {
-		// 429 without retry headers: Pi backs off 375–500 ms, uncapped by maxRetryDelayMs.
+		// 429 without retry headers: Pi backs off 375–500 ms, uncapped by maxRetryDelayMs. The deadline
+		// (50 × 2 + 1, plus its grace) ends well inside that sleep.
 		const { fetch, sent } = wireFetch(() => wire({ detail: "busy" }, 429));
 		const temp = await typesafeKernel(fetch, { decide: backoffConfig });
 		const outcome = await temp.kernel.decide("deadline", { a: 1 }, {
 			containerId: temp.tempDb.containerId,
 			questions: { justified: boolQ() },
 		});
-		expect(sent).toHaveLength(1);
 		const events = await eventsOf(temp.tempDb.db, outcome.ids.runId);
 		const start = events.find((e) => e.type === "call_start")!;
 		const end = events.find((e) => e.type === "call_end")!;
 		const deadlineAt = Date.parse((start.eventData as CallStartData).deadline_at);
-		// deadline = 100 × 2 + 50, plus the 50 ms minimum grace; still well inside the 375–500 ms backoff
-		expect(deadlineAt - Date.parse(start.timestamp)).toBe(300);
-		expect(Date.parse(end.timestamp) - Date.parse(start.timestamp)).toBeLessThan(375);
+		expect(deadlineAt - Date.parse(start.timestamp)).toBe(operationDeadlineMs(50, 1, 1));
 		expect(Date.parse(end.timestamp)).toBeGreaterThanOrEqual(deadlineAt);
 		expect((end.eventData as CallEndData).status).toBe("aborted");
 		expect(outcome.error?.kind).toBe("timeout");
 		expect((await getAgentRun(temp.tempDb.db, outcome.ids.runId))?.status).toBe("aborted");
+		// The sleep was interrupted, not waited out: no retry is ever sent, even after the backoff would have ended.
+		await Bun.sleep(600);
+		expect(sent).toHaveLength(1);
 		await expectDoctorOk(temp.tempDb.db);
 	});
 
@@ -505,20 +550,24 @@ describe("retries and the operation deadline", () => {
 		expect((events.find((e) => e.type === "call_end")!.eventData as CallEndData).status).toBe("error");
 	});
 
-	test("recovery waits for deadline + grace while the original is in backoff", async () => {
+	test("recovery waits for deadline + grace while the original attempt is held", async () => {
 		const requestId = "req-backoff-recovery";
-		// The original is held in Pi's backoff for 1 s by an allowed server delay (deadline 100 × 2 + 2,000 ms),
-		// so the second kernel's attempts land inside the backoff however slow the machine is.
-		const heldConfig = { timeoutMs: 100, maxRetries: 1, maxRetryDelayMs: 2_000 };
-		const original = wireFetch(() => wire({ detail: "busy" }, 429, { "retry-after": "1" }));
+		// The original retries once (an allowed zero server delay), then its second request is held by a
+		// barrier the test controls; the deadline is far away, so only the injected clock ends ownership.
+		const heldConfig = { timeoutMs: 30_000, maxRetries: 1, maxRetryDelayMs: 2_000 };
+		let releaseHeld!: (response: Response) => void;
+		const heldResponse = new Promise<Response>((resolve) => {
+			releaseHeld = resolve;
+		});
+		const original = wireFetch((n) => (n === 0 ? wire({ detail: "busy" }, 429, { "retry-after-ms": "0" }) : heldResponse));
 		const temp = await typesafeKernel(original.fetch, { decide: heldConfig });
 		const opts = { containerId: temp.tempDb.containerId, questions: { justified: boolQ() }, requestId };
 		const first = temp.kernel.decide("recovery", { a: 1 }, opts).then(
 			(value) => ({ value }),
 			(error: unknown) => ({ error }),
 		);
-		while (original.sent.length === 0) await Bun.sleep(1);
-		// The original attempt is now sleeping in Pi's backoff.
+		while (original.sent.length < 2) await Bun.sleep(1);
+		// The original attempt has retried and is now held in its second request.
 
 		const [running] = temp.tempDb.db.all<{ id: string; status: string }>(sql`SELECT id, status FROM agent_runs`);
 		expect(running?.status).toBe("running");
@@ -555,10 +604,11 @@ describe("retries and the operation deadline", () => {
 		expect(recovered.answers.justified.verdict).toBe("pass");
 		expect(second.sent).toHaveLength(1);
 		expect((await getAgentRun(temp.tempDb.db, running!.id))?.status).toBe("aborted");
-		// The takeover happened while the original was still waiting out its backoff.
-		expect(original.sent).toHaveLength(1);
+		// The takeover happened while the original was still held.
+		expect(original.sent).toHaveLength(2);
 
-		// The original's own completion lands after the takeover and rolls back.
+		// The original's own (successful) completion lands after the takeover and rolls back.
+		releaseHeld(wire(SYSTEM_ONE_REPLY));
 		const late = await first;
 		expect("error" in late && (late.error as KernelNodeError).code).toBe("row-write-failed");
 		const abandoned = await getTraceEventsForRun(temp.tempDb.db, running!.id);

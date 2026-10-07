@@ -26,6 +26,28 @@ export const PI_TRANSPORT_UNSUPPORTED_MESSAGE = "provider does not support the k
 export const PI_TRANSPORT_NOT_ROUTED_MESSAGE = "provider did not send through the kernel's Pi transport";
 
 /**
+ * Route failure summaries, one constant per reason (§4.7). Pi's lookup and
+ * auth diagnostics can quote credential sources, stores and values, so they
+ * never leave `resolveCallRoute`: a route failure carries only one of these.
+ */
+export const ROUTE_FAILURE_MESSAGES = {
+	"invalid-model-ref": 'invalid model ref: expected "provider/id"',
+	"unknown-model": "unknown model",
+	"missing-credential": "no credential configured for the model's provider",
+	"auth-failed": "credential resolution failed",
+	"short-credential": SHORT_CREDENTIAL_MESSAGE,
+	"models-unavailable": "Pi models unavailable",
+} as const;
+export type RouteFailureReason = keyof typeof ROUTE_FAILURE_MESSAGES;
+
+/** Every kernel-written route refusal: the only route messages persisted verbatim. */
+export const ROUTE_REFUSAL_MESSAGES: ReadonlySet<string> = new Set<string>([
+	...Object.values(ROUTE_FAILURE_MESSAGES),
+	PI_TRANSPORT_UNSUPPORTED_MESSAGE,
+	PI_TRANSPORT_NOT_ROUTED_MESSAGE,
+]);
+
+/**
  * Pi apis whose adapters send every HTTP request through the injected
  * `fetch` option (pi-ai 1.0.4): openai-responses and openai-completions hand it
  * to the OpenAI SDK client (`api/openai-responses.js:122,190-221`,
@@ -101,7 +123,8 @@ export type CallRouteResult =
 /**
  * Resolves "provider/id" through Pi (`find` + `getApiKeyAndHeaders`) and
  * builds the preflight secret set (§4.7). A 1–7 character credential is a
- * route failure. Messages never carry credential values.
+ * route failure. Failure messages are `ROUTE_FAILURE_MESSAGES` constants;
+ * Pi's own error text is dropped (the call already records the model ref).
  */
 export async function resolveCallRoute(
 	registry: ModelRegistry,
@@ -109,16 +132,16 @@ export async function resolveCallRoute(
 	reasoning: PiReasoning,
 ): Promise<CallRouteResult> {
 	const split = splitModelRef(ref);
-	if (!split) return routeFailure(`invalid model ref "${ref}": expected "provider/id"`);
+	if (!split) return routeFailure("invalid-model-ref");
 	const model = registry.find(split.provider, split.modelId);
-	if (!model) return routeFailure(`unknown model "${ref}"`);
+	if (!model) return routeFailure("unknown-model");
 	const auth = await registry.getApiKeyAndHeaders(model);
-	if (!auth.ok) return routeFailure(auth.error);
+	if (!auth.ok) return routeFailure(/^No API key found\b/.test(auth.error) ? "missing-credential" : "auth-failed");
 	const headers: Record<string, string> = {};
 	for (const [name, value] of Object.entries(auth.headers ?? {})) {
 		if (typeof value === "string") headers[name] = value;
 	}
-	if (findShortCredential(headers, [auth.apiKey]) !== undefined) return routeFailure(SHORT_CREDENTIAL_MESSAGE);
+	if (findShortCredential(headers, [auth.apiKey]) !== undefined) return routeFailure("short-credential");
 	return {
 		ok: true,
 		model,
@@ -136,8 +159,8 @@ export async function resolveCallRoute(
 	};
 }
 
-function routeFailure(message: string): { ok: false; failure: { kind: "route"; message: string } } {
-	return { ok: false, failure: { kind: "route", message } };
+function routeFailure(reason: RouteFailureReason): { ok: false; failure: { kind: "route"; message: string } } {
+	return { ok: false, failure: { kind: "route", message: ROUTE_FAILURE_MESSAGES[reason] } };
 }
 
 // ── Pi transport ──────────────────────────────────────────────────────────────

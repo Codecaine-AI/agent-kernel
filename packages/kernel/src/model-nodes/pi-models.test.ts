@@ -8,6 +8,7 @@ import {
 	PI_TRANSPORT_APIS,
 	PI_TRANSPORT_UNSUPPORTED_MESSAGE,
 	resolveCallRoute,
+	ROUTE_FAILURE_MESSAGES,
 	SHORT_CREDENTIAL_MESSAGE,
 	splitModelRef,
 } from "./pi-models";
@@ -197,7 +198,7 @@ describe("resolveCallRoute", () => {
 	test("an unknown model is a route failure", async () => {
 		const { registry } = await fakeRegistry();
 		const result = await resolveCallRoute(registry, "fake/missing-model", "low");
-		expect(result).toEqual({ ok: false, failure: { kind: "route", message: 'unknown model "fake/missing-model"' } });
+		expect(result).toEqual({ ok: false, failure: { kind: "route", message: ROUTE_FAILURE_MESSAGES["unknown-model"] } });
 	});
 
 	test("a 5-character api key is refused as too short to redact", async () => {

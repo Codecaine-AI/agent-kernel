@@ -7,13 +7,22 @@
  *
  * Kind-specific work (engine invocation, snapshot/turn/decision events,
  * replay) lives in the `execute` and `replay` callbacks of the spec.
+ *
+ * A requestId names ONE request: the kind's canonical request fingerprint is
+ * stored on call_start (`request_fingerprint`) and compared wherever a
+ * requestId could hand back another request's work: in-process coalescing,
+ * before the claim, and on every claim outcome (replay, in-flight, and a
+ * claimed retry). A mismatch rejects KernelNodeError("invalid-request") and
+ * never invokes the engine. Runs written without a fingerprint still replay.
  */
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import {
+	abandonNodeRun,
 	claimAndStartNode,
 	getAgentRun,
 	getTraceEventsForRun,
+	listAgentRunsForPiSession,
 	persistNodeCompletion,
 	type KernelDatabase,
 	type NodeClaim,
@@ -30,6 +39,7 @@ import {
 	type TraceEvent,
 } from "@agent-kernel/protocol";
 
+import { canonicalJson } from "./blobs";
 import type { ModelNodeContext } from "./context";
 import { toUsageDelta } from "./pricing";
 import type { ResolvedNodeScope } from "./scope";
@@ -114,6 +124,11 @@ export interface NodeRunSpec<TOutcome> {
 	start: NodeStartFields;
 	/** The call-input / classifier-context blob(s) referenced by `start`. */
 	startBlobs: TraceBlobInput[];
+	/**
+	 * The canonical request fingerprint (`requestFingerprint`), compared under a
+	 * requestId: a different request with the same requestId is rejected.
+	 */
+	fingerprint?: string;
 	/** Runs the engine; must resolve for engine failures (status error/aborted). */
 	execute(run: NodeRunHandle): Promise<NodeExecution<TOutcome>>;
 	/** Rebuilds the outcome of a prior done run of the same requestId; writes nothing. */
@@ -130,6 +145,21 @@ export interface NodeRunResult<TOutcome> {
 	/** 1-based attempt that produced the outcome; undefined for replays. */
 	attempt?: number;
 }
+
+/** The constant message of a requestId reused for a different request. */
+export const REQUEST_MISMATCH_MESSAGE = "requestId was already used for a different request";
+
+/** "rf1-" + sha256 over the canonical JSON of the request's identifying parts. */
+export function requestFingerprint(parts: unknown): string {
+	return `rf1-${createHash("sha256").update(canonicalJson(parts)).digest("hex")}`;
+}
+
+function requestMismatch(): KernelNodeError {
+	return new KernelNodeError("invalid-request", REQUEST_MISMATCH_MESSAGE);
+}
+
+/** Fingerprints of this kernel's in-flight requestId promises (coalescing compares them). */
+const inFlightFingerprints = new WeakMap<Promise<unknown>, string | undefined>();
 
 /** Session id for a node: deterministic from requestId, else random. */
 export function nodeSessionId(kernelId: string, requestId: string | undefined): string {
@@ -160,11 +190,16 @@ export async function runModelNode<TOutcome>(
 				`requestId is already in flight as a ${existing.kind} node in this kernel`,
 			);
 		}
+		const existingFingerprint = inFlightFingerprints.get(existing.promise);
+		if (existingFingerprint !== undefined && spec.fingerprint !== undefined && existingFingerprint !== spec.fingerprint) {
+			throw requestMismatch();
+		}
 		const result = (await existing.promise) as NodeRunResult<TOutcome>;
 		return { ...result, coalesced: true };
 	}
 
 	const promise = runClaimed(ctx, db, spec, sessionId, runId);
+	inFlightFingerprints.set(promise, spec.fingerprint);
 	const entry = { kind: spec.kind, promise };
 	ctx.inFlight.set(sessionId, entry);
 	try {
@@ -198,6 +233,11 @@ async function runClaimed<TOutcome>(
 	const deadlineAtMs = startedAtMs + Math.max(0, spec.deadlineMs);
 	const deadlineAt = new Date(deadlineAtMs).toISOString();
 	const startEventId = kernelNodeEventId(runId, 0, "call_start");
+	const fingerprint = spec.requestId !== undefined ? spec.fingerprint : undefined;
+	// Before any write: a requestId whose earlier attempts were a different request is rejected outright.
+	if (fingerprint !== undefined && (await sessionHasOtherRequest(db, sessionId, fingerprint))) {
+		throw requestMismatch();
+	}
 	const startData: CallStartData = {
 		run_id: runId,
 		node_kind: spec.kind,
@@ -209,6 +249,7 @@ async function runClaimed<TOutcome>(
 		...(spec.requestId !== undefined && { request_id: spec.requestId }),
 		deadline_at: deadlineAt,
 		...(scope.displayLabel !== undefined && { display_label: scope.displayLabel }),
+		...(fingerprint !== undefined && { request_fingerprint: fingerprint }),
 	};
 	const startEvent = createCallStartEvent(traceIds, startData, { eventId: startEventId, timestamp: startedAt });
 
@@ -241,6 +282,7 @@ async function runClaimed<TOutcome>(
 
 	if (claim.kind === "replay") return replayRun(ctx, db, spec, sessionId, claim.runId);
 	if (claim.kind === "in-flight") {
+		if (fingerprint !== undefined && (await runFingerprintDiffers(db, claim.runId, fingerprint))) throw requestMismatch();
 		ctx.logger?.info("model node request in flight elsewhere", { ...logIds, inFlightRunId: claim.runId });
 		throw new KernelNodeError(
 			"in-flight-elsewhere",
@@ -249,6 +291,16 @@ async function runClaimed<TOutcome>(
 	}
 	if (claim.abandonedRunIds.length > 0) {
 		ctx.logger?.warn("model node recovered stale attempts", { ...logIds, abandonedRunIds: claim.abandonedRunIds });
+	}
+	// Claims are serialized (BEGIN IMMEDIATE), so a different request that committed an attempt between the
+	// pre-claim check and this claim is visible now: close this attempt unrun and reject.
+	if (fingerprint !== undefined && (await sessionHasOtherRequest(db, sessionId, fingerprint, runId))) {
+		try {
+			await abandonNodeRun(db, { runId, sessionId, containerId: scope.containerId, at: ctx.clock.nextIso() });
+		} catch (error) {
+			ctx.logger?.error("model node mismatch close failed", { ...logIds, error: errorName(error) });
+		}
+		throw requestMismatch();
 	}
 
 	// Operation deadline: one abort that ends in-flight requests and pending backoff.
@@ -313,9 +365,38 @@ async function replayRun<TOutcome>(
 		...(run?.parentRunId ? { parentRunId: run.parentRunId } : {}),
 	};
 	const events = await getTraceEventsForRun(db, priorRunId);
+	const fingerprint = spec.requestId !== undefined ? spec.fingerprint : undefined;
+	const stored = startFingerprint(events.find((event) => event.type === "call_start"));
+	if (fingerprint !== undefined && stored !== undefined && stored !== fingerprint) throw requestMismatch();
 	ctx.logger?.debug("model node replayed", { kind: spec.kind, name: spec.name, runId: priorRunId, sessionId });
 	const outcome = await spec.replay({ db, ids, events });
 	return { outcome, ids, replayed: true, coalesced: false };
+}
+
+/** The request fingerprint a call_start recorded; undefined for runs written before fingerprints. */
+function startFingerprint(start: TraceEvent | undefined): string | undefined {
+	const value = (start?.eventData as { request_fingerprint?: unknown } | undefined)?.request_fingerprint;
+	return typeof value === "string" ? value : undefined;
+}
+
+async function runFingerprintDiffers(db: KernelDatabase, runId: string, fingerprint: string): Promise<boolean> {
+	const [start] = await getTraceEventsForRun(db, runId, ["call_start"]);
+	const stored = startFingerprint(start);
+	return stored !== undefined && stored !== fingerprint;
+}
+
+/** True when any run of the session (other than `exceptRunId`) recorded a different fingerprint. */
+async function sessionHasOtherRequest(
+	db: KernelDatabase,
+	sessionId: string,
+	fingerprint: string,
+	exceptRunId?: string,
+): Promise<boolean> {
+	for (const run of await listAgentRunsForPiSession(db, sessionId)) {
+		if (run.id === exceptRunId) continue;
+		if (await runFingerprintDiffers(db, run.id, fingerprint)) return true;
+	}
+	return false;
 }
 
 /** One transaction: outcome events and blobs, usage, then run and session status (call_end last). */

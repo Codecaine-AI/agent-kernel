@@ -23,7 +23,9 @@ import { runTraceDoctor } from "../doctor";
 import { fakeNodeSpec, type FakeNodeOutcome } from "./__fixtures__/fake-node";
 import { createTempKernelDb, disableNetwork, type TempKernelDb } from "./__fixtures__/temp-kernel";
 import { createModelNodeContext, type ModelNodeLogger } from "./context";
-import { runModelNode, type NodeRunResult } from "./node-run";
+import { createCallKit } from "./call/__fixtures__/call-kit";
+import { fakeOk } from "./call/__fixtures__/fake-call-engine";
+import { REQUEST_MISMATCH_MESSAGE, runModelNode, type NodeRunResult } from "./node-run";
 import { KernelNodeError, type NodeIds } from "./types";
 
 let restoreFetch: () => void;
@@ -310,6 +312,7 @@ describe("runModelNode", () => {
 
 	test("cross-process race on one requestId", async () => {
 		const markerDir = mkdtempSync(join(tmpdir(), "mn-race-"));
+		const release = () => writeFileSync(join(markerDir, "release"), "1");
 		const requestId = "req-cross-process";
 		const child = Bun.spawn(
 			[
@@ -323,64 +326,139 @@ describe("runModelNode", () => {
 			],
 			{ stdout: "pipe", stderr: "pipe" },
 		);
-		let parentInvoked = 0;
-		const own = runModelNode(
-			contextFor(temp.db),
-			fakeNodeSpec({
-				scope: scope(),
-				requestId,
-				answer: "from-parent",
-				async invoke() {
-					parentInvoked++;
-					writeFileSync(join(markerDir, "invoked-parent"), "1");
-					while (!existsSync(join(markerDir, "release"))) await Bun.sleep(10);
-				},
-			}),
-		);
-		let ownSettled = false;
-		const ownResult = own.then(
-			(value) => ({ value }),
-			(error: unknown) => ({ error }),
-		);
-		void ownResult.then(() => {
-			ownSettled = true;
-		});
+		let ownResult: Promise<{ value: NodeRunResult<FakeNodeOutcome> } | { error: unknown }> | undefined;
+		try {
+			let parentInvoked = 0;
+			const own = runModelNode(
+				contextFor(temp.db),
+				fakeNodeSpec({
+					scope: scope(),
+					requestId,
+					answer: "from-parent",
+					async invoke() {
+						parentInvoked++;
+						writeFileSync(join(markerDir, "invoked-parent"), "1");
+						while (!existsSync(join(markerDir, "release"))) await Bun.sleep(10);
+					},
+				}),
+			);
+			let ownSettled = false;
+			ownResult = own.then(
+				(value) => ({ value }),
+				(error: unknown) => ({ error }),
+			);
+			void ownResult.then(() => {
+				ownSettled = true;
+			});
 
-		// Release the winner only once the loser has settled.
-		const waitUntil = Date.now() + 30_000;
-		while (!ownSettled && child.exitCode === null) {
-			if (Date.now() > waitUntil) {
-				child.kill();
-				throw new Error(`race did not settle; child stderr: ${await new Response(child.stderr).text()}`);
+			// Release the winner only once the loser has settled.
+			const waitUntil = Date.now() + 30_000;
+			while (!ownSettled && child.exitCode === null) {
+				if (Date.now() > waitUntil) {
+					throw new Error(`race did not settle; child stderr: ${await new Response(child.stderr).text()}`);
+				}
+				await Bun.sleep(10);
 			}
-			await Bun.sleep(10);
-		}
-		writeFileSync(join(markerDir, "release"), "1");
-		const [childExit, childOut, childErr, parent] = await Promise.all([
-			child.exited,
-			new Response(child.stdout).text(),
-			new Response(child.stderr).text(),
-			ownResult,
-		]);
-		if (childExit !== 0) throw new Error(`child exited ${childExit}: ${childErr}`);
-		const childResult = JSON.parse(childOut.trim().split("\n").at(-1)!) as
-			| { outcome: FakeNodeOutcome; replayed: boolean }
-			| { error: string };
+			release();
+			const [childExit, childOut, childErr, parent] = await Promise.all([
+				child.exited,
+				new Response(child.stdout).text(),
+				new Response(child.stderr).text(),
+				ownResult,
+			]);
+			if (childExit !== 0) throw new Error(`child exited ${childExit}: ${childErr}`);
+			const childResult = JSON.parse(childOut.trim().split("\n").at(-1)!) as
+				| { outcome: FakeNodeOutcome; replayed: boolean }
+				| { error: string };
 
-		const invoked = readdirSync(markerDir).filter((f) => f.startsWith("invoked-"));
-		expect(invoked).toHaveLength(1);
-		if (invoked[0] === "invoked-parent") {
-			expect(parentInvoked).toBe(1);
-			expect("value" in parent && parent.value.outcome.answer).toBe("from-parent");
-			expect(childResult).toEqual({ error: "in-flight-elsewhere" });
-		} else {
-			expect(parentInvoked).toBe(0);
-			expect("error" in parent && (parent.error as KernelNodeError).code).toBe("in-flight-elsewhere");
-			expect(childResult).toMatchObject({ outcome: { answer: "from-child" }, replayed: false });
+			const invoked = readdirSync(markerDir).filter((f) => f.startsWith("invoked-"));
+			expect(invoked).toHaveLength(1);
+			if (invoked[0] === "invoked-parent") {
+				expect(parentInvoked).toBe(1);
+				expect("value" in parent && parent.value.outcome.answer).toBe("from-parent");
+				expect(childResult).toEqual({ error: "in-flight-elsewhere" });
+			} else {
+				expect(parentInvoked).toBe(0);
+				expect("error" in parent && (parent.error as KernelNodeError).code).toBe("in-flight-elsewhere");
+				expect(childResult).toMatchObject({ outcome: { answer: "from-child" }, replayed: false });
+			}
+			expect(countRows(temp.db, "agent_runs")).toBe(1);
+			await expectDoctorOk(temp.db);
+		} finally {
+			// Whatever failed: release both waiters, stop and reap the child, then remove the markers.
+			release();
+			if (child.exitCode === null) child.kill();
+			await child.exited;
+			await ownResult;
+			rmSync(markerDir, { recursive: true, force: true });
 		}
-		expect(countRows(temp.db, "agent_runs")).toBe(1);
+	});
+
+	test("a requestId names one request: a different fingerprint is rejected sequentially, coalescing and across instances", async () => {
+		const withPrint = (fingerprint: string, opts: Parameters<typeof fakeNodeSpec>[0]) => ({
+			...fakeNodeSpec(opts),
+			fingerprint,
+		});
+		let invocations = 0;
+		const count = () => {
+			invocations++;
+		};
+		const ctx = contextFor(temp.db);
+		const done = await runModelNode(ctx, withPrint("rf1-a", { scope: scope(), requestId: "req-print", invoke: count }));
+
+		// Sequential: a done run of another request is never replayed for this one.
+		const sequential = await expectNodeError(
+			runModelNode(ctx, withPrint("rf1-b", { scope: scope(), requestId: "req-print", invoke: count })),
+			"invalid-request",
+		);
+		expect(sequential.message).toBe(REQUEST_MISMATCH_MESSAGE);
+		// The same request replays.
+		const replay = await runModelNode(ctx, withPrint("rf1-a", { scope: scope(), requestId: "req-print", invoke: count }));
+		expect(replay).toMatchObject({ replayed: true, ids: { runId: done.ids.runId } });
+
+		// Coalescing: an identical in-flight requestId with another request is not awaited.
+		const gate = deferred();
+		const held = runModelNode(
+			ctx,
+			withPrint("rf1-c", { scope: scope(), requestId: "req-print-2", invoke: async () => {
+				count();
+				await gate.promise;
+			} }),
+		);
+		while (invocations < 2) await Bun.sleep(1);
+		await expectNodeError(
+			runModelNode(ctx, withPrint("rf1-d", { scope: scope(), requestId: "req-print-2", invoke: count })),
+			"invalid-request",
+		);
+		// Another instance: the claim's running attempt belongs to another request.
+		await expectNodeError(
+			runModelNode(
+				contextFor(temp.openHandle().db),
+				withPrint("rf1-d", { scope: scope(), requestId: "req-print-2", invoke: count }),
+			),
+			"invalid-request",
+		);
+		gate.resolve();
+		await held;
+		expect(invocations).toBe(2);
+		expect(countRows(temp.db, "agent_runs")).toBe(2);
 		await expectDoctorOk(temp.db);
-		rmSync(markerDir, { recursive: true, force: true });
+	});
+
+	test("kernel.call wires its request fingerprint: changed arguments under one requestId are rejected", async () => {
+		const k = await createCallKit({ respond: (_req, index) => fakeOk({ kept: [`answer-${index}`], reason: "r" }) });
+		try {
+			await k.call("Extract", ["note"], { requestId: "extract-print" });
+			await expectNodeError(k.call("Extract", ["other note"], { requestId: "extract-print" }), "invalid-request");
+			await expectNodeError(k.call("Summarize", ["note", 3], { requestId: "extract-print" }), "invalid-request");
+			await expect(k.call("Extract", ["note"], { requestId: "extract-print" })).resolves.toEqual({
+				kept: ["answer-0"],
+				reason: "r",
+			});
+			expect(k.engine.invocations).toHaveLength(1);
+		} finally {
+			k.cleanup();
+		}
 	});
 
 	test("the operation deadline aborts the engine signal and the run ends aborted", async () => {

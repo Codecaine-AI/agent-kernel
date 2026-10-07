@@ -37,8 +37,21 @@ import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
 
 import { jsonBlob, textBlob } from "../blobs";
 import { resolveModelAlias, type CallNodeContext } from "../context";
-import { runModelNode, type NodeEndFields, type NodeExecution, type NodeRunHandle } from "../node-run";
-import { createPiTransport, resolveCallRoute, splitModelRef, type CallRouteResult } from "../pi-models";
+import {
+	requestFingerprint,
+	runModelNode,
+	type NodeEndFields,
+	type NodeExecution,
+	type NodeRunHandle,
+} from "../node-run";
+import {
+	createPiTransport,
+	resolveCallRoute,
+	ROUTE_FAILURE_MESSAGES,
+	ROUTE_REFUSAL_MESSAGES,
+	splitModelRef,
+	type CallRouteResult,
+} from "../pi-models";
 import { sumNodeUsage } from "../pricing";
 import { mergeSecrets, redactDeep, redactText } from "../redact";
 import { resolveNodeScope } from "../scope";
@@ -142,6 +155,17 @@ export function createCall<TCalls>(ctx: CallNodeContext<TCalls>): KernelCallFn<T
 				...(opts.signal !== undefined && { signal: opts.signal }),
 				...(opts.onNodeStarted !== undefined && { onNodeStarted: opts.onNodeStarted }),
 				deadlineMs: timeoutMs,
+				// One requestId names one request: a replay or coalesced result never answers different arguments.
+				fingerprint: requestFingerprint({
+					kind: "call",
+					name,
+					args,
+					model,
+					reasoning,
+					promptHash,
+					// The run it describes, not where it is filed: a container can legitimately differ per job.
+					scope: { parentRunId: scope.parentRunId ?? null, parentToolUseId: scope.parentToolUseId ?? null },
+				}),
 				start: {
 					engine: engine.engine,
 					transport,
@@ -307,14 +331,15 @@ function failedExecution<TCalls>(
 	const rawText = engineOutcome.rawText ?? ("rawOutput" in failure ? failure.rawOutput : null);
 	const raw = rawText !== null ? textBlob("call-raw-output", redactText(rawText, secrets), run.timestamp()) : undefined;
 	const usage = turns ? sumNodeUsage(turns.usages) : undefined;
+	const kind = persistedKind(scrubbed);
 	const end: NodeEndFields = {
 		status: opts.aborted ? "aborted" : "error",
 		...(finalInput !== undefined && { input_blob_hash: finalInput.hash }),
 		...(raw !== undefined && { output_blob_hash: raw.hash }),
 		error: {
-			kind: scrubbed.kind,
+			kind,
 			message: failureMessage(scrubbed),
-			...(scrubbed.kind === "http" && { http_status: scrubbed.status }),
+			...(scrubbed.kind === "http" && isHttpStatus(scrubbed.status) && { http_status: scrubbed.status }),
 		},
 		...(usage !== undefined && { usage }),
 		attempts: engineOutcome.attempts.length,
@@ -323,7 +348,7 @@ function failedExecution<TCalls>(
 	ctx.logger?.info("model call failed", {
 		name,
 		runId: run.ids.runId,
-		kind: scrubbed.kind,
+		kind,
 		attempts: engineOutcome.attempts.length,
 	});
 	return {
@@ -335,29 +360,85 @@ function failedExecution<TCalls>(
 	};
 }
 
-/** call_end.error.message: kernel-written, no prompt or model text (§4.7). */
+const CALL_FAILURE_KINDS: ReadonlySet<string> = new Set<CallFailure["kind"]>([
+	"parse",
+	"http",
+	"timeout",
+	"aborted",
+	"finish_reason",
+	"route",
+	"other",
+]);
+
+/** The persisted error kind: one of CallFailure's, else "other" (an engine may return anything at runtime). */
+function persistedKind(failure: CallFailure): CallFailure["kind"] {
+	return CALL_FAILURE_KINDS.has(failure.kind) ? failure.kind : "other";
+}
+
+function isHttpStatus(status: unknown): status is number {
+	return Number.isInteger(status) && (status as number) >= 100 && (status as number) <= 599;
+}
+
+/**
+ * Provider finish reasons → a fixed vocabulary. The provider's own value is
+ * never persisted: it is model-side text like any other output (§4.7).
+ */
+const FINISH_REASONS: Readonly<Record<string, string>> = {
+	length: "length",
+	max_tokens: "length",
+	max_output_tokens: "length",
+	content_filter: "content_filter",
+	safety: "content_filter",
+	recitation: "content_filter",
+	refusal: "refusal",
+	stop: "stop",
+	end_turn: "stop",
+	stop_sequence: "stop",
+	tool_calls: "tool_use",
+	tool_use: "tool_use",
+	function_call: "tool_use",
+	pause_turn: "pause_turn",
+};
+const UNEXPECTED_FINISH_REASON = "unexpected";
+
+function finishReasonLabel(reason: string | undefined): string {
+	const key = typeof reason === "string" ? reason.toLowerCase() : "";
+	return Object.hasOwn(FINISH_REASONS, key) ? FINISH_REASONS[key]! : UNEXPECTED_FINISH_REASON;
+}
+
+/** A route message the engine wrote rather than the kernel, persisted in its place. */
+const ENGINE_ROUTE_REFUSAL = "route refused by the call engine";
+
+/**
+ * call_end.error.message: a constant per failure kind (§4.7). Nothing is
+ * copied from engine or provider text except the kernel's own route
+ * constants, the HTTP status and a finish reason from a fixed vocabulary.
+ */
 function failureMessage(failure: CallFailure): string {
 	switch (failure.kind) {
 		case "parse":
 			return "model output did not parse";
 		case "http":
-			return `HTTP ${failure.status}`;
+			return isHttpStatus(failure.status) ? `HTTP ${failure.status}` : "HTTP error";
 		case "timeout":
 			return "timed out";
 		case "aborted":
 			return "aborted";
-		case "finish_reason":
-			return `model stopped: ${failure.finishReason ?? "unknown finish reason"}`;
+		case "finish_reason": {
+			const label = finishReasonLabel(failure.finishReason);
+			return label === UNEXPECTED_FINISH_REASON ? "model stopped: unexpected finish reason" : `model stopped: ${label}`;
+		}
 		case "route":
-			return failure.message;
-		case "other":
+			return ROUTE_REFUSAL_MESSAGES.has(failure.message) ? failure.message : ENGINE_ROUTE_REFUSAL;
+		default:
 			return "engine error";
 	}
 }
 
+/** pi_turn_end.stop_reason of the selected attempt of a failed call (same vocabulary). */
 function stopReasonOf(failure: CallFailure): string {
 	if (failure.kind === "aborted" || failure.kind === "timeout") return "aborted";
-	if (failure.kind === "finish_reason") return failure.finishReason ?? "length";
+	if (failure.kind === "finish_reason") return finishReasonLabel(failure.finishReason);
 	return "error";
 }
 
@@ -366,9 +447,9 @@ async function resolveRoute<TCalls>(ctx: CallNodeContext<TCalls>, model: string,
 		const registry = await ctx.piModels().registry();
 		const result = await resolveCallRoute(registry, model, reasoning);
 		return result.ok ? { ...result, registry } : result;
-	} catch (error) {
-		const reason = error instanceof Error ? error.message : String(error);
-		return { ok: false, failure: { kind: "route", message: `Pi models unavailable: ${reason}` } };
+	} catch {
+		// Pi's runtime errors can quote credential stores; the reason stays a constant (§4.7).
+		return { ok: false, failure: { kind: "route", message: ROUTE_FAILURE_MESSAGES["models-unavailable"] } };
 	}
 }
 
