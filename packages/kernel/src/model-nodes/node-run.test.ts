@@ -77,6 +77,42 @@ function countRows(db: KernelDatabase, table: string): number {
 	return row.n;
 }
 
+/**
+ * A scheduling barrier at a handle's claim transaction: until `open()`, its
+ * `transaction()` (BEGIN IMMEDIATE) throws SQLITE_BUSY, which the claim
+ * retries (50–800 ms backoff); `reached` resolves at the first attempt, after
+ * every read the lifecycle makes before claiming. Reads pass through.
+ */
+function holdClaimTransactions(db: KernelDatabase): { db: KernelDatabase; reached: Promise<void>; open(): void } {
+	let opened = false;
+	let markReached!: () => void;
+	const reached = new Promise<void>((resolve) => {
+		markReached = resolve;
+	});
+	const gated = new Proxy(db, {
+		get(target, prop) {
+			const value: unknown = Reflect.get(target, prop, target);
+			if (prop === "transaction") {
+				return (...args: unknown[]) => {
+					if (!opened) {
+						markReached();
+						throw Object.assign(new Error("database is locked (held by the test)"), { code: "SQLITE_BUSY" });
+					}
+					return (value as (...a: unknown[]) => unknown).apply(target, args);
+				};
+			}
+			return typeof value === "function" ? value.bind(target) : value;
+		},
+	});
+	return {
+		db: gated,
+		reached,
+		open() {
+			opened = true;
+		},
+	};
+}
+
 async function expectDoctorOk(db: KernelDatabase): Promise<void> {
 	const report = await runTraceDoctor(db);
 	expect(report.violations).toEqual([]);
@@ -449,31 +485,25 @@ describe("runModelNode", () => {
 		await expectDoctorOk(temp.db);
 	});
 
-	test("a different request that resumes after the original ended aborted writes nothing; the original retries", async () => {
+	test("a different request that read an empty session and claims after the original ended aborted writes nothing; the original retries", async () => {
 		const withPrint = (fingerprint: string, opts: Parameters<typeof fakeNodeSpec>[0]) => ({
 			...fakeNodeSpec(opts),
 			fingerprint,
 		});
-		// The loser enters the lifecycle first and is held right before its claim.
-		const barrier = deferred();
-		let loserHeld = false;
-		const loserCtx = createModelNodeContext({
-			kernelId: temp.kernelId,
-			db: temp.openHandle().db,
-			ensureSchema: async () => {
-				loserHeld = true;
-				await barrier.promise;
-			},
-		});
+		// The loser runs on its own handle, held at its claim transaction: every read it makes before the
+		// claim has happened (the session is still empty), and its BEGIN IMMEDIATE reports SQLITE_BUSY
+		// (the claim's own retry path) until the test opens the gate.
+		const gate = holdClaimTransactions(temp.openHandle().db);
 		let loserInvoked = 0;
 		const loser = runModelNode(
-			loserCtx,
+			contextFor(gate.db),
 			withPrint("rf1-loser", { scope: scope(), requestId: "req-interleave", invoke: () => void loserInvoked++ }),
 		).then(
 			(value) => ({ value }),
 			(error: unknown) => ({ error }),
 		);
-		while (!loserHeld) await Bun.sleep(1);
+		await gate.reached;
+		expect(countRows(temp.db, "agent_runs")).toBe(0);
 
 		// Meanwhile the original request claims, runs and ends aborted.
 		const original = await runModelNode(
@@ -487,8 +517,8 @@ describe("runModelNode", () => {
 			blobs: countRows(temp.db, "trace_blobs"),
 		};
 
-		// The loser resumes: its claim sees the original's attempt and writes nothing.
-		barrier.resolve();
+		// The loser's claim now runs: it sees the original's attempt and writes nothing.
+		gate.open();
 		const settled = await loser;
 		expect("error" in settled && (settled.error as KernelNodeError).code).toBe("invalid-request");
 		expect(loserInvoked).toBe(0);
