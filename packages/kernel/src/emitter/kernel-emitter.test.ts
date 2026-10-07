@@ -1028,6 +1028,24 @@ describe("createKernelEmitter (nested tool calls)", () => {
 		expect(ofCall(submitted, "c/1").map((e) => data(e).timing)).toEqual(["live", "live"]);
 	});
 
+	test("an unfinished close keeps the live start's fallback parent when the id has none", async () => {
+		const { sink, calls } = recordingSink();
+		const { deliver } = makeHarness({ traceWriter: sink });
+		await deliver([
+			{ ...nestedStart("legacy-id", "read", { path: "a.ts" }), parentToolCallId: "parent" },
+			AGENT_END,
+		]);
+
+		const rows = calls
+			.map((c) => c.event)
+			.filter((e) => data(e).tool_use_id === "legacy-id")
+			.map((e) => [e.type, data(e).parent_tool_use_id, data(e).nested_status]);
+		expect(rows).toEqual([
+			["tool_call_start", "parent", undefined],
+			["tool_call_end", "parent", "unfinished"],
+		]);
+	});
+
 	test("a parentToolCallId that disagrees with the id keeps the id-derived parent and logs ids only", async () => {
 		const warnings: Array<{ message: string; data?: Record<string, unknown> }> = [];
 		const { submitted, deliver } = makeHarness({

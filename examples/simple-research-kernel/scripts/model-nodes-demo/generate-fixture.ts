@@ -31,7 +31,8 @@
  *     [--routes <path>]             DS route ids (default: routes.json beside this script)
  *     [--db <path>]                 also keep the trace DB (with blobs) at <path>; an existing file is replaced
  *     [--journal-mode delete|wal]   journal mode of the kept DB (default delete: no -wal/-shm files)
- *     [--check]                     write nothing; exit 1 when the committed JSON or routes differ
+ *     [--check]                     write nothing (builds in a temp DB; --db is never touched);
+ *                                   exit 1 when the committed JSON or routes differ
  */
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -2234,8 +2235,11 @@ export async function buildFixture(dbPath: string, journalMode: "delete" | "wal"
 
 async function main(): Promise<void> {
 	const options = parseArgs(process.argv.slice(2));
-	const tempDir = options.dbPath ? undefined : mkdtempSync(join(tmpdir(), "mn-fixture-"));
-	const dbPath = options.dbPath ?? join(tempDir!, "model-nodes-demo.db");
+	// Check mode writes nothing: it always builds in a temp DB, so a supplied
+	// --db path is never replaced.
+	const keepDb = options.dbPath !== undefined && !options.check;
+	const tempDir = keepDb ? undefined : mkdtempSync(join(tmpdir(), "mn-fixture-"));
+	const dbPath = keepDb ? options.dbPath! : join(tempDir!, "model-nodes-demo.db");
 	try {
 		const { json, routes } = await buildFixture(dbPath, options.journalMode);
 		if (options.check) {

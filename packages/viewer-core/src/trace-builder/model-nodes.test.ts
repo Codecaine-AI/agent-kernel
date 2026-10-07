@@ -761,6 +761,64 @@ describe("model-node retry attempts (buildTraceSpans)", () => {
     expect(mustFind(spans, "attempt:A2").status).toBe("pending");
   });
 
+  it("spans owned by a retried node run attach to that attempt's own row, across placements", () => {
+    // K: attempts A1, A2 under R1 (one row, two attempt rows) and B1 under R5.
+    const retried = nodeSession("decision", "K", "JudgeAdvisory", [
+      {
+        runId: "A1",
+        parentRunId: "R1",
+        startMs: 200,
+        endMs: 300,
+        endStatus: "error",
+        error: { kind: "http", message: "JudgeAdvisory failed: http" },
+        decision: { abstainReason: "engine-error" },
+      },
+      { runId: "A2", parentRunId: "R1", startMs: 400, endMs: 800, decision: { probability: 0.9, passAt: 0.85 } },
+      { runId: "B1", parentRunId: "R5", startMs: 2100, endMs: 2600, decision: { probability: 0.9, passAt: 0.85 } },
+    ]);
+    // Children owned by K's runs: a call under the second attempt, a step
+    // under the first, and a gate under the R5 placement's run.
+    const childOfA2 = nodeSession("call", "C", "ExtractCheckpointKnowledge", [
+      { runId: "C1", parentRunId: "A2", startMs: 500, endMs: 600 },
+    ]);
+    const stepOfA1 = step("S", "validate", 250, 260, { runId: "A1" });
+    const gateOfB1 = gate("G", "review", 2200, 2300, "B1", "pass", []);
+    const trace = merge(
+      worker(
+        [workerRun("R1", 0, 1000), workerRun("R5", 2000, 3000, "steer")],
+        [...workerTurn("R1", 10), ...workerTurn("R5", 2010), ...stepOfA1, ...gateOfB1],
+      ),
+      retried,
+      childOfA2,
+    );
+    const spans = build(trace);
+
+    expect(parentIdOf(spans, "run:A1")).toBe("run:R1");
+    expect(mustFind(spans, "run:A1").children?.map((c) => c.id)).toEqual(["attempt:A1", "attempt:A2"]);
+    expect(parentIdOf(spans, "run:B1")).toBe("run:R5");
+
+    expect(parentIdOf(spans, "pi:C")).toBe("attempt:A2");
+    expect(parentIdOf(spans, stepOfA1[0].eventId)).toBe("attempt:A1");
+    expect(parentIdOf(spans, gateOfB1[0].eventId)).toBe("run:B1");
+    expect(spans.map((s) => s.id)).toEqual([`pi:${WORKER}`]);
+  });
+
+  it("a child of the selected attempt lands on the attempt row, not the summary row", () => {
+    const retried = nodeSession("call", "K", "ExtractConfirmedCheckpointKnowledge", [
+      { runId: "A1", parentRunId: "R1", startMs: 200, endMs: 300, endStatus: "error", error: { kind: "parse", message: "x failed: parse" } },
+      { runId: "A2", parentRunId: "R1", startMs: 400, endMs: 800 },
+    ]);
+    const childOfA2 = nodeSession("call", "C", "SummarizeWorkerRun", [
+      { runId: "C1", parentRunId: "A2", startMs: 500, endMs: 600 },
+    ]);
+    const spans = build(
+      merge(worker([workerRun("R1", 0, 1000)], workerTurn("R1", 10)), retried, childOfA2),
+    );
+
+    expect(attr(mustFind(spans, "pi:K"), "run_id")).toBe("A2");
+    expect(parentIdOf(spans, "pi:C")).toBe("attempt:A2");
+  });
+
   it("selectAttemptIndex: latest done run, else the latest run", () => {
     const runs = (...statuses: string[]) =>
       statuses.map((status) => ({ run: { status } as AgentRun }));

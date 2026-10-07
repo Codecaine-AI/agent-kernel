@@ -300,10 +300,36 @@ function scopedRunIdOf(span: TraceSpan): string | null {
   return null;
 }
 
-function indexHosts(spans: TraceSpan[], hosts: Map<string, TraceSpan>): void {
+const ATTEMPT_ROW_EVENT_TYPES = new Set<string>([CALL_ATTEMPT, DECISION_ATTEMPT]);
+
+interface RunHosts {
+  /** run id → the row that stands for exactly that run. */
+  byRunId: Map<string, TraceSpan>;
+  /** `pi:<sessionId>` agent spans. */
+  agentsById: Map<string, TraceSpan>;
+}
+
+/**
+ * The row that stands for one run: its attempt row, else its single-run node
+ * row, else its `run:<id>` wrapper. A multi-attempt node row stands for no
+ * single run (its run_id is only the selected attempt's), so a span owned by
+ * any attempt lands on that attempt's own row.
+ */
+function indexHosts(spans: TraceSpan[], hosts: RunHosts): void {
   for (const span of spans) {
-    if (span.id.startsWith("run:") || span.id.startsWith("pi:")) {
-      if (!hosts.has(span.id)) hosts.set(span.id, span);
+    const eventType = readStringAttr(span, "event_type");
+    const runId = readStringAttr(span, "run_id");
+    const isSingleRunNodeRow =
+      eventType !== null &&
+      NODE_ROW_EVENT_TYPES.has(eventType) &&
+      !span.attributes?.some((a) => a.key === "attempt_count");
+    const standsForRun =
+      eventType === "run_container" ||
+      (eventType !== null && ATTEMPT_ROW_EVENT_TYPES.has(eventType)) ||
+      isSingleRunNodeRow;
+    if (runId && standsForRun && !hosts.byRunId.has(runId)) hosts.byRunId.set(runId, span);
+    if (eventType === "pi_agent_container" && !hosts.agentsById.has(span.id)) {
+      hosts.agentsById.set(span.id, span);
     }
     if (span.children) indexHosts(span.children, hosts);
   }
@@ -311,23 +337,23 @@ function indexHosts(spans: TraceSpan[], hosts: Map<string, TraceSpan>): void {
 
 /**
  * Hangs top-level node rows (by their own placement's parent_run_id) and
- * step/gate spans (by run_id) under that run: its `run:<id>` wrapper when the
- * parent session has several runs, else the parent session's `pi:<id>` span.
- * Children are placed in startTime order; an unknown run leaves the span at
- * the root.
+ * step/gate spans (by run_id) under the row of that run: a node run's own
+ * attempt or node row, a `run:<id>` wrapper when the parent session has
+ * several runs, else the parent session's `pi:<id>` span. Children are placed
+ * in startTime order; an unknown run leaves the span at the root.
  */
 export function attachRunScopedSpans(spans: TraceSpan[], runs: AgentRun[]): TraceSpan[] {
   if (!spans.some((span) => scopedRunIdOf(span) !== null)) return spans;
 
   const runsById = new Map(runs.map((run) => [run.id, run]));
-  const hosts = new Map<string, TraceSpan>();
+  const hosts: RunHosts = { byRunId: new Map(), agentsById: new Map() };
   indexHosts(spans, hosts);
 
   const hostFor = (runId: string): TraceSpan | undefined => {
-    const wrapper = hosts.get(`run:${runId}`);
-    if (wrapper) return wrapper;
+    const own = hosts.byRunId.get(runId);
+    if (own) return own;
     const run = runsById.get(runId);
-    return run ? hosts.get(`pi:${run.piSessionId}`) : undefined;
+    return run ? hosts.agentsById.get(`pi:${run.piSessionId}`) : undefined;
   };
 
   const result: TraceSpan[] = [];

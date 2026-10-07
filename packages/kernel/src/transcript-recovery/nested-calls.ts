@@ -54,15 +54,18 @@ export function nestedCallRecordsOf(nestedCalls: unknown): PiNestedToolCallRecor
  * Start and end events for one nested call record. The end is stamped
  * `endTimestamp` (the parent tool result's entry time); the start sits
  * `durationMs` earlier, or at the same instant with `duration_ms` omitted
- * when the record carries no duration.
+ * when the record carries no duration. The parent is derived from the id;
+ * `fallbackParentToolUseId` (a live call's Pi parentToolCallId) applies only
+ * when the id has no `/<n>` suffix to derive one from.
  */
 export function nestedCallRecordEvents(
   ids: TraceEventIds,
   piSessionUuid: string,
   record: PiNestedToolCallRecord,
   endTimestamp: string,
+  fallbackParentToolUseId?: string,
 ): { start: TraceEvent; end: TraceEvent } {
-  const parentToolUseId = immediateParentId(record.id);
+  const parentToolUseId = immediateParentId(record.id) ?? fallbackParentToolUseId;
   const durationMs = validDurationMs(record.durationMs);
   const endMs = Date.parse(endTimestamp);
   const startTimestamp =

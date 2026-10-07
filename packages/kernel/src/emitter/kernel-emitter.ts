@@ -399,11 +399,13 @@ export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
 		for (const [toolCallId, call] of liveNested) {
 			if (call.startedAtMs === undefined || call.ended) continue;
 			call.ended = true;
+			// Same parent as the live start, including Pi's fallback when the id has none.
 			const { end } = nestedCallRecordEvents(
 				ids,
 				piSessionUuid,
 				{ id: toolCallId, name: call.toolName, status: "unfinished" },
 				timestamp,
+				call.parentToolUseId,
 			);
 			submitNestedEvent(end);
 		}
