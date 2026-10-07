@@ -669,6 +669,30 @@ describe("kernel.decide", () => {
 		expect(all).not.toContain("Decide ");
 	});
 
+	test("decide logs scrub a credential the engine sent from the decision name and model ref", async () => {
+		const credential = "sk-live-0f1e2d3c4b5a6978";
+		const logs: string[] = [];
+		const capture = (level: string) => (message: string, data?: Record<string, unknown>) =>
+			logs.push(`${level} ${message} ${JSON.stringify(data ?? {})}`);
+		const logger: ModelNodeLogger = { debug: capture("debug"), info: capture("info"), warn: capture("warn"), error: capture("error") };
+		const engine = scriptedEngine(() => ({
+			answers: { justified: { type: "bool", probability: 0.9 } },
+			secrets: [credential],
+		}));
+		const temp = await kernel({ logger, decide: { engine } });
+		const outcome = await temp.kernel.decide(`judge-${credential}`, { a: 1 }, {
+			containerId: temp.tempDb.containerId,
+			questions: JUDGE,
+			model: `fake-decide/${credential}`,
+		});
+		expect(outcome.answers.justified.verdict).toBe("pass");
+		const made = logs.find((line) => line.includes("decision made"));
+		expect(made).toBeDefined();
+		expect(made).toContain("judge-<redacted>");
+		expect(made).toContain("fake-decide/<redacted>");
+		expect(logs.join("\n")).not.toContain(credential);
+	});
+
 	test("doctor is ok after a mixed batch", async () => {
 		const { fake, registry } = await createFakeClassifierRegistry();
 		let n = 0;

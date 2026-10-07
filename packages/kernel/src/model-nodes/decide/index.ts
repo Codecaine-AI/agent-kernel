@@ -264,7 +264,6 @@ function buildDecider(ctx: ModelNodeContext): Decider {
 				// The run it describes, not where it is filed: a container can legitimately differ per job.
 				scope: { parentRunId: scope.parentRunId ?? null, parentToolUseId: scope.parentToolUseId ?? null },
 			});
-			const logIds = { name, model: modelRef ?? null };
 
 			const result = await runModelNode<DecisionOutcome<Q>>(ctx, {
 				kind: "decision",
@@ -310,11 +309,15 @@ function buildDecider(ctx: ModelNodeContext): Decider {
 						config,
 						ctx,
 					});
+					// Logged only once the credential set is complete, and scrubbed with it: the name and the
+					// model ref are caller-supplied and may carry a credential the engine sent (§4.7).
 					const o = execution.outcome;
+					const scrub = (text: string) => redactText(text, execution.secrets ?? []);
 					ctx.logger?.debug("decision made", {
-						...logIds,
+						name: scrub(name),
+						model: modelRef === undefined ? null : scrub(modelRef),
 						runId: handle.ids.runId,
-						servedModel: o.model,
+						servedModel: scrub(o.model),
 						abstained: o.abstained,
 						...(o.error && { errorKind: o.error.kind }),
 					});
