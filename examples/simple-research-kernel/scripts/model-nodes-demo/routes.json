@@ -1,0 +1,144 @@
+{
+  "kernelId": "model-nodes-demo",
+  "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
+  "routePlaceholders": {
+    "R2": "bdb9eaff-2f9f-6b09-6064-f427911ea561",
+    "R3": "f043aaeb-f070-1a1a-01fe-3f09bee6bea3",
+    "R4": "670eb4d1-9b4c-683a-3ddc-d6dbab03a36a",
+    "ABSTAIN": "a05f851e-7ef5-e78a-8f41-e77f93fd55de",
+    "FAILED_CALL": "ec0ec929-734a-a20c-50fa-9972a7af3019",
+    "GATE_SPAN": "e02cbb14-67b6-8126-2c2b-167fa29b90e9",
+    "CODEMODE_SPAN": "354f2472-bab4-1732-e98c-0b8331b32b2f",
+    "NESTED_READ_SPAN": "309a8410-ade0-2295-7fc6-f3d9c8d44b1f",
+    "RETRY_DECISION": "8134f162-fa96-131f-ced3-0b901de081b2",
+    "RETRY_ATTEMPT_2": "b069edde-61c5-c6dc-819a-e6d526e4a4a9"
+  },
+  "routeTargets": {
+    "R2": "pi:bdb9eaff-2f9f-6b09-6064-f427911ea561",
+    "R3": "pi:f043aaeb-f070-1a1a-01fe-3f09bee6bea3",
+    "R4": "pi:670eb4d1-9b4c-683a-3ddc-d6dbab03a36a",
+    "ABSTAIN": "pi:a05f851e-7ef5-e78a-8f41-e77f93fd55de",
+    "FAILED_CALL": "pi:ec0ec929-734a-a20c-50fa-9972a7af3019",
+    "GATE_SPAN": "e02cbb14-67b6-8126-2c2b-167fa29b90e9",
+    "CODEMODE_SPAN": "354f2472-bab4-1732-e98c-0b8331b32b2f",
+    "NESTED_READ_SPAN": "309a8410-ade0-2295-7fc6-f3d9c8d44b1f",
+    "RETRY_DECISION": "pi:8134f162-fa96-131f-ced3-0b901de081b2",
+    "RETRY_ATTEMPT_2": "attempt:b069edde-61c5-c6dc-819a-e6d526e4a4a9"
+  },
+  "routes": [
+    {
+      "id": "mn-overview",
+      "click": null,
+      "waitFor": "[role=treeitem][data-span-id=\"pi:bdb9eaff-2f9f-6b09-6064-f427911ea561\"]",
+      "path": "/traces?traceId=96b2847d-b394-5f9e-8539-e7bb0f730a16"
+    },
+    {
+      "id": "mn-decision",
+      "click": "[role=treeitem][data-span-id=\"pi:f043aaeb-f070-1a1a-01fe-3f09bee6bea3\"]",
+      "waitFor": "[data-detail-block=\"decision-bars\"]",
+      "path": "/traces?traceId=96b2847d-b394-5f9e-8539-e7bb0f730a16"
+    },
+    {
+      "id": "mn-choice",
+      "click": "[role=treeitem][data-span-id=\"pi:670eb4d1-9b4c-683a-3ddc-d6dbab03a36a\"]",
+      "waitFor": "[data-detail-block=\"decision-bars\"]",
+      "path": "/traces?traceId=96b2847d-b394-5f9e-8539-e7bb0f730a16"
+    },
+    {
+      "id": "mn-abstain",
+      "click": "[role=treeitem][data-span-id=\"pi:a05f851e-7ef5-e78a-8f41-e77f93fd55de\"]",
+      "waitFor": "[data-detail-block=\"decision-abstain\"]",
+      "path": "/traces?traceId=96b2847d-b394-5f9e-8539-e7bb0f730a16"
+    },
+    {
+      "id": "mn-call",
+      "click": "[role=treeitem][data-span-id=\"pi:bdb9eaff-2f9f-6b09-6064-f427911ea561\"]",
+      "waitFor": "[data-detail-block=\"call-output\"]",
+      "path": "/traces?traceId=96b2847d-b394-5f9e-8539-e7bb0f730a16"
+    },
+    {
+      "id": "mn-call-error",
+      "click": "[role=treeitem][data-span-id=\"pi:ec0ec929-734a-a20c-50fa-9972a7af3019\"]",
+      "waitFor": "[data-detail-block=\"call-error\"]",
+      "path": "/traces?traceId=96b2847d-b394-5f9e-8539-e7bb0f730a16"
+    },
+    {
+      "id": "mn-gate",
+      "click": "[role=treeitem][data-span-id=\"e02cbb14-67b6-8126-2c2b-167fa29b90e9\"]",
+      "waitFor": "[data-detail-block=\"gate-checks\"]",
+      "path": "/traces?traceId=96b2847d-b394-5f9e-8539-e7bb0f730a16"
+    },
+    {
+      "id": "mn-nested",
+      "click": "[role=treeitem][data-span-id=\"354f2472-bab4-1732-e98c-0b8331b32b2f\"]",
+      "waitFor": "[role=treeitem][data-span-id=\"309a8410-ade0-2295-7fc6-f3d9c8d44b1f\"]",
+      "path": "/traces?traceId=96b2847d-b394-5f9e-8539-e7bb0f730a16"
+    },
+    {
+      "id": "mn-retry",
+      "click": "[role=treeitem][data-span-id=\"pi:8134f162-fa96-131f-ced3-0b901de081b2\"]",
+      "waitFor": "[role=treeitem][data-span-id=\"attempt:b069edde-61c5-c6dc-819a-e6d526e4a4a9\"]",
+      "path": "/traces?traceId=96b2847d-b394-5f9e-8539-e7bb0f730a16"
+    }
+  ],
+  "ids": {
+    "kernelId": "model-nodes-demo",
+    "containerId": "96b2847d-b394-5f9e-8539-e7bb0f730a16",
+    "workerSessionId": "a54bf438-3861-1193-e543-9e79ce6409fb",
+    "runs": {
+      "R1": "c467a0e4-fade-c38a-e866-5adc448c190a",
+      "R5": "22d3cb0e-2f41-78c2-8c1f-9e786912ffbe",
+      "R2": "29b5d428-1f16-47bc-8509-e69373cdc0e0",
+      "R3": "1b6ceb7f-32f4-375f-ac39-8717b8eaece7",
+      "RETRY_ATTEMPT_1": "bc5fe794-9348-bf6a-ccf3-e8d5371c2e72",
+      "RETRY_ATTEMPT_2": "b069edde-61c5-c6dc-819a-e6d526e4a4a9",
+      "ABSTAIN": "a025caac-0663-81ac-d1db-f72d62e24d4b",
+      "FAILED_CALL": "7d8b6009-7db9-c7b2-026a-e69c7f558d82",
+      "R4": "0480936d-abdf-bd8c-8876-936e38816de4",
+      "SUMMARY_ATTEMPT_1": "ab82be99-6ff1-2221-8626-a8f832448d86",
+      "R6": "38707ff5-a898-3997-73b1-5a7670781cb9",
+      "SUMMARY_ATTEMPT_2": "1717750c-ff00-0541-0cb0-5632d48bd724",
+      "CONFIRMED_ATTEMPT_1": "35886121-9a17-4a1f-f2c6-ca850fc8d3f5",
+      "CONFIRMED_ATTEMPT_2": "813b760d-f1d5-c212-3965-214e71773ac3"
+    },
+    "sessions": {
+      "R2": "bdb9eaff-2f9f-6b09-6064-f427911ea561",
+      "R3": "f043aaeb-f070-1a1a-01fe-3f09bee6bea3",
+      "RETRY_DECISION": "8134f162-fa96-131f-ced3-0b901de081b2",
+      "ABSTAIN": "a05f851e-7ef5-e78a-8f41-e77f93fd55de",
+      "FAILED_CALL": "ec0ec929-734a-a20c-50fa-9972a7af3019",
+      "R4": "670eb4d1-9b4c-683a-3ddc-d6dbab03a36a",
+      "SUMMARY": "b04efe6f-923f-27f7-7df9-fe580c633dc5",
+      "R6": "b769aba7-65b3-b655-b10b-f90298462a74",
+      "CONFIRMED": "7951d981-e0e3-529f-95e9-ab909343d99b"
+    },
+    "spans": {
+      "S1": "e4283a16-4b4f-4649-e106-687368b7dced",
+      "GATE": "b8ccd0ce-670a-267d-5adf-9e15e3ef0bfc",
+      "CHECK_OBJDIFF": "0db22a79-dc19-dbbd-c66a-c3f8fca746ee",
+      "CHECK_JUSTIFICATION_A1": "1213b743-0735-cb74-a919-903a4e6489b0",
+      "CHECK_JUSTIFICATION_A2": "54d42ed0-d19c-d87d-408f-b9ae6c788021",
+      "CHECK_JUSTIFICATION_A3": "8b450629-397a-c037-2273-eb569b89911e",
+      "S2": "c0362b5a-dfac-7dc9-689d-fdaefcd55780",
+      "S3": "592896a7-e454-daf2-ab05-f2cc66ba9727"
+    },
+    "toolUseIds": {
+      "CODEMODE": "call_r1_codemode",
+      "NESTED_READ": "call_r1_codemode/1",
+      "NESTED_BASH": "call_r1_codemode/2",
+      "NESTED_DIFF": "call_r1_codemode/3",
+      "NESTED_DIFF_BASH": "call_r1_codemode/3/1",
+      "R1_EDIT": "call_r1_edit",
+      "R5_EDIT": "call_r5_edit",
+      "R5_BASH": "call_r5_bash"
+    },
+    "events": {
+      "GATE_START": "e02cbb14-67b6-8126-2c2b-167fa29b90e9",
+      "CODEMODE_START": "354f2472-bab4-1732-e98c-0b8331b32b2f",
+      "NESTED_READ_START": "309a8410-ade0-2295-7fc6-f3d9c8d44b1f",
+      "NESTED_BASH_START": "dfdb0179-2b9f-e957-061d-9b9c6c11b69b",
+      "NESTED_DIFF_START": "91f08ef9-8d80-b4bc-2966-9ea7b5e5c72e",
+      "NESTED_DIFF_BASH_START": "687f4f21-6122-a009-d734-454189fd8a4b"
+    }
+  }
+}
