@@ -10,7 +10,9 @@ export {
 } from "./containers";
 export {
   piAgentSessions,
+  SESSION_KIND,
   SESSION_STATUS,
+  type SessionKind,
   type SessionStatus,
 } from "./pi-agent-sessions";
 export {

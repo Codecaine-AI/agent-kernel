@@ -6,3 +6,5 @@ export * from "./trace-blobs";
 export * from "./prompt-revisions";
 export * from "./read-api";
 export * from "./usage";
+export * from "./tx-local";
+export * from "./node-sessions";

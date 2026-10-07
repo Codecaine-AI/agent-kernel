@@ -22,6 +22,22 @@ export type SessionStatus =
   | (string & {});
 
 /**
+ * What produced the session. "pi" is a Pi agent conversation; "call" and
+ * "decision" are model-node sessions (one structured request or one
+ * classification per run). Open string; rows written before the column
+ * existed read as "pi".
+ */
+export const SESSION_KIND = {
+  PI: "pi",
+  CALL: "call",
+  DECISION: "decision",
+} as const;
+
+export type SessionKind =
+  | (typeof SESSION_KIND)[keyof typeof SESSION_KIND]
+  | (string & {});
+
+/**
  * One Pi conversation. The system prompt is frozen at session creation, so
  * prompt_hash lives here (populated from Phase 3). A subagent's session
  * carries parent_session_id and parent_tool_use_id.
@@ -47,6 +63,12 @@ export const piAgentSessions = sqliteTable(
     usageOutputTokens: integer("usage_output_tokens").notNull().default(0),
     createdAt: text("created_at").notNull(),
     endedAt: text("ended_at"),
+    /**
+     * Added after the table shipped: existing databases gain it through
+     * upgradeKernelObservabilitySchema, and readers go through
+     * piAgentSessionSelection so un-upgraded read-only handles still work.
+     */
+    kind: text("kind").$type<SessionKind>().notNull().default(SESSION_KIND.PI),
   },
   (table) => [
     index("ix_pi_agent_sessions_container_id").on(table.containerId),

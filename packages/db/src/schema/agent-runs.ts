@@ -16,6 +16,10 @@ export const RUN_TRIGGER = {
   STEER: "steer",
   RESUME: "resume",
   SYSTEM: "system",
+  /** A model node describing a finished parent run. */
+  POST_RUN: "post-run",
+  /** A decision node judging something on behalf of its caller. */
+  JUDGE: "judge",
 } as const;
 
 export type RunTrigger = (typeof RUN_TRIGGER)[keyof typeof RUN_TRIGGER];

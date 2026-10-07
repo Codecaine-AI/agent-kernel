@@ -1,10 +1,12 @@
 /**
  * Schema bootstrap — CREATE TABLE IF NOT EXISTS statements mirroring the
  * Drizzle SQLite schema in ./schema. No migration tooling: the schema is
- * created idempotently on kernel start against the local trace.db.
+ * created idempotently on kernel start against the local trace.db, then
+ * ./upgrade adds any column an older database lacks.
  */
 import { sql } from "drizzle-orm";
 import type { KernelDatabase } from "./client";
+import { upgradeKernelObservabilitySchema } from "./upgrade";
 
 export async function ensureKernelObservabilitySchema(
   db: KernelDatabase,
@@ -49,7 +51,8 @@ export async function ensureKernelObservabilitySchema(
       usage_input_tokens  INTEGER NOT NULL DEFAULT 0,
       usage_output_tokens INTEGER NOT NULL DEFAULT 0,
       created_at          TEXT NOT NULL,
-      ended_at            TEXT
+      ended_at            TEXT,
+      kind                TEXT NOT NULL DEFAULT 'pi'
     )
   `);
 
@@ -133,4 +136,8 @@ export async function ensureKernelObservabilitySchema(
   for (const statement of indexes) {
     db.run(statement);
   }
+
+  // Columns added after a table shipped: CREATE TABLE IF NOT EXISTS leaves an
+  // existing table untouched, so existing databases gain them here.
+  await upgradeKernelObservabilitySchema(db);
 }

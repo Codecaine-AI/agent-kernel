@@ -1,5 +1,6 @@
 import { asc, eq } from "drizzle-orm";
 import type { KernelDatabase } from "../client";
+import { piAgentSessionSelection } from "../read-compat";
 import { piAgentSessions, type SessionStatus } from "../schema/pi-agent-sessions";
 import type { NewPiAgentSession, PiAgentSession } from "../types";
 
@@ -26,6 +27,7 @@ export async function upsertPiAgentSession(
         ...(data.status !== undefined && { status: data.status }),
         ...(data.phase !== undefined && { phase: data.phase }),
         ...(data.endedAt !== undefined && { endedAt: data.endedAt }),
+        ...(data.kind !== undefined && { kind: data.kind }),
       },
     })
     .returning();
@@ -72,7 +74,7 @@ export async function getPiAgentSession(
   piSessionId: string,
 ): Promise<PiAgentSession | undefined> {
   const [row] = await db
-    .select()
+    .select(piAgentSessionSelection(db))
     .from(piAgentSessions)
     .where(eq(piAgentSessions.id, piSessionId))
     .limit(1);
@@ -84,7 +86,7 @@ export async function listPiAgentSessionsForContainer(
   containerId: string,
 ): Promise<PiAgentSession[]> {
   return db
-    .select()
+    .select(piAgentSessionSelection(db))
     .from(piAgentSessions)
     .where(eq(piAgentSessions.containerId, containerId))
     .orderBy(asc(piAgentSessions.createdAt));

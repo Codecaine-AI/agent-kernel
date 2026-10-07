@@ -24,3 +24,6 @@ export type NewPromptRevision = typeof promptRevisions.$inferInsert;
 
 export type TraceBlob = typeof traceBlobs.$inferSelect;
 export type NewTraceBlob = typeof traceBlobs.$inferInsert;
+
+/** One blob to store through the transaction-local write path (content-addressed by `hash`). */
+export type TraceBlobInput = NewTraceBlob;

@@ -5,6 +5,7 @@
 import { and, asc, count, desc, eq, gt, inArray, max, type SQL } from "drizzle-orm";
 
 import type { KernelDatabase } from "../client";
+import { piAgentSessionSelection } from "../read-compat";
 import { agentRuns } from "../schema/agent-runs";
 import { containers } from "../schema/containers";
 import { piAgentSessions } from "../schema/pi-agent-sessions";
@@ -184,7 +185,7 @@ export async function getKernelTraceReadRows(
   const limit = clampLimit(opts.limit, 5000, 10000);
 
   const piSessionRows: PiAgentSession[] = await db
-    .select()
+    .select(piAgentSessionSelection(db))
     .from(piAgentSessions)
     .where(inArray(piAgentSessions.containerId, containerIds))
     .orderBy(asc(piAgentSessions.createdAt));
