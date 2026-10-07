@@ -121,6 +121,9 @@ export async function createPiSession(
 	mkdirSync(piAgentDir, { recursive: true });
 	const settingsManager = SettingsManager.inMemory({
 		compaction: { enabled: false },
+		// Pi 1.0 warms the prompt cache by default with extra requests whose
+		// `usage` entries the emitter and backfill don't record yet.
+		cacheWarming: "off",
 	});
 
 	const loader = new DefaultResourceLoader({

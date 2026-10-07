@@ -42,8 +42,8 @@ import {
 import {
 	createAssistantMessageEventStream,
 	type AssistantMessage,
-	type Context,
 	type Model,
+	type TranscriptContext,
 } from "@earendil-works/pi-ai";
 
 // ─── Arguments ──────────────────────────────────────────────────────────────
@@ -153,14 +153,17 @@ const mockRuntimeFactory: ExtensionFactory = (pi) => {
 		baseUrl: "mock://local",
 		apiKey: "unused-in-memory-key",
 		api: API as any,
-		streamSimple: ((model: Model<any>, context: Context) => {
+		streamSimple: ((model: Model<any>, context: TranscriptContext) => {
 			request += 1;
+			// Pi 0.86+: the system prompt and tool declarations reach the provider
+			// as leading `system` transcript messages. Observe the conversation.
+			const conversation = context.messages.filter((m: any) => m.role !== "system");
 			observations.push({
 				run: currentRun,
 				request,
-				messageCount: context.messages.length,
-				roles: context.messages.map((m: any) => String(m.role)),
-				firstText: firstTextOf(context.messages[0]),
+				messageCount: conversation.length,
+				roles: conversation.map((m: any) => String(m.role)),
+				firstText: firstTextOf(conversation[0]),
 			});
 			const message =
 				request === 1

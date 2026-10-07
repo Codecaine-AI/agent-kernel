@@ -43,8 +43,8 @@
     "@agent-kernel/protocol": "workspace:*",
     "@codecaine-ai/prompt-kit": "workspace:*",
     "@codecaine-ai/prompt-kit-server": "workspace:*",
-    "@earendil-works/pi-ai": "^0.82.1",
-    "@earendil-works/pi-coding-agent": "^0.82.1",
+    "@earendil-works/pi-ai": "^1.0.4",
+    "@earendil-works/pi-coding-agent": "^1.0.4",
     "elysia": "^1.2.0"
   },
   "devDependencies": {

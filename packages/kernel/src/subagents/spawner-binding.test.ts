@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { Type } from "@earendil-works/pi-ai";
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionToolContext } from "@earendil-works/pi-coding-agent";
 
 import {
 	defineSpawnerTool,
@@ -16,7 +16,7 @@ import type { KernelExtensionContext } from "./types";
 const ctx = {
 	cwd: "/tmp",
 	sessionManager: { getSessionId: () => "parent-uuid" },
-} as KernelExtensionContext as unknown as ExtensionContext;
+} as KernelExtensionContext as unknown as ExtensionToolContext;
 
 interface CapturedSpawn {
 	agentName: string;
