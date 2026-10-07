@@ -10,10 +10,19 @@
       "props": {},
       "text": [
         {
-          "insert": "A decision node asks a model a closed question and gets back a choice with probabilities, not text. The API is "
+          "insert": "A decision node asks a model closed questions and gets back probabilities, not text. The API is "
         },
         {
           "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and every native engine runs through Pi's "
+        },
+        {
+          "insert": "classify()",
           "attributes": {
             "code": true
           }
@@ -36,26 +45,56 @@
         "b-dn-13",
         "b-dn-14",
         "b-dn-15",
+        "b-dn-pi-h",
+        "b-dn-pi-lead",
+        "b-dn-pi-1",
+        "b-dn-pi-2",
+        "b-dn-pi-3",
+        "b-dn-pi-4",
+        "b-dn-pi-5",
+        "b-dn-oa-h",
         "b-dn-16",
+        "b-dn-oa-1",
+        "b-dn-oa-2",
+        "b-dn-oa-3",
+        "b-dn-oa-4",
+        "b-dn-oa-5",
         "b-dn-17",
         "b-dn-18",
         "b-dn-19",
+        "b-dn-res-lead",
+        "b-dn-res-1",
+        "b-dn-res-2",
         "b-dn-20",
         "b-dn-21",
         "b-dn-22",
         "b-dn-23",
         "b-dn-24",
         "b-dn-25",
+        "b-dn-gate-lead",
+        "b-dn-gate-1",
+        "b-dn-gate-2",
+        "b-dn-gate-3",
+        "b-dn-gate-4",
+        "b-dn-th-h",
+        "b-dn-th-lead",
+        "b-dn-th-1",
+        "b-dn-th-2",
+        "b-dn-th-3",
+        "b-dn-th-4",
+        "b-dn-th-5",
         "b-dn-26",
         "b-dn-27",
         "b-dn-28",
         "b-dn-29",
         "b-dn-30",
         "b-dn-31",
+        "b-dn-oq-lead",
         "b-dn-32",
         "b-dn-33",
         "b-dn-34",
-        "b-dn-35"
+        "b-dn-35",
+        "b-dn-36"
       ]
     },
     "b-dn-02": {
@@ -114,7 +153,16 @@
       "props": {},
       "text": [
         {
-          "insert": "Status: proposal, nothing built. Jev is usable today through early access. The OpenAI Decisions API is not usable yet."
+          "insert": "Status: proposal, nothing built. Jev is usable now through early access. The OpenAI Decisions API entered public beta on 2026-10-06. The kernel can use it once Pi publishes its next release and an "
+        },
+        {
+          "insert": "OPENAI_API_KEY",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " exists."
         }
       ],
       "children": []
@@ -138,7 +186,7 @@
       "props": {},
       "text": [
         {
-          "insert": "A native engine returns a probability for every option. A BAML enum returns one label, and any confidence the model writes into its output is not calibrated."
+          "insert": "A native engine returns a probability for every option, read from the model itself. A BAML enum returns one label, and any confidence in its output is text that the model wrote."
         }
       ],
       "children": []
@@ -149,7 +197,7 @@
       "props": {
         "columns": [
           "Aspect",
-          "Native engine (Jev)",
+          "Native engine through Pi",
           "BAML enum"
         ],
         "rows": [
@@ -160,12 +208,12 @@
           ],
           [
             "Many questions",
-            "All answered in one parallel pass, nearly free",
+            "All answered in one request, nearly free",
             "A longer prompt, or one call per question"
           ],
           [
             "Latency",
-            "About 100 ms",
+            "About 100 to 300 ms",
             "Seconds"
           ],
           [
@@ -264,7 +312,25 @@
       "props": {},
       "text": [
         {
-          "insert": "Three engines fit the node contract. Jev and the BAML fallback work today. The OpenAI Decisions API waits on a published endpoint."
+          "insert": "Four kinds of engine fit the node contract. Three run through Pi's "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the BAML enum runs through "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as the fallback and the escalation judge."
         }
       ],
       "children": []
@@ -276,19 +342,19 @@
         "columns": [
           "Engine",
           "Status",
+          "Pi model and API",
           "Input",
-          "Output",
-          "Speed / cost",
-          "Route"
+          "Price",
+          "Latency",
+          "Pinning"
         ],
         "rows": [
           [
+            "Jev (TypeSafe)",
+            "Usable now. Early access since 2026-09-15",
             [
               {
-                "insert": "Jev (TypeSafe), "
-              },
-              {
-                "insert": "jev-1.13.0",
+                "insert": "typesafe/jev-1.13.0",
                 "attributes": {
                   "code": true
                 }
@@ -297,124 +363,106 @@
                 "insert": ", alias "
               },
               {
-                "insert": "jev-latest",
+                "insert": "typesafe/jev-latest",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". API "
+              },
+              {
+                "insert": "typesafe-system-one",
                 "attributes": {
                   "code": true
                 }
               }
             ],
-            "Usable now. Early access since 2026-09-15",
+            "Text only. 64k tokens per request, 32k for the state plus the longest question",
+            "$0.042 per 1M input tokens. Output is free",
+            "About 100 ms (vendor claim, 70 to 500 ms)",
             [
               {
-                "insert": "POST https://api.typesafe.ai/v1/systemone",
+                "insert": "Versioned ids such as "
+              },
+              {
+                "insert": "jev-1.13.0",
                 "attributes": {
                   "code": true
                 }
-              },
-              {
-                "insert": " with "
-              },
-              {
-                "insert": "{model, state, questions}",
-                "attributes": {
-                  "code": true
-                }
-              },
-              {
-                "insert": ". TS SDK "
-              },
-              {
-                "insert": "@typesafe-ai/sdk",
-                "attributes": {
-                  "code": true
-                }
-              },
-              {
-                "insert": " v0.6.0: "
-              },
-              {
-                "insert": "client.systemOne",
-                "attributes": {
-                  "code": true
-                }
-              },
-              {
-                "insert": " with "
-              },
-              {
-                "insert": "choice()",
-                "attributes": {
-                  "code": true
-                }
-              },
-              {
-                "insert": ", "
-              },
-              {
-                "insert": "score()",
-                "attributes": {
-                  "code": true
-                }
-              },
-              {
-                "insert": ", "
-              },
-              {
-                "insert": "noul()",
-                "attributes": {
-                  "code": true
-                }
-              },
-              {
-                "insert": ". Text only. 64k tokens per request, 32k for the state plus the longest question"
               }
-            ],
-            [
-              {
-                "insert": "choice",
-                "attributes": {
-                  "code": true
-                }
-              },
-              {
-                "insert": ": up to 255 options, returns choice, probabilities, confidence. "
-              },
-              {
-                "insert": "score",
-                "attributes": {
-                  "code": true
-                }
-              },
-              {
-                "insert": ": 2 to 10 ordered levels, returns score, legend, probabilities, confidence. "
-              },
-              {
-                "insert": "noul",
-                "attributes": {
-                  "code": true
-                }
-              },
-              {
-                "insert": ": yes or no, returns the probability of yes"
-              }
-            ],
-            "About 100 ms (vendor claim, 70 to 500 ms). $0.042 per million input tokens. Output is free",
-            "Its own route and credential. Not codex-lb"
+            ]
           ],
           [
-            "OpenAI Decisions API (GPT-6 Luna based)",
-            "Not usable. Announced 2026-09-29 at DevDay. Limited preview",
-            "A question, a fixed answer list, and text or image context",
-            "One answer plus a confidence",
-            "About 150 ms. Pricing unpublished",
-            "Separate endpoint, not Responses. Needs a codex-lb pass-through once published"
+            "OpenAI Decisions API",
+            [
+              {
+                "insert": "Public beta since 2026-10-06. Usable after the next Pi release and an "
+              },
+              {
+                "insert": "OPENAI_API_KEY",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "openai/gpt-6-luna",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", the only model. API "
+              },
+              {
+                "insert": "openai-decisions",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Up to 922K tokens and 128 images",
+            "$0.10 per 1M input tokens, 2x above 272K tokens. No output charge. Not in the Batch API",
+            "No official number. Secondary reports give 150 ms to 0.3 s for 3 questions",
+            [
+              {
+                "insert": "None. No snapshot exists, so each decision records the exact "
+              },
+              {
+                "insert": "model",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            "Cloudflare Clef and Clef Flash, or a local llama.cpp model",
+            "Available through Pi. Untested here",
+            [
+              {
+                "insert": "Clef models built into Pi. Any llama.cpp chat model through "
+              },
+              {
+                "insert": "llama-cpp-classify",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Not measured here",
+            "Not measured here. A local model has no API charge",
+            "Not measured here",
+            "Not measured here"
           ],
           [
             "BAML enum or union",
             "Works with today's setup",
             [
               {
-                "insert": "Any BAML function input, through "
+                "insert": "None. A BAML function through "
               },
               {
                 "insert": "kernel.call",
@@ -423,12 +471,536 @@
                 }
               }
             ],
-            "One label plus a rationale. Confidence is self-reported",
-            "Seconds. Normal LLM cost",
-            "codex-lb"
+            "Any BAML function input",
+            "Normal LLM cost",
+            "Seconds",
+            "Set by the BAML client"
           ]
         ]
       },
+      "children": []
+    },
+    "b-dn-pi-h": {
+      "id": "b-dn-pi-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Engine Calls Through Pi"
+        }
+      ],
+      "children": []
+    },
+    "b-dn-pi-lead": {
+      "id": "b-dn-pi-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sends all of its questions in one call to "
+        },
+        {
+          "insert": "classify(model, { state, questions, images? })",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from "
+        },
+        {
+          "insert": "@earendil-works/pi-ai",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Pi added "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to its model runtime in 0.99. Five facts about it shape the kernel."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-pi-1": {
+      "id": "b-dn-pi-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The harness picks an engine with a model alias."
+        }
+      ],
+      "children": [
+        "b-dn-pi-1a",
+        "b-dn-pi-1b"
+      ]
+    },
+    "b-dn-pi-1a": {
+      "id": "b-dn-pi-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Set "
+        },
+        {
+          "insert": "models.aliases.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to a Pi model id, such as "
+        },
+        {
+          "insert": "\"typesafe/jev-1.13.0\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "\"openai/gpt-6-luna\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-pi-1b": {
+      "id": "b-dn-pi-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "If no classifier is configured, "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " falls back to the BAML enum."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-pi-2": {
+      "id": "b-dn-pi-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi maps the kernel's question types onto each engine's API."
+        }
+      ],
+      "children": [
+        "b-dn-pi-2a",
+        "b-dn-pi-2b"
+      ]
+    },
+    "b-dn-pi-2a": {
+      "id": "b-dn-pi-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi sends a "
+        },
+        {
+          "insert": "bool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to Jev as "
+        },
+        {
+          "insert": "noul",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and to OpenAI as "
+        },
+        {
+          "insert": "predicate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", with the true and false meanings appended to the instructions."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-pi-2b": {
+      "id": "b-dn-pi-2b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A llama.cpp chat model answers through "
+        },
+        {
+          "insert": "llama-cpp-classify",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", a softmax over logprobs. llama.cpp also serves native decision models through "
+        },
+        {
+          "insert": "typesafe-system-one",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-pi-3": {
+      "id": "b-dn-pi-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The kernel records each "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " call like any other model call."
+        }
+      ],
+      "children": [
+        "b-dn-pi-3a",
+        "b-dn-pi-3b",
+        "b-dn-pi-3c"
+      ]
+    },
+    "b-dn-pi-3a": {
+      "id": "b-dn-pi-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "pi_request_snapshot",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " body is the "
+        },
+        {
+          "insert": "ClassifierContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " that the kernel passes to "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-pi-3b": {
+      "id": "b-dn-pi-3b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The result carries "
+        },
+        {
+          "insert": "provider",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "model",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "answers",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", an optional "
+        },
+        {
+          "insert": "usage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "stopReason",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". OpenAI usage counts input tokens only."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-pi-3c": {
+      "id": "b-dn-pi-3c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " never rejects on a provider error. It returns "
+        },
+        {
+          "insert": "stopReason: \"error\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with an "
+        },
+        {
+          "insert": "errorMessage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " instead."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-pi-4": {
+      "id": "b-dn-pi-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi's model runtime supplies credentials from environment variables or "
+        },
+        {
+          "insert": "auth.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", not BAML's "
+        },
+        {
+          "insert": "ClientRegistry",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": [
+        "b-dn-pi-4a",
+        "b-dn-pi-4b"
+      ]
+    },
+    "b-dn-pi-4a": {
+      "id": "b-dn-pi-4a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Jev needs "
+        },
+        {
+          "insert": "TYPESAFE_API_KEY",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or the key of a gateway that serves Jev, such as OpenRouter, Cloudflare, Vercel AI Gateway, or OpenCode."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-pi-4b": {
+      "id": "b-dn-pi-4b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "OpenAI Decisions needs a platform "
+        },
+        {
+          "insert": "OPENAI_API_KEY",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and none is configured today."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-pi-5": {
+      "id": "b-dn-pi-5",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi's "
+        },
+        {
+          "insert": "openai-decisions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " API is merged on Pi main but not in the latest release, 1.0.4."
+        }
+      ],
+      "children": [
+        "b-dn-pi-5a"
+      ]
+    },
+    "b-dn-pi-5a": {
+      "id": "b-dn-pi-5a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "It ships in the next Pi release. "
+        },
+        {
+          "insert": "Pi 1.0 Alignment",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/70-pi-alignment"
+            }
+          }
+        },
+        {
+          "insert": " covers the kernel's upgrade from Pi 0.82.1 to 1.0.4."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-oa-h": {
+      "id": "b-dn-oa-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "OpenAI Decisions API"
+        }
+      ],
       "children": []
     },
     "b-dn-16": {
@@ -437,7 +1009,316 @@
       "props": {},
       "text": [
         {
-          "insert": "The OpenAI Decisions API has no published endpoint, schema, model id, or pricing. Once those exist, it fits the same node contract as a second native engine. The BAML engine is the fallback and the escalation judge."
+          "insert": "OpenAI's Decisions API is "
+        },
+        {
+          "insert": "POST /v1/decisions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "gpt-6-luna",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is its only model. The "
+        },
+        {
+          "insert": "Decisions guide",
+          "attributes": {
+            "link": "https://developers.openai.com/api/docs/guides/decisions"
+          }
+        },
+        {
+          "insert": " documents five behaviors that shape how the kernel uses it."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-oa-1": {
+      "id": "b-dn-oa-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "It has three question types: "
+        },
+        {
+          "insert": "predicate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "choice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "score",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": [
+        "b-dn-oa-1a",
+        "b-dn-oa-1b",
+        "b-dn-oa-1c"
+      ]
+    },
+    "b-dn-oa-1a": {
+      "id": "b-dn-oa-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "predicate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is yes or no and takes no criteria field."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-oa-1b": {
+      "id": "b-dn-oa-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "choice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " answer has "
+        },
+        {
+          "insert": "probabilities",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " per value plus "
+        },
+        {
+          "insert": "confidence",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-oa-1c": {
+      "id": "b-dn-oa-1c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "score",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " answer has "
+        },
+        {
+          "insert": "score",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", per-level "
+        },
+        {
+          "insert": "probabilities",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "confidence",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-oa-2": {
+      "id": "b-dn-oa-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "It can return a "
+        },
+        {
+          "insert": "refusal",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " answer for one question and still answer the others."
+        }
+      ],
+      "children": [
+        "b-dn-oa-2a"
+      ]
+    },
+    "b-dn-oa-2a": {
+      "id": "b-dn-oa-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi fails the whole "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " result when OpenAI refuses any one question. That is Pi's policy, not the API's."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-oa-3": {
+      "id": "b-dn-oa-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "It returns no explanation text and takes no temperature or seed."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-oa-4": {
+      "id": "b-dn-oa-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "It needs a platform API key and is ZDR-eligible."
+        }
+      ],
+      "children": [
+        "b-dn-oa-4a"
+      ]
+    },
+    "b-dn-oa-4a": {
+      "id": "b-dn-oa-4a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Sign in with ChatGPT tokens get 403 "
+        },
+        {
+          "insert": "subscription_sharing_route_not_supported",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so codex-lb cannot reach it."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-oa-5": {
+      "id": "b-dn-oa-5",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Its escalation pattern adds a fallback choice, such as "
+        },
+        {
+          "insert": "other",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "reason",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and hands those answers to a reasoning model."
         }
       ],
       "children": []
@@ -461,7 +1342,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Every engine returns the same shape. "
+          "insert": "Every engine returns the same shape for each question. "
         },
         {
           "insert": "confidenceSource",
@@ -470,7 +1351,25 @@
           }
         },
         {
-          "insert": " is required, so no caller thresholds a self-reported number as if it were native. The example is a Jev verdict on a lint finding."
+          "insert": " is required, so no caller thresholds a self-reported number as if it were native. The example is a Jev answer to the "
+        },
+        {
+          "insert": "bool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question "
+        },
+        {
+          "insert": "justified",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " about a kept lint advisory."
         }
       ],
       "children": []
@@ -479,29 +1378,43 @@
       "id": "b-dn-19",
       "type": "state-shape",
       "props": {
-        "example": "{\n  \"kind\": \"choice\",\n  \"choice\": \"false-positive\",\n  \"distribution\": {\n    \"real-bug\": 0.08,\n    \"false-positive\": 0.84,\n    \"style-only\": 0.08\n  },\n  \"confidence\": 0.81,\n  \"confidenceSource\": \"native\",\n  \"evidence\": [{ \"runId\": \"run_7f3a\", \"blobHash\": \"sha256:9c1e04\" }],\n  \"abstained\": false\n}",
+        "example": "{\n  \"kind\": \"bool\",\n  \"choice\": \"true\",\n  \"probability\": 0.91,\n  \"confidence\": 0.91,\n  \"confidenceSource\": \"native\",\n  \"evidence\": [{ \"runId\": \"run_7f3a\", \"blobHash\": \"sha256:9c1e04\" }],\n  \"abstained\": false\n}",
         "fields": [
           {
             "name": "kind",
-            "type": "\"choice\" | \"score\" | \"binary\"",
-            "required": true
+            "type": "\"bool\" | \"choice\" | \"score\"",
+            "required": true,
+            "description": "The question type, in Pi's vocabulary."
           },
           {
             "name": "choice",
             "type": "string",
-            "required": true,
-            "description": "The winning label."
+            "required": false,
+            "description": "The winning label of a choice, or \"true\" or \"false\" for a bool. Absent after a refusal or an engine error."
+          },
+          {
+            "name": "probability",
+            "type": "number",
+            "required": false,
+            "description": "The probability p of true. bool only."
+          },
+          {
+            "name": "score",
+            "type": "number",
+            "required": false,
+            "description": "The expected level index that Pi returns. score only."
           },
           {
             "name": "distribution",
             "type": "Record<label, number>",
             "required": false,
-            "description": "Probability per label. Native engines only."
+            "description": "Probability per label. Native choice answers only."
           },
           {
             "name": "confidence",
             "type": "number",
-            "required": false
+            "required": false,
+            "description": "For a bool, the kernel derives it as max(p, 1 - p), so 0.5 is the least sure value."
           },
           {
             "name": "confidenceSource",
@@ -513,7 +1426,7 @@
             "name": "rationale",
             "type": "string",
             "required": false,
-            "description": "LLM engines only. Jev returns none."
+            "description": "BAML engine only. Native engines return none."
           },
           {
             "name": "checks",
@@ -531,11 +1444,120 @@
             "name": "abstained",
             "type": "boolean",
             "required": false,
-            "description": "True when confidence fell below abstainBelow."
+            "description": "True when the answer gives the harness no verdict."
+          },
+          {
+            "name": "abstainReason",
+            "type": "\"low-confidence\" | \"refusal\" | \"engine-error\"",
+            "required": false,
+            "description": "Why the answer abstained. Set only when abstained is true."
           }
         ],
         "name": "Decision result"
       },
+      "children": []
+    },
+    "b-dn-res-lead": {
+      "id": "b-dn-res-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel sets "
+        },
+        {
+          "insert": "abstained: true",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in two cases."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-res-1": {
+      "id": "b-dn-res-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A Pi "
+        },
+        {
+          "insert": "stopReason: \"error\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " abstains every answer in the call."
+        }
+      ],
+      "children": [
+        "b-dn-res-1a"
+      ]
+    },
+    "b-dn-res-1a": {
+      "id": "b-dn-res-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "abstainReason",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is "
+        },
+        {
+          "insert": "\"refusal\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " when OpenAI refused a question, and "
+        },
+        {
+          "insert": "\"engine-error\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for any other error."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-res-2": {
+      "id": "b-dn-res-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "An answer that misses its thresholds abstains with "
+        },
+        {
+          "insert": "abstainReason: \"low-confidence\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
       "children": []
     },
     "b-dn-20": {
@@ -588,7 +1610,7 @@
           {
             "name": "decide",
             "kind": "action",
-            "description": "Runs kernel.decide(name, state, opts). Asks every question in one engine call. A low-confidence answer returns abstained: true instead of throwing.",
+            "description": "Runs kernel.decide(name, state, opts). Sends every question in one Pi classify() call. An answer with no verdict returns abstained: true instead of throwing.",
             "params": [
               {
                 "name": "name",
@@ -614,8 +1636,9 @@
                     "fields": [
                       {
                         "name": "type",
-                        "type": "\"choice\" | \"score\" | \"binary\"",
-                        "required": true
+                        "type": "\"bool\" | \"choice\" | \"score\"",
+                        "required": true,
+                        "description": "Pi's question vocabulary. Pi sends a bool to Jev as noul and to OpenAI as predicate."
                       },
                       {
                         "name": "instructions",
@@ -627,9 +1650,45 @@
                         "name": "criteria",
                         "type": "Record<label, string>",
                         "required": true,
-                        "description": "Defines each option, each level, or the true and false outcomes."
+                        "description": "Defines each choice, each score level, or the true and false meanings of a bool."
+                      },
+                      {
+                        "name": "passAt",
+                        "type": "number",
+                        "required": false,
+                        "description": "bool only. p at or above it passes."
+                      },
+                      {
+                        "name": "failAt",
+                        "type": "number",
+                        "required": false,
+                        "description": "bool only. p at or below it fails. A value between passAt and failAt abstains."
+                      },
+                      {
+                        "name": "minTop",
+                        "type": "number",
+                        "required": false,
+                        "description": "choice only. The top probability must reach it."
+                      },
+                      {
+                        "name": "minMargin",
+                        "type": "number",
+                        "required": false,
+                        "description": "choice only. The top probability must lead the runner-up by at least this much."
+                      },
+                      {
+                        "name": "abstainBelow",
+                        "type": "number",
+                        "required": false,
+                        "description": "score only. Confidence floor. Below it the answer abstains."
                       }
                     ]
+                  },
+                  {
+                    "name": "images",
+                    "type": "ImageContent[]",
+                    "required": false,
+                    "description": "Pi image parts for engines that accept images, such as gpt-6-luna. Jev is text only."
                   },
                   {
                     "name": "containerId",
@@ -647,22 +1706,10 @@
                     "required": false
                   },
                   {
-                    "name": "engine",
-                    "type": "string",
-                    "required": false,
-                    "description": "Picks the engine."
-                  },
-                  {
                     "name": "model",
                     "type": "string",
                     "required": false,
-                    "description": "Pins a version such as jev-1.13.0. Thresholds are tuned per version."
-                  },
-                  {
-                    "name": "abstainBelow",
-                    "type": "number",
-                    "required": false,
-                    "description": "Confidence floor. Below it the result has abstained: true."
+                    "description": "A Pi model id or alias, such as typesafe/jev-1.13.0. Defaults to models.aliases.decide."
                   },
                   {
                     "name": "signal",
@@ -710,14 +1757,39 @@
                     "required": true
                   },
                   {
+                    "name": "abstainReason",
+                    "type": "\"low-confidence\" | \"refusal\" | \"engine-error\"",
+                    "required": false
+                  },
+                  {
+                    "name": "thresholdApplied",
+                    "type": "object",
+                    "required": false,
+                    "description": "The passAt and failAt, minTop and minMargin, or abstainBelow values that the kernel applied."
+                  },
+                  {
                     "name": "engine",
+                    "type": "\"baml\" | \"pi-ai\" | \"jev\" | \"openai-decisions\"",
+                    "required": true,
+                    "description": "Other Pi classifiers, such as Clef or llama.cpp, record pi-ai."
+                  },
+                  {
+                    "name": "provider",
                     "type": "string",
-                    "required": true
+                    "required": true,
+                    "description": "The provider that classify() reports, or the BAML client's provider."
                   },
                   {
                     "name": "model",
                     "type": "string",
-                    "required": true
+                    "required": true,
+                    "description": "The exact model id that classify() returns. For gpt-6-luna it is the only version record."
+                  },
+                  {
+                    "name": "api",
+                    "type": "string",
+                    "required": false,
+                    "description": "The Pi API id, such as typesafe-system-one, openai-decisions, or llama-cpp-classify. Absent on the BAML fallback."
                   }
                 ]
               }
@@ -755,7 +1827,16 @@
           }
         },
         {
-          "insert": " call plus a rule in harness code."
+          "insert": " call plus a rule in harness code, and "
+        },
+        {
+          "insert": "kernel.gate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " wraps the judge pattern as a gate."
         }
       ],
       "children": []
@@ -771,15 +1852,71 @@
         ],
         "rows": [
           [
-            "Judge",
-            "Several binary questions, one per criterion",
-            "Code combines the answers"
+            "Gate (judge)",
+            [
+              {
+                "insert": "Several "
+              },
+              {
+                "insert": "bool",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " questions, one per criterion, plus code checks"
+              }
+            ],
+            [
+              {
+                "insert": "kernel.gate",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " returns "
+              },
+              {
+                "insert": "pass",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "fail",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", or "
+              },
+              {
+                "insert": "abstain",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
           ],
           [
             "Router",
             [
               {
-                "insert": "One choice over branch names plus "
+                "insert": "One "
+              },
+              {
+                "insert": "choice",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " over branch names plus "
               },
               {
                 "insert": "other",
@@ -788,12 +1925,47 @@
                 }
               }
             ],
-            "Below a confidence floor, take the fallback branch"
+            "Act when the top probability and its margin both clear their bars. Otherwise take the fallback branch"
           ],
           [
             "Rule check",
-            "One binary question with explicit true and false criteria",
-            "Act on the verdict"
+            [
+              {
+                "insert": "One "
+              },
+              {
+                "insert": "bool",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " question with explicit true and false criteria"
+              }
+            ],
+            [
+              {
+                "insert": "Pass at "
+              },
+              {
+                "insert": "passAt",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", fail at "
+              },
+              {
+                "insert": "failAt",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and abstain between them"
+              }
+            ]
           ],
           [
             "Speculative fan-out",
@@ -803,10 +1975,448 @@
           [
             "Confidence-gated escalation",
             "Any",
-            "Below about 0.5 to 0.6, escalate. Risky actions need above 0.85 to 0.9"
+            "TypeSafe suggests escalating below about 0.5 to 0.6 and requiring above 0.85 to 0.9 for risky actions"
           ]
         ]
       },
+      "children": []
+    },
+    "b-dn-gate-lead": {
+      "id": "b-dn-gate-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "kernel.gate(name, checks)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the proposed composite for the gate pattern. It records one span for the whole gate."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-gate-1": {
+      "id": "b-dn-gate-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Each check is either a "
+        },
+        {
+          "insert": "kernel.step",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " code check or a "
+        },
+        {
+          "insert": "bool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question asked through "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-gate-2": {
+      "id": "b-dn-gate-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The gate fails when any check fails, abstains when no check fails but one abstains, and passes otherwise."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-gate-3": {
+      "id": "b-dn-gate-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The gate returns "
+        },
+        {
+          "insert": "pass",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "fail",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or "
+        },
+        {
+          "insert": "abstain",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", plus each check's result, so the trace shows which check decided it."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-gate-4": {
+      "id": "b-dn-gate-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "choice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question is a route, not a gate, so a router calls "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " directly."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-th-h": {
+      "id": "b-dn-th-h",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Thresholds"
+        }
+      ],
+      "children": []
+    },
+    "b-dn-th-lead": {
+      "id": "b-dn-th-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel applies thresholds per question and records them as "
+        },
+        {
+          "insert": "thresholdApplied",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "decision_made",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Five rules set and maintain the bars."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-th-1": {
+      "id": "b-dn-th-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A gate uses two thresholds per "
+        },
+        {
+          "insert": "bool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question."
+        }
+      ],
+      "children": [
+        "b-dn-th-1a",
+        "b-dn-th-1b"
+      ]
+    },
+    "b-dn-th-1a": {
+      "id": "b-dn-th-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "p ≥ passAt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " passes, and "
+        },
+        {
+          "insert": "p ≤ failAt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " fails."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-th-1b": {
+      "id": "b-dn-th-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A value between the two abstains and escalates."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-th-2": {
+      "id": "b-dn-th-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A router decides on the top probability and its margin over the runner-up."
+        }
+      ],
+      "children": [
+        "b-dn-th-2a"
+      ]
+    },
+    "b-dn-th-2a": {
+      "id": "b-dn-th-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Every router includes an "
+        },
+        {
+          "insert": "other",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " choice for a case that fits no branch."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-th-3": {
+      "id": "b-dn-th-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The bars come from this repo's labeled past runs, per pinned model version."
+        }
+      ],
+      "children": [
+        "b-dn-th-3a"
+      ]
+    },
+    "b-dn-th-3a": {
+      "id": "b-dn-th-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Weigh the cost of a false pass against the cost of a false fail when you set each bar. OpenAI's guide gives the same advice."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-th-4": {
+      "id": "b-dn-th-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Luna has no pinned version, so every decision records the exact "
+        },
+        {
+          "insert": "model",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " that "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " returned."
+        }
+      ],
+      "children": [
+        "b-dn-th-4a"
+      ]
+    },
+    "b-dn-th-4a": {
+      "id": "b-dn-th-4a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Re-run the labeled set when Luna's results drift."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-th-5": {
+      "id": "b-dn-th-5",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Prefer "
+        },
+        {
+          "insert": "bool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " questions for gates."
+        }
+      ],
+      "children": [
+        "b-dn-th-5a",
+        "b-dn-th-5b"
+      ]
+    },
+    "b-dn-th-5a": {
+      "id": "b-dn-th-5a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "One community test of "
+        },
+        {
+          "insert": "gpt-6-luna",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", not an OpenAI source, found that "
+        },
+        {
+          "insert": "predicate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " probabilities matched a 70% biased coin."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-th-5b": {
+      "id": "b-dn-th-5b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The same test found that "
+        },
+        {
+          "insert": "choice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " reported 98% and changed with option order."
+        }
+      ],
       "children": []
     },
     "b-dn-26": {
@@ -815,7 +2425,16 @@
       "props": {},
       "text": [
         {
-          "insert": "TypeSafe states that confidence is not the probability of being correct. Set thresholds on your own labeled data, per pinned model version."
+          "insert": "Neither vendor claims calibration. TypeSafe states that confidence is not the probability of being correct. OpenAI makes no calibration claim and does not define its "
+        },
+        {
+          "insert": "confidence",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " field."
         }
       ],
       "children": []
@@ -839,7 +2458,7 @@
       "props": {},
       "text": [
         {
-          "insert": "A low-confidence answer escalates instead of failing. \"Can't decide\" is "
+          "insert": "An abstain escalates instead of failing. \"Can't decide\" is "
         },
         {
           "insert": "abstained: true",
@@ -848,7 +2467,7 @@
           }
         },
         {
-          "insert": ", not an error. Proposed flow:"
+          "insert": ", not an error. The flow follows OpenAI's escalation pattern, with a BAML judge as the reasoning model."
         }
       ],
       "children": []
@@ -859,44 +2478,66 @@
       "props": {
         "steps": [
           {
-            "text": "Proposed decision with escalation",
+            "text": "Proposed Decision With Escalation",
             "steps": [
               {
-                "text": "Harness calls `kernel.decide(name, state, opts)`"
-              },
-              {
-                "text": "Kernel mints one session (kind `decision`) and one run under `parentRunId`"
-              },
-              {
-                "text": "Jev answers every question in one parallel pass"
-              },
-              {
-                "text": "Kernel emits `decision_made` with `engine: \"jev\"` and `confidenceSource: \"native\"`",
-                "trace": true
-              },
-              {
-                "text": "Harness compares `confidence` with its threshold",
+                "text": "Ask the Native Engine",
                 "steps": [
                   {
-                    "text": "At or above the threshold, the harness branches on `chosen` and the flow ends.",
+                    "text": "Harness calls `kernel.decide(name, state, opts)`"
+                  },
+                  {
+                    "text": "Kernel mints one session (kind `decision`) and one run under `parentRunId`"
+                  },
+                  {
+                    "text": "Pi `classify()` answers every question in one call"
+                  },
+                  {
+                    "text": "Kernel emits `decision_made` with `engine`, `model`, `api`, and `confidenceSource: \"native\"`",
+                    "trace": true
+                  }
+                ]
+              },
+              {
+                "text": "Apply the Thresholds",
+                "steps": [
+                  {
+                    "text": "Kernel compares each answer with the thresholds of its question"
+                  },
+                  {
+                    "text": "A clear verdict ends the flow, and the harness branches on `chosen`.",
+                    "kind": "note"
+                  },
+                  {
+                    "text": "A refusal or an engine error abstains before any threshold applies.",
                     "kind": "note"
                   }
                 ]
               },
               {
-                "text": "Harness runs a BAML judge through `kernel.call` and gets a rationale",
+                "text": "Escalate to a BAML Judge",
                 "steps": [
                   {
-                    "text": "The judge records its own run, turns, and `baml_call_*` events. Its answer has `confidenceSource: \"self-reported\"`.",
+                    "text": "Harness runs a BAML judge through `kernel.call` and gets a rationale"
+                  },
+                  {
+                    "text": "The judge records its own run, turns, and `call_start` and `call_end` events with engine `baml`.",
+                    "kind": "note"
+                  },
+                  {
+                    "text": "The judge answer has `confidenceSource: \"self-reported\"`.",
                     "kind": "note"
                   }
                 ]
               },
               {
-                "text": "Harness marks the decision `abstained: true` and routes it to a human or operator",
+                "text": "Route to an Operator",
                 "steps": [
                   {
-                    "text": "Only when the judge is still uncertain. This is a normal result, not an error.",
+                    "text": "Harness routes the decision to a human or operator when the judge is still uncertain"
+                  },
+                  {
+                    "text": "This outcome is a normal result, not an error.",
                     "kind": "note"
                   }
                 ]
@@ -958,6 +2599,17 @@
       ],
       "children": []
     },
+    "b-dn-oq-lead": {
+      "id": "b-dn-oq-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Five questions stay open before the first spike."
+        }
+      ],
+      "children": []
+    },
     "b-dn-32": {
       "id": "b-dn-32",
       "type": "list-item",
@@ -972,7 +2624,7 @@
           }
         },
         {
-          "insert": " for Jev. Jev has no prompt template, so the hash would cover the questions and criteria spec instead."
+          "insert": " for native engines. A classifier has no prompt template, so the hash would cover the questions and criteria instead."
         }
       ],
       "children": []
@@ -985,22 +2637,16 @@
       },
       "text": [
         {
-          "insert": "pi_request_snapshot",
+          "insert": "The retry, timeout, and abort defaults of Pi's "
+        },
+        {
+          "insert": "classify()",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " assumes a chat request. The Jev body "
-        },
-        {
-          "insert": "{model, state, questions}",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " needs a non-chat snapshot shape."
+          "insert": " are unverified. Check them before the spike relies on them."
         }
       ],
       "children": []
@@ -1035,7 +2681,73 @@
       },
       "text": [
         {
-          "insert": "The Jev SDK's retry, timeout, and abort defaults are unverified."
+          "insert": "gpt-6-luna",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " has no pinned snapshot, so its answers can change under the same model id. How often to re-run the labeled set is open."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-36": {
+      "id": "b-dn-36",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Two Pi gaps need an upstream request."
+        }
+      ],
+      "children": [
+        "b-dn-36a",
+        "b-dn-36b"
+      ]
+    },
+    "b-dn-36a": {
+      "id": "b-dn-36a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi fails the whole "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " result when OpenAI refuses one question. Ask Pi to return per-question refusals, as the API does."
+        }
+      ],
+      "children": []
+    },
+    "b-dn-36b": {
+      "id": "b-dn-36b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi returns a "
+        },
+        {
+          "insert": "score",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " as an expected level index only. Ask Pi to expose OpenAI's per-level probabilities."
         }
       ],
       "children": []

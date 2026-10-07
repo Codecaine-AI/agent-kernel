@@ -25,13 +25,18 @@
         "gc-14",
         "gc-15",
         "gc-16",
+        "gc-pre-h",
+        "gc-pre-lead",
+        "gc-pre-1",
+        "gc-pre-2",
+        "gc-pre-fallback",
         "gc-17",
         "gc-18",
         "gc-19",
         "gc-20",
+        "gc-20c",
         "gc-21",
         "gc-22",
-        "gc-23",
         "gc-24",
         "gc-25",
         "gc-26"
@@ -101,7 +106,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Status: proposal, nothing built. First step: a one-day spike that compares BAML and Jev on the "
+          "insert": "Status: proposal, nothing built. The first step is a one-day spike that compares three engines on the "
         },
         {
           "insert": "llm_review",
@@ -181,20 +186,23 @@
       "props": {
         "steps": [
           {
-            "text": "Orchestrator loop, one tick",
+            "text": "Orchestrator Loop, One Tick",
             "steps": [
               {
-                "text": "Orchestrator sends a heartbeat and probes the provider circuit"
-              },
-              {
-                "text": "Orchestrator reaps dead jobs and requeues their targets"
-              },
-              {
-                "text": "Orchestrator drains the integration queue with `git apply` of each best checkpoint"
-              },
-              {
-                "text": "Orchestrator runs knowledge maintenance",
+                "text": "Housekeeping",
                 "steps": [
+                  {
+                    "text": "Orchestrator sends a heartbeat and probes the provider circuit"
+                  },
+                  {
+                    "text": "Orchestrator reaps dead jobs and requeues their targets"
+                  },
+                  {
+                    "text": "Orchestrator drains the integration queue with `git apply` of each best checkpoint"
+                  },
+                  {
+                    "text": "Orchestrator runs knowledge maintenance"
+                  },
                   {
                     "text": "The summarizer and librarian lanes run as background consumers.",
                     "kind": "note"
@@ -202,33 +210,38 @@
                 ]
               },
               {
-                "text": "If the epoch is drained, orchestrator runs `runEpochBoundary`",
+                "text": "If the Epoch Is Drained, Run `runEpochBoundary`",
                 "steps": [
                   {
-                    "text": "Settles the epoch"
+                    "text": "Orchestrator settles the epoch and builds the report"
                   },
                   {
-                    "text": "Builds the report, then runs the codex build fixer [AGENT]"
+                    "text": "Orchestrator runs the codex build fixer [AGENT]"
                   },
                   {
-                    "text": "Plans regressions and runs the confirmation bisect"
+                    "text": "Orchestrator plans regressions, runs the confirmation bisect, and runs QA L2"
                   },
                   {
-                    "text": "Runs QA L2"
+                    "text": "Orchestrator syncs upstream and runs policy merge, then the fixer [AGENT]"
                   },
                   {
-                    "text": "Syncs upstream and runs policy merge, then the fixer [AGENT]"
-                  },
-                  {
-                    "text": "Opens a draft PR"
+                    "text": "Orchestrator opens a draft PR"
                   }
                 ]
               },
               {
-                "text": "Otherwise orchestrator admits targets, and worker job consumers claim them"
+                "text": "Otherwise, Admit Targets",
+                "steps": [
+                  {
+                    "text": "Orchestrator admits targets"
+                  },
+                  {
+                    "text": "Worker job consumers claim them"
+                  }
+                ]
               },
               {
-                "text": "Worker job runs one claimed target",
+                "text": "Worker Job Runs One Claimed Target",
                 "steps": [
                   {
                     "text": "Pi worker edits the target [AGENT]"
@@ -237,13 +250,16 @@
                     "text": "Worker job parses the checkpoint note [CALL]"
                   },
                   {
-                    "text": "Worker job computes the diff, runs lint, and applies write-set widening"
-                  },
-                  {
-                    "text": "Worker job validates with objdiff, micro-gates, and QA L1",
+                    "text": "Worker job checks the change in code",
                     "steps": [
                       {
-                        "text": "Deterministic. Stays in code.",
+                        "text": "Worker job computes the diff, runs lint, and applies write-set widening"
+                      },
+                      {
+                        "text": "Worker job validates with objdiff, micro-gates, and QA L1"
+                      },
+                      {
+                        "text": "Both checks are deterministic and stay in code.",
                         "kind": "note"
                       }
                     ]
@@ -252,18 +268,20 @@
                     "text": "Worker job adjudicates `llm_review` advisories [DECISION, new]"
                   },
                   {
-                    "text": "Worker job records the checkpoint"
-                  },
-                  {
-                    "text": "Worker job decides whether to continue [DECISION]"
+                    "text": "Worker job records the checkpoint and decides whether to continue [DECISION]"
                   }
                 ]
               },
               {
-                "text": "Orchestrator enqueues integration and the worker summary [CALL]"
-              },
-              {
-                "text": "Orchestrator checks stop conditions"
+                "text": "Close the Tick",
+                "steps": [
+                  {
+                    "text": "Orchestrator enqueues integration and the worker summary [CALL]"
+                  },
+                  {
+                    "text": "Orchestrator checks stop conditions"
+                  }
+                ]
               }
             ]
           }
@@ -691,7 +709,16 @@
       },
       "text": [
         {
-          "insert": "First Target: llm_review Adjudication"
+          "insert": "First Target: "
+        },
+        {
+          "insert": "llm_review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " Adjudication"
         }
       ],
       "children": []
@@ -823,7 +850,7 @@
       "props": {
         "steps": [
           {
-            "text": "Proposed llm_review adjudication",
+            "text": "Proposed `llm_review` Adjudication",
             "steps": [
               {
                 "text": "Pi worker keeps an advisory and writes a justification [AGENT]"
@@ -832,13 +859,11 @@
                 "text": "`kernel.call` on the checkpoint note extracts `{finding, hunk, justification}` for each kept advisory [CALL]"
               },
               {
-                "text": "`kernel.decide` asks one binary question per finding: is this justified? [DECISION]",
-                "steps": [
-                  {
-                    "text": "Low confidence escalates to a BAML judge that returns a rationale, then to operator review.",
-                    "kind": "note"
-                  }
-                ]
+                "text": "`kernel.decide` asks Pi `classify()` one `bool` question per finding, \"is this justified?\" [DECISION]"
+              },
+              {
+                "text": "Low confidence escalates to a BAML judge that returns a rationale, then to operator review.",
+                "kind": "note"
               },
               {
                 "text": "Worker job feeds the verdicts into `workerCheckpointHardGatesPassed` (`worker-cycle.ts:439`)"
@@ -847,6 +872,153 @@
           }
         ]
       },
+      "children": []
+    },
+    "gc-pre-h": {
+      "id": "gc-pre-h",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Prerequisites"
+        }
+      ],
+      "children": []
+    },
+    "gc-pre-lead": {
+      "id": "gc-pre-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two prerequisites must be met before phase 0 starts. The spike stays one day of work once both are met."
+        }
+      ],
+      "children": []
+    },
+    "gc-pre-1": {
+      "id": "gc-pre-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The Pi upgrade from 0.82.1 to 1.0.4 is merged from its separate branch."
+        }
+      ],
+      "children": [
+        "gc-pre-1a",
+        "gc-pre-1b"
+      ]
+    },
+    "gc-pre-1a": {
+      "id": "gc-pre-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The OpenAI Decisions engine also needs the next Pi release."
+        }
+      ],
+      "children": []
+    },
+    "gc-pre-1b": {
+      "id": "gc-pre-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi's "
+        },
+        {
+          "insert": "openai-decisions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " support is merged on Pi main but is not in the published 1.0.4."
+        }
+      ],
+      "children": []
+    },
+    "gc-pre-2": {
+      "id": "gc-pre-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "TYPESAFE_API_KEY",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "OPENAI_API_KEY",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " are available to the harness."
+        }
+      ],
+      "children": [
+        "gc-pre-2a"
+      ]
+    },
+    "gc-pre-2a": {
+      "id": "gc-pre-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "OpenAI Decisions needs "
+        },
+        {
+          "insert": "OPENAI_API_KEY",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". It rejects the Sign in with ChatGPT credential that the codex-lb route uses."
+        }
+      ],
+      "children": []
+    },
+    "gc-pre-fallback": {
+      "id": "gc-pre-fallback",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "If the next Pi release has not shipped, the spike calls OpenAI Decisions directly with "
+        },
+        {
+          "insert": "client.decisions.create()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from openai-node 7.30.0. This shortcut is for the spike only."
+        }
+      ],
       "children": []
     },
     "gc-17": {
@@ -868,7 +1040,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Spend one day comparing two engines on the "
+          "insert": "Spend one day comparing three engines on the "
         },
         {
           "insert": "llm_review",
@@ -877,7 +1049,7 @@
           }
         },
         {
-          "insert": " question. Use past worker attempts as the test set."
+          "insert": " question. Use labeled past worker attempts as the test set."
         }
       ],
       "children": []
@@ -890,7 +1062,22 @@
       },
       "text": [
         {
-          "insert": "Engine A is a BAML judge running under Bun through codex-lb. This run also completes the existing "
+          "insert": "Engine A is a BAML judge running under Bun through codex-lb."
+        }
+      ],
+      "children": [
+        "gc-19a"
+      ]
+    },
+    "gc-19a": {
+      "id": "gc-19a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "This run also completes the existing "
         },
         {
           "insert": "spikes/baml-bun",
@@ -912,7 +1099,136 @@
       },
       "text": [
         {
-          "insert": "Engine B is Jev, asked binary questions."
+          "insert": "Engine B is Jev through Pi "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with the model alias "
+        },
+        {
+          "insert": "typesafe/jev-1.13.0",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": [
+        "gc-20a"
+      ]
+    },
+    "gc-20a": {
+      "id": "gc-20a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The spike asks "
+        },
+        {
+          "insert": "bool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " questions, and Pi translates each one to a Jev "
+        },
+        {
+          "insert": "noul",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question."
+        }
+      ],
+      "children": []
+    },
+    "gc-20c": {
+      "id": "gc-20c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Engine C is OpenAI Decisions through Pi "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with the model alias "
+        },
+        {
+          "insert": "openai/gpt-6-luna",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": [
+        "gc-20c-a",
+        "gc-20c-b"
+      ]
+    },
+    "gc-20c-a": {
+      "id": "gc-20c-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi translates each "
+        },
+        {
+          "insert": "bool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question to a Decisions "
+        },
+        {
+          "insert": "predicate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question."
+        }
+      ],
+      "children": []
+    },
+    "gc-20c-b": {
+      "id": "gc-20c-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "OpenAI shipped Decisions as a public beta on 2026-10-06."
         }
       ],
       "children": []
@@ -925,7 +1241,22 @@
       },
       "text": [
         {
-          "insert": "Measure agreement, confidence spread, latency, and cost for each engine."
+          "insert": "Measure agreement with the labels, probability spread, latency, and cost for each engine."
+        }
+      ],
+      "children": [
+        "gc-21a"
+      ]
+    },
+    "gc-21a": {
+      "id": "gc-21a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Jev lists $0.042 per million tokens. OpenAI Decisions lists $0.10 per million input tokens and charges nothing for output."
         }
       ],
       "children": []
@@ -950,7 +1281,9 @@
           "insert": "."
         }
       ],
-      "children": []
+      "children": [
+        "gc-23"
+      ]
     },
     "gc-23": {
       "id": "gc-23",
@@ -1024,10 +1357,28 @@
         ],
         "rows": [
           [
-            "0. Spike",
+            "0. Prerequisites and spike",
             [
               {
-                "insert": "BAML judge versus Jev on "
+                "insert": "Pi 1.0.4 merged, and "
+              },
+              {
+                "insert": "TYPESAFE_API_KEY",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": "OPENAI_API_KEY",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " available. Then the BAML judge, Jev, and OpenAI Decisions compared on "
               },
               {
                 "insert": "llm_review",
@@ -1045,7 +1396,7 @@
                 }
               }
             ],
-            "One day"
+            "One day once the prerequisites are met"
           ],
           [
             [
@@ -1101,7 +1452,16 @@
                 }
               },
               {
-                "insert": " in the kernel. "
+                "insert": " in the kernel, built on Pi "
+              },
+              {
+                "insert": "classify()",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". "
               },
               {
                 "insert": "llm_review",

@@ -37,7 +37,9 @@
         "mn-page-3",
         "mn-page-4",
         "mn-page-5",
-        "mn-page-6"
+        "mn-page-6",
+        "mn-pages-pi-lead",
+        "mn-page-7"
       ]
     },
     "mn-intro": {
@@ -55,7 +57,7 @@
           }
         },
         {
-          "insert": " runs multi-turn work with tools. "
+          "insert": " runs multi-turn work with tools, and "
         },
         {
           "insert": "kernel.call",
@@ -73,7 +75,7 @@
           }
         },
         {
-          "insert": " picks a branch and reports how sure it is. Harness code chains them. The kernel records every node and does not route between them."
+          "insert": " asks closed questions and returns probabilities, a confidence, and where the confidence came from. Harness code chains the nodes, and the kernel records each node without routing between them."
         }
       ],
       "children": []
@@ -93,7 +95,7 @@
           }
         },
         {
-          "insert": " exists today. "
+          "insert": " exists today, and "
         },
         {
           "insert": "kernel.call",
@@ -120,7 +122,16 @@
           }
         },
         {
-          "insert": " do not."
+          "insert": " do not. Jev is usable now through early access. The OpenAI Decisions API is a public beta that waits on the next Pi release and an "
+        },
+        {
+          "insert": "OPENAI_API_KEY",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []
@@ -218,19 +229,41 @@
             "Engine",
             "Pi",
             "BAML, or pi-ai for plain text",
-            "Jev, OpenAI Decisions API, or a BAML enum fallback"
+            [
+              {
+                "insert": "A Pi "
+              },
+              {
+                "insert": "classify()",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " model, such as Jev or "
+              },
+              {
+                "insert": "gpt-6-luna",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", or a BAML enum fallback"
+              }
+            ]
           ],
           [
             "Output",
             "Text plus side effects",
             "A typed object",
-            "A choice with per-option probabilities, a confidence, and where the confidence came from"
+            "Per-question answers with probabilities, a confidence, and where the confidence came from"
           ],
           [
             "Speed",
             "Minutes",
             "Seconds",
-            "About 100 to 150 ms"
+            "About 100 to 300 ms"
           ],
           [
             "Session kind",
@@ -282,7 +315,16 @@
       "props": {},
       "text": [
         {
-          "insert": "A call sits between the agent and the decision. Jev accepts at most 32k tokens of state and gets less accurate on large, noisy input. A raw agent transcript is both. So a call first extracts a compact typed object from the transcript, and the decision judges that object."
+          "insert": "A call first extracts a compact typed object from the worker transcript, and the decision judges that object. Jev needs this step, because it accepts at most 32k tokens of state and loses accuracy on noisy input. OpenAI "
+        },
+        {
+          "insert": "gpt-6-luna",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " accepts 922K tokens and 128 images, so size alone does not force the step on that engine. The step stays for every engine, because a compact object is more accurate, costs less, and keeps the decision portable to Jev."
         }
       ],
       "children": []
@@ -293,57 +335,73 @@
       "props": {
         "steps": [
           {
-            "text": "Proposed worker step",
+            "text": "Proposed Worker Step",
             "steps": [
               {
-                "text": "Harness calls `spawnAgent` for the worker",
+                "text": "Run the Worker",
                 "steps": [
                   {
-                    "text": "Kernel records the agent run (`agent_run_start`, `agent_run_end`) in a session of kind `pi`",
+                    "text": "Harness calls `spawnAgent` for the worker"
+                  },
+                  {
+                    "text": "Kernel records `agent_run_start` and `agent_run_end` in a session of kind `pi`",
                     "trace": true
                   }
                 ]
               },
               {
-                "text": "Harness calls `kernel.call` with the worker transcript",
+                "text": "Extract a Typed Object",
                 "steps": [
                   {
-                    "text": "Kernel records the call (`call_start`, `call_end`, engine `baml`) with trigger `post-run` and `parentRunId` set to the worker run",
+                    "text": "Harness calls `kernel.call` with the worker transcript"
+                  },
+                  {
+                    "text": "Kernel records `call_start` and `call_end` with engine `baml` and trigger `post-run`",
                     "trace": true
                   },
                   {
-                    "text": "Result: a compact typed object, well under the 32k token limit.",
+                    "text": "`parentRunId` points at the worker run.",
+                    "kind": "note"
+                  },
+                  {
+                    "text": "The result is a compact typed object, well under the 32k token limit of Jev.",
                     "kind": "note"
                   }
                 ]
               },
               {
-                "text": "Harness calls `kernel.decide` with the extracted object",
+                "text": "Decide on the Object",
                 "steps": [
                   {
-                    "text": "Kernel records the decision (`call_start`, `decision_made`, `call_end`, engine `jev`) with trigger `judge`",
+                    "text": "Harness calls `kernel.decide` with the extracted object"
+                  },
+                  {
+                    "text": "Kernel records `call_start`, `decision_made`, and `call_end` with engine `jev` and trigger `judge`",
                     "trace": true
                   },
                   {
-                    "text": "Result: a choice, per-option probabilities, a confidence, and the confidence source.",
+                    "text": "The result holds each answer, its probabilities, a confidence, and the confidence source.",
                     "kind": "note"
                   }
                 ]
               },
               {
-                "text": "Harness code branches on the choice",
+                "text": "Branch in Harness Code",
                 "steps": [
                   {
-                    "text": "The kernel takes no part in this step. It only records the next node the harness starts.",
+                    "text": "Harness code branches on the answer"
+                  },
+                  {
+                    "text": "The kernel only records the next node that the harness starts.",
                     "kind": "note"
                   }
                 ]
               },
               {
-                "text": "Harness escalates a low-confidence decision",
+                "text": "Escalate an Abstained Decision",
                 "steps": [
                   {
-                    "text": "Harness calls `kernel.call` on a BAML judge that returns a verdict with a rationale"
+                    "text": "Harness calls `kernel.call` on a BAML judge that returns a verdict and a rationale"
                   },
                   {
                     "text": "Harness hands the case to a human when the BAML judge is also unsure"
@@ -375,7 +433,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Five changes serve all three node types. Each one extends an existing structure instead of adding a new one."
+          "insert": "Five changes serve all three node types. Branching stays in harness code, because the kernel has no graph or router and adding one is out of scope for this spec."
         }
       ],
       "children": []
@@ -385,6 +443,23 @@
       "type": "list-item",
       "props": {
         "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Extend the identity rows instead of adding new tables."
+        }
+      ],
+      "children": [
+        "mn-change-1a",
+        "mn-change-1b",
+        "mn-change-1c"
+      ]
+    },
+    "mn-change-1a": {
+      "id": "mn-change-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
       },
       "text": [
         {
@@ -429,69 +504,11 @@
       ],
       "children": []
     },
-    "mn-change-2": {
-      "id": "mn-change-2",
+    "mn-change-1b": {
+      "id": "mn-change-1b",
       "type": "list-item",
       "props": {
-        "ordered": true
-      },
-      "text": [
-        {
-          "insert": "Emit "
-        },
-        {
-          "insert": "call_start",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " and "
-        },
-        {
-          "insert": "call_end",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " for calls and decisions, with "
-        },
-        {
-          "insert": "engine: \"baml\" | \"pi-ai\" | \"jev\" | \"openai-decisions\"",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " in the payload. These names replace the earlier "
-        },
-        {
-          "insert": "baml_call_*",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " names. A "
-        },
-        {
-          "insert": "decision_made",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " point event holds the verdict, so the viewer and doctor can query it."
-        }
-      ],
-      "children": []
-    },
-    "mn-change-3": {
-      "id": "mn-change-3",
-      "type": "list-item",
-      "props": {
-        "ordered": true
+        "ordered": false
       },
       "text": [
         {
@@ -536,7 +553,29 @@
           }
         },
         {
-          "insert": " (lines 13 to 21). It is a closed TypeScript union with no SQL CHECK, so the change is a type edit plus callers. Calls and decisions link to the run they describe through "
+          "insert": " (lines 13 to 21). "
+        },
+        {
+          "insert": "RunTrigger",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is a closed TypeScript union with no SQL CHECK, so the change is a type edit plus its callers."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-1c": {
+      "id": "mn-change-1c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Link each call and decision to the run it describes through "
         },
         {
           "insert": "parentRunId",
@@ -550,15 +589,218 @@
       ],
       "children": []
     },
-    "mn-change-4": {
-      "id": "mn-change-4",
+    "mn-change-2": {
+      "id": "mn-change-2",
       "type": "list-item",
       "props": {
         "ordered": true
       },
       "text": [
         {
-          "insert": "Teach the viewer the new kinds. Register "
+          "insert": "Emit "
+        },
+        {
+          "insert": "call_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "call_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for calls and decisions."
+        }
+      ],
+      "children": [
+        "mn-change-2a",
+        "mn-change-2b",
+        "mn-change-2c",
+        "mn-change-2d"
+      ]
+    },
+    "mn-change-2a": {
+      "id": "mn-change-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "These names replace the earlier "
+        },
+        {
+          "insert": "baml_call_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " names."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-2b": {
+      "id": "mn-change-2b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The payload carries "
+        },
+        {
+          "insert": "engine: \"baml\" | \"pi-ai\" | \"jev\" | \"openai-decisions\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Any other Pi classifier, such as Clef or a local llama.cpp model, records "
+        },
+        {
+          "insert": "pi-ai",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so the union grows only for engines with tuned thresholds."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-2c": {
+      "id": "mn-change-2c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Decision payloads add "
+        },
+        {
+          "insert": "provider",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "model",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "api",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "model",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the exact id that Pi's "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " returns, and "
+        },
+        {
+          "insert": "api",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is the Pi API id, such as "
+        },
+        {
+          "insert": "openai-decisions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-2d": {
+      "id": "mn-change-2d",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "decision_made",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " point event holds the verdict, so the viewer and doctor can query it."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-3": {
+      "id": "mn-change-3",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Teach the viewer the new kinds."
+        }
+      ],
+      "children": [
+        "mn-change-3a",
+        "mn-change-3b"
+      ]
+    },
+    "mn-change-3a": {
+      "id": "mn-change-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Register "
         },
         {
           "insert": "call_*",
@@ -622,7 +864,20 @@
           }
         },
         {
-          "insert": ", line 236). Branch "
+          "insert": ", line 236)."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-3b": {
+      "id": "mn-change-3b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Branch "
         },
         {
           "insert": "toAgentSpan",
@@ -668,15 +923,15 @@
       ],
       "children": []
     },
-    "mn-change-5": {
-      "id": "mn-change-5",
+    "mn-change-4": {
+      "id": "mn-change-4",
       "type": "list-item",
       "props": {
         "ordered": true
       },
       "text": [
         {
-          "insert": "Keep branching in harness code and make its checks visible. The kernel has no graph or router today. Adding one is a large scope jump and is out of scope for this spec. "
+          "insert": "Add "
         },
         {
           "insert": "kernel.step(name, opts, fn)",
@@ -685,7 +940,23 @@
           }
         },
         {
-          "insert": " records a deterministic code step as a span ("
+          "insert": " to record a deterministic code step as a span on its parent run."
+        }
+      ],
+      "children": [
+        "mn-change-4a",
+        "mn-change-4b"
+      ]
+    },
+    "mn-change-4a": {
+      "id": "mn-change-4a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The span is a "
         },
         {
           "insert": "step_start",
@@ -694,7 +965,7 @@
           }
         },
         {
-          "insert": ", "
+          "insert": " and "
         },
         {
           "insert": "step_end",
@@ -703,7 +974,160 @@
           }
         },
         {
-          "insert": ") on its parent run. It writes no session or run rows, so the code checks between model nodes show in the trace."
+          "insert": " pair, and the step writes no session or run rows."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-4b": {
+      "id": "mn-change-4b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The trace then shows the code checks between model nodes."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-5": {
+      "id": "mn-change-5",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Add "
+        },
+        {
+          "insert": "kernel.gate(name, checks)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to group the checks behind one verdict into one span."
+        }
+      ],
+      "children": [
+        "mn-change-5a",
+        "mn-change-5b",
+        "mn-change-5c"
+      ]
+    },
+    "mn-change-5a": {
+      "id": "mn-change-5a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Each check is either a "
+        },
+        {
+          "insert": "kernel.step",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " code check or a "
+        },
+        {
+          "insert": "bool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question asked through "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-5b": {
+      "id": "mn-change-5b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The gate returns "
+        },
+        {
+          "insert": "pass",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "fail",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or "
+        },
+        {
+          "insert": "abstain",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", plus each check's result."
+        }
+      ],
+      "children": []
+    },
+    "mn-change-5c": {
+      "id": "mn-change-5c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "choice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question is a route, not a gate. "
+        },
+        {
+          "insert": "Decision Nodes",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/20-decision-nodes"
+            }
+          }
+        },
+        {
+          "insert": " defines the gate and its thresholds."
         }
       ],
       "children": []
@@ -802,7 +1226,68 @@
       },
       "text": [
         {
-          "insert": "Jev's accuracy and calibration claims come only from the vendor. Test confidence thresholds against this repo's own past runs before trusting them."
+          "insert": "Neither native engine has proven calibration."
+        }
+      ],
+      "children": [
+        "mn-risk-3a",
+        "mn-risk-3b",
+        "mn-risk-3c"
+      ]
+    },
+    "mn-risk-3a": {
+      "id": "mn-risk-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Jev's accuracy and calibration claims come only from TypeSafe, which states that confidence is not the probability of being correct."
+        }
+      ],
+      "children": []
+    },
+    "mn-risk-3b": {
+      "id": "mn-risk-3b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "OpenAI makes no calibration claim for "
+        },
+        {
+          "insert": "gpt-6-luna",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and its "
+        },
+        {
+          "insert": "confidence",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " field has no published definition."
+        }
+      ],
+      "children": []
+    },
+    "mn-risk-3c": {
+      "id": "mn-risk-3c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Test thresholds against this repo's own labeled past runs before trusting either engine."
         }
       ],
       "children": []
@@ -815,7 +1300,109 @@
       },
       "text": [
         {
-          "insert": "Neither Jev nor the OpenAI Decisions API goes through codex-lb. Each needs its own route and credentials."
+          "insert": "Neither native engine can use the codex-lb credentials."
+        }
+      ],
+      "children": [
+        "mn-risk-4a",
+        "mn-risk-4b",
+        "mn-risk-4c",
+        "mn-risk-4d"
+      ]
+    },
+    "mn-risk-4a": {
+      "id": "mn-risk-4a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "codex-lb is a local proxy to the ChatGPT Codex backend that uses Sign in with ChatGPT. The Decisions API rejects those tokens with 403 "
+        },
+        {
+          "insert": "subscription_sharing_route_not_supported",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "mn-risk-4b": {
+      "id": "mn-risk-4b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The Decisions API needs a platform API key in "
+        },
+        {
+          "insert": "OPENAI_API_KEY",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and none is configured today."
+        }
+      ],
+      "children": []
+    },
+    "mn-risk-4c": {
+      "id": "mn-risk-4c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Jev needs "
+        },
+        {
+          "insert": "TYPESAFE_API_KEY",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or an OpenRouter or Cloudflare key."
+        }
+      ],
+      "children": []
+    },
+    "mn-risk-4d": {
+      "id": "mn-risk-4d",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi's model runtime reads these keys from environment variables or "
+        },
+        {
+          "insert": "auth.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", not from BAML's "
+        },
+        {
+          "insert": "ClientRegistry",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []
@@ -839,7 +1426,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The first three pages define the node types and their adoption. The last three follow one worker job through code, trace, and viewer."
+          "insert": "The first three pages define the node types and their adoption. The next three follow one worker job through code, trace, and viewer."
         }
       ],
       "children": []
@@ -999,6 +1586,39 @@
         },
         {
           "insert": " mocks up the viewer for that job, with decision and call detail cards."
+        }
+      ],
+      "children": []
+    },
+    "mn-pages-pi-lead": {
+      "id": "mn-pages-pi-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The last page checks the spec against the Pi 1.0 release."
+        }
+      ],
+      "children": []
+    },
+    "mn-page-7": {
+      "id": "mn-page-7",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi 1.0 Alignment",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/70-pi-alignment"
+            }
+          }
+        },
+        {
+          "insert": " records which Pi 1.0 pieces the kernel adopts or skips, and what the 1.0.4 upgrade touches."
         }
       ],
       "children": []

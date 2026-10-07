@@ -1,0 +1,3600 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-644e4c7048a1736e4b88be92fa17ffa9",
+  "title": "Pi 1.0 Alignment",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "pa-intro",
+        "pa-status",
+        "pa-h-adds",
+        "pa-adds-lead",
+        "pa-adds-table",
+        "pa-adds-notes-lead",
+        "pa-add-1",
+        "pa-add-2",
+        "pa-add-3",
+        "pa-add-4",
+        "pa-add-5",
+        "pa-h-durable",
+        "pa-durable-lead",
+        "pa-durable-1",
+        "pa-durable-2",
+        "pa-durable-3",
+        "pa-durable-4",
+        "pa-h-borrow",
+        "pa-borrow-lead",
+        "pa-borrow-1",
+        "pa-borrow-2",
+        "pa-borrow-3",
+        "pa-h-openai",
+        "pa-openai-lead",
+        "pa-openai-1",
+        "pa-openai-2",
+        "pa-openai-3",
+        "pa-openai-4",
+        "pa-openai-5",
+        "pa-h-codemode",
+        "pa-codemode-lead",
+        "pa-codemode-1",
+        "pa-codemode-2",
+        "pa-codemode-3",
+        "pa-codemode-4",
+        "pa-tree-lead",
+        "pa-tree",
+        "pa-h-gates",
+        "pa-gates-lead",
+        "pa-gate-1",
+        "pa-gate-2",
+        "pa-gate-3",
+        "pa-gate-4",
+        "pa-gates-note",
+        "pa-h-upgrade",
+        "pa-upgrade-lead",
+        "pa-upgrade-table",
+        "pa-upgrade-cache",
+        "pa-h-behavior",
+        "pa-behavior-lead",
+        "pa-behavior-1",
+        "pa-behavior-2",
+        "pa-behavior-3",
+        "pa-behavior-4",
+        "pa-h-hooks",
+        "pa-hooks-lead",
+        "pa-hooks-1",
+        "pa-hooks-2",
+        "pa-hooks-3",
+        "pa-hooks-4",
+        "pa-h-consumers",
+        "pa-consumers-lead",
+        "pa-consumers-1",
+        "pa-consumers-2",
+        "pa-h-order",
+        "pa-order-lead",
+        "pa-order-1",
+        "pa-order-2",
+        "pa-order-3",
+        "pa-order-4",
+        "pa-order-5"
+      ]
+    },
+    "pa-intro": {
+      "id": "pa-intro",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Pi is the agent SDK that the kernel wraps, published as the "
+        },
+        {
+          "insert": "@earendil-works/pi-*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " packages. Pi 1.0 shipped on 2026-10-01. This page of the "
+        },
+        {
+          "insert": "Model Nodes",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes"
+            }
+          }
+        },
+        {
+          "insert": " spec records which new Pi pieces the kernel adopts and which it skips. It also records how each piece lands in the kernel trace and what the 0.82.1 to 1.0.4 upgrade touches."
+        }
+      ],
+      "children": []
+    },
+    "pa-status": {
+      "id": "pa-status",
+      "type": "callout",
+      "props": {},
+      "text": [
+        {
+          "insert": "Decision record, 2026-10-07. Pi 1.0.4 is the latest release, and nothing here is built yet."
+        }
+      ],
+      "children": []
+    },
+    "pa-h-adds": {
+      "id": "pa-h-adds",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "What Pi 1.0 Adds and What We Do With It"
+        }
+      ],
+      "children": []
+    },
+    "pa-adds-lead": {
+      "id": "pa-adds-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Five Pi 1.0 pieces matter to the kernel. Each one gets one kernel decision."
+        }
+      ],
+      "children": []
+    },
+    "pa-adds-table": {
+      "id": "pa-adds-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Pi piece",
+          "What it is",
+          "Kernel decision"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "pi-ai",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " "
+              },
+              {
+                "insert": "classify()",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", since 0.99"
+              }
+            ],
+            [
+              {
+                "insert": "Classifier models answer "
+              },
+              {
+                "insert": "bool",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "choice",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", or "
+              },
+              {
+                "insert": "score",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " questions about JSON state, with probabilities and usage"
+              }
+            ],
+            [
+              {
+                "insert": "Adopt",
+                "attributes": {
+                  "bold": true
+                }
+              },
+              {
+                "insert": " as the engine of "
+              },
+              {
+                "insert": "kernel.decide",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "pi-codemode",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "The model writes JavaScript that runs in a QuickJS sandbox. Scripts call tools as "
+              },
+              {
+                "insert": "tools.<name>(args)",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and only script output reaches the model"
+              }
+            ],
+            [
+              {
+                "insert": "Later",
+                "attributes": {
+                  "bold": true
+                }
+              },
+              {
+                "insert": ", as an opt-in tool profile"
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "pi-durable",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "A complete replacement harness with durable tasks and crash resume",
+            [
+              {
+                "insert": "Skip for now",
+                "attributes": {
+                  "bold": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "pi-telemetry",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "A vendor-neutral span contract with typed schemas and no exporter",
+            [
+              {
+                "insert": "Copy the shape",
+                "attributes": {
+                  "bold": true
+                }
+              },
+              {
+                "insert": " for "
+              },
+              {
+                "insert": "kernel.step",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": "kernel.gate",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "pi-agent-core",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " 1.0"
+              }
+            ],
+            [
+              {
+                "insert": "Holds only "
+              },
+              {
+                "insert": "Agent",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and the loop. The 1.0 release removed its old harness, sessions, durable runtime, and telemetry schemas"
+              }
+            ],
+            [
+              {
+                "insert": "No impact",
+                "attributes": {
+                  "bold": true
+                }
+              }
+            ]
+          ]
+        ],
+        "title": "Pi 1.0 pieces and kernel decisions"
+      },
+      "children": []
+    },
+    "pa-adds-notes-lead": {
+      "id": "pa-adds-notes-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Each decision has details that do not fit in a table cell."
+        }
+      ],
+      "children": []
+    },
+    "pa-add-1": {
+      "id": "pa-add-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "pi-ai classify()",
+          "attributes": {
+            "bold": true,
+            "code": true
+          }
+        }
+      ],
+      "children": [
+        "pa-add-1a",
+        "pa-add-1b",
+        "pa-add-1c"
+      ]
+    },
+    "pa-add-1a": {
+      "id": "pa-add-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi ships "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " providers for TypeSafe Jev, Cloudflare Clef, and local llama.cpp."
+        }
+      ],
+      "children": []
+    },
+    "pa-add-1b": {
+      "id": "pa-add-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The OpenAI Decisions provider for "
+        },
+        {
+          "insert": "gpt-6-luna",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", API id "
+        },
+        {
+          "insert": "openai-decisions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", is merged on Pi main. It ships in the release after 1.0.4."
+        }
+      ],
+      "children": []
+    },
+    "pa-add-1c": {
+      "id": "pa-add-1c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The kernel keeps thresholds, abstain and escalation, the decision span, and the run link."
+        }
+      ],
+      "children": []
+    },
+    "pa-add-2": {
+      "id": "pa-add-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "pi-codemode",
+          "attributes": {
+            "bold": true,
+            "code": true
+          }
+        }
+      ],
+      "children": [
+        "pa-add-2a",
+        "pa-add-2b"
+      ]
+    },
+    "pa-add-2a": {
+      "id": "pa-add-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The trace first needs nested tool spans. The Codemode in the Trace section gives that fix."
+        }
+      ],
+      "children": []
+    },
+    "pa-add-2b": {
+      "id": "pa-add-2b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "After that fix, the kernel offers codemode as an opt-in tool profile."
+        }
+      ],
+      "children": []
+    },
+    "pa-add-3": {
+      "id": "pa-add-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "pi-durable",
+          "attributes": {
+            "bold": true,
+            "code": true
+          }
+        }
+      ],
+      "children": [
+        "pa-add-3a",
+        "pa-add-3b",
+        "pa-add-3c"
+      ]
+    },
+    "pa-add-3a": {
+      "id": "pa-add-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi labels the package \"Experimental. The API changes without notice.\""
+        }
+      ],
+      "children": []
+    },
+    "pa-add-3b": {
+      "id": "pa-add-3b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "It provides conversations, durable tasks with checkpoints, owned subagents, "
+        },
+        {
+          "insert": "failFast",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "allSettled",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " joins, crash resume, and SQLite or JSONL storage."
+        }
+      ],
+      "children": []
+    },
+    "pa-add-3c": {
+      "id": "pa-add-3c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The Why Not "
+        },
+        {
+          "insert": "pi-durable",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " section gives the reasons to skip it."
+        }
+      ],
+      "children": []
+    },
+    "pa-add-4": {
+      "id": "pa-add-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "pi-telemetry",
+          "attributes": {
+            "bold": true,
+            "code": true
+          }
+        }
+      ],
+      "children": [
+        "pa-add-4a",
+        "pa-add-4b",
+        "pa-add-4c"
+      ]
+    },
+    "pa-add-4a": {
+      "id": "pa-add-4a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A span opens with "
+        },
+        {
+          "insert": "startSpan({name, attributes}, async (span) => …)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and ends when the callback settles."
+        }
+      ],
+      "children": []
+    },
+    "pa-add-4b": {
+      "id": "pa-add-4b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi recommends no prompts or outputs in span attributes."
+        }
+      ],
+      "children": []
+    },
+    "pa-add-4c": {
+      "id": "pa-add-4c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Later, the kernel trace writer becomes a "
+        },
+        {
+          "insert": "TelemetryContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " adapter, so spans that Pi emits land in "
+        },
+        {
+          "insert": "trace.db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-add-5": {
+      "id": "pa-add-5",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "pi-agent-core",
+          "attributes": {
+            "bold": true,
+            "code": true
+          }
+        }
+      ],
+      "children": [
+        "pa-add-5a"
+      ]
+    },
+    "pa-add-5a": {
+      "id": "pa-add-5a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The kernel uses "
+        },
+        {
+          "insert": "AgentSession",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from "
+        },
+        {
+          "insert": "pi-coding-agent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and never imports "
+        },
+        {
+          "insert": "pi-agent-core",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " directly."
+        }
+      ],
+      "children": []
+    },
+    "pa-h-durable": {
+      "id": "pa-h-durable",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Why Not "
+        },
+        {
+          "insert": "pi-durable",
+          "attributes": {
+            "code": true
+          }
+        }
+      ],
+      "children": []
+    },
+    "pa-durable-lead": {
+      "id": "pa-durable-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel skips "
+        },
+        {
+          "insert": "pi-durable",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for now, for four reasons. Revisit it when Pi's coding agent moves onto it."
+        }
+      ],
+      "children": []
+    },
+    "pa-durable-1": {
+      "id": "pa-durable-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Too new to depend on",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-durable-1a",
+        "pa-durable-1b",
+        "pa-durable-1c"
+      ]
+    },
+    "pa-durable-1a": {
+      "id": "pa-durable-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi labels it experimental, and it was 2 days old when we evaluated it."
+        }
+      ],
+      "children": []
+    },
+    "pa-durable-1b": {
+      "id": "pa-durable-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "It has no real consumer. Pi's own coding agent does not run on it, and Pi's plan lists that move as later work."
+        }
+      ],
+      "children": []
+    },
+    "pa-durable-1c": {
+      "id": "pa-durable-1c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Most of its examples use a fake model."
+        }
+      ],
+      "children": []
+    },
+    "pa-durable-2": {
+      "id": "pa-durable-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A wholesale replacement for ",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": "AgentSession",
+          "attributes": {
+            "bold": true,
+            "code": true
+          }
+        }
+      ],
+      "children": [
+        "pa-durable-2a",
+        "pa-durable-2b"
+      ]
+    },
+    "pa-durable-2a": {
+      "id": "pa-durable-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The kernel would lose JSONL "
+        },
+        {
+          "insert": "backfill",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/20-kernel/50-transcript-recovery"
+            }
+          }
+        },
+        {
+          "insert": " and Pi's resource loader."
+        }
+      ],
+      "children": []
+    },
+    "pa-durable-2b": {
+      "id": "pa-durable-2b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The kernel would also lose its "
+        },
+        {
+          "insert": "extension hooks",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/20-kernel/10-spawn-pipeline"
+            }
+          }
+        },
+        {
+          "insert": ", such as the domain guard and the state extension."
+        }
+      ],
+      "children": []
+    },
+    "pa-durable-3": {
+      "id": "pa-durable-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "No image reads",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-durable-3a"
+      ]
+    },
+    "pa-durable-3a": {
+      "id": "pa-durable-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Its built-in tools cannot read images."
+        }
+      ],
+      "children": []
+    },
+    "pa-durable-4": {
+      "id": "pa-durable-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "No route into the kernel trace",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-durable-4a",
+        "pa-durable-4b",
+        "pa-durable-4c",
+        "pa-durable-4d"
+      ]
+    },
+    "pa-durable-4a": {
+      "id": "pa-durable-4a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Its stream options have no "
+        },
+        {
+          "insert": "telemetryContext",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-durable-4b": {
+      "id": "pa-durable-4b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Its spec lists a \"semantic event journal\" as a non-goal."
+        }
+      ],
+      "children": []
+    },
+    "pa-durable-4c": {
+      "id": "pa-durable-4c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Its watch streams collapse once more than 100 frames are pending."
+        }
+      ],
+      "children": []
+    },
+    "pa-durable-4d": {
+      "id": "pa-durable-4d",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The kernel trace DB stays the record either way."
+        }
+      ],
+      "children": []
+    },
+    "pa-h-borrow": {
+      "id": "pa-h-borrow",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Ideas We Borrow"
+        }
+      ],
+      "children": []
+    },
+    "pa-borrow-lead": {
+      "id": "pa-borrow-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Three "
+        },
+        {
+          "insert": "pi-durable",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " ideas still fit the kernel."
+        }
+      ],
+      "children": []
+    },
+    "pa-borrow-1": {
+      "id": "pa-borrow-1",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Write intent-first records."
+        }
+      ],
+      "children": [
+        "pa-borrow-1a",
+        "pa-borrow-1b"
+      ]
+    },
+    "pa-borrow-1a": {
+      "id": "pa-borrow-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Write "
+        },
+        {
+          "insert": "call_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or the decision start before the model request, and write the outcome after it."
+        }
+      ],
+      "children": []
+    },
+    "pa-borrow-1b": {
+      "id": "pa-borrow-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Give each record an idempotency key."
+        }
+      ],
+      "children": []
+    },
+    "pa-borrow-2": {
+      "id": "pa-borrow-2",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Accept a "
+        },
+        {
+          "insert": "requestId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on kernel entry points."
+        }
+      ],
+      "children": [
+        "pa-borrow-2a"
+      ]
+    },
+    "pa-borrow-2a": {
+      "id": "pa-borrow-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A harness retry after a crash then does not run the same work twice."
+        }
+      ],
+      "children": []
+    },
+    "pa-borrow-3": {
+      "id": "pa-borrow-3",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Copy the "
+        },
+        {
+          "insert": "pi-durable",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " join rules if a join helper such as the removed "
+        },
+        {
+          "insert": "GroupJoinManager",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " returns."
+        }
+      ],
+      "children": [
+        "pa-borrow-3a",
+        "pa-borrow-3b",
+        "pa-borrow-3c"
+      ]
+    },
+    "pa-borrow-3a": {
+      "id": "pa-borrow-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Each join has an owning task."
+        }
+      ],
+      "children": []
+    },
+    "pa-borrow-3b": {
+      "id": "pa-borrow-3b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Each join is either "
+        },
+        {
+          "insert": "failFast",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "allSettled",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-borrow-3c": {
+      "id": "pa-borrow-3c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Abort runs from the bottom of the task tree up."
+        }
+      ],
+      "children": []
+    },
+    "pa-h-openai": {
+      "id": "pa-h-openai",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "OpenAI Decisions Through Pi"
+        }
+      ],
+      "children": []
+    },
+    "pa-openai-lead": {
+      "id": "pa-openai-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Pi reaches the OpenAI Decisions API through the "
+        },
+        {
+          "insert": "openai-decisions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " provider for "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
+        },
+        {
+          "insert": "Decision Nodes",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/20-decision-nodes"
+            }
+          }
+        },
+        {
+          "insert": " defines the decision contract that this engine serves."
+        }
+      ],
+      "children": []
+    },
+    "pa-openai-1": {
+      "id": "pa-openai-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Availability",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-openai-1a",
+        "pa-openai-1b"
+      ]
+    },
+    "pa-openai-1a": {
+      "id": "pa-openai-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The public beta opened on 2026-10-06 at "
+        },
+        {
+          "insert": "POST /v1/decisions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-openai-1b": {
+      "id": "pa-openai-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The only model is "
+        },
+        {
+          "insert": "gpt-6-luna",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", with no pinned snapshot."
+        }
+      ],
+      "children": []
+    },
+    "pa-openai-2": {
+      "id": "pa-openai-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pricing and limits",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-openai-2a",
+        "pa-openai-2b",
+        "pa-openai-2c"
+      ]
+    },
+    "pa-openai-2a": {
+      "id": "pa-openai-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Input costs $0.10 per 1M tokens, and output is free."
+        }
+      ],
+      "children": []
+    },
+    "pa-openai-2b": {
+      "id": "pa-openai-2b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A request above 272K input tokens costs 2x."
+        }
+      ],
+      "children": []
+    },
+    "pa-openai-2c": {
+      "id": "pa-openai-2c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A request takes up to 922K input tokens and up to 128 images."
+        }
+      ],
+      "children": []
+    },
+    "pa-openai-3": {
+      "id": "pa-openai-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Question mapping",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-openai-3a"
+      ]
+    },
+    "pa-openai-3a": {
+      "id": "pa-openai-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi maps its "
+        },
+        {
+          "insert": "bool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question type to the OpenAI "
+        },
+        {
+          "insert": "predicate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " type."
+        }
+      ],
+      "children": []
+    },
+    "pa-openai-4": {
+      "id": "pa-openai-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Credentials",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-openai-4a",
+        "pa-openai-4b"
+      ]
+    },
+    "pa-openai-4a": {
+      "id": "pa-openai-4a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The provider needs "
+        },
+        {
+          "insert": "OPENAI_API_KEY",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and no API key is configured today."
+        }
+      ],
+      "children": []
+    },
+    "pa-openai-4b": {
+      "id": "pa-openai-4b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "codex-lb",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " route uses Sign in with ChatGPT. OpenAI rejects that route with 403 "
+        },
+        {
+          "insert": "subscription_sharing_route_not_supported",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-openai-5": {
+      "id": "pa-openai-5",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Gaps to raise with Pi",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-openai-5a",
+        "pa-openai-5b",
+        "pa-openai-5c"
+      ]
+    },
+    "pa-openai-5a": {
+      "id": "pa-openai-5a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "OpenAI returns a refusal per question, but Pi fails the whole result."
+        }
+      ],
+      "children": []
+    },
+    "pa-openai-5b": {
+      "id": "pa-openai-5b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi exposes only the expected score, not the OpenAI probability for each level."
+        }
+      ],
+      "children": []
+    },
+    "pa-openai-5c": {
+      "id": "pa-openai-5c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "OpenAI makes no calibration claim, so thresholds come from our own labeled runs."
+        }
+      ],
+      "children": []
+    },
+    "pa-h-codemode": {
+      "id": "pa-h-codemode",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Codemode in the Trace"
+        }
+      ],
+      "children": []
+    },
+    "pa-codemode-lead": {
+      "id": "pa-codemode-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A codemode script shows in the kernel trace as one opaque tool call today. Pi emits events for the tool calls inside the script, but the kernel does not read them yet."
+        }
+      ],
+      "children": []
+    },
+    "pa-codemode-1": {
+      "id": "pa-codemode-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "How Pi runs nested calls",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-codemode-1a",
+        "pa-codemode-1b",
+        "pa-codemode-1c"
+      ]
+    },
+    "pa-codemode-1a": {
+      "id": "pa-codemode-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi runs each tool-to-tool call through "
+        },
+        {
+          "insert": "ctx.executeTool()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-codemode-1b": {
+      "id": "pa-codemode-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The call passes the "
+        },
+        {
+          "insert": "tool_call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "tool_result",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " handlers, where the kernel domain guard runs. A test must confirm this."
+        }
+      ],
+      "children": []
+    },
+    "pa-codemode-1c": {
+      "id": "pa-codemode-1c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi emits "
+        },
+        {
+          "insert": "tool_execution_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "tool_execution_update",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "tool_execution_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with a "
+        },
+        {
+          "insert": "parentToolCallId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Child ids take the form "
+        },
+        {
+          "insert": "<parent>/<n>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-codemode-2": {
+      "id": "pa-codemode-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Why the trace misses them",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-codemode-2a",
+        "pa-codemode-2b"
+      ]
+    },
+    "pa-codemode-2a": {
+      "id": "pa-codemode-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi does not write nested calls to the session transcript."
+        }
+      ],
+      "children": []
+    },
+    "pa-codemode-2b": {
+      "id": "pa-codemode-2b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The kernel emitter builds tool events from transcript messages, and backfill reads JSONL. Neither one sees a nested call."
+        }
+      ],
+      "children": []
+    },
+    "pa-codemode-3": {
+      "id": "pa-codemode-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The fix, about 2 to 3 hours",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-codemode-3a",
+        "pa-codemode-3b"
+      ]
+    },
+    "pa-codemode-3a": {
+      "id": "pa-codemode-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Listen for "
+        },
+        {
+          "insert": "tool_execution_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " events that carry "
+        },
+        {
+          "insert": "parentToolCallId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and emit child tool spans."
+        }
+      ],
+      "children": []
+    },
+    "pa-codemode-3b": {
+      "id": "pa-codemode-3b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The fix covers live capture only. Backfill cannot recover nested calls."
+        }
+      ],
+      "children": []
+    },
+    "pa-codemode-4": {
+      "id": "pa-codemode-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Decisions inside a script",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-codemode-4a",
+        "pa-codemode-4b"
+      ]
+    },
+    "pa-codemode-4a": {
+      "id": "pa-codemode-4a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "models.classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " inside a script only adds usage to the codemode result. The decision gets no decision span."
+        }
+      ],
+      "children": []
+    },
+    "pa-codemode-4b": {
+      "id": "pa-codemode-4b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Harness decisions go through "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so each one gets a span."
+        }
+      ],
+      "children": []
+    },
+    "pa-tree-lead": {
+      "id": "pa-tree-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The proposed span tree shows one worker run with nested tool spans, a call, and a gate."
+        }
+      ],
+      "children": []
+    },
+    "pa-tree": {
+      "id": "pa-tree",
+      "type": "code",
+      "props": {
+        "language": "text"
+      },
+      "text": [
+        {
+          "insert": "run worker (pi)\n├─ tool codemode\n│  ├─ tool read     <parent>/1\n│  └─ tool bash     <parent>/2\n├─ call ExtractCheckpointNote (baml)\n└─ gate checkpoint-accepted           pass\n   ├─ step objdiff (code)             97.4%\n   └─ decide advisory-justified       classify:jev  p=0.91 ≥ 0.85"
+        }
+      ],
+      "children": []
+    },
+    "pa-h-gates": {
+      "id": "pa-h-gates",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Gates"
+        }
+      ],
+      "children": []
+    },
+    "pa-gates-lead": {
+      "id": "pa-gates-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "kernel.gate(name, checks)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is a proposed span that groups code checks and model checks under one verdict."
+        }
+      ],
+      "children": []
+    },
+    "pa-gate-1": {
+      "id": "pa-gate-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Checks",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-gate-1a",
+        "pa-gate-1b"
+      ]
+    },
+    "pa-gate-1a": {
+      "id": "pa-gate-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Each code check runs as a "
+        },
+        {
+          "insert": "kernel.step",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-gate-1b": {
+      "id": "pa-gate-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Each model check is a "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question of type "
+        },
+        {
+          "insert": "bool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-gate-2": {
+      "id": "pa-gate-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Result",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-gate-2a"
+      ]
+    },
+    "pa-gate-2a": {
+      "id": "pa-gate-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The gate returns "
+        },
+        {
+          "insert": "pass",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "fail",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or "
+        },
+        {
+          "insert": "abstain",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", plus the result of every check."
+        }
+      ],
+      "children": []
+    },
+    "pa-gate-3": {
+      "id": "pa-gate-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Thresholds for ",
+          "attributes": {
+            "bold": true
+          }
+        },
+        {
+          "insert": "bool",
+          "attributes": {
+            "bold": true,
+            "code": true
+          }
+        },
+        {
+          "insert": " checks",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-gate-3a",
+        "pa-gate-3b"
+      ]
+    },
+    "pa-gate-3a": {
+      "id": "pa-gate-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A probability "
+        },
+        {
+          "insert": "p ≥ passAt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " passes, and "
+        },
+        {
+          "insert": "p ≤ failAt",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " fails."
+        }
+      ],
+      "children": []
+    },
+    "pa-gate-3b": {
+      "id": "pa-gate-3b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A probability between the two abstains and escalates."
+        }
+      ],
+      "children": []
+    },
+    "pa-gate-4": {
+      "id": "pa-gate-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Routes",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-gate-4a"
+      ]
+    },
+    "pa-gate-4a": {
+      "id": "pa-gate-4a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "choice",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question picks a route, so it is not a gate."
+        }
+      ],
+      "children": []
+    },
+    "pa-gates-note": {
+      "id": "pa-gates-note",
+      "type": "callout",
+      "props": {},
+      "text": [
+        {
+          "insert": "The spec's canvases and the "
+        },
+        {
+          "insert": "Trace UI",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/60-trace-ui"
+            }
+          }
+        },
+        {
+          "insert": " mockup do not show gates yet."
+        }
+      ],
+      "children": []
+    },
+    "pa-h-upgrade": {
+      "id": "pa-h-upgrade",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Upgrade Impact (0.82.1 → 1.0.4)"
+        }
+      ],
+      "children": []
+    },
+    "pa-upgrade-lead": {
+      "id": "pa-upgrade-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The upgrade on branch "
+        },
+        {
+          "insert": "chore/pi-1.0.4",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " needed two small code changes and one setting. Typecheck and tests match 0.82.1, with 916 passes, 20 skips, and 5 failures before and after. The 5 failures predate the upgrade. They are "
+        },
+        {
+          "insert": "packages/tui",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tests that need a gitignored example "
+        },
+        {
+          "insert": ".agent-kernel/",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " folder."
+        }
+      ],
+      "children": []
+    },
+    "pa-upgrade-table": {
+      "id": "pa-upgrade-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Change",
+          "Where",
+          "What we did"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "Tools get "
+              },
+              {
+                "insert": "ExtensionToolContext",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", which adds "
+              },
+              {
+                "insert": "tools",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": "executeTool",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "packages/kernel/src/subagents/spawner-binding.test.ts:4",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "Typed the test fake to the new context. No production change"
+          ],
+          [
+            [
+              {
+                "insert": "Models receive "
+              },
+              {
+                "insert": "TranscriptContext",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with a leading "
+              },
+              {
+                "insert": "system",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " message, since 0.86"
+              }
+            ],
+            [
+              {
+                "insert": "spikes/state-three-section-e2e/e2e.ts:45",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The spike filters the system message before its role checks"
+          ],
+          [
+            [
+              {
+                "insert": "Prompt cache warming is on by default ("
+              },
+              {
+                "insert": "\"streaming\"",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ")"
+              }
+            ],
+            [
+              {
+                "insert": "packages/kernel/src/spawn-pipeline/pi-session-factory/create-session.ts:122",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Set "
+              },
+              {
+                "insert": "cacheWarming: \"off\"",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "Version bump to "
+              },
+              {
+                "insert": "^1.0.4",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "package.json",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " in "
+              },
+              {
+                "insert": "packages/kernel",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "packages/tui",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and "
+              },
+              {
+                "insert": "examples/simple-research-kernel",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "Done. "
+              },
+              {
+                "insert": "pi-tui",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " is also 1.0.4"
+              }
+            ]
+          ],
+          [
+            "Checked with no impact",
+            [
+              {
+                "insert": "shouldStopAfterTurn",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "agent.state.messages",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " assignment, "
+              },
+              {
+                "insert": "getApiKeyAndHeaders",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "ExtensionRunner.emit",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "user_bash",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", the Azure rename, cumulative "
+              },
+              {
+                "insert": "message_update",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "None. The kernel uses none of them"
+          ]
+        ],
+        "title": "Upgrade changes and fixes"
+      },
+      "children": []
+    },
+    "pa-upgrade-cache": {
+      "id": "pa-upgrade-cache",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Cache warming is off because warm-up requests write "
+        },
+        {
+          "insert": "usage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " entries that the emitter and backfill do not record. With warming on, the trace would under-report cost."
+        }
+      ],
+      "children": []
+    },
+    "pa-h-behavior": {
+      "id": "pa-h-behavior",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Behavior Changes to Know"
+        }
+      ],
+      "children": []
+    },
+    "pa-behavior-lead": {
+      "id": "pa-behavior-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Three 1.0.4 behavior changes reach the kernel without a code change, and three gaps stay open."
+        }
+      ],
+      "children": []
+    },
+    "pa-behavior-1": {
+      "id": "pa-behavior-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "System prompt in the transcript",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-behavior-1a",
+        "pa-behavior-1b"
+      ]
+    },
+    "pa-behavior-1a": {
+      "id": "pa-behavior-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The system prompt is a transcript entry with "
+        },
+        {
+          "insert": "role: \"system\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", placed before the first user message."
+        }
+      ],
+      "children": []
+    },
+    "pa-behavior-1b": {
+      "id": "pa-behavior-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Request snapshots, the emitter, the backfill mapper, and the state extension already skip it."
+        }
+      ],
+      "children": []
+    },
+    "pa-behavior-2": {
+      "id": "pa-behavior-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Working-directory line",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-behavior-2a"
+      ]
+    },
+    "pa-behavior-2a": {
+      "id": "pa-behavior-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The line takes the form "
+        },
+        {
+          "insert": "<cwd>…</cwd>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so prompt text and prompt hashes change once."
+        }
+      ],
+      "children": []
+    },
+    "pa-behavior-3": {
+      "id": "pa-behavior-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Session file format",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-behavior-3a",
+        "pa-behavior-3b"
+      ]
+    },
+    "pa-behavior-3a": {
+      "id": "pa-behavior-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Session files stay at format version 3."
+        }
+      ],
+      "children": []
+    },
+    "pa-behavior-3b": {
+      "id": "pa-behavior-3b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Backfill skips the new entry types "
+        },
+        {
+          "insert": "context_edit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "usage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "transcript-recovery/mapper.ts:218",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/transcript-recovery/mapper.ts",
+              "line": 218
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-behavior-4": {
+      "id": "pa-behavior-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Gaps left open",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-behavior-4a",
+        "pa-behavior-4b",
+        "pa-behavior-4c"
+      ]
+    },
+    "pa-behavior-4a": {
+      "id": "pa-behavior-4a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "PiMessage.role",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "transcript-recovery/types.ts:24",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/transcript-recovery/types.ts",
+              "line": 24
+            }
+          }
+        },
+        {
+          "insert": " lacks "
+        },
+        {
+          "insert": "\"system\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-behavior-4b": {
+      "id": "pa-behavior-4b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Backfill drops the cost in "
+        },
+        {
+          "insert": "usage",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " entries."
+        }
+      ],
+      "children": []
+    },
+    "pa-behavior-4c": {
+      "id": "pa-behavior-4c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Backfill records raw messages, not "
+        },
+        {
+          "insert": "context_edit",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " projections."
+        }
+      ],
+      "children": []
+    },
+    "pa-h-hooks": {
+      "id": "pa-h-hooks",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "New Hooks for Tracing"
+        }
+      ],
+      "children": []
+    },
+    "pa-hooks-lead": {
+      "id": "pa-hooks-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Pi 1.0.4 adds hooks that the kernel trace can use. The 1.0.4 type definitions confirm every entry below."
+        }
+      ],
+      "children": []
+    },
+    "pa-hooks-1": {
+      "id": "pa-hooks-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Tool and turn events",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-hooks-1a",
+        "pa-hooks-1b"
+      ]
+    },
+    "pa-hooks-1a": {
+      "id": "pa-hooks-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "tool_execution_*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "tool_call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "tool_result",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " carry "
+        },
+        {
+          "insert": "parentToolCallId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and tool results carry "
+        },
+        {
+          "insert": "nestedCalls",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Nested tool spans can use them at "
+        },
+        {
+          "insert": "kernel-emitter.ts:433",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/emitter/kernel-emitter.ts",
+              "line": 433
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-hooks-1b": {
+      "id": "pa-hooks-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "turn_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " carries "
+        },
+        {
+          "insert": "messageEntryId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "toolResultEntryIds",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and a context preview. The emitter can read them at "
+        },
+        {
+          "insert": "kernel-emitter.ts:398",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/emitter/kernel-emitter.ts",
+              "line": 398
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-hooks-2": {
+      "id": "pa-hooks-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Requests and models",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-hooks-2a",
+        "pa-hooks-2b"
+      ]
+    },
+    "pa-hooks-2a": {
+      "id": "pa-hooks-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "context_with_system",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " hook exposes the exact request for "
+        },
+        {
+          "insert": "request-snapshot.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/spawn-pipeline/streaming/request-snapshot.ts"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-hooks-2b": {
+      "id": "pa-hooks-2b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The model runtime and registry offer "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and classifier model lookups for "
+        },
+        {
+          "insert": "create-session.ts:143",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/spawn-pipeline/pi-session-factory/create-session.ts",
+              "line": 143
+            }
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "model-resolver.ts",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/spawn-pipeline/pi-session-factory/model-resolver.ts"
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-hooks-3": {
+      "id": "pa-hooks-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Turn control",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-hooks-3a"
+      ]
+    },
+    "pa-hooks-3a": {
+      "id": "pa-hooks-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "finishTurn",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on the agent can replace the turn-limit steer-and-abort in "
+        },
+        {
+          "insert": "session-event-subscriber.ts:45",
+          "attributes": {
+            "code": true,
+            "reference": {
+              "kind": "source",
+              "path": "packages/kernel/src/spawn-pipeline/streaming/session-event-subscriber.ts",
+              "line": 45
+            }
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-hooks-4": {
+      "id": "pa-hooks-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Not in 1.0.4",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-hooks-4a",
+        "pa-hooks-4b"
+      ]
+    },
+    "pa-hooks-4a": {
+      "id": "pa-hooks-4a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Messages have no "
+        },
+        {
+          "insert": "durationMs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in 1.0.4. Only nested call records carry it."
+        }
+      ],
+      "children": []
+    },
+    "pa-hooks-4b": {
+      "id": "pa-hooks-4b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "durationMs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on messages lands in a later release."
+        }
+      ],
+      "children": []
+    },
+    "pa-h-consumers": {
+      "id": "pa-h-consumers",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Consumers"
+        }
+      ],
+      "children": []
+    },
+    "pa-consumers-lead": {
+      "id": "pa-consumers-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Two places outside the agent-kernel repo need action."
+        }
+      ],
+      "children": []
+    },
+    "pa-consumers-1": {
+      "id": "pa-consumers-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "GameCube harness",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-consumers-1a",
+        "pa-consumers-1b",
+        "pa-consumers-1c"
+      ]
+    },
+    "pa-consumers-1a": {
+      "id": "pa-consumers-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The harness pins its own "
+        },
+        {
+          "insert": "@earendil-works/pi-coding-agent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " at "
+        },
+        {
+          "insert": "^0.82.1",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "gamecube-decomp-harness/package.json:39",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-consumers-1b": {
+      "id": "pa-consumers-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "After the kernel moves to 1.0.4, the harness's 0.82.1 extension factories would run inside 1.0.4 sessions."
+        }
+      ],
+      "children": []
+    },
+    "pa-consumers-1c": {
+      "id": "pa-consumers-1c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Bump the harness to "
+        },
+        {
+          "insert": "^1.0.4",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in the same change."
+        }
+      ],
+      "children": []
+    },
+    "pa-consumers-2": {
+      "id": "pa-consumers-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Core lockfile",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "pa-consumers-2a",
+        "pa-consumers-2b"
+      ]
+    },
+    "pa-consumers-2a": {
+      "id": "pa-consumers-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The real lockfile is "
+        },
+        {
+          "insert": "codecaine/core/bun.lock",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Run "
+        },
+        {
+          "insert": "bun install",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "codecaine/core",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " after merging."
+        }
+      ],
+      "children": []
+    },
+    "pa-consumers-2b": {
+      "id": "pa-consumers-2b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "No other core member uses "
+        },
+        {
+          "insert": "@earendil-works/*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-h-order": {
+      "id": "pa-h-order",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Order of Work"
+        }
+      ],
+      "children": []
+    },
+    "pa-order-lead": {
+      "id": "pa-order-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The work runs in five steps, in this order."
+        }
+      ],
+      "children": []
+    },
+    "pa-order-1": {
+      "id": "pa-order-1",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Merge the Pi 1.0.4 upgrade (branch "
+        },
+        {
+          "insert": "chore/pi-1.0.4",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and bump the GameCube harness with it."
+        }
+      ],
+      "children": []
+    },
+    "pa-order-2": {
+      "id": "pa-order-2",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Run the three-engine spike on "
+        },
+        {
+          "insert": "llm_review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with BAML, Jev, and OpenAI Decisions. "
+        },
+        {
+          "insert": "GameCube Adoption",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/30-gamecube-adoption"
+            }
+          }
+        },
+        {
+          "insert": " plans the spike."
+        }
+      ],
+      "children": []
+    },
+    "pa-order-3": {
+      "id": "pa-order-3",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Build "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", plus "
+        },
+        {
+          "insert": "kernel.step",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "kernel.gate",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "pa-order-4": {
+      "id": "pa-order-4",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Add nested tool spans, then offer codemode as an opt-in tool profile."
+        }
+      ],
+      "children": []
+    },
+    "pa-order-5": {
+      "id": "pa-order-5",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "Re-evaluate "
+        },
+        {
+          "insert": "pi-durable",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " when Pi's coding agent runs on it."
+        }
+      ],
+      "children": []
+    }
+  }
+}

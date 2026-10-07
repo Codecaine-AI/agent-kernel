@@ -149,10 +149,10 @@
           }
         },
         {
-          "insert": " runs one claimed target. Every branch has a comment that names who decides it: code, a model, or a human. The tags R1 to R7 and S1 to S3 match the steps in What This Run Did. The "
+          "insert": " runs one claimed target, and a comment on every branch names who decides it: code, a model, or a human. The tags R1 to R7 and S1 to S3 match the steps in What This Run Did. The "
         },
         {
-          "insert": "noul",
+          "insert": "bool",
           "attributes": {
             "code": true
           }
@@ -167,7 +167,7 @@
           }
         },
         {
-          "insert": " helpers build Jev questions, as defined in "
+          "insert": " helpers build Pi question types, as defined in "
         },
         {
           "insert": "Decision Nodes",
@@ -176,6 +176,33 @@
               "kind": "doc",
               "path": "90-specs/10-model-nodes/20-decision-nodes"
             }
+          }
+        },
+        {
+          "insert": ". No line calls Jev directly, because "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sends each question through Pi "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with the model alias "
+        },
+        {
+          "insert": "typesafe/jev-1.13.0",
+          "attributes": {
+            "code": true
           }
         },
         {
@@ -192,7 +219,7 @@
       },
       "text": [
         {
-          "insert": "// Pseudocode for a proposed API. Not runnable.\nasync function runWorkerJob(target: Target) {\n  const ids = { containerId: `worker-job/${target.fn}` }; // worker-job/fn_8003A1C4\n  const claim = await claimTarget(target);\n  let attempt = 0;\n  let session: string | undefined;\n  let lastRunId: string | undefined;\n  let hint: string | undefined;\n  let stopReason: string | undefined;\n\n  // code decides: no attempt starts after the claim deadline or budget\n  while (!claim.deadlinePassed() && attempt < claim.attemptBudget) {\n    attempt += 1;\n\n    // agent does the work (R1, then R5 in the same session)\n    const run = await spawnAgent(\"worker\", {\n      ...ids, session, trigger: attempt === 1 ? \"system\" : \"steer\",\n      prompt: workerPrompt(target, hint),\n    });\n    session = run.sessionId;\n    lastRunId = run.id;\n    const under = { ...ids, parentRunId: run.id };\n\n    // call extracts a typed note from the transcript (R2, R6)\n    const note = await kernel.call(\"ExtractCheckpointNote\", run.transcript, {\n      ...under, trigger: \"post-run\",\n    });\n\n    // code step: objdiff, micro-gates, review_lint (S1, S2)\n    const v = await kernel.step(\"validate\", under, () => validate(target, run.diff));\n\n    // code decides: exact match, gates pass, lint clean ends the job\n    if (v.objdiff === 100 && v.gatesPassed && v.lint.length === 0) {\n      stopReason = \"exact_match\";\n      break;\n    }\n\n    // model decides: is each kept advisory justified? (R3)\n    for (const adv of note.keptAdvisories) {\n      const { justified } = await kernel.decide(\"JudgeAdvisory\", adv, {\n        ...under, trigger: \"judge\", engine: \"jev\", model: \"jev-1.13.0\",\n        questions: { justified: noul(\"The original asm needs this hunk as written.\") },\n      });\n      const p = justified.distribution.true;\n      if (p >= 0.85) continue; // code decides: accepted\n      if (p < 0.4) { hint = repairInstruction(adv); continue; } // code decides: rejected\n\n      // call decides: the unsure band gets a BAML judge with a rationale\n      const second = await kernel.call(\"JudgeAdvisoryWithRationale\", adv, { ...under, trigger: \"judge\" });\n      if (second.verdict === \"rejected\") hint = repairInstruction(adv, second.rationale);\n      if (second.verdict === \"needs_info\") {\n        await operatorQueue.push(adv, second.rationale); // human decides\n        stopReason = \"operator_review\";\n      }\n    }\n    if (stopReason) break;\n\n    // model decides: retry, change strategy, or stop (R4)\n    const { next } = await kernel.decide(\"ContinueOrStop\", { note, validation: v }, {\n      ...under, trigger: \"judge\", engine: \"jev\", abstainBelow: 0.5,\n      questions: { next: choice([\"retry_same_approach\", \"retry_new_strategy\", \"stop_blocked\"]) },\n    });\n    if (next.abstained) continue; // code decides: the attempt budget takes over\n    if (next.choice === \"stop_blocked\") { stopReason = \"blocked\"; break; }\n    if (next.choice === \"retry_new_strategy\") hint = strategyHint(note);\n  }\n\n  // code step: record why the job ended (S3). No model involved.\n  await kernel.step(\"stop\", ids, () => ({ reason: stopReason ?? \"deadline_or_budget\" }));\n  // call writes the narrative to the knowledge DB (R7)\n  await kernel.call(\"SummarizeWorkerRun\", { session }, {\n    ...ids, parentRunId: lastRunId, trigger: \"post-run\",\n  });\n}"
+          "insert": "// Pseudocode for a proposed API. Not runnable.\nasync function runWorkerJob(target: Target) {\n  const ids = { containerId: `worker-job/${target.fn}` }; // worker-job/fn_8003A1C4\n  const claim = await claimTarget(target);\n  let attempt = 0;\n  let session: string | undefined;\n  let lastRunId: string | undefined;\n  let hint: string | undefined;\n  let stopReason: string | undefined;\n\n  // code decides: no attempt starts after the claim deadline or budget\n  while (!claim.deadlinePassed() && attempt < claim.attemptBudget) {\n    attempt += 1;\n\n    // agent does the work (R1, then R5 in the same session)\n    const run = await spawnAgent(\"worker\", {\n      ...ids, session, trigger: attempt === 1 ? \"system\" : \"steer\",\n      prompt: workerPrompt(target, hint),\n    });\n    session = run.sessionId;\n    lastRunId = run.id;\n    const under = { ...ids, parentRunId: run.id };\n\n    // call extracts a typed note from the transcript (R2, R6)\n    const note = await kernel.call(\"ExtractCheckpointNote\", run.transcript, {\n      ...under, trigger: \"post-run\",\n    });\n\n    // code step: objdiff, micro-gates, review_lint (S1, S2)\n    const v = await kernel.step(\"validate\", under, () => validate(target, run.diff));\n\n    // code decides: exact match, gates pass, lint clean ends the job\n    if (v.objdiff === 100 && v.gatesPassed && v.lint.length === 0) {\n      stopReason = \"exact_match\";\n      break;\n    }\n\n    // model decides: is each kept advisory justified? (R3)\n    // kernel.decide runs Pi classify(), and Pi calls the Jev System One API\n    for (const adv of note.keptAdvisories) {\n      const { justified } = await kernel.decide(\"JudgeAdvisory\", adv, {\n        ...under, trigger: \"judge\", model: \"typesafe/jev-1.13.0\",\n        questions: { justified: bool(\"The original asm needs this hunk as written.\") },\n      });\n      const p = justified.distribution.true;\n      if (p >= 0.85) continue; // code decides: accepted\n      if (p < 0.4) { hint = repairInstruction(adv); continue; } // code decides: rejected\n\n      // call decides: the unsure band gets a BAML judge with a rationale\n      const second = await kernel.call(\"JudgeAdvisoryWithRationale\", adv, { ...under, trigger: \"judge\" });\n      if (second.verdict === \"rejected\") hint = repairInstruction(adv, second.rationale);\n      if (second.verdict === \"needs_info\") {\n        await operatorQueue.push(adv, second.rationale); // human decides\n        stopReason = \"operator_review\";\n      }\n    }\n    if (stopReason) break;\n\n    // model decides: retry, change strategy, or stop (R4), again through Pi classify()\n    const { next } = await kernel.decide(\"ContinueOrStop\", { note, validation: v }, {\n      ...under, trigger: \"judge\", model: \"typesafe/jev-1.13.0\", abstainBelow: 0.5,\n      questions: { next: choice([\"retry_same_approach\", \"retry_new_strategy\", \"stop_blocked\"]) },\n    });\n    if (next.abstained) continue; // code decides: the attempt budget takes over\n    if (next.choice === \"stop_blocked\") { stopReason = \"blocked\"; break; }\n    if (next.choice === \"retry_new_strategy\") hint = strategyHint(note);\n  }\n\n  // code step: record why the job ended (S3). No model involved.\n  await kernel.step(\"stop\", ids, () => ({ reason: stopReason ?? \"deadline_or_budget\" }));\n  // call writes the narrative to the knowledge DB (R7)\n  await kernel.call(\"SummarizeWorkerRun\", { session }, {\n    ...ids, parentRunId: lastRunId, trigger: \"post-run\",\n  });\n}"
         }
       ],
       "children": []
@@ -409,7 +436,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Green solid edges are the path this run took. Gray dashed edges are paths it did not take. Shape and color give the node type: see the legend on the right."
+          "insert": "Green solid edges are the path this run took. Gray dashed edges are paths it did not take. Shape and color give the node type, as the legend on the right shows."
         }
       ],
       "children": []
@@ -489,7 +516,7 @@
           }
         },
         {
-          "insert": " (agent run, trigger "
+          "insert": " was an agent run with trigger "
         },
         {
           "insert": "system",
@@ -498,7 +525,7 @@
           }
         },
         {
-          "insert": "): 14 turns, 31 tool calls, 4m12s, $0.38."
+          "insert": ". It took 14 turns, 31 tool calls, 4m12s, and $0.38."
         }
       ],
       "children": []
@@ -520,7 +547,7 @@
           }
         },
         {
-          "insert": " (call, BAML, 1.8s, $0.004): status "
+          "insert": " was a BAML call that took 1.8s and cost $0.004. It returned status "
         },
         {
           "insert": "partial",
@@ -529,7 +556,7 @@
           }
         },
         {
-          "insert": ", one kept advisory "
+          "insert": " and one kept advisory, "
         },
         {
           "insert": "type_erasing_cast",
@@ -569,7 +596,7 @@
           }
         },
         {
-          "insert": " (code step, 6.3s): objdiff 97.4%, micro-gates 5/5, one "
+          "insert": " was a code step that took 6.3s and reported objdiff 97.4%, micro-gates 5/5, and one "
         },
         {
           "insert": "llm_review",
@@ -578,7 +605,7 @@
           }
         },
         {
-          "insert": " warning. Not exact, so the job goes on."
+          "insert": " warning. The match was not exact, so the job went on."
         }
       ],
       "children": []
@@ -600,7 +627,7 @@
           }
         },
         {
-          "insert": " (decision, Jev "
+          "insert": " was a decision on Jev "
         },
         {
           "insert": "jev-1.13.0",
@@ -609,7 +636,16 @@
           }
         },
         {
-          "insert": ", 110 ms): justified p=0.91, native. At or above 0.85, so accepted."
+          "insert": " through Pi "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and it took 110 ms. It returned justified p=0.91 with native confidence, at or above 0.85, so code accepted the advisory."
         }
       ],
       "children": []
@@ -631,7 +667,16 @@
           }
         },
         {
-          "insert": " (decision, Jev, 95 ms): "
+          "insert": " was a decision on Jev through Pi "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and it took 95 ms. It returned "
         },
         {
           "insert": "retry_new_strategy",
@@ -640,7 +685,7 @@
           }
         },
         {
-          "insert": " 0.71, confidence 0.64 native. Above the 0.5 floor, so code retries with a strategy hint."
+          "insert": " 0.71 with native confidence 0.64, above the 0.5 floor, so code retried with a strategy hint."
         }
       ],
       "children": []
@@ -675,7 +720,7 @@
           }
         },
         {
-          "insert": " (agent run, same session, trigger "
+          "insert": " was an agent run in the same session, with trigger "
         },
         {
           "insert": "steer",
@@ -684,7 +729,7 @@
           }
         },
         {
-          "insert": ", with the strategy hint): 9 turns, 18 tool calls, 2m40s, $0.24."
+          "insert": " and the strategy hint. It took 9 turns, 18 tool calls, 2m40s, and $0.24."
         }
       ],
       "children": []
@@ -706,7 +751,7 @@
           }
         },
         {
-          "insert": " (call, 1.8s) and S2 "
+          "insert": " was a call that took 1.8s, and S2 "
         },
         {
           "insert": "validate",
@@ -715,7 +760,7 @@
           }
         },
         {
-          "insert": " (code step, 5.4s): objdiff 100% exact, gates 5/5, lint clean."
+          "insert": " was a code step that took 5.4s. S2 reported objdiff 100% exact, gates 5/5, and a clean lint."
         }
       ],
       "children": []
@@ -737,7 +782,7 @@
           }
         },
         {
-          "insert": " (code step, 20 ms): exact match and gates pass, so code stops the job. No model runs here."
+          "insert": " was a code step that took 20 ms. The match was exact and the gates passed, so code stopped the job with no model involved."
         }
       ],
       "children": []
@@ -759,7 +804,7 @@
           }
         },
         {
-          "insert": " (call, trigger "
+          "insert": " was a call with trigger "
         },
         {
           "insert": "post-run",
@@ -768,7 +813,7 @@
           }
         },
         {
-          "insert": ", parent R5, 1.4s): writes the narrative to the knowledge DB."
+          "insert": " and parent R5, and it took 1.4s. It wrote the narrative to the knowledge DB."
         }
       ],
       "children": []

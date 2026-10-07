@@ -35,12 +35,18 @@
     },
     {
       "id": "p6",
+      "name": "piclassify",
+      "kind": "participant",
+      "label": "Pi classify()"
+    },
+    {
+      "id": "p7",
       "name": "jev",
       "kind": "participant",
       "label": "Jev API"
     },
     {
-      "id": "p7",
+      "id": "p8",
       "name": "tracedb",
       "kind": "participant",
       "label": "Trace DB"
@@ -59,7 +65,7 @@
       "kind": "message",
       "id": "m2",
       "from": "p2",
-      "to": "p7",
+      "to": "p8",
       "line": "async",
       "text": "agent_run_start (R1)"
     },
@@ -99,7 +105,7 @@
               "kind": "message",
               "id": "m6",
               "from": "p2",
-              "to": "p7",
+              "to": "p8",
               "line": "async",
               "text": "pi_request_snapshot, pi_turn_*, tool events"
             }
@@ -119,7 +125,7 @@
       "kind": "message",
       "id": "m8",
       "from": "p2",
-      "to": "p7",
+      "to": "p8",
       "line": "async",
       "text": "agent_run_end (R1: 4m12s, $0.38)"
     },
@@ -143,7 +149,7 @@
       "kind": "message",
       "id": "m11",
       "from": "p2",
-      "to": "p7",
+      "to": "p8",
       "line": "async",
       "text": "call_start (R2, engine baml)"
     },
@@ -183,7 +189,7 @@
       "kind": "message",
       "id": "m16",
       "from": "p2",
-      "to": "p7",
+      "to": "p8",
       "line": "async",
       "text": "pi_turn_*, pi_request_snapshot, call_end (1.8 s)"
     },
@@ -207,7 +213,7 @@
       "kind": "message",
       "id": "m19",
       "from": "p2",
-      "to": "p7",
+      "to": "p8",
       "line": "async",
       "text": "step_start (parent R1)"
     },
@@ -222,7 +228,7 @@
       "kind": "message",
       "id": "m20",
       "from": "p2",
-      "to": "p7",
+      "to": "p8",
       "line": "async",
       "text": "step_end (6.3 s)"
     },
@@ -246,7 +252,7 @@
       "kind": "message",
       "id": "m23",
       "from": "p2",
-      "to": "p7",
+      "to": "p8",
       "line": "async",
       "text": "call_start (R3, engine jev)"
     },
@@ -256,27 +262,43 @@
       "from": "p2",
       "to": "p6",
       "line": "sync",
-      "text": "POST /v1/systemone {state, questions}"
+      "text": "classify(typesafe/jev-1.13.0, {state, questions})"
     },
     {
       "kind": "message",
       "id": "m25",
       "from": "p6",
-      "to": "p2",
-      "line": "return",
-      "text": "justified p=0.91"
+      "to": "p7",
+      "line": "sync",
+      "text": "POST /v1/systemone, bool sent as noul"
     },
     {
       "kind": "message",
       "id": "m26",
+      "from": "p7",
+      "to": "p6",
+      "line": "return",
+      "text": "p(yes)=0.91, usage"
+    },
+    {
+      "kind": "message",
+      "id": "m27",
+      "from": "p6",
+      "to": "p2",
+      "line": "return",
+      "text": "justified p=0.91, model jev-1.13.0"
+    },
+    {
+      "kind": "message",
+      "id": "m28",
       "from": "p2",
-      "to": "p7",
+      "to": "p8",
       "line": "async",
       "text": "decision_made, call_end (110 ms)"
     },
     {
       "kind": "message",
-      "id": "m27",
+      "id": "m29",
       "from": "p2",
       "to": "p1",
       "line": "return",
@@ -291,7 +313,7 @@
     },
     {
       "kind": "message",
-      "id": "m28",
+      "id": "m30",
       "from": "p1",
       "to": "p2",
       "line": "sync",
@@ -299,39 +321,55 @@
     },
     {
       "kind": "message",
-      "id": "m29",
+      "id": "m31",
       "from": "p2",
-      "to": "p7",
+      "to": "p8",
       "line": "async",
       "text": "call_start (R4, engine jev)"
     },
     {
       "kind": "message",
-      "id": "m30",
+      "id": "m32",
       "from": "p2",
       "to": "p6",
       "line": "sync",
-      "text": "POST /v1/systemone {state, questions}"
+      "text": "classify(typesafe/jev-1.13.0, {state, questions})"
     },
     {
       "kind": "message",
-      "id": "m31",
+      "id": "m33",
       "from": "p6",
-      "to": "p2",
+      "to": "p7",
+      "line": "sync",
+      "text": "POST /v1/systemone, choice"
+    },
+    {
+      "kind": "message",
+      "id": "m34",
+      "from": "p7",
+      "to": "p6",
       "line": "return",
       "text": "0.21 / 0.71 / 0.08"
     },
     {
       "kind": "message",
-      "id": "m32",
+      "id": "m35",
+      "from": "p6",
+      "to": "p2",
+      "line": "return",
+      "text": "choice, confidence 0.64"
+    },
+    {
+      "kind": "message",
+      "id": "m36",
       "from": "p2",
-      "to": "p7",
+      "to": "p8",
       "line": "async",
       "text": "decision_made, call_end (95 ms)"
     },
     {
       "kind": "message",
-      "id": "m33",
+      "id": "m37",
       "from": "p2",
       "to": "p1",
       "line": "return",
@@ -347,7 +385,7 @@
           "items": [
             {
               "kind": "message",
-              "id": "m34",
+              "id": "m38",
               "from": "p1",
               "to": "p2",
               "line": "sync",
@@ -355,7 +393,7 @@
             },
             {
               "kind": "message",
-              "id": "m35",
+              "id": "m39",
               "from": "p2",
               "to": "p3",
               "line": "sync",
@@ -371,7 +409,7 @@
                   "items": [
                     {
                       "kind": "message",
-                      "id": "m36",
+                      "id": "m40",
                       "from": "p3",
                       "to": "p5",
                       "line": "sync",
@@ -379,7 +417,7 @@
                     },
                     {
                       "kind": "message",
-                      "id": "m37",
+                      "id": "m41",
                       "from": "p5",
                       "to": "p3",
                       "line": "return",
@@ -391,7 +429,7 @@
             },
             {
               "kind": "message",
-              "id": "m38",
+              "id": "m42",
               "from": "p3",
               "to": "p2",
               "line": "return",
@@ -399,7 +437,7 @@
             },
             {
               "kind": "message",
-              "id": "m39",
+              "id": "m43",
               "from": "p2",
               "to": "p1",
               "line": "return",
@@ -414,7 +452,7 @@
             },
             {
               "kind": "message",
-              "id": "m40",
+              "id": "m44",
               "from": "p1",
               "to": "p2",
               "line": "sync",
@@ -422,15 +460,15 @@
             },
             {
               "kind": "message",
-              "id": "m41",
+              "id": "m45",
               "from": "p2",
-              "to": "p7",
+              "to": "p8",
               "line": "async",
               "text": "step_start, step_end (S3)"
             },
             {
               "kind": "message",
-              "id": "m42",
+              "id": "m46",
               "from": "p1",
               "to": "p2",
               "line": "sync",
@@ -438,7 +476,7 @@
             },
             {
               "kind": "message",
-              "id": "m43",
+              "id": "m47",
               "from": "p2",
               "to": "p4",
               "line": "sync",
@@ -446,7 +484,7 @@
             },
             {
               "kind": "message",
-              "id": "m44",
+              "id": "m48",
               "from": "p4",
               "to": "p5",
               "line": "sync",
@@ -454,7 +492,7 @@
             },
             {
               "kind": "message",
-              "id": "m45",
+              "id": "m49",
               "from": "p5",
               "to": "p4",
               "line": "return",
@@ -462,7 +500,7 @@
             },
             {
               "kind": "message",
-              "id": "m46",
+              "id": "m50",
               "from": "p4",
               "to": "p2",
               "line": "return",
@@ -470,15 +508,15 @@
             },
             {
               "kind": "message",
-              "id": "m47",
+              "id": "m51",
               "from": "p2",
-              "to": "p7",
+              "to": "p8",
               "line": "async",
               "text": "call_start, pi_turn_*, call_end (R7)"
             },
             {
               "kind": "message",
-              "id": "m48",
+              "id": "m52",
               "from": "p2",
               "to": "p1",
               "line": "return",

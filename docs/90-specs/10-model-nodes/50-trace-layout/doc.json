@@ -15,6 +15,9 @@
         "tl-calls-lead",
         "tl-seq",
         "tl-seq-note",
+        "tl-seq-b1",
+        "tl-seq-b2",
+        "tl-seq-b3",
         "tl-h-tree",
         "tl-tree-lead",
         "tl-tree",
@@ -27,6 +30,12 @@
         "tl-h-collected",
         "tl-collected-lead",
         "tl-collected-table",
+        "tl-collected-abstain",
+        "tl-h-nested",
+        "tl-nested-lead",
+        "tl-nested-1",
+        "tl-nested-2",
+        "tl-nested-3",
         "tl-h-rollup",
         "tl-rollup-lead",
         "tl-rollup-table"
@@ -183,7 +192,121 @@
       "props": {},
       "text": [
         {
-          "insert": "Proposed flow. Jev is not behind codex-lb. It has its own route and credential. The "
+          "insert": "Proposed flow. Decisions reach Jev only through Pi "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", never through a direct Jev or TypeSafe SDK call."
+        }
+      ],
+      "children": []
+    },
+    "tl-seq-b1": {
+      "id": "tl-seq-b1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " calls "
+        },
+        {
+          "insert": "classify(model, { state, questions })",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with the model alias "
+        },
+        {
+          "insert": "typesafe/jev-1.13.0",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": [
+        "tl-seq-b1a"
+      ]
+    },
+    "tl-seq-b1a": {
+      "id": "tl-seq-b1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi translates each "
+        },
+        {
+          "insert": "bool",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question to a Jev "
+        },
+        {
+          "insert": "noul",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " question and calls the TypeSafe Jev System One API."
+        }
+      ],
+      "children": []
+    },
+    "tl-seq-b2": {
+      "id": "tl-seq-b2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Jev is not behind codex-lb. It has its own route and credential, "
+        },
+        {
+          "insert": "TYPESAFE_API_KEY",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "tl-seq-b3": {
+      "id": "tl-seq-b3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The "
         },
         {
           "insert": "validate",
@@ -248,10 +371,10 @@
       "props": {
         "steps": [
           {
-            "text": "Container `worker-job/fn_8003A1C4`: 7 runs, 3 steps, about 7m10s, about $0.63",
+            "text": "Container `worker-job/fn_8003A1C4`: 7 Runs, 3 Steps, About 7m10s, About $0.63",
             "steps": [
               {
-                "text": "Session `worker`, kind `pi`: holds both attempts",
+                "text": "Session `worker`, Kind `pi`: Holds Both Attempts",
                 "steps": [
                   {
                     "text": "`R1` agent run `worker`, attempt 1, trigger `system`: 14 turns, 31 tool calls, 4m12s, $0.38",
@@ -282,21 +405,33 @@
                         ]
                       },
                       {
-                        "text": "`R3` decision `JudgeAdvisory`, trigger `judge`, engine `jev`, model `jev-1.13.0`: 110 ms, 1,412 input tokens, $0.00006",
+                        "text": "`R3` decision `JudgeAdvisory` through Pi `classify()`, trigger `judge`: 110 ms, 1,412 input tokens, $0.00006",
                         "trace": true,
                         "steps": [
                           {
-                            "text": "Question `justified` (binary): p=0.91, confidence source `native`. Threshold 0.85, so the harness accepts the advisory.",
+                            "text": "The payload records `engine: \"jev\"`, `provider: \"typesafe\"`, `model: \"jev-1.13.0\"`, and `api: \"typesafe-system-one\"`.",
+                            "kind": "note"
+                          },
+                          {
+                            "text": "Question `justified` is a `bool`, and Pi sends it to Jev as `noul`.",
+                            "kind": "note"
+                          },
+                          {
+                            "text": "p=0.91 with confidence source `native` clears the 0.85 threshold, so the harness accepts the advisory.",
                             "kind": "note"
                           }
                         ]
                       },
                       {
-                        "text": "`R4` decision `ContinueOrStop`, trigger `judge`, engine `jev`: 95 ms, 968 input tokens, $0.00004",
+                        "text": "`R4` decision `ContinueOrStop` through Pi `classify()`, trigger `judge`: 95 ms, 968 input tokens, $0.00004",
                         "trace": true,
                         "steps": [
                           {
                             "text": "`retry_same_approach` 0.21, `retry_new_strategy` 0.71, `stop_blocked` 0.08. Confidence 0.64, `native`. Chosen: `retry_new_strategy`.",
+                            "kind": "note"
+                          },
+                          {
+                            "text": "0.64 clears the 0.5 floor, so `abstained` is false and `abstainReason` is absent.",
                             "kind": "note"
                           }
                         ]
@@ -799,16 +934,80 @@
       },
       "text": [
         {
-          "insert": "Steps cost nothing in the identity model. "
-        },
+          "insert": "Steps cost nothing in the identity model."
+        }
+      ],
+      "children": [
+        "tl-nesting-2a",
+        "tl-nesting-2b",
+        "tl-nesting-2c"
+      ]
+    },
+    "tl-nesting-2a": {
+      "id": "tl-nesting-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
         {
-          "insert": "kernel.step(name, opts, fn)",
+          "insert": "kernel.step",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": " emits a paired "
+          "insert": " follows the "
+        },
+        {
+          "insert": "pi-telemetry",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " span shape, "
+        },
+        {
+          "insert": "step(name, attrs, async (span) => ...)",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The span ends when the callback settles."
+        }
+      ],
+      "children": []
+    },
+    "tl-nesting-2b": {
+      "id": "tl-nesting-2b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "span.setAttributes()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " adds completion facts, such as the objdiff score."
+        }
+      ],
+      "children": []
+    },
+    "tl-nesting-2c": {
+      "id": "tl-nesting-2c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The kernel emits a paired "
         },
         {
           "insert": "step_start",
@@ -826,7 +1025,7 @@
           }
         },
         {
-          "insert": " with a summary output, the duration, and a status. It writes no session or run rows."
+          "insert": " with the summary output, the duration, and a status. It writes no session or run rows."
         }
       ],
       "children": []
@@ -908,7 +1107,7 @@
           }
         },
         {
-          "insert": " row payload. Large payloads live in "
+          "insert": " row payload, and large payloads live in "
         },
         {
           "insert": "trace_blobs",
@@ -917,7 +1116,7 @@
           }
         },
         {
-          "insert": ", keyed by content hash. Usage rolls up from turn to run, session, and container. Jev has no chat request, so its snapshot is the "
+          "insert": ", keyed by content hash. Usage rolls up from turn to run, session, and container. A decision has no chat request, so its snapshot is the classifier context "
         },
         {
           "insert": "{state, questions}",
@@ -926,7 +1125,16 @@
           }
         },
         {
-          "insert": " body it was sent."
+          "insert": " that the kernel passes to Pi "
+        },
+        {
+          "insert": "classify()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []
@@ -962,7 +1170,7 @@
             "Decision",
             [
               {
-                "insert": "Request snapshot: the Jev "
+                "insert": "Request snapshot of the classifier context "
               },
               {
                 "insert": "{state, questions}",
@@ -971,7 +1179,7 @@
                 }
               },
               {
-                "insert": " body. No chat messages exist"
+                "insert": ". No chat messages exist"
               }
             ],
             [
@@ -1090,6 +1298,15 @@
                 "attributes": {
                   "code": true
                 }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "abstainReason",
+                "attributes": {
+                  "code": true
+                }
               }
             ],
             [
@@ -1114,7 +1331,7 @@
                 }
               },
               {
-                "insert": " at 0.71"
+                "insert": " at 0.71, or why a decision abstained"
               }
             ]
           ],
@@ -1151,6 +1368,105 @@
             "Tells a native 0.91 from a self-reported one, and records the 0.85 bar it cleared"
           ],
           [
+            "Decision",
+            [
+              {
+                "insert": "engine",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "provider",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "model",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and "
+              },
+              {
+                "insert": "api",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", such as "
+              },
+              {
+                "insert": "jev",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "typesafe",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "jev-1.13.0",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", and "
+              },
+              {
+                "insert": "typesafe-system-one",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "decision_made",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " row"
+              }
+            ],
+            [
+              {
+                "insert": "Names the route and the exact model id that "
+              },
+              {
+                "insert": "classify()",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " reported"
+              }
+            ]
+          ],
+          [
             "Call, decision",
             [
               {
@@ -1163,7 +1479,7 @@
                 }
               },
               {
-                "insert": ". For Jev the hash covers the questions and criteria"
+                "insert": ". For a decision the hash covers the questions and criteria"
               }
             ],
             [
@@ -1194,7 +1510,7 @@
           ],
           [
             "Every model node",
-            "Tokens and cost",
+            "Tokens and cost. A decision reports input tokens, and Jev also reports output tokens",
             [
               {
                 "insert": "pi_turn_end",
@@ -1241,6 +1557,312 @@
           ]
         ]
       },
+      "children": []
+    },
+    "tl-collected-abstain": {
+      "id": "tl-collected-abstain",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "abstainReason",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is "
+        },
+        {
+          "insert": "low-confidence",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "refusal",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", or "
+        },
+        {
+          "insert": "engine-error",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " when a decision abstains."
+        }
+      ],
+      "children": [
+        "tl-collected-abstain-a"
+      ]
+    },
+    "tl-collected-abstain-a": {
+      "id": "tl-collected-abstain-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "It is null or absent when the decision did not abstain, as for "
+        },
+        {
+          "insert": "R3",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "R4",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "tl-h-nested": {
+      "id": "tl-h-nested",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Nested Tool Calls"
+        }
+      ],
+      "children": []
+    },
+    "tl-nested-lead": {
+      "id": "tl-nested-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Pi 1.0.4 runs nested tool calls through "
+        },
+        {
+          "insert": "ctx.executeTool()",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and Pi's codemode tool uses it. The kernel must capture these calls live from Pi events to show them as child tool spans. "
+        },
+        {
+          "insert": "Pi 1.0 Alignment",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "90-specs/10-model-nodes/70-pi-alignment"
+            }
+          }
+        },
+        {
+          "insert": " covers the rest of the Pi upgrade."
+        }
+      ],
+      "children": []
+    },
+    "tl-nested-1": {
+      "id": "tl-nested-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Each nested call emits "
+        },
+        {
+          "insert": "tool_execution_start",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "tool_execution_update",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "tool_execution_end",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " with a "
+        },
+        {
+          "insert": "parentToolCallId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": [
+        "tl-nested-1a"
+      ]
+    },
+    "tl-nested-1a": {
+      "id": "tl-nested-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Its tool call id has the form "
+        },
+        {
+          "insert": "<parent>/<n>",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "tl-nested-2": {
+      "id": "tl-nested-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Pi does not write nested calls to the session transcript."
+        }
+      ],
+      "children": [
+        "tl-nested-2a",
+        "tl-nested-2b"
+      ]
+    },
+    "tl-nested-2a": {
+      "id": "tl-nested-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The kernel nests each live call under its parent tool span by "
+        },
+        {
+          "insert": "parentToolCallId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "tl-nested-2b": {
+      "id": "tl-nested-2b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The JSONL backfill in "
+        },
+        {
+          "insert": "Transcript Recovery",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "20-implementation/20-kernel/50-transcript-recovery"
+            }
+          }
+        },
+        {
+          "insert": " cannot rebuild them."
+        }
+      ],
+      "children": []
+    },
+    "tl-nested-3": {
+      "id": "tl-nested-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Unreleased Pi main also adds "
+        },
+        {
+          "insert": "durationMs",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " on assistant messages and tool results."
+        }
+      ],
+      "children": [
+        "tl-nested-3a"
+      ]
+    },
+    "tl-nested-3a": {
+      "id": "tl-nested-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Once it ships, it fills "
+        },
+        {
+          "insert": "duration_ms",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", which the kernel never sets today."
+        }
+      ],
       "children": []
     },
     "tl-h-rollup": {

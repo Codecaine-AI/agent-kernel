@@ -86,7 +86,7 @@
     {
       "id": "judge",
       "type": "decision",
-      "text": "JudgeAdvisory (decision)\nJev noul: justified?",
+      "text": "JudgeAdvisory (decision)\nJev bool: justified?",
       "color": "orange",
       "parentId": "flow",
       "geometry": {
@@ -563,5 +563,6 @@
       "arrow": "forward",
       "color": "green"
     }
-  ]
+  ],
+  "annotations": []
 }
