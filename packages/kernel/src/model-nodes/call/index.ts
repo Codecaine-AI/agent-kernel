@@ -144,12 +144,14 @@ export function createCall<TCalls>(ctx: CallNodeContext<TCalls>): KernelCallFn<T
 			new Date(ctx.clock.now()).toISOString(),
 		);
 		const provider = route.ok ? route.route.provider : splitModelRef(model)?.provider;
+		// The name the claim records (call_start, session, run, logs): the route credential is known by now.
+		const recordedName = redactText(name, preflight);
 
 		let outcome: CallOutcome;
 		try {
 			const result = await runModelNode<CallOutcome>(ctx, {
 				kind: "call",
-				name,
+				name: recordedName,
 				scope,
 				...(opts.requestId !== undefined && { requestId: opts.requestId }),
 				...(opts.signal !== undefined && { signal: opts.signal }),
@@ -281,7 +283,11 @@ async function executeCall<TCalls, K extends FnName<TCalls>>(
 	});
 	const output = jsonBlob("call-output", redactDeep(outcome.value, secrets), run.timestamp());
 	const usage = sumNodeUsage(turns.usages);
-	ctx.logger?.debug("model call done", { name, runId: run.ids.runId, attempts: outcome.attempts.length });
+	ctx.logger?.debug("model call done", {
+		name: redactText(name, secrets),
+		runId: run.ids.runId,
+		attempts: outcome.attempts.length,
+	});
 	return {
 		outcome: { ok: true, value: outcome.value },
 		runStatus: "done",
@@ -295,6 +301,7 @@ async function executeCall<TCalls, K extends FnName<TCalls>>(
 		},
 		events: turns.events,
 		blobs: [finalInput.blob, ...turns.blobs, output.blob],
+		secrets,
 	};
 }
 
@@ -346,7 +353,7 @@ function failedExecution<TCalls>(
 		...(turns?.resolvedModel !== undefined && { resolved_model: turns.resolvedModel }),
 	};
 	ctx.logger?.info("model call failed", {
-		name,
+		name: redactText(name, secrets),
 		runId: run.ids.runId,
 		kind,
 		attempts: engineOutcome.attempts.length,
@@ -357,6 +364,7 @@ function failedExecution<TCalls>(
 		end,
 		events: turns?.events ?? [],
 		blobs: [...(finalInput ? [finalInput.blob] : []), ...(turns?.blobs ?? []), ...(raw ? [raw.blob] : [])],
+		secrets,
 	};
 }
 

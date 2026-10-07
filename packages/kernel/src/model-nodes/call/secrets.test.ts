@@ -14,11 +14,22 @@ import { getAgentRun, getTraceBlob, getTraceEventsForRun, type KernelDatabase } 
 import type { CallEndData, CallStartData, PiTurnEndData } from "@agent-kernel/protocol";
 import { InMemoryCredentialStore } from "@earendil-works/pi-ai";
 
-import { disableNetwork } from "../__fixtures__/temp-kernel";
+import { createTempKernelDb, disableNetwork, type TempKernelDb } from "../__fixtures__/temp-kernel";
+import { createModelNodeContext, type ModelNodeLogger } from "../context";
 import { ROUTE_FAILURE_MESSAGES, SHORT_CREDENTIAL_MESSAGE } from "../pi-models";
-import { KernelCallError } from "../types";
+import { KernelCallError, type FnName, type PiTransport } from "../types";
+import { createCall } from "./index";
 import { createCallKit, type CallKit, type CallKitOptions } from "./__fixtures__/call-kit";
-import { fakeAttempt, fakeFailure, type FakeCallResponse } from "./__fixtures__/fake-call-engine";
+import {
+	createFakeCallEngine,
+	fakeAttempt,
+	fakeFailure,
+	fakeOk,
+	fakePiModels,
+	FAKE_CALL_MODEL_REF,
+	type FakeCallResponse,
+	type FakePiModels,
+} from "./__fixtures__/fake-call-engine";
 
 let networkStub: typeof fetch;
 let restoreFetch: () => void;
@@ -31,6 +42,7 @@ afterAll(() => {
 });
 
 const kits: CallKit[] = [];
+const temps: TempKernelDb[] = [];
 async function kit(opts: CallKitOptions): Promise<CallKit> {
 	const created = await createCallKit(opts);
 	kits.push(created);
@@ -39,6 +51,7 @@ async function kit(opts: CallKitOptions): Promise<CallKit> {
 afterEach(() => {
 	globalThis.fetch = networkStub;
 	for (const created of kits.splice(0)) created.cleanup();
+	for (const temp of temps.splice(0)) temp.cleanup();
 });
 
 const API_KEY = "sk-live-call-key-QWERTYUIOP";
@@ -261,5 +274,84 @@ describe("call secrets (S4)", () => {
 			start: { pending: true },
 			end: ["note quoting <redacted>"],
 		});
+	});
+
+	/** A kernel whose one generated function is named `name` (a caller mistake the kernel must still contain). */
+	async function leakyNameKernel(name: string, respond: (req: { transport: PiTransport }, index: number) => Promise<FakeCallResponse> | FakeCallResponse, pi: FakePiModels) {
+		type LeakyClient = Record<string, (note: string, opts?: object) => Promise<unknown>>;
+		const logs: Array<{ message: string; data?: Record<string, unknown> }> = [];
+		const capture = (message: string, data?: Record<string, unknown>) => logs.push({ message, ...(data && { data }) });
+		const logger: ModelNodeLogger = { debug: capture, info: capture, warn: capture, error: capture };
+		const engine = createFakeCallEngine<LeakyClient>({
+			functions: [name as FnName<LeakyClient>],
+			// A real engine's prompt hash is a digest (the fake's default embeds the name).
+			promptHash: () => "baml1-0123abcd",
+			transport: "pi",
+			respond,
+		});
+		const temp = await createTempKernelDb();
+		temps.push(temp);
+		const call = createCall(
+			createModelNodeContext<LeakyClient>({
+				kernelId: temp.kernelId,
+				db: temp.db,
+				logger,
+				calls: { engine },
+				models: { defaults: { call: FAKE_CALL_MODEL_REF } },
+				piModels: () => pi,
+			}),
+		);
+		const run = (): Promise<unknown> => call(name as FnName<LeakyClient>, ["note"], { containerId: temp.containerId });
+		return { temp, engine, logs, run };
+	}
+
+	const okThenParseFailure = (index: number): FakeCallResponse =>
+		index === 0
+			? fakeOk({ kept: [] })
+			: fakeFailure({ kind: "parse", message: "Failed to coerce", rawOutput: "not json" }, [fakeAttempt()]);
+
+	test("a function name holding the route credential is scrubbed from every row and log line", async () => {
+		const name = `Extract_${API_KEY}`;
+		const k = await leakyNameKernel(name, (_req, index) => okThenParseFailure(index), fakePiModels({ apiKey: API_KEY }));
+		await k.run();
+		expect((await rejection(k.run())).failure.kind).toBe("parse");
+		// The engine still ran the real function; only what the kernel records is scrubbed.
+		expect(k.engine.invocations.map((req) => String(req.name))).toEqual([name, name]);
+		expect(k.logs.map((l) => l.message)).toEqual(expect.arrayContaining(["model call done", "model call failed"]));
+		expect(JSON.stringify(k.logs)).not.toContain(API_KEY);
+		expect(hits(k.temp.db, [API_KEY])).toEqual([]);
+	});
+
+	test("a function name holding a credential first seen at send time is scrubbed from call_end and the completion logs", async () => {
+		globalThis.fetch = (async () =>
+			new Response(JSON.stringify({ error: { message: "rejected" } }), {
+				status: 400,
+				headers: { "content-type": "application/json" },
+			})) as unknown as typeof fetch;
+		const name = `Extract_${ROTATED_KEY}`;
+		const pi = fakePiModels({ apiKey: API_KEY });
+		const k = await leakyNameKernel(
+			name,
+			async (req, index) => {
+				// The credential rotates after preflight; the transport captures it from the outbound header.
+				// Rotating back keeps it out of the next call's preflight set.
+				await pi.rotateApiKey(ROTATED_KEY);
+				await req.transport.complete({ messages: [{ role: "user", text: "note" }] });
+				await pi.rotateApiKey(API_KEY);
+				return okThenParseFailure(index);
+			},
+			pi,
+		);
+		await k.run();
+		await rejection(k.run());
+		// call_start and the session row hold the name as claimed: the identifier contract (no credential in names).
+		const ends = (await Promise.all(k.engine.invocations.map((req) => getTraceEventsForRun(k.temp.db, req.tags.runId!, ["call_end"])))).flat();
+		expect(ends.map((e) => [(e.eventData as CallEndData).status, (e.eventData as CallEndData).function_name])).toEqual([
+			["ok", "Extract_<redacted>"],
+			["error", "Extract_<redacted>"],
+		]);
+		const completionLogs = k.logs.filter((l) => l.message === "model call done" || l.message === "model call failed");
+		expect(completionLogs).toHaveLength(2);
+		expect(JSON.stringify(completionLogs)).not.toContain(ROTATED_KEY);
 	});
 });

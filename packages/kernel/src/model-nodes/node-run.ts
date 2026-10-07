@@ -422,7 +422,11 @@ async function persistOrReject<TOutcome>(
 	try {
 		await persist(db, spec, handle, execution);
 	} catch (error) {
-		ctx.logger?.error("model node completion write failed", { ...logIds, error: errorName(error) });
+		ctx.logger?.error("model node completion write failed", {
+			...logIds,
+			name: redactText(spec.name, execution.secrets ?? []),
+			error: errorName(error),
+		});
 		throw new KernelNodeError("row-write-failed", `${spec.kind} ${spec.name}: completion write failed`, {
 			cause: error,
 			...attach,
