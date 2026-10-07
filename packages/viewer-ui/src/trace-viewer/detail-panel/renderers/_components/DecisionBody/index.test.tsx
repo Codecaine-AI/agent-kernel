@@ -18,7 +18,15 @@ function block(markup: string, id: string): string {
 describe("DecisionBody", () => {
 	test("DecisionBody shows engine/model badge, confidence source, abstain reason and the route block ids", () => {
 		const accepted = render("decision");
+		// The answer leads: verdict and badges, the bars, then the input state and the facts.
+		expect([...accepted.matchAll(/data-detail-block="([^"]+)"/g)].map((match) => match[1])).toEqual([
+			"decision-summary",
+			"decision-bars",
+			"decision-input-unavailable",
+			"decision-meta",
+		]);
 		const summary = block(accepted, "decision-summary");
+		expect(summary).toMatch(/data-decision-verdict="success"[^>]*>pass · p=0.91</);
 		expect(summary).toContain('data-decision-badge="confidence"');
 		expect(summary).toContain(">native</span>");
 		expect(summary).toContain('data-decision-badge="engine"');

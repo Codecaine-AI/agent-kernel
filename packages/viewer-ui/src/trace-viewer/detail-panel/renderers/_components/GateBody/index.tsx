@@ -2,8 +2,10 @@
  * GateBody — the detail body for a kernel.gate span (gate_start paired with
  * gate_end): the verdict pill, then one row per check with its result, value
  * or reason, and the probability of each decide question against its pass and
- * fail lines; the planned checks are the input. The step and decision rows a
- * gate holds sit under it in the tree and open their own bodies.
+ * fail lines. The planned checks (the input) only matter while the gate is
+ * open, so once gate_end exists they fold into a closed disclosure. The step
+ * and decision rows a gate holds sit under it in the tree and open their own
+ * bodies.
  */
 import type { DetailBlockSpec, DetailView } from "../../../contract";
 import { CLAMP } from "../../../doc-figure/clamp";
@@ -11,7 +13,7 @@ import type { RendererProps } from "../../../types";
 import { jsonDocument } from "../../json-document";
 import { CheckRow } from "./_components/CheckRow";
 import { ResultPill } from "./_components/ResultPill";
-import { gateChecks, gateMetaLine, gateVerdictLabel, pillTone } from "./utils";
+import { gateChecks, gateClosed, gateMetaLine, gateVerdictLabel, pillTone } from "./utils";
 
 export type GateBodyProps = RendererProps;
 
@@ -19,19 +21,6 @@ export function GateBody({ span }: GateBodyProps): DetailView {
 	const checks = gateChecks(span);
 	const verdict = gateVerdictLabel(span);
 	const blocks: DetailBlockSpec[] = [];
-
-	if (span.input?.trim()) {
-		const planned = jsonDocument(span.input);
-		blocks.push({
-			id: "gate-planned",
-			slot: "input",
-			order: 10,
-			caption: "Planned checks",
-			body: planned.body,
-			language: planned.language,
-			clamp: CLAMP.block,
-		});
-	}
 
 	blocks.push({
 		id: "gate-checks",
@@ -61,6 +50,22 @@ export function GateBody({ span }: GateBodyProps): DetailView {
 			</div>
 		),
 	});
+
+	if (span.input?.trim()) {
+		const planned = jsonDocument(span.input);
+		const open = !gateClosed(span);
+		blocks.push({
+			id: "gate-planned",
+			slot: "content",
+			order: 10,
+			caption: "Planned checks",
+			body: planned.body,
+			language: planned.language,
+			clamp: CLAMP.block,
+			collapsible: !open,
+			defaultOpen: open,
+		});
+	}
 
 	return { blocks };
 }

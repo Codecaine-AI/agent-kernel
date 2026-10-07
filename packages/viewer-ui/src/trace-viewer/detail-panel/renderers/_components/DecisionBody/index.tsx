@@ -2,72 +2,59 @@
 
 /**
  * DecisionBody — the detail body for a kernel.decide row (decision_container)
- * and its attempt rows (decision_attempt): the input state the classifier
- * read, the confidence-source and engine/model badges, why it abstained, the
- * probability bars per question against their thresholds, then the facts
- * (thresholds applied, model routing, usage). Everything but the input state
- * comes from the row's decision_made payload, so it renders without a fetch.
+ * and its attempt rows (decision_attempt). The answer leads: the verdict line
+ * with the confidence-source and engine/model badges, why it abstained, the
+ * probability bars per question against their thresholds; then the input
+ * state the classifier read and the facts (thresholds applied, model routing,
+ * usage). Everything but the input state comes from the row's decision_made
+ * payload, so it renders without a fetch.
  */
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 
 import { readStringAttr } from "../../../../span-style";
 import type { DetailBlockSpec, DetailView } from "../../../contract";
-import { CLAMP } from "../../../doc-figure/clamp";
 import type { RendererProps } from "../../../types";
-import { jsonDocument } from "../../json-document";
 import { blobStatusBlock, useTraceBlob, type TraceBlobState } from "../../useTraceBlob";
 import { FieldTable } from "../FieldTable";
+import { jsonBlock } from "../JsonFields";
 import { AbstainPanel } from "./_components/AbstainPanel";
-import { DecisionBadges } from "./_components/DecisionBadges";
+import { DecisionSummary } from "./_components/DecisionSummary";
 import { ProbabilityBars, questionBars } from "./_components/ProbabilityBars";
-import { abstainFacts, decisionBadges, decisionMetaRows, parseDecision } from "./utils";
+import { abstainFacts, decisionBadges, decisionMetaRows, decisionVerdict, parseDecision } from "./utils";
 
 // The gate body draws its decide checks with the same bars.
 export { ProbabilityBars, gateQuestionBars } from "./_components/ProbabilityBars";
 
 export type DecisionBodyProps = RendererProps;
 
+/** Reading order, all in the content slot: the answer, why it abstained, the bars, then the input and the facts. */
+const ORDER = { summary: 0, abstain: 10, bars: 20, input: 30, meta: 40 } as const;
+
 /** The decision view for a given input-state blob; DecisionBody feeds it the fetched one. */
 export function buildDecisionView(span: TraceSpan, input: TraceBlobState): DetailView {
 	const decision = parseDecision(span);
-	const blocks: DetailBlockSpec[] = [];
-
-	if (input.phase === "loaded") {
-		const doc = jsonDocument(input.text);
-		blocks.push({
-			id: "decision-input",
-			slot: "input",
-			order: 10,
-			caption: "Input state",
-			body: doc.body,
-			language: doc.language,
-			clamp: CLAMP.block,
-		});
-	} else {
-		const status = blobStatusBlock(input, {
-			id: "decision-input",
-			caption: "Input state",
-			slot: "input",
-			order: 10,
-		});
-		if (status) blocks.push(status);
-	}
-
-	blocks.push({
-		id: "decision-summary",
-		slot: "content",
-		order: 0,
-		caption: "Decision",
-		expandable: false,
-		node: <DecisionBadges badges={decisionBadges(span, decision)} />,
-	});
+	const blocks: DetailBlockSpec[] = [
+		{
+			id: "decision-summary",
+			slot: "content",
+			order: ORDER.summary,
+			caption: "Decision",
+			expandable: false,
+			node: (
+				<DecisionSummary
+					verdict={decisionVerdict(span, decision)}
+					badges={decisionBadges(span, decision)}
+				/>
+			),
+		},
+	];
 
 	const abstain = abstainFacts(span, decision);
 	if (abstain) {
 		blocks.push({
 			id: "decision-abstain",
 			slot: "content",
-			order: 5,
+			order: ORDER.abstain,
 			caption: "Abstained",
 			expandable: false,
 			node: <AbstainPanel facts={abstain} />,
@@ -81,7 +68,7 @@ export function buildDecisionView(span: TraceSpan, input: TraceBlobState): Detai
 		blocks.push({
 			id: "decision-bars",
 			slot: "content",
-			order: 10,
+			order: ORDER.bars,
 			caption: "Probabilities",
 			expandable: false,
 			node: (
@@ -94,10 +81,18 @@ export function buildDecisionView(span: TraceSpan, input: TraceBlobState): Detai
 		});
 	}
 
+	const inputSpec = { id: "decision-input", caption: "Input state", slot: "content" as const, order: ORDER.input };
+	if (input.phase === "loaded") {
+		blocks.push(jsonBlock(inputSpec, input.text));
+	} else {
+		const status = blobStatusBlock(input, inputSpec);
+		if (status) blocks.push(status);
+	}
+
 	blocks.push({
 		id: "decision-meta",
 		slot: "content",
-		order: 20,
+		order: ORDER.meta,
 		caption: "Facts",
 		expandable: false,
 		node: <FieldTable rows={decisionMetaRows(span, decision)} />,

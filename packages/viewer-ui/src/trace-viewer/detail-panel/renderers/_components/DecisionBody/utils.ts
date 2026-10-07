@@ -87,6 +87,37 @@ export function decisionBadges(span: TraceSpan, decision: DecisionPayload | null
 	};
 }
 
+export type VerdictTone = "success" | "danger" | "warning" | "neutral";
+
+/**
+ * The decision's answer in one line: `pass · p=0.91`, `continue · p=0.71`,
+ * `score 3`, `abstain · low-confidence`; several questions read as `chosen`.
+ */
+export function decisionVerdict(
+	span: TraceSpan,
+	decision: DecisionPayload | null,
+): { label: string; tone: VerdictTone } {
+	if (!decision) return { label: readStringAttr(span, "status") ?? "pending", tone: "neutral" };
+	if (decision.abstained) {
+		return { label: `abstain · ${decision.abstain_reason ?? "abstain"}`, tone: "warning" };
+	}
+	const ids = Object.keys(decision.answers);
+	const answer = ids.length === 1 ? decision.answers[ids[0]!] : undefined;
+	const p = (value: number | undefined) => (value === undefined ? "" : ` · p=${value.toFixed(2)}`);
+	if (answer?.kind === "bool") {
+		const label = answer.verdict ?? answer.choice ?? decision.chosen ?? "answered";
+		const tone = answer.verdict === "pass" ? "success" : answer.verdict === "fail" ? "danger" : "neutral";
+		return { label: `${label}${p(answer.probability)}`, tone };
+	}
+	if (answer?.kind === "choice" && answer.choice) {
+		return { label: `${answer.choice}${p(answer.distribution?.[answer.choice] ?? answer.confidence)}`, tone: "neutral" };
+	}
+	if (answer?.kind === "score" && answer.score !== undefined) {
+		return { label: `score ${answer.score}`, tone: "neutral" };
+	}
+	return { label: decision.chosen ?? "answered", tone: "neutral" };
+}
+
 export interface AbstainFacts {
 	/** low-confidence | refusal | engine-error. */
 	reason: string;

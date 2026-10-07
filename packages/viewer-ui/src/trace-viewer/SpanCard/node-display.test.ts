@@ -18,7 +18,7 @@ describe("getNodeSpanDisplay", () => {
 
 		const decision = display(fixtureSpan("decision"));
 		expect(decision).toMatchObject({ type: "decision", badge: "DECIDE" });
-		expect(decision.result).toEqual({ label: "accepted p=0.91", tone: "success" });
+		expect(decision.result).toEqual({ label: "pass p=0.91", tone: "success" });
 
 		const step = display(fixtureSpan("step"));
 		expect(step).toMatchObject({ type: "step", badge: "STEP", title: "validate" });
@@ -46,20 +46,26 @@ describe("getNodeSpanDisplay", () => {
 		expect(display(fixtureSpan("gate")).duration).toBe("460 ms");
 	});
 
-	test("a retried decision: the node row carries ×2 and attempt 2's verdict; attempt rows read `attempt n of m`", () => {
+	test("a retried decision: the node row carries ×2 and attempt 2's verdict; attempt rows read `attempt n` and why they failed", () => {
 		const row = display(fixtureSpan("retry"));
 		expect(row.attempts).toBe(2);
 		expect(row.title).toBe("JudgeAdvisory:A2");
-		expect(row.result).toEqual({ label: "accepted p=0.88", tone: "success" });
+		expect(row.tooltip).toBe("JudgeAdvisory:A2");
+		expect(row.result).toEqual({ label: "pass p=0.88", tone: "success" });
 
 		const first = display(fixtureSpan("retryAttempt1"));
-		expect(first.title).toBe("attempt 1 of 2");
+		expect(first.title).toBe("attempt 1 · 503");
+		expect(first.tooltip).toBe("attempt 1 of 2 · http · upstream 503");
 		expect(first.attempts).toBeNull();
 		expect(first.result).toEqual({ label: "abstain", tone: "danger" });
 
 		const second = display(fixtureSpan("retryAttempt2"));
-		expect(second.title).toBe("attempt 2 of 2");
-		expect(second.result?.label).toBe("accepted p=0.88");
+		expect(second.title).toBe("attempt 2");
+		expect(second.tooltip).toBe("attempt 2 of 2");
+		expect(second.result?.label).toBe("pass p=0.88");
+
+		// A stale attempt names its error kind when it has no HTTP status.
+		expect(display(fixtureSpan("retriedCallAttempt1")).title).toBe("attempt 1 · abandoned");
 
 		// Single-attempt rows carry no attempts chip.
 		expect(display(fixtureSpan("decision")).attempts).toBeNull();

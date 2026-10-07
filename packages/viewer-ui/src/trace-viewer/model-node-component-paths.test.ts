@@ -21,11 +21,13 @@ const MODEL_NODE_COMPONENTS = [
 	"detail-panel/renderers/_components/StepBody/index.tsx",
 	"detail-panel/renderers/_components/GateBody/index.tsx",
 	"detail-panel/renderers/_components/DecisionBody/_components/ProbabilityBars/index.tsx",
-	"detail-panel/renderers/_components/DecisionBody/_components/DecisionBadges/index.tsx",
+	"detail-panel/renderers/_components/DecisionBody/_components/DecisionSummary/index.tsx",
 	"detail-panel/renderers/_components/DecisionBody/_components/AbstainPanel/index.tsx",
 	"detail-panel/renderers/_components/GateBody/_components/ResultPill/index.tsx",
 	"detail-panel/renderers/_components/GateBody/_components/CheckRow/index.tsx",
+	"detail-panel/renderers/_components/CallBody/_components/CallErrorPanel/index.tsx",
 	"detail-panel/renderers/_components/FieldTable/index.tsx",
+	"detail-panel/renderers/_components/JsonFields/index.tsx",
 ] as const;
 
 const COMPONENT_PATH = /_components\/([A-Z][A-Za-z0-9]*)\/index\.tsx$/;

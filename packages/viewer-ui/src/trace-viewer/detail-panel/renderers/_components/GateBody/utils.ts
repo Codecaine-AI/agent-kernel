@@ -87,6 +87,11 @@ export function gateChecks(span: TraceSpan): GateCheck[] {
 	});
 }
 
+/** Whether gate_end was written (a verdict exists); an open gate is still running or lost its end. */
+export function gateClosed(span: TraceSpan): boolean {
+	return readStringAttr(span, "verdict") !== undefined;
+}
+
 /** The gate's verdict ("pending" until gate_end), with " · aborted" when the gate was cut short. */
 export function gateVerdictLabel(span: TraceSpan): string {
 	const verdict = readStringAttr(span, "verdict") ?? "pending";

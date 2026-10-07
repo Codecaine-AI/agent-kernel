@@ -1084,6 +1084,10 @@ const DELIBERATE_PROSE_WRAP_EXCEPTIONS = {
 		`<p className="${WRAP_UTILITY} break-words text-[length:var(--ds-font-size-ui-lg)] leading-[var(--ds-line-height-row)] text-foreground">`,
 	"renderers/turn/turn-block-content.tsx":
 		`<p className="${WRAP_UTILITY} break-words text-[length:var(--ds-font-size-ui-lg)] leading-[var(--ds-line-height-row)] text-foreground">`,
+	// Model-node field view (call input, decision input state, step output):
+	// long string values soft-wrap instead of running off the card.
+	"renderers/_components/JsonFields/index.tsx":
+		`const STRING_VALUE_CLASS = "${WRAP_UTILITY} break-words text-syntax-string";`,
 } as const;
 
 test("the wrapping utility is confined to named conversation-prose paths", () => {

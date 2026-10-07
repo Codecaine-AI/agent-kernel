@@ -68,7 +68,7 @@ describe("TreeView model-node rows", () => {
 			expect(row).toContain('data-node-chip="result"');
 			expect(row).toContain('data-node-chip="duration"');
 		}
-		expect(rowMarkup(decision)).toContain(">accepted p=0.91</span>");
+		expect(rowMarkup(decision)).toContain(">pass p=0.91</span>");
 		expect(rowMarkup(call)).toContain(">1.8 s</span>");
 		expect(rowMarkup(step)).toContain(">objdiff 100</span>");
 	});
@@ -89,8 +89,24 @@ describe("TreeView model-node rows", () => {
 		const retry = rowMarkup(fixtureSpan("retry").id);
 		expect(retry).toContain('data-node-chip="attempts"');
 		expect(retry).toContain(">×2</span>");
-		expect(rowMarkup("attempt:RD2a")).toContain(">attempt 1 of 2</span>");
-		expect(rowMarkup("attempt:RD2b")).toContain(">attempt 2 of 2</span>");
+		expect(rowMarkup("attempt:RD2a")).toContain(">attempt 1 · 503</span>");
+		expect(rowMarkup("attempt:RD2b")).toContain(">attempt 2</span>");
+	});
+
+	test("the name keeps its width ahead of the chips and carries its full name as a tooltip", () => {
+		const row = rowMarkup(fixtureSpan("retriedCall").id);
+		// Longer than 18 characters: may truncate, but never below 18ch.
+		expect(row).toMatch(/data-node-name="" title="ExtractConfirmedCheckpointKnowledge" style="[^"]*min-width:18ch/);
+		// A short name never shrinks.
+		expect(rowMarkup(step)).toMatch(/data-node-name="" title="validate" style="[^"]*flex-shrink:0/);
+		// Chips sit on one clipped line and wrap out whole; the duration has its own
+		// slot, which gives way before the name or the result.
+		expect(row).toMatch(/data-node-chips="" class="[^"]*flex-wrap[^"]*overflow-hidden[^"]*" style="height:18px;flex-shrink:1"/);
+		expect(row).toMatch(/data-node-duration="" class="[^"]*flex-wrap[^"]*overflow-hidden[^"]*" style="height:18px;flex-shrink:1000000"/);
+		expect(row).toMatch(/style="line-height:18px;min-width:18ch;flex-shrink:1000"/);
+		const chips = [...row.matchAll(/data-node-chip="(\w+)"/g)].map((match) => match[1]);
+		expect(chips).toEqual(["result", "attempts", "duration"]);
+		expect(rowMarkup("attempt:RD2a")).toContain('title="attempt 1 of 2 · http · upstream 503"');
 	});
 
 	test("every tree item carries its span id exactly once, on the item and on its clickable row", () => {

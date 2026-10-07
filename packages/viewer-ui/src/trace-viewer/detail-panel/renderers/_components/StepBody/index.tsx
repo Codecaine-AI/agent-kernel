@@ -1,14 +1,14 @@
 /**
  * StepBody — the detail body for a kernel.step span (step_start paired with
- * step_end): the step's facts and check outcome, its attributes as a table,
- * its recorded events, its output summary, and the error when it threw.
+ * step_end). The outcome leads: the step's facts and check result, the error
+ * when it threw, its output summary; then its attributes and recorded events.
  */
 import { readStringAttr } from "../../../../span-style";
 import type { DetailBlockSpec, DetailView } from "../../../contract";
 import { CLAMP } from "../../../doc-figure/clamp";
 import type { RendererProps } from "../../../types";
-import { jsonDocument } from "../../json-document";
 import { FieldTable } from "../FieldTable";
+import { jsonBlock } from "../JsonFields";
 import { stepAttributeRows, stepEventRows, stepSummaryRows } from "./utils";
 
 export type StepBodyProps = RendererProps;
@@ -30,7 +30,7 @@ export function StepBody({ span }: StepBodyProps): DetailView {
 		blocks.push({
 			id: "step-attributes",
 			slot: "content",
-			order: 10,
+			order: 30,
 			caption: "Attributes",
 			node: <FieldTable rows={attributes} />,
 		});
@@ -41,7 +41,7 @@ export function StepBody({ span }: StepBodyProps): DetailView {
 		blocks.push({
 			id: "step-events",
 			slot: "content",
-			order: 20,
+			order: 40,
 			caption: "Events",
 			node: <FieldTable rows={events} />,
 		});
@@ -51,8 +51,8 @@ export function StepBody({ span }: StepBodyProps): DetailView {
 	if (error) {
 		blocks.push({
 			id: "step-error",
-			slot: "output",
-			order: 0,
+			slot: "content",
+			order: 10,
 			caption: "Error",
 			body: error,
 			language: "text",
@@ -61,16 +61,7 @@ export function StepBody({ span }: StepBodyProps): DetailView {
 	}
 
 	if (span.output?.trim()) {
-		const summary = jsonDocument(span.output);
-		blocks.push({
-			id: "step-output",
-			slot: "output",
-			order: 10,
-			caption: "Output summary",
-			body: summary.body,
-			language: summary.language,
-			clamp: CLAMP.block,
-		});
+		blocks.push(jsonBlock({ id: "step-output", caption: "Output summary", slot: "content", order: 20 }, span.output));
 	}
 
 	return { blocks };

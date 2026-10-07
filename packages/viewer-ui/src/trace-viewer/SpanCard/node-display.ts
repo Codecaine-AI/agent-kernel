@@ -6,7 +6,7 @@
  * (spanAttributes.ts), so the tree and its tests share one reading.
  *
  *   call      node row or attempt row: `ok`, `error · parse`, `aborted`
- *   decision  node row or attempt row: `accepted p=0.91`, `continue p=0.71`, `abstain`
+ *   decision  node row or attempt row: `pass p=0.91`, `continue p=0.71`, `abstain`
  *   step      the first output-summary value (`objdiff 100`), else the check result
  *   gate      the verdict (`pass`, `fail`, `abstain`)
  */
@@ -29,8 +29,13 @@ export type NodeKindBadge = "CALL" | "DECIDE" | "STEP" | "GATE";
 export interface NodeSpanDisplay {
 	type: NodeDisplayType;
 	badge: NodeKindBadge;
-	/** The span title; `attempt n of m` on an attempt row. */
+	/**
+	 * The name the row shows. An attempt row reads `attempt n`, plus why it
+	 * failed when it did (`attempt 1 · 503`, `attempt 1 · abandoned`).
+	 */
 	title: string;
+	/** The full name for the row's tooltip (an attempt row adds `of m` and the error). */
+	tooltip: string;
 	result: { label: string; tone: NodeChipTone } | null;
 	/** Formatted duration ("110 ms", "1.8 s"), or null while the node runs. */
 	duration: string | null;
@@ -86,9 +91,10 @@ function parseAnswers(output: string | undefined): Record<string, DecisionAnswer
 }
 
 /**
- * A decision's chip: `abstain` when it abstained; for its sole question,
- * `accepted`/`rejected` with p(true) for a judged bool, the label with its
- * probability for a choice, the score for a score; else the chosen label.
+ * A decision's chip, kept short so the row's name keeps its width: `abstain`
+ * when it abstained; for its sole question, the verdict with p(true) for a
+ * judged bool (`pass p=0.91`), the label with its probability for a choice,
+ * the score for a score; else the chosen label.
  */
 export function decisionResultLabel(span: TraceSpan): string | null {
 	if (readBoolAttr(span, "abstained") === true) return "abstain";
@@ -101,9 +107,7 @@ export function decisionResultLabel(span: TraceSpan): string | null {
 	if (answer.abstained) return "abstain";
 	if (answer.kind === "bool" && typeof answer.probability === "number") {
 		const p = formatProbability(answer.probability);
-		if (answer.verdict === "pass") return `accepted p=${p}`;
-		if (answer.verdict === "fail") return `rejected p=${p}`;
-		return `${answer.choice ?? chosen ?? "true"} p=${p}`;
+		return `${answer.verdict ?? answer.choice ?? chosen ?? "true"} p=${p}`;
 	}
 	if (answer.kind === "choice" && answer.choice) {
 		const p = answer.distribution?.[answer.choice] ?? answer.confidence;
@@ -173,6 +177,30 @@ function durationOf(span: TraceSpan): string | null {
 	return Number.isFinite(ms) && ms >= 0 ? formatDurationMs(ms) : null;
 }
 
+/**
+ * Why an attempt failed (call_end status error or aborted), in a word: its
+ * HTTP status, else its error kind, else that status. An attempt that ran to
+ * an answer, abstain included, has none.
+ */
+function attemptFailure(span: TraceSpan): string | undefined {
+	const status = readStringAttr(span, "status");
+	if (status !== "error" && status !== "aborted") return undefined;
+	const http = readNumericAttr(span, "http_status");
+	return http !== undefined ? String(http) : (readStringAttr(span, "error_kind") ?? status);
+}
+
+function attemptLabels(span: TraceSpan): { title: string; tooltip: string } | null {
+	const number = readNumericAttr(span, "attempt_number");
+	if (number === undefined) return null;
+	const count = readNumericAttr(span, "attempt_count");
+	const failure = attemptFailure(span);
+	const detail = [readStringAttr(span, "error_kind"), readStringAttr(span, "error_message")].filter(Boolean);
+	return {
+		title: failure ? `attempt ${number} · ${failure}` : `attempt ${number}`,
+		tooltip: [count === undefined ? `attempt ${number}` : `attempt ${number} of ${count}`, ...detail].join(" · "),
+	};
+}
+
 /** The tree row for a model-node span, or null for every other span. */
 export function getNodeSpanDisplay(span: TraceSpan): NodeSpanDisplay | null {
 	const eventType = readStringAttr(span, "event_type");
@@ -180,18 +208,14 @@ export function getNodeSpanDisplay(span: TraceSpan): NodeSpanDisplay | null {
 	if (!type || !eventType) return null;
 
 	const attemptCount = readNumericAttr(span, "attempt_count");
-	const attemptNumber = readNumericAttr(span, "attempt_number");
-	const isAttempt = ATTEMPT_EVENT_TYPES.has(eventType);
-	const title =
-		isAttempt && attemptNumber !== undefined && attemptCount !== undefined
-			? `attempt ${attemptNumber} of ${attemptCount}`
-			: span.title;
+	const attempt = ATTEMPT_EVENT_TYPES.has(eventType) ? attemptLabels(span) : null;
 
 	const label = resultLabel(type, span);
 	return {
 		type,
 		badge: BADGE[type],
-		title,
+		title: attempt?.title ?? span.title,
+		tooltip: attempt?.tooltip ?? span.title,
 		result: label ? { label, tone: toneOf(span.status) } : null,
 		duration: durationOf(span),
 		attempts:

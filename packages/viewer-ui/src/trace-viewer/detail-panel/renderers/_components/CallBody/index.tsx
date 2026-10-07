@@ -2,13 +2,13 @@
 
 /**
  * CallBody — the detail body for a kernel.call row (call_container) and its
- * attempt rows (call_attempt): input args, the call's facts, then the typed
- * output field by field with the raw JSON, or on failure the error and the
- * raw model output. Args and output are content-addressed blobs, fetched on
- * demand; `call-output` renders only once the output has loaded.
+ * attempt rows (call_attempt). The answer leads: the typed output field by
+ * field with the raw JSON, or on failure the error and the raw model output;
+ * then the input args and the call's facts. Args and output are
+ * content-addressed blobs, fetched on demand; `call-output` renders only once
+ * the output has loaded.
  */
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
-import cn from "classnames";
 
 import { readStringAttr } from "../../../../span-style";
 import type { DetailBlockSpec, DetailView } from "../../../contract";
@@ -17,117 +17,90 @@ import type { RendererProps } from "../../../types";
 import { jsonDocument } from "../../json-document";
 import { blobStatusBlock, useTraceBlob, type TraceBlobState } from "../../useTraceBlob";
 import { FieldTable } from "../FieldTable";
+import { jsonBlock } from "../JsonFields";
+import { CallErrorPanel } from "./_components/CallErrorPanel";
 import { callErrorRows, callOutcome, callSummaryRows, outputFields } from "./utils";
 
 export type CallBodyProps = RendererProps;
 
 export type CallBlobs = { input: TraceBlobState; output: TraceBlobState };
 
-function dataBlock(
-	id: string,
-	caption: string,
-	slot: DetailBlockSpec["slot"],
-	order: number,
-	text: string,
-): DetailBlockSpec {
+/** Reading order, all in the content slot: the answer, then what was asked, then the facts. */
+const ORDER = { error: 0, output: 10, outputJson: 20, input: 30, summary: 40 } as const;
+
+function dataBlock(id: string, caption: string, order: number, text: string): DetailBlockSpec {
 	const doc = jsonDocument(text);
-	return { id, slot, order, caption, body: doc.body, language: doc.language, clamp: CLAMP.block };
+	return { id, slot: "content", order, caption, body: doc.body, language: doc.language, clamp: CLAMP.block };
+}
+
+function blobBlocks(
+	state: TraceBlobState,
+	spec: { id: string; caption: string; order: number },
+	loaded: (text: string) => DetailBlockSpec[],
+): DetailBlockSpec[] {
+	if (state.phase === "loaded") return loaded(state.text);
+	const status = blobStatusBlock(state, { ...spec, slot: "content" });
+	return status ? [status] : [];
 }
 
 function outputBlocks(output: TraceBlobState): DetailBlockSpec[] {
-	if (output.phase !== "loaded") {
-		const status = blobStatusBlock(output, {
-			id: "call-output",
-			caption: "Output",
-			slot: "output",
-			order: 10,
-		});
-		return status ? [status] : [];
-	}
-	const fields = outputFields(output.text);
-	if (!fields) return [dataBlock("call-output", "Output", "output", 10, output.text)];
-	return [
-		{
-			id: "call-output",
-			slot: "output",
-			order: 10,
-			caption: "Output",
-			node: (
-				<FieldTable
-					rows={fields.map((field) => ({ key: field.key, label: field.key, value: field.value }))}
-				/>
-			),
-		},
-		dataBlock("call-output-json", "Raw JSON", "output", 20, output.text),
-	];
+	return blobBlocks(output, { id: "call-output", caption: "Output", order: ORDER.output }, (text) => {
+		const fields = outputFields(text);
+		if (!fields) return [dataBlock("call-output", "Output", ORDER.output, text)];
+		return [
+			{
+				id: "call-output",
+				slot: "content",
+				order: ORDER.output,
+				caption: "Output",
+				node: (
+					<FieldTable
+						rows={fields.map((field) => ({ key: field.key, label: field.key, value: field.value }))}
+					/>
+				),
+			},
+			dataBlock("call-output-json", "Raw JSON", ORDER.outputJson, text),
+		];
+	});
 }
 
 function failureBlocks(span: TraceSpan, outcome: "error" | "aborted", output: TraceBlobState): DetailBlockSpec[] {
-	const blocks: DetailBlockSpec[] = [
+	return [
 		{
 			id: "call-error",
-			slot: "output",
-			order: 0,
+			slot: "content",
+			order: ORDER.error,
 			caption: outcome === "aborted" ? "Aborted" : "Error",
 			expandable: false,
-			node: (
-				<div className="space-y-2">
-					<p
-						className={cn(
-							"text-[length:var(--ds-font-size-ui-lg)] font-semibold",
-							outcome === "aborted" ? "text-status-warning" : "text-destructive",
-						)}
-					>
-						{outcome === "aborted" ? "Call aborted" : "Call failed"}
-					</p>
-					<FieldTable rows={callErrorRows(span)} />
-				</div>
-			),
+			node: <CallErrorPanel outcome={outcome} rows={callErrorRows(span)} />,
 		},
+		...blobBlocks(output, { id: "call-raw-output", caption: "Raw output", order: ORDER.output }, (text) => [
+			dataBlock("call-raw-output", "Raw output", ORDER.output, text),
+		]),
 	];
-	if (output.phase === "loaded") {
-		blocks.push(dataBlock("call-raw-output", "Raw output", "output", 10, output.text));
-	} else {
-		const status = blobStatusBlock(output, {
-			id: "call-raw-output",
-			caption: "Raw output",
-			slot: "output",
-			order: 10,
-		});
-		if (status) blocks.push(status);
-	}
-	return blocks;
 }
 
 /** The call view for given blob states; CallBody feeds it the fetched blobs. */
 export function buildCallView(span: TraceSpan, blobs: CallBlobs): DetailView {
-	const blocks: DetailBlockSpec[] = [];
-	if (blobs.input.phase === "loaded") {
-		blocks.push(dataBlock("call-input", "Input", "input", 10, blobs.input.text));
-	} else {
-		const status = blobStatusBlock(blobs.input, {
-			id: "call-input",
-			caption: "Input",
-			slot: "input",
-			order: 10,
-		});
-		if (status) blocks.push(status);
-	}
-
-	blocks.push({
-		id: "call-summary",
-		slot: "content",
-		order: 0,
-		caption: "Call",
-		expandable: false,
-		node: <FieldTable rows={callSummaryRows(span)} />,
-	});
-
 	const outcome = callOutcome(span);
+	const blocks: DetailBlockSpec[] = [];
 	if (outcome === "ok") blocks.push(...outputBlocks(blobs.output));
 	if (outcome === "error" || outcome === "aborted") {
 		blocks.push(...failureBlocks(span, outcome, blobs.output));
 	}
+	blocks.push(
+		...blobBlocks(blobs.input, { id: "call-input", caption: "Input", order: ORDER.input }, (text) => [
+			jsonBlock({ id: "call-input", caption: "Input", slot: "content", order: ORDER.input }, text),
+		]),
+		{
+			id: "call-summary",
+			slot: "content",
+			order: ORDER.summary,
+			caption: "Call",
+			expandable: false,
+			node: <FieldTable rows={callSummaryRows(span)} />,
+		},
+	);
 	return { blocks };
 }
 
