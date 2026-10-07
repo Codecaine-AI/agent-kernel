@@ -17,6 +17,7 @@ import {
 	redactHeaders,
 	redactText,
 } from "./redact";
+import { defineOwn } from "./blobs";
 import type { EngineAttempt, PiTransport, PiTransportRequest, ResolvedRoute } from "./types";
 
 export type PiReasoning = "low" | "medium" | "high";
@@ -139,7 +140,7 @@ export async function resolveCallRoute(
 	if (!auth.ok) return routeFailure(/^No API key found\b/.test(auth.error) ? "missing-credential" : "auth-failed");
 	const headers: Record<string, string> = {};
 	for (const [name, value] of Object.entries(auth.headers ?? {})) {
-		if (typeof value === "string") headers[name] = value;
+		if (typeof value === "string") defineOwn(headers, name, value);
 	}
 	if (findShortCredential(headers, [auth.apiKey]) !== undefined) return routeFailure("short-credential");
 	return {

@@ -228,7 +228,7 @@ describe("answers and secrets through kernel.decide", () => {
 		expect(outcome.answers.ok).toMatchObject({ abstained: true, abstainReason: "engine-error" });
 		expect(outcome.answers.ok.verdict).toBeUndefined();
 		expect(outcome.answers.pick).toMatchObject({ abstained: true, abstainReason: "engine-error" });
-		expect(outcome.error).toMatchObject({ kind: "malformed-answer", message: "malformed answers: ok, pick" });
+		expect(outcome.error).toMatchObject({ kind: "malformed-answer", message: "malformed answers (2 of 2)" });
 		expect(outcome.engine).toBe("jev");
 		await expectDoctorOk(temp.tempDb.db);
 	});
@@ -248,7 +248,7 @@ describe("answers and secrets through kernel.decide", () => {
 			});
 			const label = JSON.stringify(probabilities);
 			expect(outcome.answers.quality, label).toMatchObject({ abstained: true, abstainReason: "engine-error" });
-			expect(outcome.error, label).toEqual({ kind: "malformed-answer", message: "malformed answers: quality" });
+			expect(outcome.error, label).toEqual({ kind: "malformed-answer", message: "malformed answers (1 of 1)" });
 		}
 		// An absent distribution stays valid.
 		const { fetch } = wireFetch(() =>

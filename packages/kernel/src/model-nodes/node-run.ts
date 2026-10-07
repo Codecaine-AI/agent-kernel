@@ -10,19 +10,18 @@
  *
  * A requestId names ONE request: the kind's canonical request fingerprint is
  * stored on call_start (`request_fingerprint`) and compared wherever a
- * requestId could hand back another request's work: in-process coalescing,
- * before the claim, and on every claim outcome (replay, in-flight, and a
- * claimed retry). A mismatch rejects KernelNodeError("invalid-request") and
+ * requestId could hand back another request's work: in-process coalescing
+ * here, and across kernels inside the claim's BEGIN IMMEDIATE transaction,
+ * against every run of the session before replay, recovery or insertion. A
+ * mismatch rejects KernelNodeError("invalid-request"), writes nothing, and
  * never invokes the engine. Runs written without a fingerprint still replay.
  */
 import { createHash, randomUUID } from "node:crypto";
 
 import {
-	abandonNodeRun,
 	claimAndStartNode,
 	getAgentRun,
 	getTraceEventsForRun,
-	listAgentRunsForPiSession,
 	persistNodeCompletion,
 	type KernelDatabase,
 	type NodeClaim,
@@ -42,6 +41,7 @@ import {
 import { canonicalJson } from "./blobs";
 import type { ModelNodeContext } from "./context";
 import { toUsageDelta } from "./pricing";
+import { redactText } from "./redact";
 import type { ResolvedNodeScope } from "./scope";
 import { KernelNodeError, type NodeIds } from "./types";
 
@@ -101,6 +101,12 @@ export interface NodeExecution<TOutcome> {
 	/** Snapshots, turns, decision_made in order; call_end is appended by the lifecycle. */
 	events: TraceEvent[];
 	blobs: TraceBlobInput[];
+	/**
+	 * The complete credential set of the run (§4.7). The lifecycle scrubs the
+	 * caller-supplied strings it writes on call_end (function name, gate span id)
+	 * with it; the kind scrubs everything it built itself.
+	 */
+	secrets?: readonly string[];
 }
 
 export interface NodeReplayInput {
@@ -234,10 +240,6 @@ async function runClaimed<TOutcome>(
 	const deadlineAt = new Date(deadlineAtMs).toISOString();
 	const startEventId = kernelNodeEventId(runId, 0, "call_start");
 	const fingerprint = spec.requestId !== undefined ? spec.fingerprint : undefined;
-	// Before any write: a requestId whose earlier attempts were a different request is rejected outright.
-	if (fingerprint !== undefined && (await sessionHasOtherRequest(db, sessionId, fingerprint))) {
-		throw requestMismatch();
-	}
 	const startData: CallStartData = {
 		run_id: runId,
 		node_kind: spec.kind,
@@ -274,15 +276,19 @@ async function runClaimed<TOutcome>(
 			staleAfterMs: ctx.staleAfterMs,
 			nowMs: ctx.clock.now(),
 			deadlineAt,
+			...(fingerprint !== undefined && { requestFingerprint: fingerprint }),
 		});
 	} catch (error) {
 		ctx.logger?.error("model node start write failed", { ...logIds, error: errorName(error) });
 		throw new KernelNodeError("row-write-failed", `${spec.kind} ${spec.name}: start write failed`, { cause: error });
 	}
 
+	if (claim.kind === "mismatch") {
+		ctx.logger?.info("model node requestId reused for a different request", { ...logIds, priorRunId: claim.runId });
+		throw requestMismatch();
+	}
 	if (claim.kind === "replay") return replayRun(ctx, db, spec, sessionId, claim.runId);
 	if (claim.kind === "in-flight") {
-		if (fingerprint !== undefined && (await runFingerprintDiffers(db, claim.runId, fingerprint))) throw requestMismatch();
 		ctx.logger?.info("model node request in flight elsewhere", { ...logIds, inFlightRunId: claim.runId });
 		throw new KernelNodeError(
 			"in-flight-elsewhere",
@@ -291,16 +297,6 @@ async function runClaimed<TOutcome>(
 	}
 	if (claim.abandonedRunIds.length > 0) {
 		ctx.logger?.warn("model node recovered stale attempts", { ...logIds, abandonedRunIds: claim.abandonedRunIds });
-	}
-	// Claims are serialized (BEGIN IMMEDIATE), so a different request that committed an attempt between the
-	// pre-claim check and this claim is visible now: close this attempt unrun and reject.
-	if (fingerprint !== undefined && (await sessionHasOtherRequest(db, sessionId, fingerprint, runId))) {
-		try {
-			await abandonNodeRun(db, { runId, sessionId, containerId: scope.containerId, at: ctx.clock.nextIso() });
-		} catch (error) {
-			ctx.logger?.error("model node mismatch close failed", { ...logIds, error: errorName(error) });
-		}
-		throw requestMismatch();
 	}
 
 	// Operation deadline: one abort that ends in-flight requests and pending backoff.
@@ -365,38 +361,9 @@ async function replayRun<TOutcome>(
 		...(run?.parentRunId ? { parentRunId: run.parentRunId } : {}),
 	};
 	const events = await getTraceEventsForRun(db, priorRunId);
-	const fingerprint = spec.requestId !== undefined ? spec.fingerprint : undefined;
-	const stored = startFingerprint(events.find((event) => event.type === "call_start"));
-	if (fingerprint !== undefined && stored !== undefined && stored !== fingerprint) throw requestMismatch();
 	ctx.logger?.debug("model node replayed", { kind: spec.kind, name: spec.name, runId: priorRunId, sessionId });
 	const outcome = await spec.replay({ db, ids, events });
 	return { outcome, ids, replayed: true, coalesced: false };
-}
-
-/** The request fingerprint a call_start recorded; undefined for runs written before fingerprints. */
-function startFingerprint(start: TraceEvent | undefined): string | undefined {
-	const value = (start?.eventData as { request_fingerprint?: unknown } | undefined)?.request_fingerprint;
-	return typeof value === "string" ? value : undefined;
-}
-
-async function runFingerprintDiffers(db: KernelDatabase, runId: string, fingerprint: string): Promise<boolean> {
-	const [start] = await getTraceEventsForRun(db, runId, ["call_start"]);
-	const stored = startFingerprint(start);
-	return stored !== undefined && stored !== fingerprint;
-}
-
-/** True when any run of the session (other than `exceptRunId`) recorded a different fingerprint. */
-async function sessionHasOtherRequest(
-	db: KernelDatabase,
-	sessionId: string,
-	fingerprint: string,
-	exceptRunId?: string,
-): Promise<boolean> {
-	for (const run of await listAgentRunsForPiSession(db, sessionId)) {
-		if (run.id === exceptRunId) continue;
-		if (await runFingerprintDiffers(db, run.id, fingerprint)) return true;
-	}
-	return false;
 }
 
 /** One transaction: outcome events and blobs, usage, then run and session status (call_end last). */
@@ -408,13 +375,14 @@ async function persist<TOutcome>(
 ): Promise<void> {
 	const endMs = Date.parse(handle.timestamp());
 	const endedAt = new Date(endMs).toISOString();
+	const secrets = execution.secrets ?? [];
 	const endData: CallEndData = {
 		run_id: handle.ids.runId,
 		node_kind: spec.kind,
-		function_name: spec.name,
+		function_name: redactText(spec.name, secrets),
 		...execution.end,
 		duration_ms: Math.max(0, endMs - handle.startedAtMs),
-		...(spec.start.gate_span_id !== undefined && { gate_span_id: spec.start.gate_span_id }),
+		...(spec.start.gate_span_id !== undefined && { gate_span_id: redactText(spec.start.gate_span_id, secrets) }),
 	};
 	const callEnd = createCallEndEvent(handle.traceIds, endData, {
 		eventId: handle.eventId(0, "call_end"),

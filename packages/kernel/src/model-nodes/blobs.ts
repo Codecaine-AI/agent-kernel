@@ -16,8 +16,15 @@ function sortKeys(value: unknown): unknown {
 	const proto = Object.getPrototypeOf(value);
 	if (proto !== Object.prototype && proto !== null) return value;
 	const out: Record<string, unknown> = {};
-	for (const key of Object.keys(value).sort()) out[key] = sortKeys((value as Record<string, unknown>)[key]);
+	// defineProperty, not assignment: an own "__proto__" key (as JSON.parse makes it) stays a key
+	// instead of hitting the prototype setter and vanishing from the canonical form.
+	for (const key of Object.keys(value).sort()) defineOwn(out, key, sortKeys((value as Record<string, unknown>)[key]));
 	return out;
+}
+
+/** Defines an own enumerable data property, whatever the key ("__proto__" included). */
+export function defineOwn(target: Record<string, unknown>, key: string, value: unknown): void {
+	Object.defineProperty(target, key, { value, enumerable: true, writable: true, configurable: true });
 }
 
 /** A canonical-JSON blob of `kind` and its hash. */

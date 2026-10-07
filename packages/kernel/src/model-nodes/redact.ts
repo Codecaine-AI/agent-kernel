@@ -64,7 +64,7 @@ export function credentialPart(value: string): string {
 export function redactHeaders(headers: HeaderSource): Record<string, string> {
 	const out: Record<string, string> = {};
 	for (const [name, value] of headerPairs(headers)) {
-		out[name] = isSensitiveHeaderName(name) ? REDACTED : value;
+		defineOwnKey(out, name, isSensitiveHeaderName(name) ? REDACTED : value);
 	}
 	return out;
 }
@@ -170,7 +170,12 @@ function scrub(value: unknown, secrets: ReadonlyArray<string>, seen: WeakMap<obj
 	const out: Record<string, unknown> = {};
 	seen.set(value, out);
 	for (const [key, item] of Object.entries(value)) {
-		out[redactText(key, secrets)] = scrub(item, secrets, seen);
+		defineOwnKey(out, redactText(key, secrets), scrub(item, secrets, seen));
 	}
 	return out;
+}
+
+/** An own enumerable data property, so a "__proto__" key stays a key instead of setting the prototype. */
+function defineOwnKey(target: Record<string, unknown>, key: string, value: unknown): void {
+	Object.defineProperty(target, key, { value, enumerable: true, writable: true, configurable: true });
 }

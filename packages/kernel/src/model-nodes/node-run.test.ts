@@ -327,6 +327,7 @@ describe("runModelNode", () => {
 			{ stdout: "pipe", stderr: "pipe" },
 		);
 		let ownResult: Promise<{ value: NodeRunResult<FakeNodeOutcome> } | { error: unknown }> | undefined;
+		let timedOut = false;
 		try {
 			let parentInvoked = 0;
 			const own = runModelNode(
@@ -355,7 +356,9 @@ describe("runModelNode", () => {
 			const waitUntil = Date.now() + 30_000;
 			while (!ownSettled && child.exitCode === null) {
 				if (Date.now() > waitUntil) {
-					throw new Error(`race did not settle; child stderr: ${await new Response(child.stderr).text()}`);
+					// Throw at once: the live child holds stderr open until it is released and reaped (finally).
+					timedOut = true;
+					throw new Error("race did not settle within 30 s");
 				}
 				await Bun.sleep(10);
 			}
@@ -390,6 +393,7 @@ describe("runModelNode", () => {
 			if (child.exitCode === null) child.kill();
 			await child.exited;
 			await ownResult;
+			if (timedOut) console.error(`cross-process race child stderr: ${await new Response(child.stderr).text()}`);
 			rmSync(markerDir, { recursive: true, force: true });
 		}
 	});
@@ -442,6 +446,66 @@ describe("runModelNode", () => {
 		await held;
 		expect(invocations).toBe(2);
 		expect(countRows(temp.db, "agent_runs")).toBe(2);
+		await expectDoctorOk(temp.db);
+	});
+
+	test("a different request that resumes after the original ended aborted writes nothing; the original retries", async () => {
+		const withPrint = (fingerprint: string, opts: Parameters<typeof fakeNodeSpec>[0]) => ({
+			...fakeNodeSpec(opts),
+			fingerprint,
+		});
+		// The loser enters the lifecycle first and is held right before its claim.
+		const barrier = deferred();
+		let loserHeld = false;
+		const loserCtx = createModelNodeContext({
+			kernelId: temp.kernelId,
+			db: temp.openHandle().db,
+			ensureSchema: async () => {
+				loserHeld = true;
+				await barrier.promise;
+			},
+		});
+		let loserInvoked = 0;
+		const loser = runModelNode(
+			loserCtx,
+			withPrint("rf1-loser", { scope: scope(), requestId: "req-interleave", invoke: () => void loserInvoked++ }),
+		).then(
+			(value) => ({ value }),
+			(error: unknown) => ({ error }),
+		);
+		while (!loserHeld) await Bun.sleep(1);
+
+		// Meanwhile the original request claims, runs and ends aborted.
+		const original = await runModelNode(
+			contextFor(temp.db),
+			withPrint("rf1-original", { scope: scope(), requestId: "req-interleave", signal: AbortSignal.abort() }),
+		);
+		expect((await getAgentRun(temp.db, original.ids.runId))?.status).toBe("aborted");
+		const before = {
+			runs: countRows(temp.db, "agent_runs"),
+			events: countRows(temp.db, "trace_events"),
+			blobs: countRows(temp.db, "trace_blobs"),
+		};
+
+		// The loser resumes: its claim sees the original's attempt and writes nothing.
+		barrier.resolve();
+		const settled = await loser;
+		expect("error" in settled && (settled.error as KernelNodeError).code).toBe("invalid-request");
+		expect(loserInvoked).toBe(0);
+		expect({
+			runs: countRows(temp.db, "agent_runs"),
+			events: countRows(temp.db, "trace_events"),
+			blobs: countRows(temp.db, "trace_blobs"),
+		}).toEqual(before);
+
+		// The original request can still retry.
+		const retry = await runModelNode(
+			contextFor(temp.db),
+			withPrint("rf1-original", { scope: scope(), requestId: "req-interleave" }),
+		);
+		expect(retry).toMatchObject({ replayed: false, attempt: 2 });
+		expect((await getAgentRun(temp.db, retry.ids.runId))?.status).toBe("done");
+		expect((await getPiAgentSession(temp.db, retry.ids.sessionId))?.status).toBe("ended");
 		await expectDoctorOk(temp.db);
 	});
 

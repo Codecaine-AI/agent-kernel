@@ -67,6 +67,13 @@ export interface NodeStartInput {
   nowMs: number;
   /** Operation deadline (ISO); stamped into the start event as deadline_at. */
   deadlineAt: string;
+  /**
+   * The canonical request fingerprint (requestId claims only). Stamped into the
+   * start event as `request_fingerprint` and compared, inside the claim, with
+   * every run of the session: a different one is a `mismatch` and nothing is
+   * written. Runs recorded without one are not compared.
+   */
+  requestFingerprint?: string;
 }
 
 export type NodeClaim =
@@ -74,7 +81,9 @@ export type NodeClaim =
   | { kind: "replay"; runId: string }
   /** A fresh "running" run exists (another instance owns it); nothing was written. */
   | { kind: "in-flight"; runId: string }
-  | { kind: "claimed"; runId: string; attempt: number; abandonedRunIds: string[] };
+  | { kind: "claimed"; runId: string; attempt: number; abandonedRunIds: string[] }
+  /** A run of this request recorded a different request fingerprint; nothing was written. */
+  | { kind: "mismatch"; runId: string };
 
 export interface NodeCompletion {
   runId: string;
@@ -103,6 +112,9 @@ export class NodeRunNotRunningError extends Error {
  * Claim and start one node attempt in ONE synchronous `BEGIN IMMEDIATE`
  * transaction:
  *   1. list the session's runs (only when requestId is given);
+ *   1a. with a requestFingerprint, any run whose call_start recorded a
+ *      different fingerprint → `mismatch` (nothing written, before replay,
+ *      recovery or insertion, so a rejected request never blocks the original);
  *   2. any "done" run → `replay` (nothing written);
  *   3. a "running" run is fresh while now ≤ its call_start.deadline_at + 60 s
  *      (runs without deadline_at: startedAt + staleAfterMs) → `in-flight`
@@ -171,6 +183,15 @@ function claimTx(tx: KernelTx, input: NodeStartInput): NodeClaim {
   const runs =
     input.requestId === undefined ? [] : listRunsForSessionTx(tx, input.sessionId);
 
+  if (input.requestFingerprint !== undefined) {
+    for (const run of runs) {
+      const stored = readStartEvent(tx, run.inboundEventId)?.data.request_fingerprint;
+      if (typeof stored === "string" && stored !== input.requestFingerprint) {
+        return { kind: "mismatch", runId: run.id };
+      }
+    }
+  }
+
   const done = runs.filter((run) => run.status === RUN_STATUS.DONE).at(-1);
   if (done) return { kind: "replay", runId: done.id };
 
@@ -220,6 +241,7 @@ function claimTx(tx: KernelTx, input: NodeStartInput): NodeClaim {
     stampStartEvent(input.startEvent, {
       deadlineAt: input.deadlineAt,
       attempt: input.requestId === undefined ? undefined : attempt,
+      requestFingerprint: input.requestFingerprint,
     }),
   ]);
   if (inserted !== 1) {
@@ -377,7 +399,7 @@ function staleAtMs(
 
 function stampStartEvent(
   event: TraceEvent,
-  stamp: { deadlineAt: string; attempt: number | undefined },
+  stamp: { deadlineAt: string; attempt: number | undefined; requestFingerprint: string | undefined },
 ): TraceEvent {
   if (typeof event.eventData !== "object" || event.eventData === null) return event;
   return {
@@ -386,6 +408,7 @@ function stampStartEvent(
       ...event.eventData,
       deadline_at: stamp.deadlineAt,
       ...(stamp.attempt !== undefined && { attempt: stamp.attempt }),
+      ...(stamp.requestFingerprint !== undefined && { request_fingerprint: stamp.requestFingerprint }),
     },
   };
 }

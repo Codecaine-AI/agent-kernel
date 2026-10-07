@@ -65,7 +65,10 @@ describe("malformed answers", () => {
 		}
 		expect(outcome.answers.fine_bool).toMatchObject({ verdict: "pass", abstained: false });
 		expect(outcome.answers.fine_choice).toMatchObject({ choice: "b", abstained: false });
-		expect(outcome.error).toEqual({ kind: "malformed-answer", message: `malformed answers: ${bad.join(", ")}` });
+		expect(outcome.error).toEqual({
+			kind: "malformed-answer",
+			message: `malformed answers (${bad.length} of ${Object.keys(questions).length})`,
+		});
 		expect(outcome.abstainReason).toBe("engine-error");
 		expect((await getAgentRun(temp.tempDb.db, outcome.ids.runId))?.status).toBe("error");
 		await expectDoctorOk(temp.tempDb.db);

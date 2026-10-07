@@ -37,7 +37,7 @@ import {
 } from "@agent-kernel/protocol";
 import type { ClassifierQuestion, JsonObject as PiJsonObject } from "@earendil-works/pi-ai";
 
-import { canonicalJson, jsonBlob } from "../blobs";
+import { canonicalJson, defineOwn, jsonBlob } from "../blobs";
 import { resolveModelAlias, type ModelNodeContext } from "../context";
 import {
 	requestFingerprint,
@@ -353,8 +353,23 @@ function preflight(
 	if (budget === undefined) return undefined;
 	const estimate = estimateDecisionTokens(stateJson, questions);
 	if (estimate <= budget) return undefined;
-	return { kind: "too-large", message: `estimated ${estimate} tokens exceeds the ${budget}-token budget of ${modelRef}` };
+	return { kind: "too-large", message: `estimated ${estimate} tokens exceeds the model's ${budget}-token budget` };
 }
+
+const ENGINE_IDS: ReadonlySet<string> = new Set(["jev", "openai-decisions", "pi-ai", "baml"]);
+const ERROR_KINDS: ReadonlySet<string> = new Set<EngineErrorKind>([
+	"aborted",
+	"timeout",
+	"auth",
+	"too-large",
+	"unknown-model",
+	"invalid-request",
+	"rate-limit",
+	"refusal",
+	"provider",
+	"not-configured",
+	"malformed-answer",
+]);
 
 /** The claim-time classifier-context: the scrubbed context is written with the completion. */
 const PENDING_CONTEXT = { pending: true } as const;
@@ -392,6 +407,11 @@ async function invokeEngine(engine: DecisionEngine, request: PiEngineRequest): P
 		if (result === null || typeof result !== "object") throw new TypeError("decision engine returned no result");
 		return {
 			...result,
+			// Persisted as trace enums: an engine-invented value is not carried through.
+			engine: ENGINE_IDS.has(result.engine) ? result.engine : "pi-ai",
+			...(result.error && {
+				error: { ...result.error, kind: ERROR_KINDS.has(result.error.kind) ? result.error.kind : "provider" },
+			}),
 			answers: result.answers ?? {},
 			secrets: Array.isArray(result.secrets) ? result.secrets : [],
 		};
@@ -410,7 +430,7 @@ async function invokeEngine(engine: DecisionEngine, request: PiEngineRequest): P
 			startedAtMs: Date.now(),
 			error: {
 				kind: request.signal?.aborted ? "aborted" : "provider",
-				message: `decision engine threw ${error instanceof Error ? error.name : typeof error}`,
+				message: "decision engine threw",
 			},
 			secrets: [],
 		};
@@ -476,7 +496,8 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 			...(r.error.httpStatus !== undefined && { httpStatus: r.error.httpStatus }),
 		};
 	} else if (malformed.length > 0) {
-		error = { kind: "malformed-answer", message: `malformed answers: ${malformed.join(", ")}` };
+		// Constant: question ids are caller-supplied; the abstained answers show which ones.
+		error = { kind: "malformed-answer", message: `malformed answers (${malformed.length} of ${Object.keys(questions).length})` };
 	}
 	const runStatus = aborted ? "aborted" : abstainReason === "engine-error" ? "error" : "done";
 	// A done decision was answered (a refusal is an answer), so the engine reached the model at least once.
@@ -570,29 +591,33 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 		);
 	}
 
-	const thresholdApplied: Record<string, ThresholdApplied> = {};
-	for (const [id, decision] of Object.entries(answers)) thresholdApplied[id] = decision.thresholdApplied;
 	const chosen = chosenLabel(answers);
 	const confidenceSource = outcomeConfidenceSource(Object.values(answers));
 	const madeAt = handle.timestamp();
-	// Labels are caller-declared; the persisted copies are scrubbed all the same.
+	// Every caller- or engine-supplied string persisted below (question ids as keys, option labels, the
+	// decision name, provider, api, gate span id) goes through the complete credential set (§4.7).
+	const scrub = (text: string) => redactText(text, secrets);
 	const persistedAnswers = redactDeep(answers, secrets);
+	const thresholdApplied: Record<string, ThresholdApplied> = {};
+	for (const [id, decision] of Object.entries(persistedAnswers)) defineOwn(thresholdApplied, id, decision.thresholdApplied);
+	const provider = scrub(r.provider);
+	const api = r.api ? scrub(r.api) : undefined;
 	const made: DecisionMadeData = {
 		run_id: handle.ids.runId,
-		decision_name: name,
+		decision_name: scrub(name),
 		answers: persistedAnswers,
-		chosen: redactText(chosen, secrets),
+		chosen: scrub(chosen),
 		confidence_source: confidenceSource,
 		abstained,
 		...(abstainReason && { abstain_reason: abstainReason }),
 		threshold_applied: thresholdApplied,
 		engine: r.engine,
-		provider: r.provider,
-		...(r.api && { api: r.api }),
+		provider,
+		...(api && { api }),
 		model: servedModel,
 		requested_model: requestedModel,
 		...(error && { error_kind: error.kind }),
-		...(input.gateSpanId !== undefined && { gate_span_id: input.gateSpanId }),
+		...(input.gateSpanId !== undefined && { gate_span_id: scrub(input.gateSpanId) }),
 	};
 	events.push(
 		createDecisionMadeEvent(handle.traceIds, made, {
@@ -642,6 +667,7 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 		},
 		events,
 		blobs,
+		secrets,
 	};
 }
 

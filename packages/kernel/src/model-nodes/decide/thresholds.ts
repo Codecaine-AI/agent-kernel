@@ -81,7 +81,15 @@ function choiceDecision(
 ): Decision {
 	const labels = Object.keys(question.criteria);
 	const distribution: Record<string, number> = {};
-	for (const label of labels) distribution[label] = ownNumber(answer.distribution, label) ?? 0;
+	// defineProperty: a label named "__proto__" stays a label (assignment would set the prototype).
+	for (const label of labels) {
+		Object.defineProperty(distribution, label, {
+			value: ownNumber(answer.distribution, label) ?? 0,
+			enumerable: true,
+			writable: true,
+			configurable: true,
+		});
+	}
 	const top = Math.max(...labels.map((label) => distribution[label]!));
 	const leaders = labels.filter((label) => distribution[label] === top);
 	const second = Math.max(0, ...labels.filter((label) => distribution[label] !== top).map((label) => distribution[label]!));

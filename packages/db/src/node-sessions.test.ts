@@ -97,7 +97,7 @@ function blob(kind: string, text: string): TraceBlobInput {
 
 function startInput(
   opts: { runId: string; requestId?: string; nowMs?: number; parentRunId?: string | null } & Partial<
-    Pick<NodeStartInput, "staleAfterMs">
+    Pick<NodeStartInput, "staleAfterMs" | "requestFingerprint">
   >,
 ): NodeStartInput {
   const nowMs = opts.nowMs ?? T0;
@@ -144,6 +144,7 @@ function startInput(
     staleAfterMs: opts.staleAfterMs ?? STALE_AFTER_MS,
     nowMs,
     deadlineAt,
+    ...(opts.requestFingerprint !== undefined && { requestFingerprint: opts.requestFingerprint }),
   };
 }
 
@@ -359,6 +360,37 @@ describe("claimAndStartNode", () => {
     expect(replay).toEqual({ kind: "replay", runId: "run-b" });
     expect(count("trace_events")).toBe(eventsBefore);
     expect(count("agent_runs", "id = 'run-c'")).toBe(0);
+  });
+
+  test("a different request fingerprint is a mismatch inside the claim: nothing written, the original still retries", async () => {
+    // The original request: claimed, then ended aborted (as a cancelled or deadline-ended attempt).
+    const original = startInput({ runId: "run-a", requestId: "req-fp", requestFingerprint: "rf1-a" });
+    expect((await claimAndStartNode(db, original)).kind).toBe("claimed");
+    expect(eventData(original.startEvent.eventId)).toMatchObject({ request_fingerprint: "rf1-a" });
+    await persistNodeCompletion(db, completion(original, { runStatus: "aborted", sessionStatus: "error" }));
+    const rowsBefore = { runs: count("agent_runs"), events: count("trace_events"), blobs: count("trace_blobs") };
+
+    // Another request under the same requestId: rejected before recovery or insertion.
+    const other = startInput({ runId: "run-x", requestId: "req-fp", requestFingerprint: "rf1-x", nowMs: T0 + 5_000 });
+    expect(await claimAndStartNode(db, other)).toEqual({ kind: "mismatch", runId: "run-a" });
+    expect({ runs: count("agent_runs"), events: count("trace_events"), blobs: count("trace_blobs") }).toEqual(rowsBefore);
+
+    // The original request retries as attempt 2.
+    const retry = startInput({ runId: "run-b", requestId: "req-fp", requestFingerprint: "rf1-a", nowMs: T0 + 6_000 });
+    expect(await claimAndStartNode(db, retry)).toEqual({
+      kind: "claimed",
+      runId: "run-b",
+      attempt: 2,
+      abandonedRunIds: [],
+    });
+
+    // A run without a fingerprint (an older row, or a caller that passes none) is never compared.
+    const legacy = startInput({ runId: "run-l", requestId: "req-legacy" });
+    expect((await claimAndStartNode(db, legacy)).kind).toBe("claimed");
+    await persistNodeCompletion(db, completion(legacy));
+    expect(
+      await claimAndStartNode(db, startInput({ runId: "run-l2", requestId: "req-legacy", requestFingerprint: "rf1-new" })),
+    ).toEqual({ kind: "replay", runId: "run-l" });
   });
 
   test("a running run without deadline_at goes stale after staleAfterMs", async () => {

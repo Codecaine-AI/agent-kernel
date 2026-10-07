@@ -296,6 +296,67 @@ describe("kernel.decide", () => {
 		}
 	});
 
+	test("credential-bearing question ids and option labels never persist, on the success and malformed paths", async () => {
+		// A collected credential that is also a valid question id and an option label.
+		const credential = "sk_live_4f9a8c7e2b1d6a3f";
+		const questions = {
+			[credential]: boolQ(),
+			pick: choiceQ([credential, "other"]),
+		};
+		for (const [label, answers] of [
+			[
+				"success",
+				{
+					[credential]: { type: "bool" as const, probability: 0.97 },
+					pick: { type: "choice" as const, choice: credential, distribution: { [credential]: 0.9, other: 0.1 }, confidence: 0.8 },
+				},
+			],
+			[
+				"malformed",
+				{
+					[credential]: { type: "bool" as const, probability: 1.5 },
+					pick: { type: "choice" as const, choice: credential, distribution: { [credential]: 0.9, other: 0.1 }, confidence: 0.8 },
+				},
+			],
+		] as const) {
+			const engine = scriptedEngine(() => ({ answers, attempts: 1, secrets: [credential] }));
+			const temp = await kernel({ decide: { engine } });
+			const outcome = await temp.kernel.decide("ids", { a: 1 }, { containerId: temp.tempDb.containerId, questions });
+			if (label === "success") expect(outcome.answers[credential]!.verdict).toBe("pass");
+			else expect(outcome.error).toEqual({ kind: "malformed-answer", message: "malformed answers (1 of 2)" });
+			expect(rowsContaining(temp.tempDb.db, credential), label).toEqual([]);
+			const made = (await getTraceEventsForRun(temp.tempDb.db, outcome.ids.runId, ["decision_made"]))[0]!
+				.eventData as DecisionMadeData;
+			expect(Object.keys(made.threshold_applied).sort(), label).toEqual(["<redacted>", "pick"]);
+		}
+	});
+
+	test("a __proto__ key in parsed JSON state is part of the request and of the stored context", async () => {
+		const engine = answeringEngine({ justified: { type: "bool", probability: 0.9 } });
+		const temp = await kernel({ decide: { engine } });
+		const opts = { containerId: temp.tempDb.containerId, questions: JUDGE, requestId: "req-proto" };
+		const first = JSON.parse('{"__proto__":{"a":1}}') as Record<string, never>;
+		const changed = JSON.parse('{"__proto__":{"a":2}}') as Record<string, never>;
+		const outcome = await temp.kernel.decide("proto", first, opts);
+		// The state as sent and as stored keeps its own __proto__ key.
+		expect(JSON.stringify(engine.requests[0]!.state)).toBe('{"__proto__":{"a":1}}');
+		const [end] = await getTraceEventsForRun(temp.tempDb.db, outcome.ids.runId, ["call_end"]);
+		expect(await blobJson(temp.tempDb.db, (end!.eventData as CallEndData).input_blob_hash)).toMatchObject({
+			state: JSON.parse('{"__proto__":{"a":1}}'),
+		});
+		const stored = (await getTraceBlob(temp.tempDb.db, (end!.eventData as CallEndData).input_blob_hash!))!;
+		expect(Buffer.from(stored.data).toString("utf8")).toContain('"__proto__":{"a":1}');
+		// A different __proto__ value is a different request; the same one replays.
+		const rejected = await temp.kernel.decide("proto", changed, opts).then(
+			() => undefined,
+			(error: unknown) => error,
+		);
+		expect((rejected as KernelNodeError).code).toBe("invalid-request");
+		const again = await temp.kernel.decide("proto", JSON.parse('{"__proto__":{"a":1}}') as Record<string, never>, opts);
+		expect(again).toMatchObject({ replayed: true, ids: { runId: outcome.ids.runId } });
+		expect(engine.requests).toHaveLength(1);
+	});
+
 	test("a refusal is an answer: abstain refusal, run done", async () => {
 		// Through the Pi engine: the in-process provider refuses without any fetch.
 		const { fake, registry } = await createFakeClassifierRegistry();

@@ -95,7 +95,13 @@ export function headerEntries(h: object): Record<string, string> {
 			: (Object.entries(h) as Array<[string, unknown]>);
 	for (const [key, value] of entries) {
 		if (value === undefined) continue;
-		out[String(key)] = typeof value === "string" ? value : JSON.stringify(value);
+		// defineProperty, not assignment: a header named "__proto__" stays a header.
+		Object.defineProperty(out, String(key), {
+			value: typeof value === "string" ? value : JSON.stringify(value),
+			enumerable: true,
+			writable: true,
+			configurable: true,
+		});
 	}
 	return out;
 }
