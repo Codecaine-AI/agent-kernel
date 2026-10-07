@@ -103,3 +103,47 @@ describe("filterSpansByTraceLevel with turn containers", () => {
 		expect(shape(filterSpansByTraceLevel(tree, 0))).toEqual([["text", []]]);
 	});
 });
+
+describe("filterSpansByTraceLevel with model nodes", () => {
+	/** A node row as viewer-core builds it: no trace level, synthetic id. */
+	function nodeRow(title: string, id: string, eventType: string, children: TraceSpan[]): TraceSpan {
+		const row = span(title, eventType, 0, children);
+		return {
+			...row,
+			id,
+			attributes: [{ key: "event_type", value: { stringValue: eventType } }],
+		};
+	}
+
+	function nodeTree(): TraceSpan[] {
+		return [
+			span("llm-review-advisories", "gate_start", 1, [
+				span("justification:A1", "step_start", 1),
+				nodeRow("JudgeAdvisory:A2", "pi:retry", "decision_container", [
+					nodeRow("attempt 1", "attempt:r1", "decision_attempt", [
+						span("Turn 0", "pi_request_snapshot", 2),
+					]),
+					nodeRow("attempt 2", "attempt:r2", "decision_attempt", []),
+				]),
+			]),
+		];
+	}
+
+	it("node types survive L1: the gate keeps its step, decision row and attempts", () => {
+		expect(shape(filterSpansByTraceLevel(nodeTree(), 1))).toEqual([
+			[
+				"llm-review-advisories",
+				[
+					["justification:A1", []],
+					["JudgeAdvisory:A2", [["attempt 1", []], ["attempt 2", []]]],
+				],
+			],
+		]);
+	});
+
+	it("node rows and their gate stay at L0 too; only the classifier turn drops", () => {
+		expect(shape(filterSpansByTraceLevel(nodeTree(), 0))).toEqual(
+			shape(filterSpansByTraceLevel(nodeTree(), 1)),
+		);
+	});
+});

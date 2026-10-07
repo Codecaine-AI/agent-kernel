@@ -1,11 +1,34 @@
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 
-import type { SpanDisplayType } from "./icons/resolve-span-icon";
+import type { NodeDisplayType, SpanDisplayType } from "./icons/resolve-span-icon";
 
 export type SpanStyle = {
 	titleClassName: string;
 	indicator?: string;
 };
+
+/**
+ * Model-node rows (viewer-core model-nodes.ts) by their synthetic event_type:
+ * call and decision node rows and their attempt rows, plus the paired step
+ * and gate spans (a lone step_end / gate_end keeps its kind too).
+ */
+const NODE_DISPLAY_BY_EVENT_TYPE: Readonly<Record<string, NodeDisplayType>> = {
+	call_container: "call",
+	call_attempt: "call",
+	decision_container: "decision",
+	decision_attempt: "decision",
+	step_start: "step",
+	step_end: "step",
+	gate_start: "gate",
+	gate_end: "gate",
+};
+
+/** The model-node kind an event_type renders as, or undefined for every other event. */
+export function nodeDisplayTypeOf(
+	eventType: string | undefined,
+): NodeDisplayType | undefined {
+	return eventType === undefined ? undefined : NODE_DISPLAY_BY_EVENT_TYPE[eventType];
+}
 
 /**
  * Resolve the display-type discriminant for a span from its event_type,
@@ -47,7 +70,7 @@ export function spanDisplayTypeOf(span: TraceSpan): SpanDisplayType {
 		case "pi_request_snapshot":
 			return "turn";
 		default:
-			return "generic";
+			return nodeDisplayTypeOf(eventType) ?? "generic";
 	}
 }
 
@@ -80,6 +103,33 @@ export function readNumberAttr(
 		return Number.isFinite(parsed) ? parsed : undefined;
 	}
 	return undefined;
+}
+
+/**
+ * A numeric attribute with its fraction kept. viewer-core stores every number
+ * as `intValue: String(n)`, so probabilities and costs ("0.91", "0.0012")
+ * arrive there too; readNumberAttr would truncate them.
+ */
+export function readNumericAttr(
+	span: TraceSpan,
+	key: string,
+): number | undefined {
+	const raw = span.attributes?.find((attr) => attr.key === key)?.value?.intValue;
+	if (typeof raw !== "string") return undefined;
+	const parsed = Number(raw);
+	return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+export function readBoolAttr(span: TraceSpan, key: string): boolean | undefined {
+	const value = span.attributes?.find((attr) => attr.key === key)?.value?.boolValue;
+	return typeof value === "boolean" ? value : undefined;
+}
+
+/** Node timing on the row chip and in the detail: "110 ms", "1.8 s", "2.4 min". */
+export function formatDurationMs(ms: number): string {
+	if (ms < 1000) return `${Math.round(ms)} ms`;
+	if (ms < 60_000) return `${(ms / 1000).toFixed(1)} s`;
+	return `${(ms / 60_000).toFixed(1)} min`;
 }
 
 const PROMINENT_EVENT_TYPES: ReadonlySet<string> = new Set([

@@ -121,6 +121,28 @@ describe("TurnMessage card chrome", () => {
 		expect(markup).not.toContain("tabular-nums");
 	});
 
+	test("a decision's classifier context wears the decision card and renders its JSON as data", () => {
+		const text = JSON.stringify(
+			{ state: { advisory: "type_erasing_cast" }, questions: [{ id: "ok", type: "bool" }] },
+			null,
+			2,
+		);
+		const markup = chromeOf({
+			role: "classifier_context",
+			content: [{ type: "text", text }],
+		});
+
+		expect(markup).toContain('data-message-role="classifier_context"');
+		expect(markup).toContain(GROUP_ACCENT.decision.border);
+		expect(markup).toContain(bandWash("decision"));
+		expect(markup).toContain('aria-label="Classifier context message"');
+		// Data, not prose: a JSON figure with the gutter, never the prose paragraph.
+		expect(markup).toContain('data-doc-language="json"');
+		expect(markup).toContain('data-doc-gutter=""');
+		expect(markup).not.toContain("whitespace-pre-wrap");
+		expect(markup).toContain("type_erasing_cast");
+	});
+
 	test("keeps each role's glyph distinct so the cap identifies the message", () => {
 		const glyph = (markup: string) =>
 			/<path[^>]*\bd="([^"]*)"/.exec(markup)?.[1] ?? "";

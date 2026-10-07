@@ -6,6 +6,7 @@
  *   ToolCard, UIAskCard, AgentCard — icon + label cards (neutral)
  *   LifecycleCard — neutral card for agent run/session lifecycle
  *   SystemCard — context-accented card for system_prompt_resolved, context_build
+ *   ModelNodeCard — call / decision / step / gate rows (getNodeSpanDisplay())
  *
  * Fallback renders span.title for unrecognized event types.
  * Color semantics live in icons/resolve-span-icon.tsx (GROUP_ACCENT).
@@ -22,6 +23,8 @@ import type { SpanCardConnectorType } from "./SpanCardConnector";
 import { SpanCardConnector, TREE_LINE_CLASS } from "./SpanCardConnector";
 import { SpanCardToggle } from "./SpanCardToggle";
 import { TraceCard } from "./TraceCard";
+import { ModelNodeCard } from "./_components/ModelNodeCard";
+import { getNodeSpanDisplay } from "./node-display";
 import { UserMessageCard, AssistantMessageCard, ToolCard, SpawnerCard, UIAskCard, AgentCard, LifecycleCard, SystemCard, ContainerCard, MetaCard } from "./variants";
 import { readStringAttr, spanDisplayTypeOf } from "../span-style";
 import {
@@ -405,6 +408,7 @@ export const SpanCard: FC<SpanCardProps> = ({
   const eventHandlers = useSpanCardEventHandlers(data, onSpanSelect);
 
   const spanDisplay = useMemo(() => getSpanDisplay(data), [data]);
+  const nodeDisplay = useMemo(() => getNodeSpanDisplay(data), [data]);
 
   const iconSide = viewOptions.iconSide ?? DEFAULT_VIEW_OPTIONS.iconSide;
   const iconStyle = viewOptions.iconStyle ?? DEFAULT_VIEW_OPTIONS.iconStyle;
@@ -448,6 +452,7 @@ export const SpanCard: FC<SpanCardProps> = ({
       role="treeitem"
       aria-selected={state.isSelected ? true : selectedSpan ? false : undefined}
       aria-expanded={state.hasChildren ? state.isExpanded : undefined}
+      data-span-id={data.id}
       className="list-none"
     >
       <Collapsible.Root
@@ -456,6 +461,7 @@ export const SpanCard: FC<SpanCardProps> = ({
       >
         <div
           data-selected={state.isSelected ? "" : undefined}
+          data-span-row={data.id}
           data-depth={level}
           className={cn(
             // Named group: the CARD (TraceCard) wears the actual selection
@@ -581,7 +587,9 @@ export const SpanCard: FC<SpanCardProps> = ({
               <ContainerCard label={spanDisplay.label} chrome={chrome} />
             )}
 
-            {!spanDisplay && (
+            {nodeDisplay && <ModelNodeCard display={nodeDisplay} chrome={chrome} />}
+
+            {!spanDisplay && !nodeDisplay && (
               <MetaCard title={data.title} chrome={chrome} />
             )}
           </div>

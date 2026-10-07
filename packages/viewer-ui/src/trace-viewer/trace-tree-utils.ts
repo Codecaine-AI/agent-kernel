@@ -34,13 +34,31 @@ function isSyntheticContainer(span: TraceSpan): boolean {
 		span.id.startsWith("phase:") ||
 		span.id.startsWith("pi:") ||
 		span.id.startsWith("run:") ||
+		span.id.startsWith("attempt:") ||
 		span.id.startsWith("container:") ||
 		span.id.startsWith("orphaned:")
 	);
 }
 
+/**
+ * Model-node rows and the step / gate spans that hold checks: structure, like
+ * containers, so they survive every level filter (a gate never drops while
+ * the decisions folded under it stay).
+ */
+const MODEL_NODE_EVENT_TYPES = new Set<string>([
+	"call_container",
+	"call_attempt",
+	"decision_container",
+	"decision_attempt",
+	"step_start",
+	"step_end",
+	"gate_start",
+	"gate_end",
+]);
+
 function shouldKeepSpan(span: TraceSpan, maxLevel: number): boolean {
 	if (isSyntheticContainer(span)) return true;
+	if (MODEL_NODE_EVENT_TYPES.has(readEventType(span) ?? "")) return true;
 	if (span.status === "error" || span.status === "warning") return true;
 	const level = readTraceLevel(span);
 	if (level === undefined) return true;

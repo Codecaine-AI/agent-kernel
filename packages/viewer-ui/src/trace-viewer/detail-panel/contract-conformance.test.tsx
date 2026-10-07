@@ -12,6 +12,7 @@ import type {
 	TraceSpanAttribute,
 } from "@evilmartians/agent-prism-types";
 
+import { fixtureSpan } from "../__fixtures__/model-node-trace";
 import { SpanDetailPanel } from "../SpanDetailPanel";
 import { BLOCK_SLOT_ORDER, type BlockSlot } from "./contract";
 import { DetailShell, DetailShellFrame } from "./DetailShell";
@@ -210,6 +211,20 @@ function representativeSpan(eventType: string): TraceSpan {
 					intAttr("total_image_count", 1),
 				],
 			});
+		// Model nodes (plan §4.9): real rows from viewer-core's span build of the
+		// offline fixture. No read API here, so blob blocks are their stand-ins.
+		case "call_container":
+			return fixtureSpan("call");
+		case "call_attempt":
+			return fixtureSpan("retriedCallAttempt1");
+		case "decision_container":
+			return fixtureSpan("decision");
+		case "decision_attempt":
+			return fixtureSpan("retryAttempt1");
+		case "step_start":
+			return fixtureSpan("step");
+		case "gate_start":
+			return fixtureSpan("gate");
 		default:
 			// Usage aggregates intentionally exercise their no-usageContext path,
 			// which must conform as the empty-body FactCard standard.
@@ -665,6 +680,19 @@ const REQUIRED_DATA_BLOCKS: Partial<Record<string, readonly string[]>> = {
 	],
 };
 
+/**
+ * Model-node bodies: the blocks each representative row must render (node
+ * blocks included), and the route ids the DS run profile waits on.
+ */
+const REQUIRED_BLOCKS: Partial<Record<string, readonly string[]>> = {
+	call_container: ["call-input-unavailable", "call-summary", "call-output-unavailable"],
+	call_attempt: ["call-summary", "call-error"],
+	decision_container: ["decision-input-unavailable", "decision-summary", "decision-bars", "decision-meta"],
+	decision_attempt: ["decision-summary", "decision-abstain", "decision-meta"],
+	step_start: ["step-summary", "step-attributes", "step-events", "step-output"],
+	gate_start: ["gate-planned", "gate-checks"],
+};
+
 describe("detail renderer contract conformance", () => {
 	for (const [eventType, renderer] of Object.entries(rendererRegistry)) {
 		test(`${eventType} conforms`, () => {
@@ -677,6 +705,9 @@ describe("detail renderer contract conformance", () => {
 			const markup = renderToStaticMarkup(<SpanDetailPanel span={span} />);
 			for (const blockId of REQUIRED_DATA_BLOCKS[eventType] ?? []) {
 				assertDataBlock(markup, blockId);
+			}
+			for (const blockId of REQUIRED_BLOCKS[eventType] ?? []) {
+				detailBlock(markup, blockId);
 			}
 			if (eventType === "user_message" || eventType === "assistant_message") {
 				const message = detailBlock(markup, "message");

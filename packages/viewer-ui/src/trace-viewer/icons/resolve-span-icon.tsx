@@ -19,6 +19,11 @@
  *     LIFECYCLE     agents, provisioning, runs/sessions, containers,
  *                   info/debug rows → neutral hairline, NO wash (plumbing)
  *
+ *   Model nodes (kernel.call / decide / step / gate) are bands too, from the
+ *   design-system hue tokens (categorical color): call → teal, decision →
+ *   pink, step → gray wash; a gate is a neutral frame around its checks.
+ *   Verdicts and abstains show through span status, which wins below.
+ *
  *   Ordering of loudness (must stay monotonic):
  *     neutral plumbing < kind band < SELECTION (status-info ring + fill + bar,
  *     applied by SpanCard) < STATUS (error red / warning amber: full-strength
@@ -33,6 +38,9 @@
  */
 import type { SpanIconKind } from "./span-icons";
 
+/** Model-node kinds; SpanCard renders them through getNodeSpanDisplay(). */
+export type NodeDisplayType = "call" | "decision" | "step" | "gate";
+
 /** The display-type discriminant, aligned with SpanCard's getSpanDisplay(). */
 export type SpanDisplayType =
 	| "user"
@@ -45,6 +53,7 @@ export type SpanDisplayType =
 	| "turn"
 	| "system"
 	| "container"
+	| NodeDisplayType
 	| "generic";
 
 /** The semantic color group a card belongs to. */
@@ -56,6 +65,9 @@ export type SpanColorGroup =
 	| "context"
 	| "lifecycle"
 	| "meta"
+	| "call"
+	| "decision"
+	| "step"
 	| "warning"
 	| "error";
 
@@ -122,7 +134,26 @@ export const GROUP_ACCENT: Record<
 		border: "border-[rgb(var(--trace-orchestration)/var(--band-border-opacity,0.45))]",
 		wash: "bg-[rgb(var(--trace-orchestration)/var(--band-wash-opacity,0.1))]",
 	},
+	// Model-node bands — design-system hue tokens at the same band knobs. The
+	// opacity modifier compiles to color-mix(in oklab, <hue> calc(knob * 100%),
+	// transparent), so the style-panel opacities drive these bands too.
+	call: {
+		text: "text-teal",
+		border: "border-teal/[var(--band-border-opacity,0.45)]",
+		wash: "bg-teal/[var(--band-wash-opacity,0.1)]",
+	},
+	decision: {
+		text: "text-pink",
+		border: "border-pink/[var(--band-border-opacity,0.45)]",
+		wash: "bg-pink/[var(--band-wash-opacity,0.1)]",
+	},
+	step: {
+		text: "text-gray",
+		border: "border-gray/[var(--band-border-opacity,0.45)]",
+		wash: "bg-gray/[var(--band-wash-opacity,0.1)]",
+	},
 	// Neutral set — quiet plumbing; icon shape + text differentiate. No wash.
+	// A gate is the neutral orchestration frame around its checks.
 	orchestration: { text: NEUTRAL_TEXT, border: NEUTRAL_BORDER },
 	lifecycle: { text: NEUTRAL_TEXT, border: NEUTRAL_BORDER },
 	meta: { text: NEUTRAL_TEXT, border: NEUTRAL_BORDER },
@@ -152,6 +183,10 @@ const GROUP_BY_DISPLAY: Record<SpanDisplayType, SpanColorGroup> = {
 	system: "context",
 	lifecycle: "lifecycle",
 	container: "lifecycle",
+	call: "call",
+	decision: "decision",
+	step: "step",
+	gate: "orchestration",
 	generic: "meta",
 };
 
@@ -167,6 +202,10 @@ const KIND_BY_DISPLAY: Record<SpanDisplayType, SpanIconKind> = {
 	system: "system",
 	lifecycle: "lifecycle",
 	container: "container",
+	call: "call",
+	decision: "decision",
+	step: "step",
+	gate: "gate",
 	generic: "generic",
 };
 

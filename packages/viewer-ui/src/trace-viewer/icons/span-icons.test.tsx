@@ -83,6 +83,10 @@ describe("resolveSpanIcon", () => {
 		"turn",
 		"system",
 		"container",
+		"call",
+		"decision",
+		"step",
+		"gate",
 		"generic",
 	];
 
@@ -141,8 +145,14 @@ describe("resolveSpanIcon", () => {
 
 	test("kind bands: conversation/tool/context wear full border + wash, plumbing stays neutral", () => {
 		const banded: SpanColorGroup[] = ["user", "assistant", "tool", "context"];
+		const nodeBanded: SpanColorGroup[] = ["call", "decision", "step"];
 		for (const [group, accent] of Object.entries(GROUP_ACCENT)) {
-			if (banded.includes(group as SpanColorGroup)) {
+			if (nodeBanded.includes(group as SpanColorGroup)) {
+				// Model-node bands: design-system hue tokens at the same knobs
+				// (asserted in full by the model-node test below).
+				expect(accent.border).toContain("--band-border-opacity");
+				expect(accent.wash).toContain("--band-wash-opacity");
+			} else if (banded.includes(group as SpanColorGroup)) {
 				// Band = full border in the kind hue + subtle wash, with alphas
 				// driven by the style-panel opacity tokens (baked fallbacks).
 				expect(accent.border).toContain("--trace-");
@@ -186,5 +196,48 @@ describe("resolveSpanIcon", () => {
 		expect(resolveSpanIcon({ displayType: "lifecycle", lifecycleLabel: "Agent Run Start" }).kind).toBe("run");
 		expect(resolveSpanIcon({ displayType: "lifecycle", lifecycleLabel: "Provisioning" }).kind).toBe("provisioning");
 		expect(resolveSpanIcon({ displayType: "lifecycle", lifecycleLabel: "Agent Session Start" }).kind).toBe("lifecycle");
+	});
+});
+
+describe("model-node kinds", () => {
+	const NODE_TYPES = ["call", "decision", "step", "gate"] as const;
+
+	test("span-icons: new display types resolve to their group and distinct glyphs, never the gear", () => {
+		expect(resolveSpanIcon({ displayType: "call" }).group).toBe("call");
+		expect(resolveSpanIcon({ displayType: "decision" }).group).toBe("decision");
+		expect(resolveSpanIcon({ displayType: "step" }).group).toBe("step");
+		// A gate is the neutral orchestration frame around its checks.
+		expect(resolveSpanIcon({ displayType: "gate" }).group).toBe("orchestration");
+
+		const kinds = NODE_TYPES.map((displayType) => resolveSpanIcon({ displayType }).kind);
+		expect(kinds).toEqual(["call", "decision", "step", "gate"]);
+
+		// Glyphs, not just kinds: the four rendered SVGs are pairwise distinct,
+		// and none of them is the gear the lifecycle rows wear.
+		const markup = (kind: SpanIconKind) =>
+			renderToStaticMarkup(createElement(spanIconFor(kind, "outline"), { size: 13 }));
+		const glyphs = kinds.map(markup);
+		expect(new Set(glyphs).size).toBe(glyphs.length);
+		expect(glyphs).not.toContain(markup("lifecycle"));
+	});
+
+	test("GROUP_ACCENT has text, border and wash for call, decision, step", () => {
+		const hue = { call: "teal", decision: "pink", step: "gray" } as const;
+		for (const [group, name] of Object.entries(hue)) {
+			const accent = GROUP_ACCENT[group as SpanColorGroup];
+			// Design-system hue utilities (categorical color), with the band
+			// opacity knobs as the opacity modifier: no literal color anywhere.
+			expect(accent.text).toBe(`text-${name}`);
+			expect(accent.border).toBe(`border-${name}/[var(--band-border-opacity,0.45)]`);
+			expect(accent.wash).toBe(`bg-${name}/[var(--band-wash-opacity,0.1)]`);
+		}
+		// Gates keep the neutral frame, no wash.
+		expect(GROUP_ACCENT.orchestration.wash).toBeUndefined();
+	});
+
+	test("status still wins over the node hue", () => {
+		expect(resolveSpanIcon({ displayType: "decision", status: "warning" }).group).toBe("warning");
+		expect(resolveSpanIcon({ displayType: "call", status: "error" }).group).toBe("error");
+		expect(resolveSpanIcon({ displayType: "gate", status: "error" }).group).toBe("error");
 	});
 });

@@ -51,6 +51,15 @@ const MESSAGE_DISPLAY_TYPE: Record<string, SpanDisplayType> = {
 	assistant: "assistant",
 	toolResult: "tool",
 	bashExecution: "tool",
+	// A decision's request: the classifier context wears the decision card.
+	classifier_context: "decision",
+};
+
+/** Roles whose text is data (a result or a JSON request), rendered as a figure, not prose. */
+const DATA_TEXT_CAPTION: Record<string, string> = {
+	toolResult: "Tool result",
+	bashExecution: "Bash output",
+	classifier_context: "Classifier context",
 };
 
 function messageDisplayTypeOf(
@@ -247,10 +256,8 @@ export function TurnMessage({
 	// and the band border key off, so the three can never drift apart.
 	const accent = GROUP_ACCENT[descriptor.group].text;
 	const blocks = contentBlocksOf(message);
-	const dataText =
-		message.role === "toolResult" || message.role === "bashExecution";
-	const dataCaption =
-		message.role === "toolResult" ? "Tool result" : "Bash output";
+	const dataCaption = DATA_TEXT_CAPTION[message.role] ?? "Data";
+	const dataText = Object.hasOwn(DATA_TEXT_CAPTION, message.role);
 	const contentRuns = blocks.reduce<
 		Array<
 			| { kind: "block"; block: SanitizedContentBlock; index: number }

@@ -51,6 +51,10 @@ export type SpanIconKind =
 	| "system"
 	| "lifecycle"
 	| "provisioning"
+	| "call"
+	| "decision"
+	| "step"
+	| "gate"
 	| "warning"
 	| "error"
 	| "generic";
@@ -62,6 +66,11 @@ export type SpanIconKind =
  *   robot = agent; paper-plane = dispatch; play = run; flag = phase;
  *   cube = container; database = provisioning. GEARS MEAN LIFECYCLE /
  *   PLUMBING ONLY — nothing content-bearing wears a gear.
+ *
+ * Model nodes reuse licensed glyphs (all 15 are taken), pairwise distinct
+ * and never the gear; the row's kind badge (CALL, DECIDE, STEP, GATE) and
+ * hue carry the meaning: database = call (typed data out), flag = decision
+ * (a verdict), play = step (code runs), layers = gate (a stack of checks).
  */
 const ICON_BY_KIND: Record<SpanIconKind, FC<NucleoIconProps>> = {
 	tool: WrenchIcon,
@@ -76,6 +85,10 @@ const ICON_BY_KIND: Record<SpanIconKind, FC<NucleoIconProps>> = {
 	system: LayersIcon,
 	lifecycle: GearIcon,
 	provisioning: DatabaseIcon,
+	call: DatabaseIcon,
+	decision: FlagIcon,
+	step: MediaPlayIcon,
+	gate: LayersIcon,
 	warning: TriangleWarningIcon,
 	error: CircleWarningIcon,
 	generic: CircleInfoIcon,

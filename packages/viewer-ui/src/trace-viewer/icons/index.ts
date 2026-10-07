@@ -10,6 +10,7 @@ export {
 	type SpanIconDescriptor,
 	type SpanIconInput,
 	type SpanDisplayType,
+	type NodeDisplayType,
 	type SpanColorGroup,
 } from "./resolve-span-icon";
 export { DEFAULT_ICON_SIDE, DEFAULT_ICON_STYLE } from "./icon-options";

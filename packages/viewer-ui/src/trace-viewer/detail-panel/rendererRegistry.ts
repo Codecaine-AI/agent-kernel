@@ -1,4 +1,8 @@
 import type { DetailBodyRenderer } from "./contract";
+import { CallBody } from "./renderers/_components/CallBody";
+import { DecisionBody } from "./renderers/_components/DecisionBody";
+import { GateBody } from "./renderers/_components/GateBody";
+import { StepBody } from "./renderers/_components/StepBody";
 import { ContextBuildBody } from "./renderers/ContextBuildBody";
 import { FactCard } from "./renderers/FactCard";
 import { MessageBody } from "./renderers/MessageBody";
@@ -23,6 +27,13 @@ export const rendererRegistry: Record<string, DetailBodyRenderer> = {
 	phase_container: UsageAggregateRenderer,
 	pi_agent_container: UsageAggregateRenderer,
 	run_container: UsageAggregateRenderer,
+	// Model nodes (plan §4.9): node rows and their attempt rows share a body.
+	call_container: CallBody,
+	call_attempt: CallBody,
+	decision_container: DecisionBody,
+	decision_attempt: DecisionBody,
+	step_start: StepBody,
+	gate_start: GateBody,
 };
 
 export function resolveRenderer(

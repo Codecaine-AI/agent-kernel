@@ -95,6 +95,9 @@ export const ROLE_STYLE: Record<string, { label: string; className: string }> = 
     className: "text-muted-foreground",
   },
   bashExecution: { label: "Bash", className: "text-trace-tool" },
+  // kernel.decide's request: the JSON `{ state, questions }` the classifier
+  // read. Data, not prose — it wears the decision hue.
+  classifier_context: { label: "Classifier context", className: "text-pink" },
 };
 
 /** Kept geometry: an inline snapshot image caps at 320px tall (the modal shows it whole). */
