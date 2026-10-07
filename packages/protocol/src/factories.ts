@@ -12,7 +12,8 @@
  *
  * Trace level assignments:
  *   SUMMARY (0)    — user_message, assistant_message
- *   PROCESSING (1) — system_prompt, context_build, tool_call, pipeline containers
+ *   PROCESSING (1) — system_prompt, context_build, tool_call, pipeline containers,
+ *                    model nodes (call, decision_made, step, gate)
  *   DEBUG (2)      — agent lifecycle, phases, hooks, errors
  *   INTERNAL (3)   — Pi lifecycle/turns, context input resolution
  */
@@ -30,13 +31,18 @@ import {
   type AgentRunStartData,
   type AgentSessionStartData,
   type AssistantMessageData,
+  type CallEndData,
+  type CallStartData,
   type ContainerEndData,
   type ContainerStartData,
   type ContextBuildCompletedData,
   type ContextBuildStartedData,
   type ContextInputResolvedData,
+  type DecisionMadeData,
   type ErrorData,
   type EventData,
+  type GateEndData,
+  type GateStartData,
   type PhaseEndData,
   type PhaseStartData,
   type PiAgentEndData,
@@ -47,6 +53,8 @@ import {
   type PostToolHookData,
   type PreToolHookData,
   type RunSteeredData,
+  type StepEndData,
+  type StepStartData,
   type SystemPromptResolvedData,
   type ToolCallEndData,
   type ToolCallStartData,
@@ -86,6 +94,8 @@ export type RunTraceEventIds = TraceEventIds & { runId: string };
 // ─── Base Constructor ───────────────────────────────────────────────────────
 
 interface CreateEventOptions {
+  /** Explicit (deterministic) event id; a random uuid when omitted. */
+  eventId?: string;
   type: string;
   ids: TraceEventIds;
   eventData: EventData;
@@ -98,7 +108,7 @@ interface CreateEventOptions {
 
 function createEvent(opts: CreateEventOptions): TraceEvent {
   return {
-    eventId: newEventId(),
+    eventId: opts.eventId ?? newEventId(),
     containerId: opts.ids.containerId,
     type: opts.type as TraceEvent["type"],
     source: opts.source,
@@ -318,6 +328,8 @@ export function createPiTurnStartEvent(
     turnNumber?: number;
     spanId?: string;
     parentEventId?: string;
+    eventId?: string;
+    timestamp?: string;
   },
 ): TraceEvent {
   const data: PiTurnStartData = {
@@ -331,6 +343,8 @@ export function createPiTurnStartEvent(
     traceLevel: TraceLevel.INTERNAL,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
+    eventId: opts?.eventId,
+    timestamp: opts?.timestamp,
   });
 }
 
@@ -340,14 +354,25 @@ export function createPiTurnEndEvent(
     turnNumber?: number;
     stopReason?: string;
     usage?: TurnUsage;
+    /** Model-node turns: blob of the raw provider response. */
+    responseBlobHash?: string;
+    httpStatus?: number;
+    durationMs?: number;
+    reasoningTokens?: number;
     spanId?: string;
     parentEventId?: string;
+    eventId?: string;
+    timestamp?: string;
   },
 ): TraceEvent {
   const data: PiTurnEndData = {
     turn_number: opts?.turnNumber,
     stop_reason: opts?.stopReason,
     ...(opts?.usage ? { usage: opts.usage } : {}),
+    ...(opts?.responseBlobHash !== undefined ? { response_blob_hash: opts.responseBlobHash } : {}),
+    ...(opts?.httpStatus !== undefined ? { http_status: opts.httpStatus } : {}),
+    ...(opts?.durationMs !== undefined ? { duration_ms: opts.durationMs } : {}),
+    ...(opts?.reasoningTokens !== undefined ? { reasoning_tokens: opts.reasoningTokens } : {}),
   };
   return createEvent({
     type: EventType.PI_TURN_END,
@@ -357,6 +382,8 @@ export function createPiTurnEndEvent(
     traceLevel: TraceLevel.INTERNAL,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
+    eventId: opts?.eventId,
+    timestamp: opts?.timestamp,
   });
 }
 
@@ -372,6 +399,8 @@ export function createPiRequestSnapshotEvent(
   opts?: {
     spanId?: string;
     parentEventId?: string;
+    eventId?: string;
+    timestamp?: string;
   },
 ): TraceEvent {
   return createEvent({
@@ -382,6 +411,8 @@ export function createPiRequestSnapshotEvent(
     traceLevel: TraceLevel.DEBUG,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
+    eventId: opts?.eventId,
+    timestamp: opts?.timestamp,
   });
 }
 
@@ -447,6 +478,13 @@ export function createToolCallStartEvent(
     toolKind?: "spawner";
     /** The spawner tool's declared agent-name allowlist (D77). */
     spawns?: string[];
+    /** Nested calls: the immediate parent tool call id (immediateParentId). */
+    parentToolUseId?: string;
+    /** Mark a nested call (made inside a codemode script). */
+    nested?: boolean;
+    timing?: "live" | "approximate";
+    eventId?: string;
+    timestamp?: string;
   },
 ): TraceEvent {
   const data: ToolCallStartData = {
@@ -455,6 +493,9 @@ export function createToolCallStartEvent(
     tool_input: opts?.toolInput,
     ...(opts?.toolKind !== undefined ? { toolKind: opts.toolKind } : {}),
     ...(opts?.spawns !== undefined ? { spawns: opts.spawns } : {}),
+    ...(opts?.parentToolUseId !== undefined ? { parent_tool_use_id: opts.parentToolUseId } : {}),
+    ...(opts?.nested === true ? { nested: true as const } : {}),
+    ...(opts?.timing !== undefined ? { timing: opts.timing } : {}),
   };
   return createEvent({
     type: EventType.TOOL_CALL_START,
@@ -464,6 +505,8 @@ export function createToolCallStartEvent(
     traceLevel: TraceLevel.PROCESSING,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
+    eventId: opts?.eventId,
+    timestamp: opts?.timestamp,
   });
 }
 
@@ -481,6 +524,14 @@ export function createToolCallEndEvent(
     toolKind?: "spawner";
     /** The spawner tool's declared agent-name allowlist (D77). */
     spawns?: string[];
+    /** Nested calls: the immediate parent tool call id (immediateParentId). */
+    parentToolUseId?: string;
+    /** Mark a nested call (made inside a codemode script). */
+    nested?: boolean;
+    nestedStatus?: "ok" | "error" | "unfinished";
+    timing?: "live" | "approximate";
+    eventId?: string;
+    timestamp?: string;
   },
 ): TraceEvent {
   const data: ToolCallEndData = {
@@ -491,6 +542,10 @@ export function createToolCallEndEvent(
     ...(opts?.isError === true ? { is_error: true } : {}),
     ...(opts?.toolKind !== undefined ? { toolKind: opts.toolKind } : {}),
     ...(opts?.spawns !== undefined ? { spawns: opts.spawns } : {}),
+    ...(opts?.parentToolUseId !== undefined ? { parent_tool_use_id: opts.parentToolUseId } : {}),
+    ...(opts?.nested === true ? { nested: true as const } : {}),
+    ...(opts?.nestedStatus !== undefined ? { nested_status: opts.nestedStatus } : {}),
+    ...(opts?.timing !== undefined ? { timing: opts.timing } : {}),
   };
   return createEvent({
     type: EventType.TOOL_CALL_END,
@@ -500,6 +555,8 @@ export function createToolCallEndEvent(
     traceLevel: TraceLevel.PROCESSING,
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
+    eventId: opts?.eventId,
+    timestamp: opts?.timestamp,
   });
 }
 
@@ -627,6 +684,105 @@ export function createContainerEndEvent(
     spanId: opts?.spanId,
     parentEventId: opts?.parentEventId,
   });
+}
+
+// ─── Model Nodes ────────────────────────────────────────────────────────────
+
+/**
+ * Envelope options for model-node events. Node code passes a deterministic
+ * `eventId` (kernelNodeEventId) and a monotonic `timestamp`; steps and gates
+ * also require their `spanId`, and checks inside a gate set `parentEventId`
+ * to the gate_start id.
+ */
+export interface NodeEventOpts {
+  eventId?: string;
+  spanId?: string;
+  parentEventId?: string;
+  timestamp?: string;
+}
+
+function createNodeEvent(
+  type: string,
+  ids: TraceEventIds,
+  eventData: EventData,
+  opts: NodeEventOpts | undefined,
+): TraceEvent {
+  return createEvent({
+    type,
+    ids,
+    eventData,
+    source: TraceSource.KERNEL,
+    traceLevel: TraceLevel.PROCESSING,
+    eventId: opts?.eventId,
+    spanId: opts?.spanId,
+    parentEventId: opts?.parentEventId,
+    timestamp: opts?.timestamp,
+  });
+}
+
+/**
+ * Step and gate payloads duplicate the envelope's parent run as `run_id`
+ * (the viewer reads it from the payload); filled from `ids.runId` when the
+ * caller left it out.
+ */
+function withEnvelopeRunId<T extends { run_id?: string }>(ids: TraceEventIds, data: T): T {
+  return data.run_id === undefined && ids.runId !== undefined ? { ...data, run_id: ids.runId } : data;
+}
+
+export function createCallStartEvent(
+  ids: RunTraceEventIds,
+  data: CallStartData,
+  opts?: NodeEventOpts,
+): TraceEvent {
+  return createNodeEvent(EventType.CALL_START, ids, data, opts);
+}
+
+export function createCallEndEvent(
+  ids: RunTraceEventIds,
+  data: CallEndData,
+  opts?: NodeEventOpts,
+): TraceEvent {
+  return createNodeEvent(EventType.CALL_END, ids, data, opts);
+}
+
+export function createDecisionMadeEvent(
+  ids: RunTraceEventIds,
+  data: DecisionMadeData,
+  opts?: NodeEventOpts,
+): TraceEvent {
+  return createNodeEvent(EventType.DECISION_MADE, ids, data, opts);
+}
+
+export function createStepStartEvent(
+  ids: TraceEventIds,
+  data: StepStartData,
+  opts: NodeEventOpts & { spanId: string },
+): TraceEvent {
+  return createNodeEvent(EventType.STEP_START, ids, withEnvelopeRunId(ids, data), opts);
+}
+
+export function createStepEndEvent(
+  ids: TraceEventIds,
+  data: StepEndData,
+  opts: NodeEventOpts & { spanId: string },
+): TraceEvent {
+  return createNodeEvent(EventType.STEP_END, ids, withEnvelopeRunId(ids, data), opts);
+}
+
+export function createGateStartEvent(
+  ids: TraceEventIds,
+  data: GateStartData,
+  opts: NodeEventOpts & { spanId: string },
+): TraceEvent {
+  return createNodeEvent(EventType.GATE_START, ids, withEnvelopeRunId(ids, data), opts);
+}
+
+export function createGateEndEvent(
+  ids: TraceEventIds,
+  data: GateEndData,
+  opts: NodeEventOpts & { spanId: string },
+): TraceEvent {
+  return createNodeEvent(EventType.GATE_END, ids, withEnvelopeRunId(ids, data), opts);
 }
 
 // ─── Spawn Lifecycle ────────────────────────────────────────────────────────

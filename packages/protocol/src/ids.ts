@@ -56,3 +56,60 @@ export function liveFallbackEventId(
     `${piSessionUuid}\nlive-turn:${turnOrdinal}:${indexWithinTurn}\n0\n${type}`,
   );
 }
+
+/**
+ * Event id for a model-node event (call, decision, step, gate).
+ *
+ * Seed layout (do not change — stored ids depend on it):
+ *   `kernel-node\n${scopeKey}\n${ordinal}\n${type}`
+ *
+ * - `scopeKey` — the node run id for call/decision events, or
+ *   `"span:" + spanId` for step and gate events.
+ * - `ordinal` — 0 for call_start, decision_made and call_end; the 0-based
+ *   attempt index for an attempt's pi_request_snapshot, pi_turn_start and
+ *   pi_turn_end (the type is part of the seed, so they never collide).
+ *
+ * The literal prefix keeps these seeds disjoint from piEntryEventId seeds,
+ * which start with a Pi session uuid.
+ */
+export function kernelNodeEventId(scopeKey: string, ordinal: number, type: string): string {
+  return deterministicEventId(`kernel-node\n${scopeKey}\n${ordinal}\n${type}`);
+}
+
+/**
+ * Event id for a nested tool call event (a call made inside a codemode
+ * script). The live emitter and the JSONL backfill both derive it from the
+ * nested call id, so live emission followed by backfill dedupes.
+ *
+ * Seed layout (do not change — stored ids depend on it):
+ *   `${piSessionUuid}\nnested-tool:${nestedCallId}\n0\n${type}`
+ */
+export function nestedToolEventId(piSessionUuid: string, nestedCallId: string, type: string): string {
+  return deterministicEventId(`${piSessionUuid}\nnested-tool:${nestedCallId}\n0\n${type}`);
+}
+
+/**
+ * Deterministic identity for an idempotent model-node request: the session id
+ * of a call/decision (`kind: "session"`) or the span id of a step/gate
+ * (`kind: "span"`) issued with a caller `requestId`.
+ *
+ * Seed layout (do not change — stored ids depend on it):
+ *   `kernel-request\n${kernelId}\n${kind}\n${requestId}`
+ */
+export function kernelRequestId(kernelId: string, kind: "session" | "span", requestId: string): string {
+  return deterministicEventId(`kernel-request\n${kernelId}\n${kind}\n${requestId}`);
+}
+
+/**
+ * The immediate parent of a nested tool call id. Pi names a nested call
+ * `<callerId>/<n>` and records no parent field, so the parent is the id with
+ * its final `/<n>` stripped: `codemode/1/1` → `codemode/1` → `codemode`.
+ * Shared by the live emitter and the backfill mapper so both build the same
+ * hierarchy.
+ *
+ * Returns undefined when the id does not end in `/<n>` (a top-level call id).
+ */
+export function immediateParentId(id: string): string | undefined {
+  const match = /^(.+)\/\d+$/.exec(id);
+  return match ? match[1] : undefined;
+}

@@ -5,6 +5,8 @@
  * Mirrors the Python dataclasses in infrastructure/tracing/types.py.
  */
 
+import type { AbstainReason, ConfidenceSource, Decision, ThresholdApplied } from "./decision";
+
 // ─── Placeholder User ID ───────────────────────────────────────────────────
 
 /**
@@ -64,6 +66,15 @@ export const EventType = {
   // Pipeline Containers (plan-stage grouping — outline / checkpoint / task_group)
   CONTAINER_START: "container_start",
   CONTAINER_END: "container_end",
+
+  // Model Nodes (kernel.call / kernel.decide / kernel.step / kernel.gate)
+  CALL_START: "call_start",
+  CALL_END: "call_end",
+  DECISION_MADE: "decision_made",
+  STEP_START: "step_start",
+  STEP_END: "step_end",
+  GATE_START: "gate_start",
+  GATE_END: "gate_end",
 
   // System
   ERROR: "error",
@@ -160,6 +171,12 @@ export interface PiTurnEndData {
   stop_reason?: string;
   /** Token usage for this model call (populated from Phase 2). */
   usage?: TurnUsage;
+  /** trace_blobs hash of the raw provider response (model-node turns). */
+  response_blob_hash?: string;
+  /** HTTP status of the model request, when one was received. */
+  http_status?: number;
+  duration_ms?: number;
+  reasoning_tokens?: number;
 }
 
 /**
@@ -169,7 +186,7 @@ export interface PiTurnEndData {
 export interface PiRequestSnapshotMessageRef {
   /** trace_blobs hash ("b1-<sha256hex>") of the sanitized message JSON. */
   blob_hash: string;
-  /** "user" | "assistant" | "toolResult" | custom. */
+  /** "user" | "assistant" | "toolResult" | custom ("classifier_context" for decisions). */
   role: string;
   /** Position in the context message array. */
   index: number;
@@ -252,6 +269,13 @@ export interface PiRequestSnapshotData {
    * rule as `tools_blob_hash`: not captured, not "zero tools".
    */
   tool_count?: number;
+  /**
+   * trace_blobs hash of the exact wire request (model nodes), redacted. Absent
+   * on chat-agent snapshots.
+   */
+  raw_request_blob_hash?: string;
+  /** What produced the request. Absent means a chat-agent turn ("chat"). */
+  request_kind?: "chat" | "baml-http" | "pi-transport" | "classifier";
 }
 
 // ─── Spawn Lifecycle ────────────────────────────────────────────────────────
@@ -313,6 +337,13 @@ export interface AssistantMessageData {
 }
 
 // ─── Tool Use ───────────────────────────────────────────────────────────────
+//
+// Nested tool calls (calls a codemode script makes) reuse tool_call_start /
+// tool_call_end with `nested: true`. Their span id is the full nested call id
+// (`<parent>/<n>`) and `parent_tool_use_id` is that id minus its final `/<n>`
+// (see immediateParentId in ids.ts). `timing` is "live" for rows written from
+// live tool_execution events and "approximate" for rows rebuilt from a parent
+// toolResult's `nestedCalls`; a later live end replaces an approximate one.
 
 export interface ToolCallStartData {
   tool_use_id: string;
@@ -322,6 +353,10 @@ export interface ToolCallStartData {
   toolKind?: "spawner";
   /** Agent names the spawner tool may dispatch; ["*"] means any (D77). */
   spawns?: string[];
+  /** Nested calls only: the immediate parent tool call id. */
+  parent_tool_use_id?: string;
+  nested?: true;
+  timing?: "live" | "approximate";
 }
 
 export interface ToolCallEndData {
@@ -335,6 +370,12 @@ export interface ToolCallEndData {
   toolKind?: "spawner";
   /** Agent names the spawner tool may dispatch; ["*"] means any (D77). */
   spawns?: string[];
+  /** Nested calls only: the immediate parent tool call id. */
+  parent_tool_use_id?: string;
+  nested?: true;
+  /** Nested calls only: "unfinished" when the parent ended before the nested call did. */
+  nested_status?: "ok" | "error" | "unfinished";
+  timing?: "live" | "approximate";
 }
 
 export interface PreToolHookData {
@@ -377,6 +418,144 @@ export interface ContainerEndData {
   phase?: string;
 }
 
+// ─── Model Nodes ────────────────────────────────────────────────────────────
+//
+// Calls and decisions are node sessions with their own run: call_start opens
+// it, call_end closes it (paired by `run_id`), and a decision also records one
+// decision_made. Steps and gates are spans on their parent run (paired by the
+// envelope spanId); checks inside a gate carry `gate_span_id`. Top-level keys
+// are snake_case; nested API objects (Decision, TurnUsage) keep camelCase.
+
+export type ModelNodeKind = "call" | "decision";
+export type NodeEngineId = "baml" | "pi-ai" | "jev" | "openai-decisions";
+
+export interface CallStartData {
+  /** Pairing key with call_end. */
+  run_id: string;
+  node_kind: ModelNodeKind;
+  /** BAML function, or the decision name. */
+  function_name: string;
+  engine: NodeEngineId;
+  /** Calls only. */
+  transport?: "baml-http" | "pi";
+  /** Requested "provider/id". */
+  model: string;
+  /** The ref before alias resolution, when different. */
+  model_alias?: string;
+  provider?: string;
+  api?: string;
+  /** "baml1-…" | "dq1-…" */
+  prompt_hash: string;
+  /** call: canonical JSON of args; decision: classifier context. */
+  input_blob_hash: string;
+  trigger: string;
+  parent_run_id?: string;
+  parent_tool_use_id?: string;
+  request_id?: string;
+  /** 1-based attempt within a requestId session. */
+  attempt?: number;
+  /** ISO operation deadline; the claim's stale rule reads it. */
+  deadline_at: string;
+  gate_span_id?: string;
+  display_label?: string;
+}
+
+export interface CallEndData {
+  run_id: string;
+  node_kind: ModelNodeKind;
+  function_name: string;
+  status: "ok" | "error" | "aborted";
+  /** ok: JSON(value) or decision answers; error: raw model text when present. */
+  output_blob_hash?: string;
+  /** `message` never contains prompt text. */
+  error?: { kind: string; message: string; http_status?: number };
+  /** Rolled up over attempts, priced. */
+  usage?: TurnUsage;
+  attempts: number;
+  duration_ms: number;
+  /** Served "provider/id". */
+  resolved_model?: string;
+  gate_span_id?: string;
+}
+
+export interface DecisionMadeData {
+  run_id: string;
+  decision_name: string;
+  /** The API objects, camelCase, keyed by question id. */
+  answers: Record<string, Decision>;
+  chosen: string;
+  confidence_source: ConfidenceSource;
+  abstained: boolean;
+  abstain_reason?: AbstainReason;
+  /** Per question id. */
+  threshold_applied: Record<string, ThresholdApplied>;
+  engine: NodeEngineId;
+  provider: string;
+  api?: string;
+  /** Served model. */
+  model: string;
+  requested_model: string;
+  error_kind?: string;
+  gate_span_id?: string;
+}
+
+export interface StepStartData {
+  step_name: string;
+  /** Parent run, duplicated from the envelope. */
+  run_id?: string;
+  attributes?: Record<string, string | number | boolean | null>;
+  gate_span_id?: string;
+}
+
+export interface StepEndData {
+  step_name: string;
+  run_id?: string;
+  status: "ok" | "error";
+  duration_ms: number;
+  attributes?: Record<string, string | number | boolean | null>;
+  events?: Array<{ name: string; at_ms: number; attributes?: Record<string, string | number | boolean | null> }>;
+  /** ≤ 4 KB JSON. */
+  output_summary?: unknown;
+  error_message?: string;
+  check_result?: "pass" | "fail" | "abstain";
+  check_value?: string | number | boolean | null;
+  gate_span_id?: string;
+}
+
+export interface GateStartData {
+  gate_name: string;
+  run_id?: string;
+  checks: Array<{ name: string; kind: "step" | "decide" }>;
+}
+
+export interface GateCheckRecord {
+  name: string;
+  kind: "step" | "decide";
+  result: "pass" | "fail" | "abstain" | "skipped";
+  value?: string | number | boolean | null;
+  reason?: string;
+  error?: string;
+  step_span_id?: string;
+  questions?: Array<{
+    question_id: string;
+    result: "pass" | "fail" | "abstain";
+    run_id: string;
+    probability?: number;
+    pass_at?: number;
+    fail_at?: number;
+    abstain_reason?: string;
+  }>;
+}
+
+export interface GateEndData {
+  gate_name: string;
+  run_id?: string;
+  verdict: "pass" | "fail" | "abstain";
+  aborted?: boolean;
+  checks: GateCheckRecord[];
+  duration_ms: number;
+}
+
 // ─── System ─────────────────────────────────────────────────────────────────
 
 export interface ErrorData {
@@ -417,6 +596,13 @@ export type KnownEventData =
   | PhaseEndData
   | ContainerStartData
   | ContainerEndData
+  | CallStartData
+  | CallEndData
+  | DecisionMadeData
+  | StepStartData
+  | StepEndData
+  | GateStartData
+  | GateEndData
   | ErrorData
   | WarningData;
 
