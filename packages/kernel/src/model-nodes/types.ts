@@ -518,6 +518,12 @@ export interface KernelDecideConfig {
 export interface KernelNodesConfig {
 	/** Freshness window for a "running" node run written without deadline_at (default 10 min). */
 	staleAfterMs?: number;
+	/**
+	 * Pi model runtime and registry for call routes and transports. Default: one
+	 * lazily built from `piAgentDir`. Tests and hosts that already hold a
+	 * runtime inject it here.
+	 */
+	piModels?: import("./context").PiModelsSource;
 }
 
 export const DEFAULT_CALL_TIMEOUT_MS = 120_000;

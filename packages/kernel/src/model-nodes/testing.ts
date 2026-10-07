@@ -11,3 +11,22 @@ export {
 	type TempKernel,
 	type TempKernelDb,
 } from "./__fixtures__/temp-kernel";
+export {
+	createFakeCallEngine,
+	FAKE_CALL_BASE_URL,
+	FAKE_CALL_MODEL,
+	FAKE_CALL_MODEL_REF,
+	FAKE_CALL_PROVIDER,
+	fakeAttempt,
+	fakeFailure,
+	fakeOk,
+	fakePiModels,
+	untilAborted,
+	type FakeAttemptOptions,
+	type FakeCallEngine,
+	type FakeCallEngineOptions,
+	type FakeCallRequest,
+	type FakeCallResponse,
+	type FakePiModels,
+	type FakePiModelsOptions,
+} from "./call/__fixtures__/fake-call-engine";

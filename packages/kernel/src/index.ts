@@ -310,6 +310,7 @@ export function createKernel<TToolRuntime = unknown, TCalls = unknown>(
 			...(config.calls !== undefined && { calls: config.calls }),
 			...(config.decide !== undefined && { decide: config.decide }),
 			piModels: () => {
+				if (config.nodes?.piModels !== undefined) return config.nodes.piModels;
 				piModelsInstance ??= createPiModels(
 					config.piAgentDir !== undefined ? { piAgentDir: config.piAgentDir } : {},
 				);
