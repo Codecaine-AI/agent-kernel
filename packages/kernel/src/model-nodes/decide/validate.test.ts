@@ -91,6 +91,13 @@ describe("decideConfigIssues", () => {
 			"config.decide.defaults: abstainBelow is required",
 		]);
 		expect(decideConfigIssues({ maxRetries: 1.5, timeoutMs: 0, maxRetryDelayMs: -1 })).toHaveLength(3);
+		// Upper bounds keep the operation deadline a valid timer delay and ISO date.
+		expect(decideConfigIssues({ timeoutMs: 2 ** 31, maxRetries: 11, maxRetryDelayMs: 10 * 60_000 + 1 })).toEqual([
+			"config.decide.timeoutMs must be a number > 0 and ≤ 600000",
+			"config.decide.maxRetries must be an integer from 0 to 10",
+			"config.decide.maxRetryDelayMs must be a number > 0 and ≤ 600000",
+		]);
+		expect(decideConfigIssues({ timeoutMs: 10 * 60_000, maxRetries: 10, maxRetryDelayMs: 10 * 60_000 })).toEqual([]);
 	});
 });
 
@@ -118,6 +125,9 @@ describe("through the kernel", () => {
 		expect((thrown as KernelDecideValidationError).issues).toHaveLength(2);
 		expect(engine.requests).toHaveLength(0);
 		expect(countRows(temp.tempDb.db, "trace_events")).toBe(before);
+		await expect(
+			temp.kernel.decide("d", { a: 1 }, { containerId: temp.tempDb.containerId, questions: { q: boolQ() }, timeoutMs: 2 ** 31 }),
+		).rejects.toBeInstanceOf(KernelDecideValidationError);
 		expect(countRows(temp.tempDb.db, "agent_runs")).toBe(0);
 	});
 

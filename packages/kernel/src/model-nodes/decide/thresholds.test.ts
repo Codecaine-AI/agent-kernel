@@ -8,6 +8,7 @@ import { describe, expect, test } from "bun:test";
 import type { DecisionQuestion, EngineAnswer, EngineResult } from "../types";
 import { boolQ, choiceQ, scoreQ } from "./__fixtures__/decide-harness";
 import { applyThresholds, chosenLabel, DEFAULT_THRESHOLDS, mostSevereReason } from "./thresholds";
+import { malformedAnswers } from "./validate-answers";
 
 const defaults = { ...DEFAULT_THRESHOLDS };
 
@@ -47,6 +48,36 @@ describe("applyThresholds", () => {
 			verdict: "pass",
 			thresholdApplied: { passAt: 0.85, failAt: 0.15 },
 		});
+	});
+
+	test("the bool label follows the verdict when a threshold sits across 0.5", () => {
+		// failAt 0.5: p = 0.5 fails, so its label is "false", never "true".
+		const failed = decideOne(boolQ({ passAt: 0.9, failAt: 0.5 }), { type: "bool", probability: 0.5 });
+		expect(failed).toMatchObject({ verdict: "fail", choice: "false", abstained: false });
+		// passAt 0.3: p = 0.4 passes, so its label is "true", and so is the outcome's chosen label.
+		const passed = decideOne(boolQ({ passAt: 0.3, failAt: 0.1 }), { type: "bool", probability: 0.4 });
+		expect(passed).toMatchObject({ verdict: "pass", choice: "true", abstained: false });
+		expect(chosenLabel({ q: passed })).toBe("true");
+		expect(chosenLabel({ a: failed, b: passed })).toBe("a=false,b=true");
+		// Abstained answers keep the informational p ≥ 0.5 label.
+		expect(decideOne(boolQ({ passAt: 0.9, failAt: 0.1 }), { type: "bool", probability: 0.4 })).toMatchObject({
+			abstained: true,
+			choice: "false",
+		});
+	});
+
+	test("labels named like Object.prototype members are read as own entries only", () => {
+		const q = choiceQ(["constructor", "valueOf", "toString"]);
+		const decision = decideOne(q, { type: "choice", choice: "valueOf", distribution: { valueOf: 1 }, confidence: 1 });
+		expect(decision).toMatchObject({
+			choice: "valueOf",
+			distribution: { constructor: 0, valueOf: 1, toString: 0 },
+			abstained: false,
+		});
+		expect(malformedAnswers({ q: { type: "choice", choice: "valueOf", distribution: { valueOf: 1 } } }, { q }, 0.01)).toEqual([]);
+		// A question id named like a prototype member with no answer abstains instead of reading Object.prototype.
+		const missing = applyThresholds(ok({}), { constructor: boolQ() }, defaults);
+		expect(missing.constructor).toMatchObject({ abstained: true, abstainReason: "engine-error" });
 	});
 
 	test("choice recomputes argmax and applies minTop and minMargin; a tie abstains", () => {

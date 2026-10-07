@@ -28,7 +28,7 @@ import {
 	wireFetch,
 } from "./__fixtures__/decide-harness";
 import { createDecide } from "./index";
-import { createPiDecisionEngine } from "./pi-engine";
+import { classifyError, createPiDecisionEngine } from "./pi-engine";
 
 let restoreFetch: () => void;
 beforeAll(() => {
@@ -266,6 +266,71 @@ describe("answers and secrets through kernel.decide", () => {
 	});
 });
 
+describe("error classification", () => {
+	test("the HTTP status decides before body text; body patterns refine other 4xx only", () => {
+		expect(classifyError('System One API error (503): {"detail":"upstream: Connection refused"}', false)).toEqual({
+			kind: "provider",
+			httpStatus: 503,
+		});
+		expect(classifyError("System One API error (429): refusal quota exceeded", false)).toEqual({
+			kind: "rate-limit",
+			httpStatus: 429,
+		});
+		expect(classifyError("System One API error (401): the request was refused", false)).toEqual({
+			kind: "auth",
+			httpStatus: 401,
+		});
+		expect(classifyError('System One API error (400): {"detail":"model refused to classify"}', false)).toEqual({
+			kind: "refusal",
+			httpStatus: 400,
+		});
+		expect(classifyError('System One API error (400): {"detail":{"error_type":"max_tokens_exceeded"}}', false)).toEqual({
+			kind: "too-large",
+			httpStatus: 400,
+		});
+		expect(classifyError("System One API error (422): bad field", false)).toEqual({ kind: "invalid-request", httpStatus: 422 });
+		// Without a status, only a model declining counts as a refusal; a transport failure never does.
+		expect(classifyError("Unable to connect: Connection refused (ECONNREFUSED)", false)).toEqual({ kind: "provider" });
+		expect(classifyError("the model refused to classify this content", false)).toEqual({ kind: "refusal" });
+		expect(classifyError("Request timed out after 100ms", false)).toEqual({ kind: "timeout" });
+		expect(classifyError("Provider is not configured: typesafe", false)).toEqual({ kind: "not-configured" });
+		expect(classifyError("No API key for provider: typesafe", false)).toEqual({ kind: "auth" });
+		expect(classifyError("Server requested 60s retry delay (max: 2s). System One API returned 429", false)).toEqual({
+			kind: "rate-limit",
+			httpStatus: 429,
+		});
+		expect(classifyError("System One API error (503): anything", true)).toEqual({ kind: "aborted", httpStatus: 503 });
+	});
+
+	test("a 5xx whose body says 'Connection refused' is a provider error, never an answered refusal", async () => {
+		const { fetch } = wireFetch(() => wire({ detail: "upstream: Connection refused" }, 503));
+		const temp = await typesafeKernel(fetch, { decide: { maxRetries: 0 } });
+		const outcome = await temp.kernel.decide("outage", { a: 1 }, {
+			containerId: temp.tempDb.containerId,
+			questions: { justified: boolQ() },
+		});
+		expect(outcome.error).toMatchObject({ kind: "provider", httpStatus: 503 });
+		expect(outcome.abstainReason).toBe("engine-error");
+		expect((await getAgentRun(temp.tempDb.db, outcome.ids.runId))?.status).toBe("error");
+		const [end] = (await eventsOf(temp.tempDb.db, outcome.ids.runId)).filter((e) => e.type === "call_end");
+		expect((end!.eventData as CallEndData).status).toBe("error");
+	});
+
+	test("a served model echoing the credential is scrubbed everywhere", async () => {
+		const { fetch } = wireFetch(() => wire({ ...SYSTEM_ONE_REPLY, model: `jev-${TS_KEY}` }));
+		const temp = await typesafeKernel(fetch, { decide: { maxRetries: 0 } });
+		const outcome = await temp.kernel.decide("served-echo", { a: 1 }, {
+			containerId: temp.tempDb.containerId,
+			questions: { justified: boolQ() },
+		});
+		expect(outcome.model).toBe("typesafe/jev-<redacted>");
+		expect(outcome.usage?.model).toBe("typesafe/jev-<redacted>");
+		const made = (await eventsOf(temp.tempDb.db, outcome.ids.runId)).find((e) => e.type === "decision_made")!;
+		expect((made.eventData as { model: string }).model).toBe("typesafe/jev-<redacted>");
+		expect(rowsContaining(temp.tempDb.db, TS_KEY)).toEqual([]);
+	});
+});
+
 describe("retries and the operation deadline", () => {
 	const backoffConfig = { timeoutMs: 100, maxRetries: 1, maxRetryDelayMs: 50 };
 
@@ -316,14 +381,35 @@ describe("retries and the operation deadline", () => {
 		const start = events.find((e) => e.type === "call_start")!;
 		const end = events.find((e) => e.type === "call_end")!;
 		const deadlineAt = Date.parse((start.eventData as CallStartData).deadline_at);
-		// deadline = 100 × 2 + 50
-		expect(deadlineAt - Date.parse(start.timestamp)).toBe(250);
+		// deadline = 100 × 2 + 50, plus the 50 ms minimum grace; still well inside the 375–500 ms backoff
+		expect(deadlineAt - Date.parse(start.timestamp)).toBe(300);
 		expect(Date.parse(end.timestamp) - Date.parse(start.timestamp)).toBeLessThan(375);
 		expect(Date.parse(end.timestamp)).toBeGreaterThanOrEqual(deadlineAt);
 		expect((end.eventData as CallEndData).status).toBe("aborted");
 		expect(outcome.error?.kind).toBe("timeout");
 		expect((await getAgentRun(temp.tempDb.db, outcome.ids.runId))?.status).toBe("aborted");
 		await expectDoctorOk(temp.tempDb.db);
+	});
+
+	test("with maxRetries 0, Pi's per-attempt timeout ends the run error (timeout), not aborted", async () => {
+		// A server that never answers: only Pi's own 1,000 ms attempt timeout can end the request.
+		const neverAnswers = (async (_input: string | URL | Request, init?: RequestInit) =>
+			new Promise<Response>((_, reject) =>
+				init?.signal?.addEventListener("abort", () => reject(init.signal!.reason), { once: true }),
+			)) as unknown as typeof globalThis.fetch;
+		const temp = await typesafeKernel(neverAnswers, { decide: { timeoutMs: 1_000, maxRetries: 0 } });
+		const outcome = await temp.kernel.decide("attempt-timeout", { a: 1 }, {
+			containerId: temp.tempDb.containerId,
+			questions: { justified: boolQ() },
+		});
+		expect(outcome.error?.kind).toBe("timeout");
+		expect(outcome.error?.message).toContain("timed out after 1000ms");
+		expect((await getAgentRun(temp.tempDb.db, outcome.ids.runId))?.status).toBe("error");
+		const events = await eventsOf(temp.tempDb.db, outcome.ids.runId);
+		const start = events.find((e) => e.type === "call_start")!;
+		// deadline = 1,000 + 10 % grace
+		expect(Date.parse((start.eventData as CallStartData).deadline_at) - Date.parse(start.timestamp)).toBe(1_100);
+		expect((events.find((e) => e.type === "call_end")!.eventData as CallEndData).status).toBe("error");
 	});
 
 	test("recovery waits for deadline + grace while the original is in backoff", async () => {

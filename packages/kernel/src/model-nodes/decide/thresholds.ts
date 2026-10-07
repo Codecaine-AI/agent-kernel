@@ -31,7 +31,7 @@ export function applyThresholds(
 ): Record<string, Decision> {
 	const out: Record<string, Decision> = {};
 	for (const [id, question] of Object.entries(questions)) {
-		const answer = result.answers[id];
+		const answer = Object.hasOwn(result.answers, id) ? result.answers[id] : undefined;
 		if (!result.ok) {
 			out[id] = abstainedFor(question, result.error?.kind === "refusal" ? "refusal" : "engine-error");
 		} else if (!answer || malformed.has(id)) {
@@ -50,11 +50,16 @@ function abstainedFor(question: DecisionQuestion, reason: AbstainReason): Decisi
 	return { kind: question.type, confidenceSource: "none", abstained: true, abstainReason: reason, thresholdApplied: {} };
 }
 
+/**
+ * The label follows the verdict (pass → "true", fail → "false"), so it can
+ * never contradict it when a threshold sits on the far side of 0.5; an
+ * abstained answer keeps the informational `p ≥ 0.5` label.
+ */
 function boolDecision(p: number, t: ThresholdApplied): Decision {
 	const verdict = p >= t.passAt! ? "pass" : p <= t.failAt! ? "fail" : undefined;
 	return {
 		kind: "bool",
-		choice: p >= 0.5 ? "true" : "false",
+		choice: verdict ? (verdict === "pass" ? "true" : "false") : p >= 0.5 ? "true" : "false",
 		probability: p,
 		confidence: Math.max(p, 1 - p),
 		confidenceSource: "native",
@@ -76,7 +81,7 @@ function choiceDecision(
 ): Decision {
 	const labels = Object.keys(question.criteria);
 	const distribution: Record<string, number> = {};
-	for (const label of labels) distribution[label] = answer.distribution?.[label] ?? 0;
+	for (const label of labels) distribution[label] = ownNumber(answer.distribution, label) ?? 0;
 	const top = Math.max(...labels.map((label) => distribution[label]!));
 	const leaders = labels.filter((label) => distribution[label] === top);
 	const second = Math.max(0, ...labels.filter((label) => distribution[label] !== top).map((label) => distribution[label]!));
@@ -106,6 +111,11 @@ function scoreDecision(answer: EngineResult["answers"][string], t: ThresholdAppl
 		...(ok ? { abstained: false } : { abstained: true, abstainReason: "low-confidence" as const }),
 		thresholdApplied: t,
 	};
+}
+
+/** An own numeric entry: a label named like an Object.prototype member never reads the prototype. */
+export function ownNumber(record: Readonly<Record<string, number>> | undefined, key: string): number | undefined {
+	return record !== undefined && Object.hasOwn(record, key) ? record[key] : undefined;
 }
 
 const SEVERITY: Record<AbstainReason, number> = { "low-confidence": 1, refusal: 2, "engine-error": 3 };

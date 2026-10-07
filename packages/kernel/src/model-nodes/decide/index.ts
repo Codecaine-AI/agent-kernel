@@ -17,6 +17,7 @@ import {
 	createPiTurnEndEvent,
 	createPiTurnStartEvent,
 	type CallEndData,
+	type CallStartData,
 	type DecisionMadeData,
 	type TraceEvent,
 	type TurnUsage,
@@ -212,8 +213,7 @@ function buildDecider(ctx: ModelNodeContext): Decider {
 			const modelRef = requestedRef !== undefined ? resolveModelAlias(requestedRef, ctx.models.aliases) : undefined;
 			const timeoutMs = opts.timeoutMs ?? config.timeoutMs;
 			const maxRetries = opts.maxRetries ?? config.maxRetries;
-			// §4.6: every request and every server-allowed retry delay fits inside one operation deadline.
-			const deadlineMs = timeoutMs * (maxRetries + 1) + maxRetries * config.maxRetryDelayMs;
+			const deadlineMs = operationDeadlineMs(timeoutMs, maxRetries, config.maxRetryDelayMs);
 
 			const synthetic = preflight(modelRef, stateJson, piQuestions, config.tokenBudgets);
 			const route = modelRef && isDescribedEngine(config.engine) ? await config.engine.describe(modelRef) : undefined;
@@ -282,11 +282,23 @@ function buildDecider(ctx: ModelNodeContext): Decider {
 					});
 					return execution;
 				},
-				replay: (prior) => replayOutcome<Q>(prior),
+				replay: (prior) => replayOutcome<Q>(prior, { name, promptHash }),
 			});
 			return { ...result.outcome, ids: result.ids, replayed: result.replayed, coalesced: result.coalesced };
 		},
 	};
+}
+
+/**
+ * §4.6 operation deadline: every request and every server-allowed retry delay,
+ * plus a grace (10 %, 50 ms to 1 s). The deadline clock starts before the
+ * claim, so without the grace it would beat Pi's own per-attempt timeout: an
+ * ordinary attempt timeout must end `error` (timeout), and only a real
+ * overrun of the operation ends `aborted`.
+ */
+export function operationDeadlineMs(timeoutMs: number, maxRetries: number, maxRetryDelayMs: number): number {
+	const budget = timeoutMs * (maxRetries + 1) + maxRetries * maxRetryDelayMs;
+	return budget + Math.min(1_000, Math.max(50, Math.round(budget * 0.1)));
 }
 
 /** No network for an unconfigured model or an over-budget request (§4.3 token budget). */
@@ -406,8 +418,8 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 	// A done decision was answered (a refusal is an answer), so the engine reached the model at least once.
 	const attempts = runStatus === "done" ? Math.max(1, r.attempts) : r.attempts;
 
-	const requestedModel = r.requestedModel;
-	const servedModel = r.resolvedModel || requestedModel;
+	const requestedModel = redactText(r.requestedModel, secrets);
+	const servedModel = redactText(r.resolvedModel, secrets) || requestedModel;
 	const usage: TurnUsage | undefined = r.usage
 		? priceNodeUsage(
 				{
@@ -421,6 +433,11 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 			)
 		: undefined;
 
+	// Engine-reported timing is clamped into this run: [handle start, now].
+	const nowMs = Math.max(ctx.clock.now(), handle.startedAtMs);
+	const attemptStartMs = clampMs(r.startedAtMs, handle.startedAtMs, nowMs);
+	const timing = { attemptStartMs, latencyMs: Math.round(clampMs(r.latencyMs, 0, nowMs - attemptStartMs)) };
+
 	const events: TraceEvent[] = [];
 	const blobs: TraceBlobInput[] = [];
 	const addBlob = (kind: string, value: unknown, at: string) => {
@@ -430,9 +447,8 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 	};
 
 	if (attempts > 0) {
-		const attemptStart = Number.isFinite(r.startedAtMs) ? r.startedAtMs : handle.startedAtMs;
-		const snapshotMs = Math.max(attemptStart, handle.startedAtMs + 1);
-		const window = handle.turnWindow(snapshotMs + 1, Number.isFinite(r.latencyMs) ? r.latencyMs : null);
+		const snapshotMs = Math.max(timing.attemptStartMs, handle.startedAtMs + 1);
+		const window = handle.turnWindow(snapshotMs + 1, timing.latencyMs);
 		const snapshotAt = new Date(snapshotMs).toISOString();
 		const text = JSON.stringify(input.contextValue, null, 2);
 		const messageHash = addBlob(
@@ -479,7 +495,7 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 				...(usage && { usage }),
 				...(responseHash !== undefined && { responseBlobHash: responseHash }),
 				...(r.error?.httpStatus !== undefined && { httpStatus: r.error.httpStatus }),
-				...(Number.isFinite(r.latencyMs) && { durationMs: r.latencyMs }),
+				durationMs: timing.latencyMs,
 				eventId: handle.eventId(0, "pi_turn_end"),
 				parentEventId: handle.startEventId,
 				timestamp: window.end,
@@ -533,7 +549,7 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 			model: servedModel,
 			requestedModel,
 			...(usage && { usage }),
-			latencyMs: r.latencyMs,
+			latencyMs: timing.latencyMs,
 			...(error && { error }),
 			replayed: false,
 			coalesced: false,
@@ -558,10 +574,31 @@ function buildExecution<Q extends Record<string, DecisionQuestion>>(
 	};
 }
 
-/** Rebuilds a prior done run's outcome from its decision_made and call_end; writes nothing. */
-function replayOutcome<Q extends Record<string, DecisionQuestion>>(prior: NodeReplayInput): DecisionOutcome<Q> {
+/** `value` clamped into [min, max]; a non-finite value becomes `min`. */
+function clampMs(value: number, min: number, max: number): number {
+	if (typeof value !== "number" || !Number.isFinite(value)) return min;
+	return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Rebuilds a prior done run's outcome from its decision_made and call_end;
+ * writes nothing. The requestId must name the same decision: a different
+ * name or question set (prompt hash) is rejected, never answered with
+ * another decision's answers.
+ */
+function replayOutcome<Q extends Record<string, DecisionQuestion>>(
+	prior: NodeReplayInput,
+	expected: { name: string; promptHash: string },
+): DecisionOutcome<Q> {
+	const start = prior.events.find((e) => e.type === "call_start")?.eventData as CallStartData | undefined;
 	const made = prior.events.find((e) => e.type === "decision_made")?.eventData as DecisionMadeData | undefined;
 	const end = prior.events.find((e) => e.type === "call_end")?.eventData as CallEndData | undefined;
+	if (start && (start.function_name !== expected.name || start.prompt_hash !== expected.promptHash)) {
+		throw new KernelNodeError(
+			"invalid-request",
+			`requestId was already used for a different decision (run ${prior.ids.runId}): name or questions differ`,
+		);
+	}
 	if (!made) {
 		throw new KernelNodeError("invalid-request", `decision run ${prior.ids.runId} has no decision_made to replay`);
 	}

@@ -316,6 +316,59 @@ describe("kernel.decide", () => {
 		expect(countRows(temp.tempDb.db, "agent_runs")).toBe(1);
 	});
 
+	test("a requestId reused for a different decision is rejected, not replayed", async () => {
+		const engine = answeringEngine({ justified: { type: "bool", probability: 0.9 }, other: { type: "bool", probability: 0.9 } });
+		const temp = await kernel({ decide: { engine } });
+		const base = { containerId: temp.tempDb.containerId, requestId: "req-reused" };
+		await temp.kernel.decide("first", { a: 1 }, { ...base, questions: JUDGE });
+		/** The rejection, or undefined when the decision resolved. */
+		const rejected = (promise: Promise<unknown>) => promise.then(
+			() => undefined,
+			(error: unknown) => error,
+		);
+		const otherQuestions = await rejected(temp.kernel.decide("first", { a: 1 }, { ...base, questions: { other: boolQ() } }));
+		expect(otherQuestions).toBeInstanceOf(KernelNodeError);
+		expect((otherQuestions as KernelNodeError).code).toBe("invalid-request");
+		const otherThresholds = await rejected(
+			temp.kernel.decide("first", { a: 1 }, { ...base, questions: { justified: boolQ({ passAt: 0.95 }) } }),
+		);
+		// Thresholds are kernel-side (not in the prompt hash): the stored answer replays.
+		expect(otherThresholds).toBeUndefined();
+		const otherName = await rejected(temp.kernel.decide("second", { a: 1 }, { ...base, questions: JUDGE }));
+		expect((otherName as KernelNodeError).code).toBe("invalid-request");
+		expect(engine.requests).toHaveLength(1);
+	});
+
+	test("engine-reported timing is clamped into the run", async () => {
+		for (const timing of [
+			{ startedAtMs: 9e15, latencyMs: 1e12 },
+			{ startedAtMs: 0, latencyMs: Number.NaN },
+			{ startedAtMs: Number.NaN, latencyMs: -5 },
+		]) {
+			const engine = answeringEngine({ justified: { type: "bool", probability: 0.9 } }, timing);
+			const temp = await kernel({ decide: { engine } });
+			const outcome = await temp.kernel.decide("clock", { a: 1 }, { containerId: temp.tempDb.containerId, questions: JUDGE });
+			const events = await getTraceEventsForRun(temp.tempDb.db, outcome.ids.runId);
+			expect(events.map((e) => e.type)).toEqual([
+				"call_start",
+				"pi_request_snapshot",
+				"pi_turn_start",
+				"pi_turn_end",
+				"decision_made",
+				"call_end",
+			]);
+			const start = Date.parse(events[0]!.timestamp);
+			const end = Date.parse(events[5]!.timestamp);
+			for (const event of events.slice(1, 4)) {
+				expect(Date.parse(event.timestamp)).toBeGreaterThan(start);
+				expect(Date.parse(event.timestamp)).toBeLessThan(end);
+			}
+			expect(outcome.latencyMs).toBeGreaterThanOrEqual(0);
+			expect(outcome.latencyMs).toBeLessThan(60_000);
+			await expectDoctorOk(temp.tempDb.db);
+		}
+	});
+
 	test("over-budget state abstains too-large without calling the engine", async () => {
 		const engine = answeringEngine({ justified: { type: "bool", probability: 0.9 } });
 		const temp = await kernel({ decide: { engine, tokenBudgets: { "fake-decide/*": 100 } } });

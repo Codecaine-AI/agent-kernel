@@ -81,21 +81,37 @@ export function engineIdForApi(api: string): DecisionEngineId {
 	return "pi-ai";
 }
 
-/** Maps a Pi classify error message to an EngineErrorKind (spike `classifyError` plus not-configured and server retry delays). */
+/** A model declining to answer; never a transport failure such as "Connection refused". */
+const REFUSAL_PATTERN = /\brefusal\b|\brefused to\b/i;
+
+/**
+ * Maps a Pi classify error message to an EngineErrorKind. The HTTP status
+ * decides first (401/403 auth, 429/529 rate-limit, 5xx provider), so text in
+ * a server body can never turn an outage into a refusal; body patterns only
+ * refine other 4xx responses and messages without a status.
+ */
 export function classifyError(message: string, aborted: boolean): { kind: EngineErrorKind; httpStatus?: number } {
 	const status = Number(/\((\d{3})\)/.exec(message)?.[1] ?? /\breturned (\d{3})\b/.exec(message)?.[1]) || undefined;
-	const httpStatus = status ? { httpStatus: status } : {};
-	if (aborted) return { kind: "aborted", ...httpStatus };
+	if (aborted) return status ? { kind: "aborted", httpStatus: status } : { kind: "aborted" };
+	if (status !== undefined) {
+		const httpStatus = { httpStatus: status };
+		if (status === 401 || status === 403) return { kind: "auth", ...httpStatus };
+		if (status === 429 || status === 529) return { kind: "rate-limit", ...httpStatus };
+		if (status >= 500) return { kind: "provider", ...httpStatus };
+		if (/max_tokens_exceeded/.test(message)) return { kind: "too-large", ...httpStatus };
+		if (/Unknown model|model_not_found/i.test(message)) return { kind: "unknown-model", ...httpStatus };
+		if (REFUSAL_PATTERN.test(message)) return { kind: "refusal", ...httpStatus };
+		if (status === 400 || status === 422) return { kind: "invalid-request", ...httpStatus };
+		return { kind: "provider", ...httpStatus };
+	}
 	if (/timed out after/i.test(message)) return { kind: "timeout" };
 	if (/Provider is not configured/i.test(message)) return { kind: "not-configured" };
-	if (/not configured|No API key/i.test(message) || status === 401 || status === 403) return { kind: "auth", ...httpStatus };
-	if (/max_tokens_exceeded/.test(message)) return { kind: "too-large", ...httpStatus };
-	if (/Unknown model/i.test(message)) return { kind: "unknown-model", ...httpStatus };
-	if (/refus/i.test(message)) return { kind: "refusal", ...httpStatus };
-	if (/Server requested \d+s retry delay/i.test(message)) return { kind: "rate-limit", ...httpStatus };
-	if (status === 429 || status === 529) return { kind: "rate-limit", ...httpStatus };
-	if (status === 400 || status === 422) return { kind: "invalid-request", ...httpStatus };
-	return { kind: "provider", ...httpStatus };
+	if (/Server requested \d+s retry delay/i.test(message)) return { kind: "rate-limit" };
+	if (/not configured|No API key/i.test(message)) return { kind: "auth" };
+	if (/max_tokens_exceeded/.test(message)) return { kind: "too-large" };
+	if (/Unknown model/i.test(message)) return { kind: "unknown-model" };
+	if (REFUSAL_PATTERN.test(message)) return { kind: "refusal" };
+	return { kind: "provider" };
 }
 
 export function createPiDecisionEngine(options: PiDecisionEngineOptions): PiDecisionEngine {
@@ -210,7 +226,8 @@ export function createPiDecisionEngine(options: PiDecisionEngineOptions): PiDeci
 				api: model.api,
 				provider: model.provider,
 				requestedModel: `${model.provider}/${split?.modelId ?? model.id}`,
-				resolvedModel: `${model.provider}/${servedModel ?? result.model}`,
+				// The served id comes from the response body: scrub it like any other wire value.
+				resolvedModel: redactText(`${model.provider}/${servedModel ?? result.model}`, secrets),
 				latencyMs: Math.round(performance.now() - t0),
 				attempts,
 				startedAtMs,
@@ -230,7 +247,7 @@ export function createPiDecisionEngine(options: PiDecisionEngineOptions): PiDeci
 			const rawAnswers = (wireResponse as { answers?: Record<string, unknown> } | undefined)?.answers;
 			const answers: Record<string, EngineAnswer> = {};
 			for (const [qid, answer] of Object.entries(result.answers)) {
-				answers[qid] = normalizeAnswer(answer, rawAnswers?.[qid]);
+				answers[qid] = normalizeAnswer(answer, rawAnswers && Object.hasOwn(rawAnswers, qid) ? rawAnswers[qid] : undefined);
 			}
 			return { ...base, ok: true, answers };
 		},

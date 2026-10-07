@@ -31,7 +31,7 @@ export function isRoundingFeasible(
 	let lower = 0;
 	let upper = 0;
 	for (const key of declaredKeys) {
-		const p = reported[key] ?? 0;
+		const p = Object.hasOwn(reported, key) ? reported[key]! : 0;
 		lower += Math.max(0, p - h);
 		upper += Math.min(1, p + h);
 	}

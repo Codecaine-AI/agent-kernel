@@ -23,7 +23,11 @@ export interface ThresholdApplied {
 
 export interface Decision {
   kind: "bool" | "choice" | "score";
-  /** choice: argmax label; bool: "true" | "false" (p ≥ 0.5). Absent when abstained for refusal/engine-error. */
+  /**
+   * choice: argmax label. bool: follows the verdict when answered ("true" on
+   * pass, "false" on fail); a low-confidence abstain keeps p ≥ 0.5 as an
+   * informational label. Absent when abstained for refusal/engine-error.
+   */
   choice?: string;
   /** bool: p(true). */
   probability?: number;

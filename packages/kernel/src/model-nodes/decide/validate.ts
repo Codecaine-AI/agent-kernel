@@ -168,14 +168,19 @@ export function checkState(state: DecisionState): StateCheck {
 	return { ok: true, state: wrapped as PiJsonObject, json };
 }
 
-/** Per-call engine options: `timeoutMs` > 0 and finite, `maxRetries` a non-negative integer. */
+/** Upper bounds that keep the operation deadline a valid timer delay and an ISO date. */
+export const MAX_TIMEOUT_MS = 10 * 60_000;
+export const MAX_RETRIES = 10;
+export const MAX_RETRY_DELAY_MS = 10 * 60_000;
+
+/** Per-call engine options: `0 < timeoutMs ≤ 10 min`, `maxRetries` an integer in [0, 10]. */
 export function callOptionIssues(opts: { timeoutMs?: unknown; maxRetries?: unknown }): string[] {
 	const issues: string[] = [];
-	if (opts.timeoutMs !== undefined && !isPositiveFinite(opts.timeoutMs)) {
-		issues.push("timeoutMs must be a finite number > 0");
+	if (opts.timeoutMs !== undefined && !(isPositiveFinite(opts.timeoutMs) && opts.timeoutMs <= MAX_TIMEOUT_MS)) {
+		issues.push(`timeoutMs must be a number > 0 and ≤ ${MAX_TIMEOUT_MS}`);
 	}
-	if (opts.maxRetries !== undefined && !isNonNegativeInteger(opts.maxRetries)) {
-		issues.push("maxRetries must be a non-negative integer");
+	if (opts.maxRetries !== undefined && !(isNonNegativeInteger(opts.maxRetries) && opts.maxRetries <= MAX_RETRIES)) {
+		issues.push(`maxRetries must be an integer from 0 to ${MAX_RETRIES}`);
 	}
 	return issues;
 }
@@ -212,8 +217,11 @@ export function decideConfigIssues(config: KernelDecideConfig | undefined): stri
 		}
 	}
 	issues.push(...callOptionIssues(config).map((issue) => `config.decide.${issue}`));
-	if (config.maxRetryDelayMs !== undefined && !isPositiveFinite(config.maxRetryDelayMs)) {
-		issues.push("config.decide.maxRetryDelayMs must be a finite number > 0");
+	if (
+		config.maxRetryDelayMs !== undefined &&
+		!(isPositiveFinite(config.maxRetryDelayMs) && config.maxRetryDelayMs <= MAX_RETRY_DELAY_MS)
+	) {
+		issues.push(`config.decide.maxRetryDelayMs must be a number > 0 and ≤ ${MAX_RETRY_DELAY_MS}`);
 	}
 	return issues;
 }
