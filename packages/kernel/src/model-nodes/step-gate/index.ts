@@ -1,20 +1,8 @@
 /**
- * `kernel.step` and `kernel.gate` (plan §3.6). M1 skeleton: both reject with
- * KernelNodeError("no-engine") until M4 implements them.
+ * `kernel.step` and `kernel.gate` (plan §3.6): deterministic code steps and
+ * gates of step/decide checks, recorded as span pairs on their parent run.
+ * Neither writes session or run rows; both write their events with awaited
+ * inserts (§4.6).
  */
-import type { ModelNodeContext } from "../context";
-import { KernelNodeError, type KernelGateFn, type KernelStepFn } from "../types";
-
-export function createStep(ctx: ModelNodeContext): KernelStepFn {
-	void ctx;
-	return async () => {
-		throw new KernelNodeError("no-engine", "not implemented");
-	};
-}
-
-export function createGate(ctx: ModelNodeContext): KernelGateFn {
-	void ctx;
-	return async () => {
-		throw new KernelNodeError("no-engine", "not implemented");
-	};
-}
+export { createStep } from "./step";
+export { createGate } from "./gate";
