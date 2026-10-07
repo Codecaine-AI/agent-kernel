@@ -15,6 +15,9 @@
  * Idempotency: event ids are derived deterministically from
  * (piSessionUuid, JSONL entry id, ordinal), so re-mapping the same file
  * always yields the same event ids and `INSERT OR IGNORE` de-duplicates.
+ * Nested tool calls recorded on a tool result (`nestedCalls`) are the
+ * exception: their ids derive from (piSessionUuid, nested call id), shared
+ * with the live emitter (`nestedToolEventId`).
  */
 import {
   createAgentSessionStartEvent,
@@ -32,6 +35,7 @@ import {
   TraceLevel,
 } from "@agent-kernel/protocol";
 import type { TraceEvent, TraceEventIds, TurnUsage } from "@agent-kernel/protocol";
+import { nestedCallRecordEvents, nestedCallRecordsOf } from "./nested-calls";
 import type { MapperResult, PiEvent, PiMessage, PiMessageEvent } from "./types";
 
 const UUID_RE =
@@ -107,8 +111,25 @@ export class EventMapper {
   /**
    * Re-stamp a factory-built event as an agent-sourced backfill event:
    * JSONL timestamp, deterministic event id, current pi session uuid.
+   *
+   * `preserveEventId` keeps the event's own id and consumes no entry ordinal.
+   * Only nested tool events use it: their ids come from `nestedToolEventId`,
+   * which the live emitter derives too, so they must not be overwritten with
+   * an entry-derived id.
    */
-  private asAgentEvent(evt: TraceEvent, timestamp: string): TraceEvent {
+  private asAgentEvent(
+    evt: TraceEvent,
+    timestamp: string,
+    opts?: { preserveEventId?: boolean },
+  ): TraceEvent {
+    if (opts?.preserveEventId) {
+      return {
+        ...evt,
+        source: "agent",
+        timestamp,
+        piSessionUuid: this.piSessionUuid ?? undefined,
+      };
+    }
     const entry = this.entry;
     const ordinal = entry ? entry.ordinal++ : 0;
     return {
@@ -263,6 +284,7 @@ export class EventMapper {
           timestamp,
         ),
       );
+      results.push(...this.mapNestedCalls(event.message, timestamp));
       return { traceEvents: results };
     }
 
@@ -316,6 +338,28 @@ export class EventMapper {
     }
 
     return { traceEvents: results };
+  }
+
+  /**
+   * Approximate start/end pairs for the calls this tool result's tool made
+   * (`nestedCalls`, every depth). Ids, span ids and parents match the live
+   * emitter's (see ./nested-calls), so a live run followed by a backfill
+   * inserts each nested span once and live rows win.
+   */
+  private mapNestedCalls(message: PiMessage, timestamp: string): TraceEvent[] {
+    const records = nestedCallRecordsOf(message.nestedCalls);
+    if (records.length === 0) return [];
+    const ids = this.ids();
+    const piSessionUuid = this.piSessionUuid ?? "";
+    const events: TraceEvent[] = [];
+    for (const record of records) {
+      const { start, end } = nestedCallRecordEvents(ids, piSessionUuid, record, timestamp);
+      events.push(
+        this.asAgentEvent(start, start.timestamp, { preserveEventId: true }),
+        this.asAgentEvent(end, end.timestamp, { preserveEventId: true }),
+      );
+    }
+    return events;
   }
 
   private mapCustom(event: PiEvent & { type: "custom" }): MapperResult {

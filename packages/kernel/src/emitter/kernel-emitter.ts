@@ -25,6 +25,20 @@
  * we fall back to a deterministic id from (piSessionUuid, turn ordinal, type,
  * index-within-turn) — never randomUUID — and log a warning: ids stay stable,
  * but a backfill of that entry would not dedupe against the live row.
+ *
+ * Nested tool calls (a codemode script's `ctx.executeTool()`) have no JSONL
+ * entry of their own. Pi emits `tool_execution_*` events with
+ * `parentToolCallId` for them and records them on the calling tool's result
+ * (`nestedCalls`). Their ids come from `nestedToolEventId(piSessionUuid,
+ * nestedCallId, type)`, which backfill derives too:
+ *
+ * - live start/end events become `timing: "live"` tool spans; ends go through
+ *   the sink's `submitPromotable` when it has one, so a live end replaces an
+ *   approximate row written earlier;
+ * - at the parent's tool result, calls never seen starting live get the same
+ *   approximate rows backfill builds; calls seen starting but not ending wait
+ *   for their live end;
+ * - at agent_end, calls still open get an approximate `unfinished` end.
  */
 
 import {
@@ -37,7 +51,10 @@ import {
 	createToolCallEndEvent,
 	createToolCallStartEvent,
 	createUserMessageEvent,
+	EventType,
+	immediateParentId,
 	liveFallbackEventId,
+	nestedToolEventId,
 	piEntryEventId,
 	turnUsageFromPiMessage,
 	type RunTraceEventIds,
@@ -47,6 +64,7 @@ import {
 
 import type { TraceWriterSink } from "../subagents/types";
 import type { KernelAgentSessionEventLike } from "../spawn-pipeline/types";
+import { nestedCallRecordEvents, nestedCallRecordsOf } from "../transcript-recovery/nested-calls";
 
 export const DEFAULT_EMITTER_LIFECYCLE_CUSTOM_TYPE = "kernel:pi-lifecycle";
 
@@ -56,6 +74,8 @@ const TOOL_OUTPUT_LIMIT = 10_000;
 export interface EmitterSessionEntryLike {
 	type: string;
 	id: string;
+	/** ISO entry time; stamps approximate nested spans like backfill does. */
+	timestamp?: string;
 	customType?: string;
 	data?: unknown;
 	message?: unknown;
@@ -99,6 +119,15 @@ export interface KernelEmitterOptions {
 	 */
 	prices?: ModelPriceTable;
 	logger?: KernelEmitterLoggerLike;
+}
+
+/**
+ * True for the `tool_execution_*` events of a nested call, which Pi marks with
+ * the calling tool call's id. Top-level tool executions carry none.
+ */
+export function isNestedToolExecutionEvent(event: KernelAgentSessionEventLike): boolean {
+	const parentToolCallId = (event as { parentToolCallId?: unknown }).parentToolCallId;
+	return typeof parentToolCallId === "string" && parentToolCallId !== "";
 }
 
 export type ModelPriceTable = Record<
@@ -157,6 +186,18 @@ interface PiMessageLike {
 	toolCallId?: string;
 	toolName?: string;
 	isError?: boolean;
+	/** toolResult only: Pi's record of the calls the tool made (`NestedToolCalls`). */
+	nestedCalls?: unknown;
+}
+
+/** A nested call this emitter saw live. */
+interface LiveNestedCall {
+	toolName: string;
+	parentToolUseId: string;
+	/** Set once the live start was seen. */
+	startedAtMs?: number;
+	/** Set once a live end was seen, or an approximate end closed it. */
+	ended: boolean;
 }
 
 export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
@@ -185,6 +226,7 @@ export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
 	let totalCost: number | undefined;
 	let totalsModel: string | undefined;
 	let sawUsage = false;
+	const liveNested = new Map<string, LiveNestedCall>();
 
 	function fallbackId(type: string): string {
 		if (!warnedFallback) {
@@ -231,11 +273,140 @@ export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
 		return {};
 	}
 
-	/** Leaf entry id when the leaf is the just-persisted message entry. */
-	function messageEntryId(message: PiMessageLike): string | undefined {
+	/** The leaf entry when it is the just-persisted message entry. */
+	function messageEntry(message: PiMessageLike): EmitterSessionEntryLike | undefined {
 		const leaf = sessionManager?.getLeafEntry();
-		if (leaf && leaf.type === "message" && leaf.message === message) return leaf.id;
+		if (leaf && leaf.type === "message" && leaf.message === message) return leaf;
 		return undefined;
+	}
+
+	/**
+	 * Submit a nested tool event with the id it was built with: that id comes
+	 * from nestedToolEventId, which backfill derives too, so it is never
+	 * re-stamped from an entry. Ends use the sink's promotable write when it
+	 * has one, so a live end replaces an approximate row; a submit-only sink
+	 * keeps working but cannot promote.
+	 */
+	function submitNestedEvent(evt: TraceEvent): void {
+		const stamped: TraceEvent = { ...evt, source: "agent", piSessionUuid };
+		if (stamped.type === EventType.TOOL_CALL_END && traceWriter.submitPromotable) {
+			traceWriter.submitPromotable(stamped);
+		} else {
+			traceWriter.submit(stamped);
+		}
+	}
+
+	/**
+	 * Track a nested call on first sight. Its parent is the id minus the final
+	 * `/<n>` — the rule backfill applies to `nestedCalls` — so both paths build
+	 * one hierarchy; Pi's parentToolCallId should agree, and a mismatch is
+	 * logged by id with the derived value kept.
+	 */
+	function trackNestedCall(
+		toolCallId: string,
+		toolName: string,
+		parentToolCallId: string,
+	): LiveNestedCall {
+		const derived = immediateParentId(toolCallId);
+		if (derived !== parentToolCallId) {
+			logger?.warn("nested tool call parent differs from its id; keeping the id-derived parent", {
+				piSessionUuid,
+				toolCallId,
+				parentToolCallId,
+			});
+		}
+		const call: LiveNestedCall = {
+			toolName,
+			parentToolUseId: derived ?? parentToolCallId,
+			ended: false,
+		};
+		liveNested.set(toolCallId, call);
+		return call;
+	}
+
+	/** Live tool_execution_start / _end of a nested call → `timing: "live"` tool span. */
+	function handleNestedToolExecution(event: Record<string, unknown>): void {
+		const toolCallId = event.toolCallId;
+		if (typeof toolCallId !== "string" || toolCallId === "") return;
+		const toolName = typeof event.toolName === "string" ? event.toolName : "unknown";
+		const call =
+			liveNested.get(toolCallId) ??
+			trackNestedCall(toolCallId, toolName, event.parentToolCallId as string);
+		const nowMs = Date.now();
+
+		if (event.type === "tool_execution_start") {
+			call.startedAtMs = nowMs;
+			submitNestedEvent(
+				createToolCallStartEvent(ids, call.toolName, toolCallId, {
+					toolInput: { raw: event.args },
+					spanId: toolCallId,
+					parentToolUseId: call.parentToolUseId,
+					nested: true,
+					timing: "live",
+					eventId: nestedToolEventId(piSessionUuid, toolCallId, EventType.TOOL_CALL_START),
+					timestamp: new Date(nowMs).toISOString(),
+				}),
+			);
+			return;
+		}
+
+		// An end after an approximate close still goes out: it promotes that row.
+		call.ended = true;
+		const isError = event.isError === true;
+		const output = normalizedContent((event.result ?? {}) as PiMessageLike)
+			.map((b) => (b.type === "text" ? (b.text ?? "") : ""))
+			.join("")
+			.slice(0, TOOL_OUTPUT_LIMIT);
+		submitNestedEvent(
+			createToolCallEndEvent(ids, call.toolName, toolCallId, {
+				toolOutput: output || undefined,
+				durationMs:
+					call.startedAtMs !== undefined ? Math.max(0, nowMs - call.startedAtMs) : undefined,
+				isError,
+				spanId: toolCallId,
+				parentToolUseId: call.parentToolUseId,
+				nested: true,
+				nestedStatus: isError ? "error" : "ok",
+				timing: "live",
+				eventId: nestedToolEventId(piSessionUuid, toolCallId, EventType.TOOL_CALL_END),
+				timestamp: new Date(nowMs).toISOString(),
+			}),
+		);
+	}
+
+	/**
+	 * Approximate spans, as backfill builds them, for the calls a tool result
+	 * records (`nestedCalls`) but this emitter never saw start live. A call
+	 * seen starting gets nothing here: its live end follows, or the agent_end
+	 * close writes an approximate `unfinished` end.
+	 */
+	function emitRecordedNestedCalls(message: PiMessageLike, entryTimestamp: string | undefined): void {
+		const records = nestedCallRecordsOf(message.nestedCalls);
+		if (records.length === 0) return;
+		const timestamp = entryTimestamp ?? new Date().toISOString();
+		for (const record of records) {
+			const live = liveNested.get(record.id);
+			if (live?.startedAtMs !== undefined) continue;
+			const { start, end } = nestedCallRecordEvents(ids, piSessionUuid, record, timestamp);
+			submitNestedEvent(start);
+			if (!live?.ended) submitNestedEvent(end);
+		}
+	}
+
+	/** Approximate `unfinished` ends for nested calls still open when the agent loop ends. */
+	function closeOpenNestedCalls(): void {
+		const timestamp = new Date().toISOString();
+		for (const [toolCallId, call] of liveNested) {
+			if (call.startedAtMs === undefined || call.ended) continue;
+			call.ended = true;
+			const { end } = nestedCallRecordEvents(
+				ids,
+				piSessionUuid,
+				{ id: toolCallId, name: call.toolName, status: "unfinished" },
+				timestamp,
+			);
+			submitNestedEvent(end);
+		}
 	}
 
 	/** toolKind/spawns marking for declared spawner tools (D77). */
@@ -260,7 +431,8 @@ export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
 	 * assignment mirror the transcript-recovery EventMapper.mapMessage exactly — that is
 	 * what keeps live ids identical to backfill ids.
 	 */
-	function emitMessageEvents(message: PiMessageLike, entryId: string | undefined): void {
+	function emitMessageEvents(message: PiMessageLike, entry: EmitterSessionEntryLike | undefined): void {
+		const entryId = entry?.id;
 		const role = message.role;
 		let ordinal = 0;
 		const content = normalizedContent(message);
@@ -282,6 +454,7 @@ export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
 				entryId,
 				ordinal++,
 			);
+			emitRecordedNestedCalls(message, entry?.timestamp);
 			return;
 		}
 
@@ -342,7 +515,7 @@ export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
 		// notifying listeners, in the same synchronous continuation.
 		pendingWork.push(
 			Promise.resolve().then(() => {
-				emitMessageEvents(message, messageEntryId(message));
+				emitMessageEvents(message, messageEntry(message));
 			}),
 		);
 	}
@@ -371,6 +544,7 @@ export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
 				return;
 			}
 			case "agent_end": {
+				closeOpenNestedCalls();
 				const { entryId } = lifecycleEntry("agent_end");
 				submitAsEntryEvent(
 					createPiAgentEndEvent(ids, "ok", {
@@ -441,6 +615,12 @@ export function createKernelEmitter(opts: KernelEmitterOptions): KernelEmitter {
 				case "turn_start":
 				case "turn_end":
 					handleLifecycle(evt);
+					return;
+				case "tool_execution_start":
+				case "tool_execution_end":
+					// Top-level tool spans come from the persisted messages;
+					// only nested calls (no message of their own) map here.
+					if (isNestedToolExecutionEvent(event)) handleNestedToolExecution(evt);
 					return;
 				default:
 					return;

@@ -20,8 +20,34 @@ export interface PiThinkingBlock {
 
 export type PiContentBlock = PiTextBlock | PiToolCallBlock | PiThinkingBlock;
 
+/**
+ * A call a tool made while it ran (a codemode script's `ctx.executeTool()`),
+ * as Pi records it on the calling tool's result (`NestedToolCallRecord`).
+ * Ids are `<callerId>/<n>`; the record carries no parent field and no result.
+ */
+export interface PiNestedToolCallRecord {
+  id: string;
+  name: string;
+  /** Omitted when over Pi's size limits; `argumentsBytes` then gives their size. */
+  arguments?: Record<string, unknown>;
+  argumentsBytes?: number;
+  /** `unfinished`: still running when the calling tool finished. */
+  status: "ok" | "error" | "unfinished";
+  durationMs?: number;
+  /** Error text, truncated. */
+  error?: string;
+}
+
+/** Bounded record of every nested call one model-issued tool call made, at any depth. */
+export interface PiNestedToolCalls {
+  calls: PiNestedToolCallRecord[];
+  /** False when calls were dropped, arguments omitted, or calls had not finished. */
+  complete: boolean;
+}
+
 export interface PiMessage {
-  role: "user" | "assistant" | "toolResult";
+  /** "system": Pi 1.0 persists the system prompt as a leading transcript entry; it maps to no event. */
+  role: "user" | "assistant" | "toolResult" | "system";
   content: PiContentBlock[];
   timestamp: number;
   usage?: {
@@ -47,6 +73,8 @@ export interface PiMessage {
   toolName?: string;
   isError?: boolean;
   details?: Record<string, unknown>;
+  /** toolResult only: the calls this tool made to other tools. */
+  nestedCalls?: PiNestedToolCalls;
 }
 
 export interface PiSessionEvent {

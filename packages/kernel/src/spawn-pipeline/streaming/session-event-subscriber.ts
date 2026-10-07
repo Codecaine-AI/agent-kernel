@@ -1,4 +1,4 @@
-import type { KernelEmitter } from "../../emitter";
+import { isNestedToolExecutionEvent, type KernelEmitter } from "../../emitter";
 import { GRACE_TURNS } from "../config/turn-limits";
 import { getLastAssistantText } from "../trace/assistant-message-inspection";
 import type {
@@ -68,10 +68,13 @@ export function subscribeToSession<TSession extends KernelAgentSessionLike>(
 			lastAssistantText = currentText;
 			opts.onTextDelta?.(evt.assistantMessageEvent.delta);
 		}
-		if (event.type === "tool_execution_start") {
+		// Tool activity counts the agent's own tool calls; calls a tool makes
+		// (codemode nested calls, marked with parentToolCallId) are not the
+		// agent's and would inflate its tool-use count.
+		if (event.type === "tool_execution_start" && !isNestedToolExecutionEvent(event)) {
 			opts.onToolActivity?.({ type: "start", toolName: String(evt.toolName) });
 		}
-		if (event.type === "tool_execution_end") {
+		if (event.type === "tool_execution_end" && !isNestedToolExecutionEvent(event)) {
 			opts.onToolActivity?.({ type: "end", toolName: String(evt.toolName) });
 		}
 	});

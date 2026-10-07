@@ -1,14 +1,38 @@
-import { describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { EventMapper } from "../transcript-recovery";
+import { afterEach, describe, expect, setSystemTime, test } from "bun:test";
+
+import {
+	ensureKernelObservabilitySchema,
+	getTraceEventsForRun,
+	insertTraceEventsBatch,
+	openKernelDatabase,
+	updateAgentRunStatus,
+	updatePiAgentSessionStatus,
+	upsertContainer,
+	upsertPromotableTraceEvent,
+	type KernelDatabase,
+} from "@agent-kernel/db";
+import { EventMapper, runBackfill } from "../transcript-recovery";
 import type { PiEvent } from "../transcript-recovery";
 import {
+	nestedToolEventId,
 	piEntryEventId,
 	type TraceEvent,
 	type TurnUsage,
 } from "@agent-kernel/protocol";
 
-import { createKernelEmitter, type EmitterSessionEntryLike } from "./kernel-emitter";
+import { runTraceDoctor } from "../doctor";
+import { setupPiSessionAndRun } from "../spawn-pipeline/session/pi-session-db-init";
+import type { TraceWriterSink } from "../subagents/types";
+import { createDbTraceWriter } from "../trace-writer";
+import {
+	createKernelEmitter,
+	type EmitterSessionEntryLike,
+	type KernelEmitterLoggerLike,
+} from "./kernel-emitter";
 import type { KernelAgentSessionEventLike } from "../spawn-pipeline/types";
 
 const PI_UUID = "11111111-2222-3333-4444-555555555555";
@@ -63,13 +87,16 @@ function makeHarness(opts?: {
 	onTurnUsage?: (usage: TurnUsage) => void;
 	onInboundEvent?: (eventId: string) => void;
 	spawnerTools?: Record<string, string[]>;
+	/** Replaces the default capturing sink. */
+	traceWriter?: TraceWriterSink;
+	logger?: KernelEmitterLoggerLike;
 }) {
 	const sm = new FakeSessionManager();
 	const submitted: TraceEvent[] = [];
 	let turnIndex = 0;
 
 	const emitter = createKernelEmitter({
-		traceWriter: { submit: (e) => submitted.push(e) },
+		traceWriter: opts?.traceWriter ?? { submit: (e) => submitted.push(e) },
 		ids: { containerId: CONTAINER_ID, runId: RUN_ID, piSessionUuid: PI_UUID },
 		agentName: "researcher",
 		model: "test/model-1",
@@ -79,6 +106,7 @@ function makeHarness(opts?: {
 		onTurnUsage: opts?.onTurnUsage,
 		onInboundEvent: opts?.onInboundEvent,
 		spawnerTools: opts?.spawnerTools,
+		logger: opts?.logger,
 	});
 
 	// Lifecycle logger listener (mirrors attachPiLifecycleLogger).
@@ -412,5 +440,649 @@ describe("createKernelEmitter", () => {
 		expect(submitted[0].eventId).toMatch(
 			/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
 		);
+	});
+});
+
+// ─── Nested tool calls (codemode) ─────────────────────────────────────────────
+
+const BINDING = "agent-kernel:session-binding";
+const T_RUN = Date.parse("2026-07-01T10:00:00.000Z");
+
+interface NestedRecordFixture {
+	id: string;
+	name: string;
+	arguments?: Record<string, unknown>;
+	status: "ok" | "error" | "unfinished";
+	durationMs?: number;
+}
+
+/** The model-issued codemode call (top-level id "c"). */
+const CODEMODE_CALL = {
+	role: "assistant",
+	content: [
+		{ type: "toolCall", id: "c", name: "codemode", arguments: '{"code":"await tools.wrapper()"}' },
+	],
+	model: "test/model-1",
+	stopReason: "toolUse",
+	timestamp: 0,
+};
+const CODEMODE_START = {
+	type: "tool_execution_start",
+	toolCallId: "c",
+	toolName: "codemode",
+	args: { code: "await tools.wrapper()" },
+};
+const CODEMODE_END = {
+	type: "tool_execution_end",
+	toolCallId: "c",
+	toolName: "codemode",
+	result: { content: [{ type: "text", text: "script done" }], details: {} },
+	isError: false,
+};
+const TURN_END = { type: "turn_end", message: CODEMODE_CALL };
+const AGENT_END = { type: "agent_end", messages: [] };
+
+/** codemode's tool result message_end, carrying Pi's nestedCalls record. */
+function codemodeResult(calls: NestedRecordFixture[]): Record<string, unknown> {
+	return {
+		type: "message_end",
+		message: {
+			role: "toolResult",
+			toolCallId: "c",
+			toolName: "codemode",
+			content: [{ type: "text", text: "script done" }],
+			nestedCalls: { calls, complete: calls.every((c) => c.status !== "unfinished") },
+			isError: false,
+			timestamp: 0,
+		},
+	};
+}
+
+/** Pi's caller id for a nested call: `<callerId>/<n>` minus the final segment. */
+function callerOf(id: string): string {
+	return id.slice(0, id.lastIndexOf("/"));
+}
+
+function nestedStart(id: string, toolName: string, args: Record<string, unknown> = {}) {
+	return { type: "tool_execution_start", toolCallId: id, toolName, args, parentToolCallId: callerOf(id) };
+}
+
+function nestedEnd(id: string, toolName: string, text: string, isError = false) {
+	return {
+		type: "tool_execution_end",
+		toolCallId: id,
+		toolName,
+		result: { content: [{ type: "text", text }], details: {} },
+		isError,
+		parentToolCallId: callerOf(id),
+	};
+}
+
+/** Agent start through codemode's own tool_execution_start. */
+function codemodeOpening(): Record<string, unknown>[] {
+	return [
+		{ type: "agent_start" },
+		{ type: "message_end", message: USER_MSG },
+		{ type: "turn_start" },
+		{ type: "message_end", message: CODEMODE_CALL },
+		CODEMODE_START,
+	];
+}
+
+/** A whole run: codemode whose script produced `live` nested events and the `calls` record. */
+function codemodeRun(
+	live: Record<string, unknown>[],
+	calls: NestedRecordFixture[],
+): Record<string, unknown>[] {
+	return [...codemodeOpening(), ...live, CODEMODE_END, codemodeResult(calls), TURN_END, AGENT_END];
+}
+
+/** codemode → wrapper → read (ids c, c/1, c/1/1). */
+const CHAIN_LIVE = [
+	nestedStart("c/1", "wrapper", { path: "a.ts" }),
+	nestedStart("c/1/1", "read", { path: "a.ts" }),
+	nestedEnd("c/1/1", "read", "file contents"),
+	nestedEnd("c/1", "wrapper", "wrapped: file contents"),
+];
+const CHAIN_CALLS: NestedRecordFixture[] = [
+	{ id: "c/1", name: "wrapper", arguments: { path: "a.ts" }, status: "ok", durationMs: 4 },
+	{ id: "c/1/1", name: "read", arguments: { path: "a.ts" }, status: "ok", durationMs: 2 },
+];
+
+/** The JSONL the harness session would have written, plus the kernel's binding marker. */
+function transcriptOf(sm: FakeSessionManager): PiEvent[] {
+	const t0 = "2026-07-01T00:00:00.000Z";
+	return [
+		{ type: "session", version: 3, id: PI_UUID, timestamp: t0, cwd: "/tmp" },
+		{
+			type: "custom",
+			customType: BINDING,
+			data: { containerId: CONTAINER_ID, runId: RUN_ID },
+			id: "entry-binding",
+			parentId: null,
+			timestamp: t0,
+		},
+		...sm.entries.map((entry): PiEvent => {
+			if (entry.type === "message") {
+				return {
+					type: "message",
+					id: entry.id,
+					parentId: null,
+					timestamp: entry.timestamp,
+					message: entry.message as never,
+				};
+			}
+			return {
+				type: "custom",
+				customType: (entry as { customType?: string }).customType ?? "",
+				data: (entry.data ?? {}) as Record<string, unknown>,
+				id: entry.id,
+				parentId: null,
+				timestamp: entry.timestamp,
+			};
+		}),
+	];
+}
+
+const BACKFILL_MAPPER = { sessionBinding: { customType: BINDING }, lifecycleCustomType: LIFECYCLE };
+
+/** Backfill mapper output for the harness session, in memory. */
+function mapTranscript(sm: FakeSessionManager): TraceEvent[] {
+	const mapper = new EventMapper(BACKFILL_MAPPER);
+	return transcriptOf(sm).flatMap((event) => mapper.map(event).traceEvents);
+}
+
+function data(event: TraceEvent): Record<string, unknown> {
+	return event.eventData as Record<string, unknown>;
+}
+
+function nestedOnly(events: TraceEvent[]): TraceEvent[] {
+	return events.filter((e) => data(e).nested === true);
+}
+
+function ofCall(events: TraceEvent[], toolUseId: string, type?: string): TraceEvent[] {
+	return events.filter(
+		(e) => data(e).tool_use_id === toolUseId && (type === undefined || e.type === type),
+	);
+}
+
+/** Id, span and parent of every nested event, independent of order and timing. */
+function nestedShape(events: TraceEvent[]) {
+	return nestedOnly(events)
+		.map((e) => ({
+			type: e.type,
+			eventId: e.eventId,
+			spanId: e.spanId,
+			toolUseId: data(e).tool_use_id,
+			parent: data(e).parent_tool_use_id,
+		}))
+		.sort((a, b) => a.eventId.localeCompare(b.eventId));
+}
+
+/** Tool names from a call up through parent_tool_use_id, via tool_call_start rows. */
+function ancestry(events: TraceEvent[], toolUseId: string): string[] {
+	const names: string[] = [];
+	let id: unknown = toolUseId;
+	while (typeof id === "string") {
+		const [start] = ofCall(events, id, "tool_call_start");
+		if (!start) break;
+		names.push(data(start).tool_name as string);
+		id = data(start).parent_tool_use_id;
+	}
+	return names;
+}
+
+/** A capturing sink that records which method carried each event. */
+function recordingSink() {
+	const calls: Array<{ via: "submit" | "submitPromotable"; event: TraceEvent }> = [];
+	const sink: TraceWriterSink = {
+		submit: (event) => calls.push({ via: "submit", event }),
+		submitPromotable: (event) => calls.push({ via: "submitPromotable", event }),
+	};
+	return { sink, calls };
+}
+
+describe("createKernelEmitter (nested tool calls)", () => {
+	const cleanups: Array<() => void> = [];
+
+	afterEach(() => {
+		setSystemTime();
+		for (const cleanup of cleanups.splice(0)) cleanup();
+	});
+
+	/** Temp kernel DB with the harness container, session and run rows. */
+	async function openTraceDb(): Promise<{ db: KernelDatabase; dir: string }> {
+		const dir = mkdtempSync(join(tmpdir(), "kernel-emitter-nested-"));
+		const handle = openKernelDatabase({ path: join(dir, "trace.db") });
+		cleanups.push(() => {
+			handle.close();
+			rmSync(dir, { recursive: true, force: true });
+		});
+		await ensureKernelObservabilitySchema(handle.db);
+		await upsertContainer(handle.db, {
+			id: CONTAINER_ID,
+			kernelId: "test",
+			kind: "session",
+			appKey: ["nested-tools"],
+		});
+		await setupPiSessionAndRun(handle.db, {
+			piSessionUuid: PI_UUID,
+			containerId: CONTAINER_ID,
+			runId: RUN_ID,
+			agentName: "researcher",
+			trigger: "operator",
+		});
+		return { db: handle.db, dir };
+	}
+
+	/** runBackfill over the harness session's transcript as it stands now. */
+	async function backfillInto(db: KernelDatabase, dir: string, sm: FakeSessionManager) {
+		const file = join(dir, `${PI_UUID}.jsonl`);
+		writeFileSync(file, transcriptOf(sm).map((l) => JSON.stringify(l)).join("\n") + "\n");
+		return runBackfill({ files: [file], db, mapper: BACKFILL_MAPPER });
+	}
+
+	test("nested execution events become tool spans with parent ids (emitter harness)", async () => {
+		setSystemTime(new Date(T_RUN));
+		const { sink, calls } = recordingSink();
+		const { deliver } = makeHarness({ traceWriter: sink });
+
+		await deliver([
+			...codemodeOpening(),
+			nestedStart("c/1", "read", { path: "a.ts" }),
+			nestedStart("c/2", "ls", { path: "." }),
+		]);
+		setSystemTime(new Date(T_RUN + 25));
+		await deliver([
+			nestedEnd("c/1", "read", "file contents"),
+			nestedEnd("c/2", "ls", "blocked by guard", true),
+			CODEMODE_END,
+			codemodeResult([
+				{ id: "c/1", name: "read", arguments: { path: "a.ts" }, status: "ok", durationMs: 25 },
+				{ id: "c/2", name: "ls", arguments: { path: "." }, status: "error", durationMs: 25 },
+			]),
+			TURN_END,
+			AGENT_END,
+		]);
+
+		// Starts go through submit, ends through the promotable write; the
+		// record on the tool result adds nothing because every call ran live.
+		const nested = calls.filter((c) => data(c.event).nested === true);
+		expect(nested.map((c) => [c.via, c.event.type, data(c.event).tool_use_id])).toEqual([
+			["submit", "tool_call_start", "c/1"],
+			["submit", "tool_call_start", "c/2"],
+			["submitPromotable", "tool_call_end", "c/1"],
+			["submitPromotable", "tool_call_end", "c/2"],
+		]);
+
+		for (const { event } of nested) {
+			const id = data(event).tool_use_id as string;
+			expect(event.eventId).toBe(nestedToolEventId(PI_UUID, id, String(event.type)));
+			expect(event.spanId).toBe(id);
+			expect(event.source).toBe("agent");
+			expect(event.containerId).toBe(CONTAINER_ID);
+			expect(event.runId).toBe(RUN_ID);
+			expect(event.piSessionUuid).toBe(PI_UUID);
+			expect(data(event)).toMatchObject({ parent_tool_use_id: "c", nested: true, timing: "live" });
+		}
+
+		const [readStart, , readEnd, lsEnd] = nested.map((c) => c.event);
+		expect(readStart!.timestamp).toBe(new Date(T_RUN).toISOString());
+		expect(data(readStart!)).toMatchObject({
+			tool_name: "read",
+			tool_input: { raw: { path: "a.ts" } },
+		});
+		expect(readEnd!.timestamp).toBe(new Date(T_RUN + 25).toISOString());
+		expect(data(readEnd!)).toMatchObject({
+			tool_output: "file contents",
+			duration_ms: 25,
+			nested_status: "ok",
+		});
+		expect(data(readEnd!)).not.toHaveProperty("is_error");
+		expect(data(lsEnd!)).toMatchObject({
+			tool_output: "blocked by guard",
+			is_error: true,
+			nested_status: "error",
+		});
+	});
+
+	test("top-level tool_execution events are still ignored", async () => {
+		const { submitted, deliver } = makeHarness();
+		await deliver([
+			CODEMODE_START,
+			{ type: "tool_execution_update", toolCallId: "c", toolName: "codemode", args: {}, partialResult: {} },
+			CODEMODE_END,
+			// An empty parent id is not a nested call.
+			{ ...CODEMODE_START, parentToolCallId: "" },
+			// Nested partial results are not spans.
+			{ ...nestedStart("c/1", "read"), type: "tool_execution_update", partialResult: {} },
+		]);
+		expect(submitted).toEqual([]);
+	});
+
+	test("live and backfill produce identical nested event ids", async () => {
+		const { sm, submitted, emitter, deliver } = makeHarness();
+		emitter.emitSessionStart();
+		await deliver(
+			codemodeRun(
+				[
+					nestedStart("c/1", "read", { path: "a.ts" }),
+					nestedEnd("c/1", "read", "file contents"),
+					nestedStart("c/2", "bash", { command: "ls" }),
+					nestedEnd("c/2", "bash", "a.ts"),
+				],
+				[
+					{ id: "c/1", name: "read", arguments: { path: "a.ts" }, status: "ok", durationMs: 1 },
+					{ id: "c/2", name: "bash", arguments: { command: "ls" }, status: "ok", durationMs: 1 },
+				],
+			),
+		);
+
+		const backfilled = mapTranscript(sm);
+		expect(nestedOnly(submitted)).toHaveLength(4);
+		expect(nestedOnly(submitted).map((e) => e.eventId).sort()).toEqual(
+			nestedOnly(backfilled).map((e) => e.eventId).sort(),
+		);
+		// Every other id still pairs one to one: nothing non-nested moved.
+		expect(submitted.map((e) => e.eventId).sort()).toEqual(
+			backfilled.map((e) => e.eventId).sort(),
+		);
+	});
+
+	test("three-level chain: live and backfill build the same hierarchy", async () => {
+		const { sm, submitted, emitter, deliver } = makeHarness();
+		emitter.emitSessionStart();
+		await deliver(codemodeRun(CHAIN_LIVE, CHAIN_CALLS));
+
+		const backfilled = mapTranscript(sm);
+		// Backfill only: a fresh database that never saw a live row.
+		const { db, dir } = await openTraceDb();
+		await backfillInto(db, dir, sm);
+		const stored = await getTraceEventsForRun(db, RUN_ID);
+		expect(nestedOnly(stored).every((e) => data(e).timing === "approximate")).toBe(true);
+
+		expect(nestedShape(submitted)).toEqual(
+			[
+				{ type: "tool_call_start", toolUseId: "c/1", parent: "c" },
+				{ type: "tool_call_end", toolUseId: "c/1", parent: "c" },
+				{ type: "tool_call_start", toolUseId: "c/1/1", parent: "c/1" },
+				{ type: "tool_call_end", toolUseId: "c/1/1", parent: "c/1" },
+			]
+				.map((e) => ({
+					type: e.type,
+					eventId: nestedToolEventId(PI_UUID, e.toolUseId, e.type),
+					spanId: e.toolUseId,
+					toolUseId: e.toolUseId,
+					parent: e.parent,
+				}))
+				.sort((a, b) => a.eventId.localeCompare(b.eventId)),
+		);
+		for (const events of [submitted, backfilled, stored]) {
+			expect(nestedShape(events)).toEqual(nestedShape(submitted));
+			// The viewer nests by matching parent_tool_use_id against the parent's
+			// tool_use_id, so every nested payload carries its own id there.
+			for (const e of nestedOnly(events)) expect(data(e).tool_use_id).toBe(e.spanId);
+			expect(ancestry(events, "c/1/1")).toEqual(["read", "wrapper", "codemode"]);
+		}
+	});
+
+	test("live then backfill inserts each nested span once", async () => {
+		const { db, dir } = await openTraceDb();
+		const writer = createDbTraceWriter(db);
+		const { sm, emitter, deliver } = makeHarness({ traceWriter: writer });
+		emitter.emitSessionStart();
+		await deliver(codemodeRun(CHAIN_LIVE, CHAIN_CALLS));
+		await writer.flush();
+		const liveRows = await getTraceEventsForRun(db, RUN_ID);
+
+		const summary = await backfillInto(db, dir, sm);
+		expect(summary.eventsMapped).toBe(liveRows.length);
+		expect(summary.eventsInserted).toBe(0);
+
+		const rows = await getTraceEventsForRun(db, RUN_ID);
+		expect(rows).toHaveLength(liveRows.length);
+		const nested = nestedOnly(rows);
+		expect(nested).toHaveLength(4);
+		// Live rows win: none was replaced by an approximate one.
+		expect(nested.every((e) => data(e).timing === "live")).toBe(true);
+	});
+
+	test("live start → parent unfinished record → live end: one end row with the live data", async () => {
+		setSystemTime(new Date(T_RUN));
+		const { db, dir } = await openTraceDb();
+		const writer = createDbTraceWriter(db);
+		const { sm, deliver } = makeHarness({ traceWriter: writer });
+
+		await deliver([
+			...codemodeOpening(),
+			nestedStart("c/1", "read", { path: "a.ts" }),
+			CODEMODE_END,
+			// The script did not await the call: Pi persists it unfinished.
+			codemodeResult([{ id: "c/1", name: "read", arguments: { path: "a.ts" }, status: "unfinished" }]),
+		]);
+		setSystemTime(new Date(T_RUN + 40));
+		await deliver([nestedEnd("c/1", "read", "late contents"), TURN_END, AGENT_END]);
+		await writer.flush();
+		// A later backfill of the same session adds no second end either.
+		await backfillInto(db, dir, sm);
+
+		const ends = ofCall(await getTraceEventsForRun(db, RUN_ID), "c/1", "tool_call_end");
+		expect(ends).toHaveLength(1);
+		expect(ends[0]!.eventId).toBe(nestedToolEventId(PI_UUID, "c/1", "tool_call_end"));
+		expect(data(ends[0]!)).toMatchObject({
+			timing: "live",
+			tool_output: "late contents",
+			duration_ms: 40,
+			nested_status: "ok",
+		});
+	});
+
+	/**
+	 * The nested call is still running when the tool result is persisted and a
+	 * backfill runs; its live end arrives afterwards.
+	 */
+	async function lateEndAfterBackfill(
+		makeSink: (db: KernelDatabase) => { sink: TraceWriterSink; flush: () => Promise<unknown> },
+	) {
+		const { db, dir } = await openTraceDb();
+		const { sink, flush } = makeSink(db);
+		const { sm, deliver } = makeHarness({ traceWriter: sink });
+		const endOf = async () =>
+			ofCall(await getTraceEventsForRun(db, RUN_ID), "c/1", "tool_call_end");
+
+		await deliver([
+			...codemodeOpening(),
+			nestedStart("c/1", "read", { path: "a.ts" }),
+			CODEMODE_END,
+			codemodeResult([{ id: "c/1", name: "read", arguments: { path: "a.ts" }, status: "unfinished" }]),
+		]);
+		await flush();
+		await backfillInto(db, dir, sm);
+		const endsAfterBackfill = await endOf();
+
+		await deliver([nestedEnd("c/1", "read", "late contents"), TURN_END, AGENT_END]);
+		await flush();
+		const rows = await getTraceEventsForRun(db, RUN_ID);
+		return {
+			endsAfterBackfill,
+			starts: ofCall(rows, "c/1", "tool_call_start"),
+			ends: ofCall(rows, "c/1", "tool_call_end"),
+		};
+	}
+
+	test("backfill first, live end later: the approximate end is promoted", async () => {
+		const outcomes: Array<{ eventId: string; outcome: string }> = [];
+		const result = await lateEndAfterBackfill((db) => {
+			let tail: Promise<unknown> = Promise.resolve();
+			const sink: TraceWriterSink = {
+				submit: (e) => {
+					tail = tail.then(() => insertTraceEventsBatch(db, [e]));
+				},
+				submitPromotable: (e) => {
+					tail = tail.then(async () => {
+						outcomes.push({ eventId: e.eventId, outcome: await upsertPromotableTraceEvent(db, e) });
+					});
+				},
+			};
+			return { sink, flush: () => tail };
+		});
+
+		expect(result.endsAfterBackfill.map((e) => data(e))).toMatchObject([
+			{ timing: "approximate", nested_status: "unfinished" },
+		]);
+		expect(outcomes).toEqual([
+			{ eventId: nestedToolEventId(PI_UUID, "c/1", "tool_call_end"), outcome: "promoted" },
+		]);
+		expect(result.ends).toHaveLength(1);
+		expect(data(result.ends[0]!)).toMatchObject({
+			timing: "live",
+			tool_output: "late contents",
+			nested_status: "ok",
+		});
+	});
+
+	test("default sink promotes; a submit-only custom sink compiles, works, and keeps the approximate row", async () => {
+		const promoted = await lateEndAfterBackfill((db) => {
+			const writer = createDbTraceWriter(db);
+			return { sink: writer, flush: () => writer.flush() };
+		});
+		expect(promoted.ends).toHaveLength(1);
+		expect(data(promoted.ends[0]!)).toMatchObject({ timing: "live", tool_output: "late contents" });
+
+		// A caller-supplied sink without submitPromotable: no cast anywhere, the
+		// emitter falls back to submit, and live rows still land.
+		const kept = await lateEndAfterBackfill((db) => {
+			let tail: Promise<unknown> = Promise.resolve();
+			const sink: TraceWriterSink = {
+				submit: (e) => {
+					tail = tail.then(() => insertTraceEventsBatch(db, [e]));
+				},
+			};
+			return { sink, flush: () => tail };
+		});
+		expect(kept.starts.map((e) => data(e).timing)).toEqual(["live"]);
+		expect(kept.ends).toHaveLength(1);
+		expect(data(kept.ends[0]!)).toMatchObject({ timing: "approximate", nested_status: "unfinished" });
+	});
+
+	test("a nested call still open at agent_end ends unfinished; a later live end still goes out", async () => {
+		const { sink, calls } = recordingSink();
+		const { deliver } = makeHarness({ traceWriter: sink });
+		await deliver(
+			codemodeRun(
+				[nestedStart("c/1", "read", { path: "a.ts" })],
+				[{ id: "c/1", name: "read", arguments: { path: "a.ts" }, status: "unfinished" }],
+			),
+		);
+
+		const closeIndex = calls.findIndex(
+			(c) => c.event.type === "tool_call_end" && data(c.event).tool_use_id === "c/1",
+		);
+		expect(closeIndex).toBeGreaterThan(-1);
+		expect(closeIndex).toBeLessThan(calls.findIndex((c) => c.event.type === "pi_agent_end"));
+		expect(calls[closeIndex]!.via).toBe("submitPromotable");
+		expect(data(calls[closeIndex]!.event)).toMatchObject({
+			parent_tool_use_id: "c",
+			nested: true,
+			nested_status: "unfinished",
+			is_error: true,
+			timing: "approximate",
+		});
+
+		// The dangling call finishes after the loop: its live end is emitted to promote the row.
+		await deliver([nestedEnd("c/1", "read", "late contents")]);
+		const ends = calls.filter(
+			(c) => c.event.type === "tool_call_end" && data(c.event).tool_use_id === "c/1",
+		);
+		expect(ends.map((c) => [c.via, data(c.event).timing])).toEqual([
+			["submitPromotable", "approximate"],
+			["submitPromotable", "live"],
+		]);
+		expect(ends[1]!.event.eventId).toBe(ends[0]!.event.eventId);
+	});
+
+	test("calls the tool result records but the emitter never saw run get backfill's rows", async () => {
+		const { sm, submitted, deliver } = makeHarness();
+		await deliver(
+			codemodeRun(
+				[nestedStart("c/1", "read", { path: "a.ts" }), nestedEnd("c/1", "read", "file contents")],
+				[
+					{ id: "c/1", name: "read", arguments: { path: "a.ts" }, status: "ok", durationMs: 3 },
+					{ id: "c/2", name: "ls", arguments: { path: "." }, status: "ok", durationMs: 7 },
+				],
+			),
+		);
+
+		const recordedOnly = ofCall(submitted, "c/2");
+		expect(recordedOnly.map((e) => [e.type, data(e).timing])).toEqual([
+			["tool_call_start", "approximate"],
+			["tool_call_end", "approximate"],
+		]);
+		const resultEntry = sm.entries.find(
+			(e) => e.type === "message" && (e.message as { role?: string }).role === "toolResult",
+		)!;
+		expect(recordedOnly[1]!.timestamp).toBe(resultEntry.timestamp);
+		// Exactly the rows backfill builds for the same entry.
+		expect(recordedOnly).toEqual(ofCall(mapTranscript(sm), "c/2"));
+		// The call seen live keeps only its live rows.
+		expect(ofCall(submitted, "c/1").map((e) => data(e).timing)).toEqual(["live", "live"]);
+	});
+
+	test("a parentToolCallId that disagrees with the id keeps the id-derived parent and logs ids only", async () => {
+		const warnings: Array<{ message: string; data?: Record<string, unknown> }> = [];
+		const { submitted, deliver } = makeHarness({
+			logger: { warn: (message, data) => warnings.push({ message, data }) },
+		});
+		await deliver([
+			{ ...nestedStart("c/1/1", "read", { path: "secret.ts" }), parentToolCallId: "c" },
+			{ ...nestedEnd("c/1/1", "read", "contents"), parentToolCallId: "c" },
+		]);
+
+		expect(submitted.map((e) => data(e).parent_tool_use_id)).toEqual(["c/1", "c/1"]);
+		expect(warnings).toHaveLength(1);
+		expect(warnings[0]!.data).toEqual({
+			piSessionUuid: PI_UUID,
+			toolCallId: "c/1/1",
+			parentToolCallId: "c",
+		});
+	});
+
+	test("doctor invariant 5 holds with nested pairs", async () => {
+		const { db, dir } = await openTraceDb();
+		const writer = createDbTraceWriter(db);
+		const { sm, emitter, deliver } = makeHarness({ traceWriter: writer });
+		emitter.emitSessionStart();
+		await deliver(
+			codemodeRun(
+				[
+					nestedStart("c/1", "read", { path: "a.ts" }),
+					nestedEnd("c/1", "read", "file contents"),
+					// Still running when the loop ends.
+					nestedStart("c/3", "bash", { command: "sleep 9" }),
+				],
+				[
+					{ id: "c/1", name: "read", arguments: { path: "a.ts" }, status: "ok", durationMs: 1 },
+					// Recorded only: never seen live.
+					{ id: "c/2", name: "ls", arguments: { path: "." }, status: "ok", durationMs: 1 },
+					{ id: "c/3", name: "bash", arguments: { command: "sleep 9" }, status: "unfinished" },
+				],
+			),
+		);
+		await writer.flush();
+		await backfillInto(db, dir, sm);
+		const endedAt = new Date().toISOString();
+		await updateAgentRunStatus(db, RUN_ID, "done", { endedAt });
+		await updatePiAgentSessionStatus(db, PI_UUID, "ended", endedAt);
+
+		const nested = nestedOnly(await getTraceEventsForRun(db, RUN_ID));
+		for (const id of ["c/1", "c/2", "c/3"]) {
+			expect(ofCall(nested, id).map((e) => e.type).sort()).toEqual([
+				"tool_call_end",
+				"tool_call_start",
+			]);
+		}
+		const report = await runTraceDoctor(db);
+		expect(report.violations.filter((v) => v.invariant === 5)).toEqual([]);
+		expect(report.ok).toBe(true);
 	});
 });

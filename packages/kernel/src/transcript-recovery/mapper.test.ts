@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { nestedToolEventId, piEntryEventId } from "@agent-kernel/protocol";
 import type { TraceEvent } from "@agent-kernel/protocol";
 import { EventMapper, type EventMapperOptions } from "./mapper";
-import type { PiEvent } from "./types";
+import type { PiEvent, PiNestedToolCallRecord } from "./types";
 
 const PI_SESSION_UUID = "11111111-2222-3333-4444-555555555555";
 const CONTAINER_ID = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
@@ -312,5 +313,223 @@ describe("EventMapper (container-first envelope)", () => {
       tool_output: "ERROR · layout failed",
       is_error: true,
     });
+  });
+});
+
+/** A codemode tool result whose script made the given nested calls. */
+function codemodeResult(
+  entryId: string,
+  calls: PiNestedToolCallRecord[],
+  timestamp = T0,
+): PiEvent {
+  return {
+    type: "message",
+    id: entryId,
+    parentId: null,
+    timestamp,
+    message: {
+      role: "toolResult",
+      content: [{ type: "text", text: "script done" }],
+      timestamp: 0,
+      toolCallId: "c",
+      toolName: "codemode",
+      nestedCalls: { calls, complete: calls.every((c) => c.status !== "unfinished") },
+    },
+  };
+}
+
+function nestedEvents(events: TraceEvent[]): TraceEvent[] {
+  return events.filter((e) => (e.eventData as { nested?: boolean }).nested === true);
+}
+
+describe("EventMapper (nested tool calls)", () => {
+  function boundMapper(): EventMapper {
+    const mapper = new EventMapper(BINDING_OPTIONS);
+    mapper.map(sessionEvent());
+    mapper.map(bindingEvent({ containerId: CONTAINER_ID, runId: RUN_ID }));
+    return mapper;
+  }
+
+  test("nestedCalls become approximate nested spans that keep their nested ids", () => {
+    const T_END = "2026-07-01T10:00:05.000Z";
+    const events = boundMapper().map(
+      codemodeResult(
+        "entry-tr",
+        [
+          { id: "c/1", name: "read", arguments: { path: "a.ts" }, status: "ok", durationMs: 40 },
+          {
+            id: "c/1/1",
+            name: "bash",
+            argumentsBytes: 9000,
+            status: "error",
+            durationMs: 3,
+            error: "blocked by guard",
+          },
+        ],
+        T_END,
+      ),
+    ).traceEvents;
+
+    expect(events.map((e) => e.type)).toEqual([
+      "tool_call_end",
+      "tool_call_start",
+      "tool_call_end",
+      "tool_call_start",
+      "tool_call_end",
+    ]);
+    // The parent's own end keeps its entry-derived id: existing ids are unchanged.
+    expect(events[0]!.eventId).toBe(
+      piEntryEventId(PI_SESSION_UUID, "entry-tr", 0, "tool_call_end"),
+    );
+
+    const [readStart, readEnd, bashStart, bashEnd] = nestedEvents(events);
+    for (const [evt, id] of [
+      [readStart, "c/1"],
+      [readEnd, "c/1"],
+      [bashStart, "c/1/1"],
+      [bashEnd, "c/1/1"],
+    ] as const) {
+      expect(evt!.eventId).toBe(nestedToolEventId(PI_SESSION_UUID, id, String(evt!.type)));
+      expect(evt!.spanId).toBe(id);
+      expect(evt!.source).toBe("agent");
+      expect(evt!.containerId).toBe(CONTAINER_ID);
+      expect(evt!.runId).toBe(RUN_ID);
+      expect(evt!.piSessionUuid).toBe(PI_SESSION_UUID);
+      expect(evt!.parentEventId).toBeUndefined();
+    }
+
+    // Immediate parent = the id minus its final /<n>.
+    expect(readStart!.eventData).toMatchObject({
+      tool_use_id: "c/1",
+      tool_name: "read",
+      tool_input: { raw: { path: "a.ts" } },
+      parent_tool_use_id: "c",
+      nested: true,
+      timing: "approximate",
+    });
+    expect(readEnd!.eventData).toMatchObject({
+      parent_tool_use_id: "c",
+      nested: true,
+      nested_status: "ok",
+      duration_ms: 40,
+      timing: "approximate",
+    });
+    expect(readEnd!.eventData).not.toHaveProperty("is_error");
+    // End at the tool result's entry time, start durationMs earlier.
+    expect(readEnd!.timestamp).toBe(T_END);
+    expect(readStart!.timestamp).toBe("2026-07-01T10:00:04.960Z");
+
+    expect(bashStart!.eventData).toMatchObject({
+      parent_tool_use_id: "c/1",
+      tool_input: { omitted_bytes: 9000 },
+    });
+    expect(bashEnd!.eventData).toMatchObject({
+      parent_tool_use_id: "c/1",
+      nested_status: "error",
+      is_error: true,
+      tool_output: "blocked by guard",
+    });
+  });
+
+  test("missing durationMs never yields an invalid timestamp", () => {
+    const events = nestedEvents(
+      boundMapper().map(
+        codemodeResult("entry-tr", [
+          { id: "c/1", name: "read", status: "unfinished" },
+          // A malformed duration reads as missing.
+          { id: "c/2", name: "ls", status: "ok", durationMs: -5 },
+        ]),
+      ).traceEvents,
+    );
+
+    expect(events).toHaveLength(4);
+    for (const evt of events) {
+      expect(evt.timestamp).toBe(T0);
+      expect(Number.isNaN(Date.parse(evt.timestamp))).toBe(false);
+      expect((evt.eventData as { duration_ms?: number }).duration_ms).toBeUndefined();
+    }
+  });
+
+  test("unfinished nested record ends with nested_status unfinished", () => {
+    const [, end] = nestedEvents(
+      boundMapper().map(
+        codemodeResult("entry-tr", [{ id: "c/1", name: "read", status: "unfinished" }]),
+      ).traceEvents,
+    );
+    expect(end!.type).toBe("tool_call_end");
+    expect(end!.eventData).toMatchObject({
+      tool_use_id: "c/1",
+      nested_status: "unfinished",
+      is_error: true,
+      timing: "approximate",
+    });
+    expect((end!.eventData as { tool_output?: string }).tool_output).toBeUndefined();
+  });
+
+  test("nested events held before the binding keep their ids when released", () => {
+    const mapper = new EventMapper(BINDING_OPTIONS);
+    mapper.map(sessionEvent());
+    expect(
+      mapper.map(codemodeResult("entry-tr", [{ id: "c/1", name: "read", status: "ok" }]))
+        .traceEvents,
+    ).toEqual([]);
+
+    const released = nestedEvents(
+      mapper.map(bindingEvent({ containerId: CONTAINER_ID, runId: RUN_ID })).traceEvents,
+    );
+    expect(released.map((e) => e.eventId)).toEqual([
+      nestedToolEventId(PI_SESSION_UUID, "c/1", "tool_call_start"),
+      nestedToolEventId(PI_SESSION_UUID, "c/1", "tool_call_end"),
+    ]);
+    for (const evt of released) {
+      expect(evt.containerId).toBe(CONTAINER_ID);
+      expect(evt.runId).toBe(RUN_ID);
+    }
+  });
+
+  test("records without an id are skipped; a tool result without nestedCalls is unchanged", () => {
+    const mapper = boundMapper();
+    const withJunk = mapper.map({
+      type: "message",
+      id: "entry-tr",
+      parentId: null,
+      timestamp: T0,
+      message: {
+        role: "toolResult",
+        content: [],
+        timestamp: 0,
+        toolCallId: "c",
+        toolName: "codemode",
+        nestedCalls: {
+          calls: [{ name: "read", status: "ok" } as unknown as PiNestedToolCallRecord],
+          complete: false,
+        },
+      },
+    }).traceEvents;
+    expect(withJunk.map((e) => e.type)).toEqual(["tool_call_end"]);
+
+    const plain = mapper.map({
+      type: "message",
+      id: "entry-tr2",
+      parentId: null,
+      timestamp: T0,
+      message: { role: "toolResult", content: [], timestamp: 0, toolCallId: "t", toolName: "read" },
+    }).traceEvents;
+    expect(plain.map((e) => e.type)).toEqual(["tool_call_end"]);
+  });
+
+  test("a system transcript entry maps to no event", () => {
+    const events = boundMapper().map({
+      type: "message",
+      id: "entry-sys",
+      parentId: null,
+      timestamp: T0,
+      message: {
+        role: "system",
+        content: [{ type: "text", text: "You are a careful agent." }],
+        timestamp: 0,
+      },
+    }).traceEvents;
+    expect(events).toEqual([]);
   });
 });
