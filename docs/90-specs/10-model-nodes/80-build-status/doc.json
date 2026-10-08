@@ -34,6 +34,7 @@
         "bs-h-ident",
         "bs-ident-lead",
         "bs-ident-claim",
+        "bs-ident-raw",
         "bs-ident-gate",
         "bs-h-live",
         "bs-live-lead",
@@ -2413,7 +2414,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Some caller-chosen identifiers reach the trace without a credential scrub. The kernel does not check them, so callers must not put credentials in identifiers."
+          "insert": "Calls scrub every claim-time record with the route credentials known at claim, and completion scrubs with the full set. Four places still record caller-chosen identifiers raw, so callers must not put credentials in identifiers."
         }
       ],
       "children": []
@@ -2426,14 +2427,15 @@
       },
       "text": [
         {
-          "insert": "Written at claim",
+          "insert": "Calls scrub at claim",
           "attributes": {
             "bold": true
           }
         }
       ],
       "children": [
-        "bs-ident-claim-a"
+        "bs-ident-claim-a",
+        "bs-ident-claim-b"
       ]
     },
     "bs-ident-claim-a": {
@@ -2444,7 +2446,7 @@
       },
       "text": [
         {
-          "insert": "The claim writes the decision name, "
+          "insert": "A call scrubs its name, "
         },
         {
           "insert": "requestId",
@@ -2462,7 +2464,7 @@
           }
         },
         {
-          "insert": ", and "
+          "insert": ", "
         },
         {
           "insert": "parentToolUseId",
@@ -2471,7 +2473,7 @@
           }
         },
         {
-          "insert": " to "
+          "insert": ", "
         },
         {
           "insert": "call_start",
@@ -2480,7 +2482,112 @@
           }
         },
         {
-          "insert": " and to the session and run rows. The full credential set exists only after the engine sends."
+          "insert": " fields, session and run rows, and claim logs with the route credentials. Completion adds the run's full secret set."
+        }
+      ],
+      "children": []
+    },
+    "bs-ident-claim-b": {
+      "id": "bs-ident-claim-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "An exception from "
+        },
+        {
+          "insert": "onNodeStarted",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or engine execution persists only "
+        },
+        {
+          "insert": "node callback threw",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "node execution threw",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The caller still receives the original error."
+        }
+      ],
+      "children": []
+    },
+    "bs-ident-raw": {
+      "id": "bs-ident-raw",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Recorded raw",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "bs-ident-raw-a",
+        "bs-ident-raw-b",
+        "bs-ident-raw-c"
+      ]
+    },
+    "bs-ident-raw-a": {
+      "id": "bs-ident-raw-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A decision has no credential set before it sends, so its claim records the caller's identifiers raw."
+        }
+      ],
+      "children": []
+    },
+    "bs-ident-raw-b": {
+      "id": "bs-ident-raw-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A call whose route fails has no route credentials, so its claim records them raw too."
+        }
+      ],
+      "children": []
+    },
+    "bs-ident-raw-c": {
+      "id": "bs-ident-raw-c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "parent_run_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " stays raw, because it is a foreign key."
         }
       ],
       "children": []
