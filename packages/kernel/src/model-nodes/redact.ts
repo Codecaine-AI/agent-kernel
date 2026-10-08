@@ -140,7 +140,8 @@ export function redactText(text: string, secrets: ReadonlyArray<string>): string
 /**
  * Deep copy of `value` with every secret replaced in nested strings and
  * object keys (URLs, raw text, SSE frames and error messages included).
- * Error objects become plain `{ name, message }` records. Values that are
+ * Error objects become plain `{ name, message }` records, both scrubbed;
+ * nothing else of an Error (stack, cause, code) is kept. Values that are
  * not JSON-shaped (numbers, booleans, typed arrays, …) pass through.
  */
 export function redactDeep<T>(value: T, secrets: ReadonlyArray<string>): T {
@@ -161,7 +162,8 @@ function scrub(value: unknown, secrets: ReadonlyArray<string>, seen: WeakMap<obj
 		return out;
 	}
 	if (value instanceof Error) {
-		const out = { name: value.name, message: redactText(value.message, secrets) };
+		// Only name and message are copied (never stack, cause or other fields); both are caller-mutable text.
+		const out = { name: redactText(String(value.name), secrets), message: redactText(String(value.message), secrets) };
 		seen.set(value, out);
 		return out;
 	}

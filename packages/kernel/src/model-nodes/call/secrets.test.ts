@@ -449,4 +449,14 @@ describe("call secrets (S4)", () => {
 			expect(hits(k.temp.db, [sentinel])).toEqual([]);
 		});
 	}
+
+	test("an Error argument whose name holds the route credential is scrubbed from the pending and final inputs", async () => {
+		const k = await kit({ pi: { apiKey: API_KEY } });
+		const error = Object.assign(new Error(`failed with ${API_KEY}`), { name: `Error_${API_KEY}` });
+		await k.call("Extract", [error as unknown as string]);
+		const runId = k.engine.invocations[0]!.tags.runId!;
+		const scrubbed = { name: "Error_<redacted>", message: "failed with <redacted>" };
+		expect(await storedInputs(k.temp.db, runId)).toEqual({ start: { pending: true, redacted: [scrubbed] }, end: [scrubbed] });
+		expect(hits(k.temp.db, [API_KEY])).toEqual([]);
+	});
 });
