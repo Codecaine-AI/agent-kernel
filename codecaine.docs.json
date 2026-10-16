@@ -1,0 +1,9 @@
+{
+  "id": "ent_01M4F6XQR8GMH255XTW0W2QFQ2",
+  "name": "Agent Kernel",
+  "kind": "core",
+  "docsRoot": "docs",
+  "products": [
+    "docs"
+  ]
+}
