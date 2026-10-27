@@ -1,0 +1,14 @@
+{
+  "strictness": 2,
+  "commentTypes": [
+    "logic",
+    "syntax"
+  ],
+  "triggerOnDrafts": false,
+  "autoReview": [
+    "open",
+    "push"
+  ],
+  "ignorePatterns": "**/dist/**\n**/dist-static/**\n**/build/**\n**/coverage/**\nbun.lock\n**/package-lock.json\n**/__snapshots__/**\n**/*.snap\n**/__fixtures__/**\n**/fixtures/**\n**/*.log\ndocs/**/*.json\n.agent-kernel/trace.db*\n.agent-kernel/kernel.json\n.agent-kernel/state/**\n**/prompt/system.md\nscripts/tui-typecheck-baseline.json\npackages/viewer-ui/src/trace-viewer/icons/nucleo-src/**\npackages/tui/test-fixtures/**",
+  "instructions": "Bun and TypeScript monorepo for an agent harness runtime on the Pi Agent SDK; packages live under packages/ (kernel, db, protocol, viewer-*, tui), agent catalogs under catalog/ and a React example app under examples/. Docs pages (docs/**/doc.json) and rendered prompt snapshots (prompt/system.md) are written by tools, not by hand. Focus on correctness, types, error handling and missing tests. Skip style nits."
+}
