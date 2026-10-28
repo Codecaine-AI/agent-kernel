@@ -26,7 +26,7 @@ const PROMPT_DOCUMENT = {
 	],
 };
 
-const STATE_TS = `import { defineState } from "@agent-kernel/kernel/agent-definition";
+const STATE_TS = `import { defineState } from "@codecaine-ai/agent-kernel/agent-definition";
 
 export const state = defineState({
   seed: (ctx) => ({ board: ctx.agentName, ops: [] }),

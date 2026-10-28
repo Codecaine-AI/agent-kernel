@@ -53,7 +53,7 @@
       "props": {},
       "text": [
         {
-          "insert": "@agent-kernel/protocol",
+          "insert": "@codecaine-ai/agent-kernel-protocol",
           "attributes": {
             "code": true
           }

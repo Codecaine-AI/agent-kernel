@@ -2,7 +2,7 @@ import {
 	KERNEL_TRACE_READ_PATHS,
 	type KernelTraceSessionDetail,
 	type KernelTraceSessionSummary
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 import type { ResearchHarnessInfo, ResearchRunSummary } from "./types";
 

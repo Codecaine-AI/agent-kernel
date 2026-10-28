@@ -7,8 +7,8 @@
  * injected with SQLite triggers.
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { getAgentRun, updateAgentRunStatus } from "@agent-kernel/db";
-import { kernelNodeEventId, kernelRequestId, type GateCheckRecord } from "@agent-kernel/protocol";
+import { getAgentRun, updateAgentRunStatus } from "@codecaine-ai/agent-kernel-db";
+import { kernelNodeEventId, kernelRequestId, type GateCheckRecord } from "@codecaine-ai/agent-kernel-protocol";
 
 import { createKernel } from "../../index";
 import { runTraceDoctor } from "../../doctor";

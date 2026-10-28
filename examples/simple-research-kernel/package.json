@@ -1,5 +1,5 @@
 {
-  "name": "@agent-kernel/example-simple-research-kernel",
+  "name": "@codecaine-ai/agent-kernel-example-simple-research-kernel",
   "version": "0.0.2",
   "private": true,
   "type": "module",
@@ -10,12 +10,12 @@
     "typecheck": "bunx --bun tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@agent-kernel/db": "workspace:*",
-    "@agent-kernel/kernel": "workspace:*",
-    "@agent-kernel/protocol": "workspace:*",
-    "@agent-kernel/viewer-core": "workspace:*",
-    "@agent-kernel/viewer-shell": "workspace:*",
-    "@agent-kernel/viewer-ui": "workspace:*",
+    "@codecaine-ai/agent-kernel-db": "workspace:*",
+    "@codecaine-ai/agent-kernel": "workspace:*",
+    "@codecaine-ai/agent-kernel-protocol": "workspace:*",
+    "@codecaine-ai/agent-kernel-viewer-core": "workspace:*",
+    "@codecaine-ai/agent-kernel-viewer-shell": "workspace:*",
+    "@codecaine-ai/agent-kernel-viewer-ui": "workspace:*",
     "@codecaine-ai/design-system": "workspace:*",
     "@codecaine-ai/prompt-kit": "workspace:*",
     "@earendil-works/pi-ai": "^1.0.4",

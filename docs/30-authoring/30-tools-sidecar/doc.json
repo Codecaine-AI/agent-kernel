@@ -238,7 +238,7 @@
       },
       "text": [
         {
-          "insert": "import { defineTools } from \"@agent-kernel/kernel/agent-definition\";\nimport { Type } from \"@earendil-works/pi-ai\";\n\ninterface ReportRuntime {\n  writeReport(content: string): Promise<string>;\n}\n\nexport const tools = defineTools<ReportRuntime>((pi, runtime) => {\n  pi.registerTool({\n    name: \"write_report\",\n    label: \"Write report\",\n    description: \"Persist the final Markdown report.\",\n    parameters: Type.Object({ content: Type.String() }),\n    execute: async (_toolCallId, { content }) => {\n      if (!runtime) throw new Error(\"Report runtime is required.\");\n      const path = await runtime.writeReport(content);\n      return {\n        content: [{ type: \"text\", text: `Wrote ${path}` }],\n        details: { path },\n      };\n    },\n  });\n});\n\nexport default tools;"
+          "insert": "import { defineTools } from \"@codecaine-ai/agent-kernel/agent-definition\";\nimport { Type } from \"@earendil-works/pi-ai\";\n\ninterface ReportRuntime {\n  writeReport(content: string): Promise<string>;\n}\n\nexport const tools = defineTools<ReportRuntime>((pi, runtime) => {\n  pi.registerTool({\n    name: \"write_report\",\n    label: \"Write report\",\n    description: \"Persist the final Markdown report.\",\n    parameters: Type.Object({ content: Type.String() }),\n    execute: async (_toolCallId, { content }) => {\n      if (!runtime) throw new Error(\"Report runtime is required.\");\n      const path = await runtime.writeReport(content);\n      return {\n        content: [{ type: \"text\", text: `Wrote ${path}` }],\n        details: { path },\n      };\n    },\n  });\n});\n\nexport default tools;"
         }
       ],
       "children": []

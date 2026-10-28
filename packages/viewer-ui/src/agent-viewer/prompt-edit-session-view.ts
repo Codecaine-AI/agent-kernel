@@ -43,7 +43,7 @@ import type {
 	PromptEditSessionRequestDto,
 	PromptEditSessionStateDto,
 	PromptEditSessionTarget,
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 /* ------------------------------------------------------------------ */
 /* Targets                                                             */

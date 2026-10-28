@@ -1,5 +1,5 @@
 {
-  "name": "@agent-kernel/viewer-core",
+  "name": "@codecaine-ai/agent-kernel-viewer-core",
   "version": "0.0.2",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@agent-kernel/protocol": "workspace:*",
+    "@codecaine-ai/agent-kernel-protocol": "workspace:*",
     "@codecaine-ai/prompt-kit": "workspace:*",
     "@evilmartians/agent-prism-types": "^0.0.9",
     "@tanstack/react-query": "^5.99.0"

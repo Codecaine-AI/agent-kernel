@@ -8,7 +8,7 @@ import {
 	type PromptBlockDiffEntry,
 	type PromptBlockDiffKind,
 	type PromptRevisionSummary,
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 export interface RevisionHistoryPanelProps {
 	/** Revision metadata rows (from GET .../revisions), newest first or not. */

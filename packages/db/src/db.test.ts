@@ -9,7 +9,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { createUserMessageEvent } from "@agent-kernel/protocol";
+import { createUserMessageEvent } from "@codecaine-ai/agent-kernel-protocol";
 
 import {
   createAgentRun,

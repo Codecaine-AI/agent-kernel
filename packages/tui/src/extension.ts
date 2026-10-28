@@ -1,5 +1,5 @@
 /**
- * extension.ts — pi extension entry for @agent-kernel/tui.
+ * extension.ts — pi extension entry for @codecaine-ai/agent-kernel-tui.
  *
  * Load via settings.json `extensions` array or `pi -e .../src/extension.ts`.
  * Registers /kernel (list + boot); the boot replaces the system prompt with

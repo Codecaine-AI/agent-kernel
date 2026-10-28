@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, test } from "bun:test";
-import type { RunTraceEventIds } from "@agent-kernel/protocol";
+import type { RunTraceEventIds } from "@codecaine-ai/agent-kernel-protocol";
 
 import type { TraceWriterSink } from "../../subagents/types";
 import { safeEmitAgentRunEnd, safeEmitAgentRunStart } from "./agent-run-trace";

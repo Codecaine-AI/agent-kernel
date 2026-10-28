@@ -10,22 +10,22 @@
 import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { createKernelCatalogApi } from "@agent-kernel/kernel/catalog-api";
-import { createKernelTraceReadApi } from "@agent-kernel/kernel/read-api";
+import { createKernelCatalogApi } from "@codecaine-ai/agent-kernel/catalog-api";
+import { createKernelTraceReadApi } from "@codecaine-ai/agent-kernel/read-api";
 import {
 	deleteKernelTraceRows,
 	ensureKernelObservabilitySchema,
 	kernelDatabasePath,
 	openKernelDatabase,
 	writeKernelManifest
-} from "@agent-kernel/db";
-import { containers } from "@agent-kernel/db/schema";
-import { runBackfill } from "@agent-kernel/kernel/transcript-recovery";
+} from "@codecaine-ai/agent-kernel-db";
+import { containers } from "@codecaine-ai/agent-kernel-db/schema";
+import { runBackfill } from "@codecaine-ai/agent-kernel/transcript-recovery";
 import type {
 	KernelTraceSessionDetail,
 	KernelTraceSessionListResponse,
 	KernelTraceSessionSummary
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 import { eq, sql } from "drizzle-orm";
 import { Elysia } from "elysia";
 

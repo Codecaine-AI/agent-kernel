@@ -16,8 +16,8 @@ import {
   insertTraceEventsBatch,
   openKernelDatabase,
   type KernelDatabase,
-} from "@agent-kernel/db";
-import type { TraceEvent } from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-db";
+import type { TraceEvent } from "@codecaine-ai/agent-kernel-protocol";
 import { createRecoveryConfig } from "./config";
 import { EventMapper, type EventMapperOptions } from "./mapper";
 import { readJsonlFile } from "./reader";

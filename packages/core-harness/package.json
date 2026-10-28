@@ -1,5 +1,5 @@
 {
-	"name": "@agent-kernel/core-harness",
+	"name": "@codecaine-ai/agent-kernel-core-harness",
 	"version": "0.0.2",
 	"private": true,
 	"type": "module",
@@ -9,8 +9,8 @@
 		"typecheck": "bunx --bun tsc -p tsconfig.json --noEmit"
 	},
 	"dependencies": {
-		"@agent-kernel/db": "workspace:*",
-		"@agent-kernel/kernel": "workspace:*",
+		"@codecaine-ai/agent-kernel-db": "workspace:*",
+		"@codecaine-ai/agent-kernel": "workspace:*",
 		"drizzle-orm": "^0.45.0",
 		"elysia": "^1.2.0"
 	},

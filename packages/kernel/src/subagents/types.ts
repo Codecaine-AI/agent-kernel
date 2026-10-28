@@ -1,5 +1,5 @@
-import type { RunTrigger } from "@agent-kernel/db";
-import type { TraceEvent } from "@agent-kernel/protocol";
+import type { RunTrigger } from "@codecaine-ai/agent-kernel-db";
+import type { TraceEvent } from "@codecaine-ai/agent-kernel-protocol";
 
 export interface KernelAgentSession {
 	messages: any[];

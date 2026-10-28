@@ -1,4 +1,4 @@
-import type { KernelTraceSessionDetail } from "@agent-kernel/viewer-core";
+import type { KernelTraceSessionDetail } from "@codecaine-ai/agent-kernel-viewer-core";
 
 /** The error message of the run's last failed agent run, or null. */
 export function runErrorFromDetail(activeDetail: KernelTraceSessionDetail): string | null {

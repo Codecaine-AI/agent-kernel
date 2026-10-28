@@ -4,7 +4,7 @@ import {
 	KERNEL_CATALOG_PATHS,
 	type CatalogPromptSaveResult,
 	type PromptRevisionDocumentResponse,
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 type CatalogFetch = (input: string, init?: RequestInit) => Promise<Response>;
 

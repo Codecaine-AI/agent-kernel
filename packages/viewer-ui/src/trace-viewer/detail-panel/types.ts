@@ -1,6 +1,6 @@
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 
-import type { AgentRun, KernelContainerSummary } from "@agent-kernel/viewer-core";
+import type { AgentRun, KernelContainerSummary } from "@codecaine-ai/agent-kernel-viewer-core";
 
 import type { RunUsageRow } from "../usage-summary";
 

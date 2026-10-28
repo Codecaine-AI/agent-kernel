@@ -1100,7 +1100,7 @@
           "insert": ". Harness Pi imports go through "
         },
         {
-          "insert": "@agent-kernel/kernel/pi-sdk",
+          "insert": "@codecaine-ai/agent-kernel/pi-sdk",
           "attributes": {
             "code": true
           }

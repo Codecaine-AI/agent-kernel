@@ -5,7 +5,7 @@ import {
 	createSystemPromptResolvedEvent,
 	type TraceEvent,
 	type TraceEventIds,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import type { TraceWriterSink } from "../subagents/types";
 import type {

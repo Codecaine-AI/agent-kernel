@@ -15,7 +15,7 @@
  * lines ride that channel with a `kernel:`-prefixed customType — provider-valid
  * on the wire, distinguishable everywhere else.
  *
- * This lives in @agent-kernel/protocol because the marker is wire-visible: it
+ * This lives in @codecaine-ai/agent-kernel-protocol because the marker is wire-visible: it
  * survives into the sanitized message blobs a request snapshot references, and
  * the viewer reads it back to badge those lines KERNEL instead of USER.
  */

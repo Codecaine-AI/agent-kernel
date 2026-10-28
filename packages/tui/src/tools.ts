@@ -16,7 +16,7 @@
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-import type { AgentDefinition } from "@agent-kernel/kernel/agent-registry/registry";
+import type { AgentDefinition } from "@codecaine-ai/agent-kernel/agent-registry/registry";
 
 export interface BoundBundleTools {
 	/** True when the sidecar's register function ran without throwing. */

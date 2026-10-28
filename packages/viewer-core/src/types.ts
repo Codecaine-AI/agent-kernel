@@ -23,9 +23,9 @@ import type {
 	TraceSource,
 	UserMessageData,
 	WarningData,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
-export { EventType, TraceLevel } from "@agent-kernel/protocol";
+export { EventType, TraceLevel } from "@codecaine-ai/agent-kernel-protocol";
 export type {
 	AbstainReason,
 	AgentRunEndData,
@@ -66,7 +66,7 @@ export type {
 	TraceSource,
 	UserMessageData,
 	WarningData,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 export type JsonObject = Record<string, unknown>;
 

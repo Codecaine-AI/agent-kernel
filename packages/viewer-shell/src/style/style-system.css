@@ -3,7 +3,7 @@
  * hooks used by the StyleSettingsRail / StyleOverlay components.
  *
  * Import once at your app entry:
- *   import "@agent-kernel/viewer-shell/styles";
+ *   import "@codecaine-ai/agent-kernel-viewer-shell/styles";
  *
  * Class names keep their original `research-*` prefixes for backward
  * compatibility with existing app markup; they are app-agnostic in behavior.

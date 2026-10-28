@@ -6,7 +6,7 @@ import {
 	ensureKernelObservabilitySchema,
 	getPromptRevision,
 	openKernelDatabase,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 
 import { createKernel, DEFAULT_MAX_BACKGROUND_AGENTS } from ".";
 

@@ -12,7 +12,7 @@ import { type ImgHTMLAttributes, type ReactNode } from "react";
 import {
   isImageElisionMarker,
   isKernelAuthoredMessage,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import { DetailImageTrigger } from "../DetailImageTrigger";
 import { DocFigure } from "../doc-figure/DocFigure";
@@ -61,7 +61,7 @@ function dataLanguage(value: string): "json" | "text" {
 /**
  * How a kernel-authored line is badged. The builder emits section ②'s context
  * message and section ③'s renderer lines as `role: "custom"` with a
- * `kernel:`-prefixed customType (see @agent-kernel/protocol kernel-messages):
+ * `kernel:`-prefixed customType (see @codecaine-ai/agent-kernel-protocol kernel-messages):
  * they reach the provider as ordinary user messages, but they are NOT things
  * the user said, so the turn view must not badge them USER.
  */

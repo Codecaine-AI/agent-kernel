@@ -3,7 +3,7 @@ import type {
 	ContextBuildStartedData,
 	ContextInputResolvedData,
 	SystemPromptResolvedData,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 export type SystemPromptResolvedInput = SystemPromptResolvedData;
 export type ContextBuildStartedInput = ContextBuildStartedData;

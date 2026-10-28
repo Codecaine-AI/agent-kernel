@@ -1,5 +1,5 @@
 {
-  "name": "@agent-kernel/kernel",
+  "name": "@codecaine-ai/agent-kernel",
   "version": "0.0.2",
   "private": true,
   "type": "module",
@@ -43,8 +43,8 @@
     "./pi-sdk": "./src/pi-sdk.ts"
   },
   "dependencies": {
-    "@agent-kernel/db": "workspace:*",
-    "@agent-kernel/protocol": "workspace:*",
+    "@codecaine-ai/agent-kernel-db": "workspace:*",
+    "@codecaine-ai/agent-kernel-protocol": "workspace:*",
     "@codecaine-ai/prompt-kit": "workspace:*",
     "@codecaine-ai/prompt-kit-server": "workspace:*",
     "@earendil-works/pi-ai": "^1.0.4",

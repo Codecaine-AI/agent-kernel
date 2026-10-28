@@ -70,7 +70,7 @@
     {
       "id": "tui",
       "type": "rectangle",
-      "text": "@agent-kernel/tui\nterminal harness, a pi extension",
+      "text": "@codecaine-ai/agent-kernel-tui\nterminal harness, a pi extension",
       "color": "green",
       "parentId": "group-repo",
       "geometry": {

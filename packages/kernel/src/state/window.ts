@@ -14,7 +14,7 @@
  * transcripts and random cuts.
  */
 
-import { imageElisionMarkerText } from "@agent-kernel/protocol";
+import { imageElisionMarkerText } from "@codecaine-ai/agent-kernel-protocol";
 
 import type {
 	AgentMessage,

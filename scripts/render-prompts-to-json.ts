@@ -28,7 +28,7 @@ import {
 	renderXmlMarkdown,
 	type PromptDocument,
 } from "@codecaine-ai/prompt-kit";
-// Relative, not "@agent-kernel/kernel/*": the repo root is not a workspace
+// Relative, not "@codecaine-ai/agent-kernel/*": the repo root is not a workspace
 // member, so the kernel package is not linked into its node_modules.
 import {
 	refreshBundlePromptSnapshot,

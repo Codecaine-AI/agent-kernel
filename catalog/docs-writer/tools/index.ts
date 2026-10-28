@@ -3,7 +3,7 @@
  * Self-contained: no app runtime required (host: "any").
  */
 
-import { defineTools } from "@agent-kernel/kernel/agent-definition";
+import { defineTools } from "@codecaine-ai/agent-kernel/agent-definition";
 
 import { registerDocsTools } from "./runtime";
 

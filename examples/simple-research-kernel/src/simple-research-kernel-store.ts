@@ -15,11 +15,11 @@ import {
 	getRunContext,
 	type AgentDefinition,
 	type KernelInstance
-} from "@agent-kernel/kernel";
-import type { Loader, LoaderDeclaration, LoaderResult } from "@agent-kernel/kernel/context";
-import { updateContainerStatus, type KernelDatabase } from "@agent-kernel/db";
-import { createContainerStartEvent, createPhaseStartEvent } from "@agent-kernel/protocol";
-import type { KernelTraceSessionSummary } from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel";
+import type { Loader, LoaderDeclaration, LoaderResult } from "@codecaine-ai/agent-kernel/context";
+import { updateContainerStatus, type KernelDatabase } from "@codecaine-ai/agent-kernel-db";
+import { createContainerStartEvent, createPhaseStartEvent } from "@codecaine-ai/agent-kernel-protocol";
+import type { KernelTraceSessionSummary } from "@codecaine-ai/agent-kernel-viewer-core";
 import type { PromptDocument } from "@codecaine-ai/prompt-kit";
 import type { SimpleResearchToolRuntime, ToolResponse } from "./agent-catalog/tool-runtime";
 

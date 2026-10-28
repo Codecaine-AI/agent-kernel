@@ -15,7 +15,7 @@ import {
   type CallEndData,
   type CallStartData,
   type TraceEvent,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import {
   abandonNodeRun,

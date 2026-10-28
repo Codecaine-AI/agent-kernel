@@ -17,7 +17,7 @@
  * same name shadows the generic one, mirroring the TUI harness's catalog
  * precedence.
  *
- * Deliberately db-free: only `@agent-kernel/kernel`'s fs-only exports are
+ * Deliberately db-free: only `@codecaine-ai/agent-kernel`'s fs-only exports are
  * used (agent-registry, context, state). The ③ recipe mirrors the kernel's
  * private `buildStatePreview` (catalog-service.ts) rebuilt from exported
  * primitives — never import catalog-service, createKernel, or the
@@ -40,20 +40,20 @@ import {
 	discoverStateFixtures,
 	type AgentDefinition,
 	type AgentStateFixture,
-} from "@agent-kernel/kernel/agent-registry";
+} from "@codecaine-ai/agent-kernel/agent-registry";
 import {
 	buildContext,
 	createDefaultCatalog,
 	createSpawnContext,
 	inputRefOf,
 	type SpawnContext,
-} from "@agent-kernel/kernel/context";
+} from "@codecaine-ai/agent-kernel/context";
 import {
 	messageText,
 	normalizeRenderOutput,
 	resolveWindowPolicy,
 	type RenderContext,
-} from "@agent-kernel/kernel/state";
+} from "@codecaine-ai/agent-kernel/state";
 
 /** agent-kernel repo root, anchored to this script's location. */
 const GENERIC_CATALOG_ROOT = resolve(import.meta.dir, "..", "..", "..", "catalog");

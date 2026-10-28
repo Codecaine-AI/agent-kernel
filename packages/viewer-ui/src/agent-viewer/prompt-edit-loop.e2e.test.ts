@@ -8,7 +8,7 @@
  * accept (revision written) → undo → dispose. Asserts the client parses every
  * hop and the DTO→lab mapping windows correctly on live payloads.
  *
- * Dev-only dependency direction: @agent-kernel/kernel and /db are
+ * Dev-only dependency direction: @codecaine-ai/agent-kernel and /db are
  * devDependencies of viewer-ui, used by this test only — the shipped source
  * depends solely on viewer-core DTOs.
  */
@@ -22,21 +22,21 @@ import {
 	kernelDatabasePath,
 	openKernelDatabase,
 	type KernelDatabaseHandle,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	buildRegistry,
 	createKernelCatalogService,
 	createPromptEditSessionService,
 	registerPromptRevisions,
 	type PromptEditSessionService,
-} from "@agent-kernel/kernel";
-import { createKernelCatalogApi } from "@agent-kernel/kernel/catalog-api";
+} from "@codecaine-ai/agent-kernel";
+import { createKernelCatalogApi } from "@codecaine-ai/agent-kernel/catalog-api";
 import {
 	canonicalizePrompt,
 	PROMPT_KIT_SCHEMA_VERSION,
 	type PromptDocument,
 } from "@codecaine-ai/prompt-kit";
-import type { PromptEditSessionEventDto } from "@agent-kernel/viewer-core";
+import type { PromptEditSessionEventDto } from "@codecaine-ai/agent-kernel-viewer-core";
 
 import {
 	createPromptEditClient,

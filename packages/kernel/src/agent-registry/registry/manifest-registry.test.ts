@@ -5,7 +5,7 @@ import { describe, expect, test } from "bun:test";
 import {
 	ensureKernelObservabilitySchema,
 	openKernelDatabase,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import { canonicalizePrompt, hashPrompt } from "@codecaine-ai/prompt-kit";
 
 import { registerPromptRevisions } from "../register-prompt-revisions";
@@ -29,7 +29,7 @@ const PROMPT_DOCUMENT = {
 	],
 };
 
-const CONTEXT_TS = `import { defineContext } from "@agent-kernel/kernel/agent-definition";
+const CONTEXT_TS = `import { defineContext } from "@codecaine-ai/agent-kernel/agent-definition";
 
 export const context = defineContext({
   loaders: [],
@@ -39,7 +39,7 @@ export const context = defineContext({
 });
 `;
 
-const TOOLS_TS = `import { defineTools } from "@agent-kernel/kernel/agent-definition";
+const TOOLS_TS = `import { defineTools } from "@codecaine-ai/agent-kernel/agent-definition";
 
 export const tools = defineTools((pi) => {
   pi.registerTool({
@@ -53,7 +53,7 @@ export const tools = defineTools((pi) => {
 `;
 
 function spawnerToolsTs(spawns: string[]): string {
-	return `import { defineSpawnerTool, defineTools } from "@agent-kernel/kernel/agent-definition";
+	return `import { defineSpawnerTool, defineTools } from "@codecaine-ai/agent-kernel/agent-definition";
 
 export const tools = defineTools((pi) => {
   pi.registerTool(defineSpawnerTool({

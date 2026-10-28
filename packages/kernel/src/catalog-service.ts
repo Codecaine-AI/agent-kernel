@@ -5,7 +5,7 @@
  * per-revision run stats.
  *
  * Payload shapes are plain data mirroring the viewer catalog contract
- * (structurally compatible with @agent-kernel/viewer-core's catalog-types)
+ * (structurally compatible with @codecaine-ai/agent-kernel-viewer-core's catalog-types)
  * without a viewer dependency.
  *
  * Save flow (PUT .../prompt):
@@ -34,7 +34,7 @@ import {
 	type KernelDatabase,
 	type PromptRevisionSource,
 	type PromptRevisionStats,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	canonicalizePrompt,
 	validatePromptDocumentShape,

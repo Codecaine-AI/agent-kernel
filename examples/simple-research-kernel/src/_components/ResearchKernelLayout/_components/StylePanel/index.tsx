@@ -1,6 +1,6 @@
 import type { KeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 
-import { StyleSettingsPanel } from "@agent-kernel/viewer-shell";
+import { StyleSettingsPanel } from "@codecaine-ai/agent-kernel-viewer-shell";
 
 import type { ResearchStyleSettings, ResearchStyleSettingsPatch } from "@/shared/style-settings";
 

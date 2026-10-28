@@ -16,7 +16,7 @@ import {
 	listPromptRevisionsForAgent,
 	openKernelDatabase,
 	type KernelDatabaseHandle,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	canonicalizePrompt,
 	hashPrompt,
@@ -75,7 +75,7 @@ const manifest = {
  * joins whatever content the builder hands it, so placeholder substitution
  * is directly observable in the rendered preview.
  */
-const CONTEXT_TS = `import { defineContext } from "@agent-kernel/kernel/agent-definition";
+const CONTEXT_TS = `import { defineContext } from "@codecaine-ai/agent-kernel/agent-definition";
 
 export const context = defineContext({
   loaders: [
@@ -94,7 +94,7 @@ export const context = defineContext({
  * fixture-state seeding path and the variables overlay are observable in the
  * rendered preview.
  */
-const STATE_TS = `import { defineState } from "@agent-kernel/kernel/agent-definition";
+const STATE_TS = `import { defineState } from "@codecaine-ai/agent-kernel/agent-definition";
 
 export const state = defineState({
   seed: (ctx, prior) => prior ?? { focus: ctx.variables.focus, turns: 0 },
@@ -107,7 +107,7 @@ export const state = defineState({
 `;
 
 /** A contract-complete state.ts whose render throws (the degrade path). */
-const THROWING_STATE_TS = `import { defineState } from "@agent-kernel/kernel/agent-definition";
+const THROWING_STATE_TS = `import { defineState } from "@codecaine-ai/agent-kernel/agent-definition";
 
 export const state = defineState({
   seed: () => ({}),

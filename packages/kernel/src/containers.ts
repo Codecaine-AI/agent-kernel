@@ -12,7 +12,7 @@
 
 import { createHash } from "node:crypto";
 
-import { upsertContainer, type Container, type KernelDatabase } from "@agent-kernel/db";
+import { upsertContainer, type Container, type KernelDatabase } from "@codecaine-ai/agent-kernel-db";
 
 /**
  * Root namespace for all agent-kernel UUIDv5 derivation. Fixed forever —

@@ -2,7 +2,7 @@
  * Trace viewer animations.
  *
  * Import once at your app entry, e.g.:
- *   import "@agent-kernel/viewer-ui/styles";
+ *   import "@codecaine-ai/agent-kernel-viewer-ui/styles";
  *
  * Drives Radix Collapsible.Content via forceMount + the grid-template-rows
  * 0fr -> 1fr trick. The row grows from zero height with the children clipped

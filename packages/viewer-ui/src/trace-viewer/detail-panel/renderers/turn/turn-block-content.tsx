@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import cn from "classnames";
 
-import { isImageElisionMarker, isKernelAuthoredMessage } from "@agent-kernel/protocol";
+import { isImageElisionMarker, isKernelAuthoredMessage } from "@codecaine-ai/agent-kernel-protocol";
 
 import { DetailImageTrigger } from "../../DetailImageTrigger";
 import { DocFigure } from "../../doc-figure/DocFigure";

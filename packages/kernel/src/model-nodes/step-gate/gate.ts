@@ -17,7 +17,7 @@
  * - The signal is checked before each check; an abort skips the rest and a
  *   cancelled gate never passes.
  */
-import { insertTraceEventsBatch } from "@agent-kernel/db";
+import { insertTraceEventsBatch } from "@codecaine-ai/agent-kernel-db";
 import {
 	createGateEndEvent,
 	createGateStartEvent,
@@ -25,7 +25,7 @@ import {
 	type GateCheckRecord,
 	type GateEndData,
 	type GateStartData,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import type { ModelNodeContext } from "../context";
 import { decideInternal, validateDecideRequest } from "../decide";

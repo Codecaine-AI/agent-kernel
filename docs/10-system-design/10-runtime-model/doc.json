@@ -229,7 +229,7 @@
             "name": "db",
             "type": "KernelDatabase",
             "required": false,
-            "description": "From openKernelDatabase in @agent-kernel/db. Required by spawnAgent, container(), traceWriter, readApiService, and doctor()."
+            "description": "From openKernelDatabase in @codecaine-ai/agent-kernel-db. Required by spawnAgent, container(), traceWriter, readApiService, and doctor()."
           },
           {
             "name": "catalog",

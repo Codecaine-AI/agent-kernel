@@ -5,7 +5,7 @@
  * requests and responses like the BAML engine's, and `fakePiModels` gives
  * call routes a keyed, offline Pi provider.
  *
- * Used by the call core tests and, through `@agent-kernel/kernel/model-nodes/testing`,
+ * Used by the call core tests and, through `@codecaine-ai/agent-kernel/model-nodes/testing`,
  * by step/gate, viewer fixture and harness tests.
  */
 import { InMemoryCredentialStore, type Api, type CredentialStore } from "@earendil-works/pi-ai";

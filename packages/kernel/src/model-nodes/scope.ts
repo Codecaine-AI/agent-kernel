@@ -7,7 +7,7 @@
  * tool-call id), so `parent-tool` is only ever the default when the caller
  * passes `parentToolUseId`.
  */
-import { getAgentRun, getContainer, type KernelDatabase } from "@agent-kernel/db";
+import { getAgentRun, getContainer, type KernelDatabase } from "@codecaine-ai/agent-kernel-db";
 
 import { runContextStore } from "../run-context";
 import { KernelNodeError, type NodeTrigger } from "./types";

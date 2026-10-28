@@ -13,7 +13,7 @@
       "id": "p2",
       "name": "db",
       "kind": "participant",
-      "label": "@agent-kernel/db"
+      "label": "@codecaine-ai/agent-kernel-db"
     },
     {
       "id": "p3",

@@ -41,7 +41,7 @@ export {
 	toEventSpan,
 	toRunSpan,
 } from "./trace-builder/spanFactories";
-export { EventType, TraceLevel } from "@agent-kernel/protocol";
+export { EventType, TraceLevel } from "@codecaine-ai/agent-kernel-protocol";
 export type {
 	AgentRunEndData,
 	AgentRunStartData,
@@ -66,4 +66,4 @@ export type {
 	ToolCallStartData,
 	UserMessageData,
 	WarningData,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";

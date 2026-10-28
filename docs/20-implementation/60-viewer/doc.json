@@ -243,7 +243,7 @@
           "insert": " is browser-safe by construction: it never imports Drizzle schema, "
         },
         {
-          "insert": "@agent-kernel/db",
+          "insert": "@codecaine-ai/agent-kernel-db",
           "attributes": {
             "code": true
           }
@@ -1345,7 +1345,7 @@
           "insert": ") rather than importing the canonical type from "
         },
         {
-          "insert": "@agent-kernel/protocol",
+          "insert": "@codecaine-ai/agent-kernel-protocol",
           "attributes": {
             "code": true
           }

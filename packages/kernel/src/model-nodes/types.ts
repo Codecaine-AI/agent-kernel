@@ -2,7 +2,7 @@
  * Model-node contracts (plan §4.1): `kernel.call`, `kernel.decide`,
  * `kernel.step`, `kernel.gate`, and the engine seams behind them.
  *
- * Serializable decision types live in @agent-kernel/protocol (the
+ * Serializable decision types live in @codecaine-ai/agent-kernel-protocol (the
  * `decision_made` payload carries them and protocol cannot depend on the
  * kernel); this module imports and re-exports them, never redefines them.
  */
@@ -17,7 +17,7 @@ import type {
 	Decision,
 	ThresholdApplied,
 	TurnUsage,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 export type { AbstainReason, ConfidenceSource, Decision, ThresholdApplied };
 
@@ -486,7 +486,7 @@ export class KernelGateError extends Error {
 	}
 }
 
-// ── kernel configuration (re-exported from @agent-kernel/kernel) ──────────────
+// ── kernel configuration (re-exported from @codecaine-ai/agent-kernel) ──────────────
 
 export interface KernelCallsConfig<C> {
 	engine: CallEngine<C>;

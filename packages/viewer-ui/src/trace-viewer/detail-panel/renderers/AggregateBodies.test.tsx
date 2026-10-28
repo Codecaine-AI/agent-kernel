@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
-import type { AgentRun } from "@agent-kernel/viewer-core";
+import type { AgentRun } from "@codecaine-ai/agent-kernel-viewer-core";
 
 import { UsageAggregateRenderer } from "./UsageAggregateRenderer";
 import { WarningRenderer } from "./WarningRenderer";

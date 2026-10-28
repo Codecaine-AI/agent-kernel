@@ -1,4 +1,4 @@
-import type { AgentViewerDefinition } from "@agent-kernel/viewer-ui";
+import type { AgentViewerDefinition } from "@codecaine-ai/agent-kernel-viewer-ui";
 
 import type {
 	AgentContextPreviewSummary,

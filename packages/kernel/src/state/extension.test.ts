@@ -11,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { describe, expect, test } from "bun:test";
-import { isKernelAuthoredMessage } from "@agent-kernel/protocol";
+import { isKernelAuthoredMessage } from "@codecaine-ai/agent-kernel-protocol";
 
 import type { SpawnContext } from "../context";
 import {

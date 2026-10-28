@@ -20,7 +20,7 @@
  * the renderer falls back to the flat context list it has always shown.
  *
  * NOTE — the canonical type lives on PiRequestSnapshotData in
- * @agent-kernel/protocol. This is a local structural mirror so viewer-ui stays
+ * @codecaine-ai/agent-kernel-protocol. This is a local structural mirror so viewer-ui stays
  * buildable against protocol versions that predate the field; the shapes are
  * intentionally identical.
  */

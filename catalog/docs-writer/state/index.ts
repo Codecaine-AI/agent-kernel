@@ -15,15 +15,15 @@
  * Both keys degrade to explicit placeholders; the bundle boots (and
  * previews) without any session data.
  */
-import { defineState } from "@agent-kernel/kernel/agent-definition";
-import type { SpawnContext } from "@agent-kernel/kernel/context";
+import { defineState } from "@codecaine-ai/agent-kernel/agent-definition";
+import type { SpawnContext } from "@codecaine-ai/agent-kernel/context";
 import {
 	kernelStateMessage,
 	renderRollingWindow,
 	type RenderContext,
 	type RenderResult,
 	type SessionEvent,
-} from "@agent-kernel/kernel/state";
+} from "@codecaine-ai/agent-kernel/state";
 
 /** The docs-writer's state `S`. Plain JSON — snapshots to state.json. */
 export interface DocsWriterState {

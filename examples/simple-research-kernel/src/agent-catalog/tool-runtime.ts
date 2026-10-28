@@ -1,4 +1,4 @@
-import { defineSpawnerTool } from "@agent-kernel/kernel/agent-definition";
+import { defineSpawnerTool } from "@codecaine-ai/agent-kernel/agent-definition";
 import { Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 

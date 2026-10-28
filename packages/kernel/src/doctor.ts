@@ -38,7 +38,7 @@ import {
 	SESSION_KIND,
 	traceEvents,
 	type KernelDatabase,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 
 import {
 	bundleSections,

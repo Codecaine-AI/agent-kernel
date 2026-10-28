@@ -16,7 +16,7 @@
           "factory-convention",
           "kernel-messages"
         ],
-        "covers": "Implementation area page for @agent-kernel/protocol: role, source pointer, governing design pages, and structural decisions about what lives in the contract package.",
+        "covers": "Implementation area page for @codecaine-ai/agent-kernel-protocol: role, source pointer, governing design pages, and structural decisions about what lives in the contract package.",
         "depends-on": [
           "10-system-design/30-event-protocol"
         ],
@@ -49,7 +49,7 @@
       "props": {},
       "text": [
         {
-          "insert": "@agent-kernel/protocol",
+          "insert": "@codecaine-ai/agent-kernel-protocol",
           "attributes": {
             "code": true
           }

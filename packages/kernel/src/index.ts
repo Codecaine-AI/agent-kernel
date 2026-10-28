@@ -8,7 +8,7 @@
  * appContext, loaders, sharedTools, createSessionBinding, logger.
  */
 import type { ExtensionContext, ExtensionFactory } from "@earendil-works/pi-coding-agent";
-import { upgradeKernelObservabilitySchema, type KernelDatabase } from "@agent-kernel/db";
+import { upgradeKernelObservabilitySchema, type KernelDatabase } from "@codecaine-ai/agent-kernel-db";
 
 import {
 	buildRegistry,
@@ -115,7 +115,7 @@ export interface CreateKernelConfig<TToolRuntime = unknown, TCalls = unknown> {
 	id?: string;
 	/**
 	 * Kernel trace database handle (SQLite by default — see
-	 * @agent-kernel/db openKernelDatabase). Required for container(),
+	 * @codecaine-ai/agent-kernel-db openKernelDatabase). Required for container(),
 	 * traceWriter, readApiService, doctor(), and spawnAgent.
 	 */
 	db?: KernelDatabase;

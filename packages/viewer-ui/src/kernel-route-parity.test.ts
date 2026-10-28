@@ -7,7 +7,7 @@
  *
  * It lives in viewer-ui because this is the one package that legitimately
  * sees both sides: viewer-core is a runtime dependency, and
- * @agent-kernel/kernel is already a devDependency for the in-process loop
+ * @codecaine-ai/agent-kernel is already a devDependency for the in-process loop
  * test (agent-viewer/prompt-edit-loop.e2e.test.ts). No new dependency edge.
  *
  * How it compares: each kernel route factory is built over a stub service
@@ -27,15 +27,15 @@ import { describe, expect, test } from "bun:test";
 import type {
 	KernelCatalogService,
 	PromptEditSessionService,
-} from "@agent-kernel/kernel";
-import { createKernelCatalogApi } from "@agent-kernel/kernel/catalog-api";
-import { createKernelTraceReadApi } from "@agent-kernel/kernel/read-api";
+} from "@codecaine-ai/agent-kernel";
+import { createKernelCatalogApi } from "@codecaine-ai/agent-kernel/catalog-api";
+import { createKernelTraceReadApi } from "@codecaine-ai/agent-kernel/read-api";
 import {
 	KERNEL_CATALOG_PATHS,
 	KERNEL_OBSERVER_READ_PATHS,
 	KERNEL_PROMPT_EDIT_SESSION_PATHS,
 	KERNEL_TRACE_READ_PATHS,
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 type PathEntry = string | ((...args: never[]) => string);

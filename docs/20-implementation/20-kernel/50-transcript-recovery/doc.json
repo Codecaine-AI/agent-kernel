@@ -374,7 +374,7 @@
           "insert": " The backfill mapper is a kernel module, co-located with the in-process emitter it must stay in parity with. Both derive ids and usage through "
         },
         {
-          "insert": "@agent-kernel/protocol",
+          "insert": "@codecaine-ai/agent-kernel-protocol",
           "attributes": {
             "code": true
           }

@@ -3,7 +3,7 @@ import {
 	createAgentRunStartEvent,
 	type RunTraceEventIds,
 	type TurnUsage,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import type { TraceWriterSink } from "../../subagents/types";
 

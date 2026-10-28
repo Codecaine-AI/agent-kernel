@@ -62,13 +62,13 @@ import {
 	type RunTrigger,
 	type TraceBlobInput,
 	type UsageDelta,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	createContainerReadService,
 	deriveContainerId,
 	formatDoctorReport,
 	runTraceDoctor,
-} from "@agent-kernel/kernel";
+} from "@codecaine-ai/agent-kernel";
 import {
 	createAgentRunEndEvent,
 	createAgentRunStartEvent,
@@ -108,7 +108,7 @@ import {
 	type TraceEvent,
 	type TraceEventIds,
 	type TurnUsage,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 // ─── Fixed identity and clock ────────────────────────────────────────────────
 

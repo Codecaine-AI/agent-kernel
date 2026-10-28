@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { nestedToolEventId, piEntryEventId } from "@agent-kernel/protocol";
-import type { TraceEvent } from "@agent-kernel/protocol";
+import { nestedToolEventId, piEntryEventId } from "@codecaine-ai/agent-kernel-protocol";
+import type { TraceEvent } from "@codecaine-ai/agent-kernel-protocol";
 import { EventMapper, type EventMapperOptions } from "./mapper";
 import type { PiEvent, PiNestedToolCallRecord } from "./types";
 

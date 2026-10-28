@@ -12,8 +12,8 @@ import {
 	updateRunUsage,
 	type KernelDatabase,
 	type UsageDelta,
-} from "@agent-kernel/db";
-import type { TurnUsage } from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-db";
+import type { TurnUsage } from "@codecaine-ai/agent-kernel-protocol";
 
 export interface RunUsageRecorderIdentity {
 	runId: string;

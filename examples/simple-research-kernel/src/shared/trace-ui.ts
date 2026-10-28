@@ -1,7 +1,7 @@
 import type {
 	KernelTraceSessionDetail,
 	KernelTraceSessionSummary
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 export function formatTraceDate(value: string | null | undefined): string {
 	if (!value) return "No activity";

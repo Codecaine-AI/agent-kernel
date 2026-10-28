@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import {
 	KERNEL_CATALOG_PATHS,
 	type PromptRevisionStats,
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 export interface RevisionStatsStripProps {
 	/** Kernel API origin, e.g. "http://localhost:4477". */

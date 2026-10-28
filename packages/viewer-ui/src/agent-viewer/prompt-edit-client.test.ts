@@ -5,7 +5,7 @@
  * ReadableStream response.
  */
 import { describe, expect, test } from "bun:test";
-import type { PromptEditSessionEventDto } from "@agent-kernel/viewer-core";
+import type { PromptEditSessionEventDto } from "@codecaine-ai/agent-kernel-viewer-core";
 
 import {
 	createPromptEditClient,

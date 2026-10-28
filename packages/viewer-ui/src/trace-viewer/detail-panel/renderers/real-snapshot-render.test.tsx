@@ -13,7 +13,7 @@ import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
 
-import { isKernelAuthoredMessage } from "@agent-kernel/protocol";
+import { isKernelAuthoredMessage } from "@codecaine-ai/agent-kernel-protocol";
 
 import { DetailShell } from "../DetailShell";
 import { buildSnapshotContextView } from "./TurnBody";

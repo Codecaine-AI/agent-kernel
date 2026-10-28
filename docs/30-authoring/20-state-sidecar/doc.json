@@ -180,7 +180,7 @@
       },
       "text": [
         {
-          "insert": "import { defineState } from \"@agent-kernel/kernel/agent-definition\";\nimport { kernelStateMessage, renderRollingWindow } from \"@agent-kernel/kernel/state\";\n\ninterface WorkState {\n  objective: string;\n  eventsSeen: number;\n}\n\nexport const state = defineState<WorkState>({\n  seed(ctx, prior) {\n    return prior ?? { objective: String(ctx.variables.objective ?? \"\"), eventsSeen: 0 };\n  },\n  update(current, event) {\n    return { ...current, eventsSeen: event.seq + 1 };\n  },\n  render(current, ctx) {\n    const tail = renderRollingWindow(ctx);\n    return {\n      messages: [\n        kernelStateMessage(`<state events-seen=\"${current.eventsSeen}\" />`),\n        ...tail.messages,\n      ],\n      stateMessageCount: 1 + (tail.stateMessageCount ?? 0),\n    };\n  },\n});"
+          "insert": "import { defineState } from \"@codecaine-ai/agent-kernel/agent-definition\";\nimport { kernelStateMessage, renderRollingWindow } from \"@codecaine-ai/agent-kernel/state\";\n\ninterface WorkState {\n  objective: string;\n  eventsSeen: number;\n}\n\nexport const state = defineState<WorkState>({\n  seed(ctx, prior) {\n    return prior ?? { objective: String(ctx.variables.objective ?? \"\"), eventsSeen: 0 };\n  },\n  update(current, event) {\n    return { ...current, eventsSeen: event.seq + 1 };\n  },\n  render(current, ctx) {\n    const tail = renderRollingWindow(ctx);\n    return {\n      messages: [\n        kernelStateMessage(`<state events-seen=\"${current.eventsSeen}\" />`),\n        ...tail.messages,\n      ],\n      stateMessageCount: 1 + (tail.stateMessageCount ?? 0),\n    };\n  },\n});"
         }
       ],
       "children": []

@@ -9,7 +9,7 @@ import {
 	upsertContainer,
 	upsertPiAgentSession,
 	type KernelDatabaseHandle,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 
 import { createContainerReadService } from "./read-service";
 

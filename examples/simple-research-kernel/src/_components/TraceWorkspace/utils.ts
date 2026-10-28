@@ -1,4 +1,4 @@
-import type { KernelTraceSessionSummary } from "@agent-kernel/viewer-core";
+import type { KernelTraceSessionSummary } from "@codecaine-ai/agent-kernel-viewer-core";
 
 function shortId(value: string): string {
 	return value.length > 12 ? `${value.slice(0, 8)}...${value.slice(-4)}` : value;

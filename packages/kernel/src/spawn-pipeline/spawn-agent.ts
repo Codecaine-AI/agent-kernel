@@ -11,8 +11,8 @@ import {
 	type KernelDatabase,
 	type RunStatus,
 	type RunTrigger,
-} from "@agent-kernel/db";
-import type { RunTraceEventIds } from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-db";
+import type { RunTraceEventIds } from "@codecaine-ai/agent-kernel-protocol";
 
 import {
 	createKernelEmitter,

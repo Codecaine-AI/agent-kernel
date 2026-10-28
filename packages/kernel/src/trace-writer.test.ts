@@ -9,8 +9,8 @@ import {
 	openKernelDatabase,
 	upsertContainer,
 	type KernelDatabaseHandle,
-} from "@agent-kernel/db";
-import { createToolCallEndEvent } from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-db";
+import { createToolCallEndEvent } from "@codecaine-ai/agent-kernel-protocol";
 
 import { createDbTraceWriter } from "./trace-writer";
 

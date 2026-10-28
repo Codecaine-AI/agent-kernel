@@ -23,7 +23,7 @@ import {
 	type SpanCardViewOptions,
 	type TraceViewerApiContextValue,
 	type UsageContext,
-} from "@agent-kernel/viewer-ui";
+} from "@codecaine-ai/agent-kernel-viewer-ui";
 
 import { TraceLevelSlider, type TraceLevelInfo } from "./TraceLevelSlider";
 

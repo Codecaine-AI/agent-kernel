@@ -16,8 +16,8 @@ import {
 	getPiAgentSession,
 	getTraceEventsForRun,
 	type KernelDatabase,
-} from "@agent-kernel/db";
-import { kernelNodeEventId, type CallEndData, type CallStartData } from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-db";
+import { kernelNodeEventId, type CallEndData, type CallStartData } from "@codecaine-ai/agent-kernel-protocol";
 
 import { runTraceDoctor } from "../doctor";
 import { fakeNodeSpec, type FakeNodeOutcome } from "./__fixtures__/fake-node";

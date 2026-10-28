@@ -10,8 +10,8 @@ import {
 	openKernelDatabase,
 	traceBlobs,
 	type KernelDatabaseHandle,
-} from "@agent-kernel/db";
-import type { PiRequestSnapshotData, TraceEvent } from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-db";
+import type { PiRequestSnapshotData, TraceEvent } from "@codecaine-ai/agent-kernel-protocol";
 
 import {
 	createRequestSnapshotRecorder,

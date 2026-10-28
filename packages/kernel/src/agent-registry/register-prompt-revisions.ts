@@ -6,7 +6,7 @@ import {
 	type KernelDatabase,
 	type PromptRevision,
 	type PromptRevisionSource,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import { canonicalizePrompt } from "@codecaine-ai/prompt-kit";
 import { readLatestPromptChange } from "@codecaine-ai/prompt-kit-server";
 

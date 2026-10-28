@@ -1,5 +1,5 @@
 /**
- * `@agent-kernel/kernel/baml-engine`: the BAML `CallEngine` (plan §4.2).
+ * `@codecaine-ai/agent-kernel/baml-engine`: the BAML `CallEngine` (plan §4.2).
  *
  * The harness injects its own `import * as baml from "@boundaryml/baml"` and
  * its generated client `b`; this module only reaches them through the

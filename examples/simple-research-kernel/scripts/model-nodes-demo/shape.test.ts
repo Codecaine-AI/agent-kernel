@@ -21,16 +21,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { openKernelDatabaseReadOnly } from "@agent-kernel/db";
-import { createContainerReadService } from "@agent-kernel/kernel";
-import { disableNetwork } from "@agent-kernel/kernel/model-nodes/testing";
+import { openKernelDatabaseReadOnly } from "@codecaine-ai/agent-kernel-db";
+import { createContainerReadService } from "@codecaine-ai/agent-kernel";
+import { disableNetwork } from "@codecaine-ai/agent-kernel/model-nodes/testing";
 import {
 	buildTraceSpans,
 	type AgentRun,
 	type KernelContainerSummary,
 	type PiAgentSession,
 	type TraceEvent,
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 import fixtureJson from "../../../../packages/viewer-core/src/trace-builder/__fixtures__/model-nodes-demo.json";
 import { KERNEL_ID, runRealDemo, type RunRealResult } from "./run-real";

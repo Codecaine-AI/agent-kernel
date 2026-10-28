@@ -4,7 +4,7 @@
  * routes, and the call function built exactly as createKernel builds it
  * (`createCall(ctx)`), with the Pi models injected.
  */
-import { getTraceBlob, type KernelDatabase } from "@agent-kernel/db";
+import { getTraceBlob, type KernelDatabase } from "@codecaine-ai/agent-kernel-db";
 
 import type { ModelPriceTable } from "../../../emitter";
 import { createModelNodeContext, type CallNodeContext, type ModelNodeLogger } from "../../context";

@@ -8,7 +8,7 @@
  * same-origin URL ("/kernel/runs/…"). Callers gate with hasApiBase() before
  * getting here — see TraceViewerApiContext.
  */
-import { KERNEL_TRACE_READ_PATHS } from "@agent-kernel/viewer-core";
+import { KERNEL_TRACE_READ_PATHS } from "@codecaine-ai/agent-kernel-viewer-core";
 
 import type { RequestSectionTag } from "./turn-sections";
 

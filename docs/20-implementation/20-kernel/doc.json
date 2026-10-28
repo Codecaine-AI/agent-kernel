@@ -16,7 +16,7 @@
           "config-not-adapters",
           "module-roster"
         ],
-        "covers": "Implementation area page for @agent-kernel/kernel: role, source pointer, governing design pages, structural decisions about how the kernel package is organized, and the module roster.",
+        "covers": "Implementation area page for @codecaine-ai/agent-kernel: role, source pointer, governing design pages, structural decisions about how the kernel package is organized, and the module roster.",
         "depends-on": [
           "10-system-design/10-runtime-model",
           "10-system-design/20-observability-model"
@@ -56,7 +56,7 @@
       "props": {},
       "text": [
         {
-          "insert": "@agent-kernel/kernel",
+          "insert": "@codecaine-ai/agent-kernel",
           "attributes": {
             "code": true
           }

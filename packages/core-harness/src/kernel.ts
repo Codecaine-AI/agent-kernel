@@ -23,12 +23,12 @@ import {
 	readKernelManifest,
 	type KernelDatabase,
 	type ReadKernelManifest,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	createKernel,
 	type CatalogRootSpec,
 	type KernelInstance,
-} from "@agent-kernel/kernel";
+} from "@codecaine-ai/agent-kernel";
 
 import { promptEditSharedTools } from "./prompt-edit";
 

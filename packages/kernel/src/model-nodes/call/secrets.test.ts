@@ -10,8 +10,8 @@
  */
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { getAgentRun, getTraceBlob, getTraceEventsForRun, type KernelDatabase } from "@agent-kernel/db";
-import type { CallEndData, CallStartData, PiTurnEndData } from "@agent-kernel/protocol";
+import { getAgentRun, getTraceBlob, getTraceEventsForRun, type KernelDatabase } from "@codecaine-ai/agent-kernel-db";
+import type { CallEndData, CallStartData, PiTurnEndData } from "@codecaine-ai/agent-kernel-protocol";
 import { InMemoryCredentialStore } from "@earendil-works/pi-ai";
 
 import { createTempKernelDb, disableNetwork, type TempKernelDb } from "../__fixtures__/temp-kernel";

@@ -19,7 +19,7 @@ import {
 	type PromptEditSessionStateDto,
 	type PromptRevisionListResponse,
 	type PromptRevisionSummary,
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 import {
 	PromptInlineLab,

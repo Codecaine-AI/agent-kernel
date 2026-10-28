@@ -4,7 +4,7 @@
  * and never passes; the other answers are unaffected.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
-import { getAgentRun } from "@agent-kernel/db";
+import { getAgentRun } from "@codecaine-ai/agent-kernel-db";
 
 import { createTempKernel, disableNetwork, type TempKernel } from "../__fixtures__/temp-kernel";
 import type { DecisionQuestion, EngineAnswer } from "../types";

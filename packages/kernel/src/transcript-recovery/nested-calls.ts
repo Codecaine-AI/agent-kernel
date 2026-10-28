@@ -19,8 +19,8 @@ import {
   createToolCallStartEvent,
   immediateParentId,
   nestedToolEventId,
-} from "@agent-kernel/protocol";
-import type { TraceEvent, TraceEventIds } from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
+import type { TraceEvent, TraceEventIds } from "@codecaine-ai/agent-kernel-protocol";
 import type { PiNestedToolCallRecord } from "./types";
 
 const NESTED_STATUSES: ReadonlySet<string> = new Set(["ok", "error", "unfinished"]);

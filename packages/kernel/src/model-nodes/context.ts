@@ -5,7 +5,7 @@
  * tests build their own with `createModelNodeContext` (for example to inject
  * a wall clock).
  */
-import type { KernelDatabase } from "@agent-kernel/db";
+import type { KernelDatabase } from "@codecaine-ai/agent-kernel-db";
 import type { ModelRegistry, ModelRuntime } from "@earendil-works/pi-coding-agent";
 
 import type { ModelPriceTable } from "../emitter";

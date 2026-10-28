@@ -731,7 +731,7 @@
           "insert": " from "
         },
         {
-          "insert": "@agent-kernel/kernel/agent-definition",
+          "insert": "@codecaine-ai/agent-kernel/agent-definition",
           "attributes": {
             "code": true
           }
@@ -842,7 +842,7 @@
           "insert": "The app decides when domain-level events occur; the event protocol gives them a portable shape. App code builds events with "
         },
         {
-          "insert": "@agent-kernel/protocol",
+          "insert": "@codecaine-ai/agent-kernel-protocol",
           "attributes": {
             "code": true
           }
@@ -920,7 +920,7 @@
           "insert": "The primary trace path is in-process emission. There is no tailer daemon. The kernel's transcript-recovery module ("
         },
         {
-          "insert": "@agent-kernel/kernel/transcript-recovery",
+          "insert": "@codecaine-ai/agent-kernel/transcript-recovery",
           "attributes": {
             "code": true
           }

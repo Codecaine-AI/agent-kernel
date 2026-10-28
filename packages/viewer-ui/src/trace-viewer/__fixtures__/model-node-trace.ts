@@ -27,7 +27,7 @@ import {
 	type GateCheckRecord,
 	type PiAgentSession,
 	type TraceEvent,
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 const CONTAINER = "c-ui";
 const T0 = Date.parse("2026-10-07T10:00:00.000Z");

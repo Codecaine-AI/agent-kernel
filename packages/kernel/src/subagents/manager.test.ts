@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import type { TraceEvent } from "@agent-kernel/protocol";
+import type { TraceEvent } from "@codecaine-ai/agent-kernel-protocol";
 
 import { AgentManager, type AgentSpawnOptions, type AgentSpawnResult } from "./manager";
 import type { KernelExtensionContext } from "./types";
