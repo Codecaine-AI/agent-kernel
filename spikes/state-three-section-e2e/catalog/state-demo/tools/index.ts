@@ -3,7 +3,7 @@
  * assistant toolCall + toolResult pair in the transcript (the pair the window
  * must never split).
  */
-import { defineTools } from "@agent-kernel/kernel/agent-definition";
+import { defineTools } from "@codecaine-ai/agent-kernel/agent-definition";
 import { Type } from "@earendil-works/pi-ai";
 
 export const tools = defineTools((pi) => {

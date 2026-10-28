@@ -26,7 +26,7 @@ import {
 	type KernelDatabase,
 	type NodeClaim,
 	type TraceBlobInput,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	createCallEndEvent,
 	createCallStartEvent,
@@ -36,7 +36,7 @@ import {
 	type CallStartData,
 	type RunTraceEventIds,
 	type TraceEvent,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import { canonicalJson } from "./blobs";
 import type { ModelNodeContext } from "./context";

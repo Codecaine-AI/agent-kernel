@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import type { AgentRun, KernelContainerSummary } from "@agent-kernel/viewer-core";
+import type { AgentRun, KernelContainerSummary } from "@codecaine-ai/agent-kernel-viewer-core";
 
 import {
 	aggregateUsageForScope,

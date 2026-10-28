@@ -16,8 +16,8 @@ import {
 	updatePiAgentSessionStatus,
 	upsertContainer,
 	type KernelDatabaseHandle,
-} from "@agent-kernel/db";
-import type { TurnUsage } from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-db";
+import type { TurnUsage } from "@codecaine-ai/agent-kernel-protocol";
 
 import { runTraceDoctor } from "../../doctor";
 import { setupPiSessionAndRun } from "../session/pi-session-db-init";

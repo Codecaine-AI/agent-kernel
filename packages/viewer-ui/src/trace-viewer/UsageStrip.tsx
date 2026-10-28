@@ -20,7 +20,7 @@ import type {
 	AgentRun,
 	KernelContainerSummary,
 	PiAgentSession,
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 import { formatCost, formatDuration, formatTokens, summarizeUsage } from "./usage-summary";
 import { CARD_LINE_META, CARD_TYPE_META } from "./SpanCard/variants/card-type";

@@ -10,7 +10,7 @@
  */
 import { randomUUID } from "node:crypto";
 
-import { insertTraceEventsBatch, type KernelDatabase } from "@agent-kernel/db";
+import { insertTraceEventsBatch, type KernelDatabase } from "@codecaine-ai/agent-kernel-db";
 import {
 	createStepEndEvent,
 	createStepStartEvent,
@@ -19,7 +19,7 @@ import {
 	type StepEndData,
 	type StepStartData,
 	type TraceEventIds,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import type { ModelNodeContext } from "../context";
 import { resolveNodeScope } from "../scope";

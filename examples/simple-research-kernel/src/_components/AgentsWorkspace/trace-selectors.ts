@@ -2,7 +2,7 @@ import type {
 	ContextBuildCompletedData,
 	KernelTraceSessionDetail,
 	SystemPromptResolvedData
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 import type {
 	AgentContextPreviewSummary,

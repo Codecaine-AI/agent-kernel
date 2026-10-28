@@ -1,5 +1,5 @@
 /**
- * `@agent-kernel/kernel/model-nodes`: model-node contracts and the kernel
+ * `@codecaine-ai/agent-kernel/model-nodes`: model-node contracts and the kernel
  * wiring for `call`, `decide`, `step`, and `gate`.
  */
 import { createCall } from "./call";

@@ -16,7 +16,7 @@ import {
 	type KernelDatabase,
 	type KernelDatabaseHandle,
 	type RunTrigger,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 
 import { createKernel, type CreateKernelConfig, type KernelInstance } from "../../index";
 import { setupPiSessionAndRun } from "../../spawn-pipeline/session/pi-session-db-init";

@@ -83,7 +83,7 @@
  *   hatch is `dispose(sessionId)`. Sessions on DIFFERENT agents are
  *   independent (separate documents, separate hashes) and never conflict.
  */
-import { PROMPT_REVISION_SOURCE } from "@agent-kernel/db";
+import { PROMPT_REVISION_SOURCE } from "@codecaine-ai/agent-kernel-db";
 import type { PromptDocument } from "@codecaine-ai/prompt-kit";
 import {
 	applySteps,
@@ -114,7 +114,7 @@ import type {
 
 // ---------------------------------------------------------------------------
 // State shapes (the Phase 2 contract the lab UI consumes — mirrored
-// structurally in @agent-kernel/viewer-core catalog-types.ts, no viewer dep)
+// structurally in @codecaine-ai/agent-kernel-viewer-core catalog-types.ts, no viewer dep)
 // ---------------------------------------------------------------------------
 
 /** Human-review disposition of one request, overlaid on the session entry. */

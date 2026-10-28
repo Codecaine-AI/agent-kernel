@@ -1,5 +1,5 @@
 {
-	"name": "@agent-kernel/tui",
+	"name": "@codecaine-ai/agent-kernel-tui",
 	"version": "0.0.2",
 	"private": true,
 	"type": "module",
@@ -14,7 +14,7 @@
 		"test": "bun test ./src"
 	},
 	"dependencies": {
-		"@agent-kernel/kernel": "workspace:*",
+		"@codecaine-ai/agent-kernel": "workspace:*",
 		"@earendil-works/pi-coding-agent": "^1.0.4",
 		"@earendil-works/pi-tui": "^1.0.4"
 	},

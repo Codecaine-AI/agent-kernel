@@ -17,7 +17,7 @@ import {
 	validatePromptDocumentShape,
 	type PromptDocument,
 } from "@codecaine-ai/prompt-kit";
-import { resolvePromptEntry } from "@agent-kernel/kernel/agent-registry";
+import { resolvePromptEntry } from "@codecaine-ai/agent-kernel/agent-registry";
 
 import { renderedSnapshot } from "../../../../scripts/render-prompts-to-json";
 

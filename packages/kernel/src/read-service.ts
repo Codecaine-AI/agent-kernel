@@ -6,7 +6,7 @@
  *   - listSessionContainers → containers of kind "session" with stats
  *
  * Payload shapes are plain data mirroring the viewer contract (structurally
- * compatible with @agent-kernel/viewer-core's KernelTraceSessionDetail /
+ * compatible with @codecaine-ai/agent-kernel-viewer-core's KernelTraceSessionDetail /
  * KernelTraceSessionListResponse) without a viewer dependency.
  */
 import {
@@ -17,12 +17,12 @@ import {
 	type Container,
 	type KernelDatabase,
 	type KernelTraceReadRows,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	EventType,
 	type PiRequestSnapshotData,
 	type PiRequestSnapshotTool,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import type {
 	KernelTraceBlobPayload,

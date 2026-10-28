@@ -44,7 +44,7 @@
       "props": {},
       "text": [
         {
-          "insert": "@agent-kernel/viewer-shell",
+          "insert": "@codecaine-ai/agent-kernel-viewer-shell",
           "attributes": {
             "code": true
           }
@@ -188,7 +188,7 @@
           "insert": " from "
         },
         {
-          "insert": "@agent-kernel/viewer-ui",
+          "insert": "@codecaine-ai/agent-kernel-viewer-ui",
           "attributes": {
             "code": true
           }

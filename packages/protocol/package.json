@@ -1,5 +1,5 @@
 {
-  "name": "@agent-kernel/protocol",
+  "name": "@codecaine-ai/agent-kernel-protocol",
   "version": "0.0.2",
   "private": true,
   "type": "module",

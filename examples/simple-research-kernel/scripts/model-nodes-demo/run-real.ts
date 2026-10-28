@@ -11,7 +11,7 @@
  *
  * Two modes, one story:
  * - offline (default): the fake call engine and `fakePiModels` from
- *   `@agent-kernel/kernel/model-nodes/testing`; decisions go through Pi's real
+ *   `@codecaine-ai/agent-kernel/model-nodes/testing`; decisions go through Pi's real
  *   `typesafe` provider with an in-memory key and a scripted System One wire
  *   (no network, no file outside the temp dir). `shape.test.ts` runs this mode.
  * - live (`MODEL_NODES_LIVE=1`): calls through `bamlEngine` with the GameCube
@@ -64,7 +64,7 @@ import {
 	openKernelDatabase,
 	updateContainerStatus,
 	type KernelDatabase,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	createKernel,
 	formatDoctorReport,
@@ -77,8 +77,8 @@ import {
 	type KernelModelsConfig,
 	type ModelPriceTable,
 	type ModelNodes,
-} from "@agent-kernel/kernel";
-import { bamlEngine, type BamlRuntimeLike } from "@agent-kernel/kernel/baml-engine";
+} from "@codecaine-ai/agent-kernel";
+import { bamlEngine, type BamlRuntimeLike } from "@codecaine-ai/agent-kernel/baml-engine";
 import {
 	createModelNodeContext,
 	createModelNodes,
@@ -89,7 +89,7 @@ import {
 	type FnName,
 	type KernelCallsConfig,
 	type PiModelsSource,
-} from "@agent-kernel/kernel/model-nodes";
+} from "@codecaine-ai/agent-kernel/model-nodes";
 import {
 	createFakeCallEngine,
 	fakeAttempt,
@@ -99,9 +99,9 @@ import {
 	FAKE_CALL_MODEL_REF,
 	type FakeCallRequest,
 	type FakeCallResponse,
-} from "@agent-kernel/kernel/model-nodes/testing";
-import { ModelRegistry, ModelRuntime, type ExtensionContext, type ExtensionFactory } from "@agent-kernel/kernel/pi-sdk";
-import type { CallEndData, CallStartData, DecisionMadeData } from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel/model-nodes/testing";
+import { ModelRegistry, ModelRuntime, type ExtensionContext, type ExtensionFactory } from "@codecaine-ai/agent-kernel/pi-sdk";
+import type { CallEndData, CallStartData, DecisionMadeData } from "@codecaine-ai/agent-kernel-protocol";
 import {
 	fauxAssistantMessage,
 	fauxProvider,

@@ -1,5 +1,5 @@
-import { defineState } from "@agent-kernel/kernel/agent-definition";
-import type { AgentMessage } from "@agent-kernel/kernel/state";
+import { defineState } from "@codecaine-ai/agent-kernel/agent-definition";
+import type { AgentMessage } from "@codecaine-ai/agent-kernel/state";
 
 interface StateEchoState {
 	notes: string[];

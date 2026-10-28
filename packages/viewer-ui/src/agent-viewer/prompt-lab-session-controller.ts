@@ -36,7 +36,7 @@ import type {
 	PromptEditSessionCreateRequest,
 	PromptEditSessionEventDto,
 	PromptEditSessionStateDto,
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 import {
 	isPromptEditClientFailure,

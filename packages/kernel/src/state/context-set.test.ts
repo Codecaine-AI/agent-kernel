@@ -3,7 +3,7 @@
  * stale can linger, because nothing is pinned to history.
  */
 import { describe, expect, test } from "bun:test";
-import { isKernelAuthoredMessage } from "@agent-kernel/protocol";
+import { isKernelAuthoredMessage } from "@codecaine-ai/agent-kernel-protocol";
 
 import { createContextSet } from "./context-set";
 import { KERNEL_CONTEXT_MESSAGE_CUSTOM_TYPE } from "./kernel-messages";

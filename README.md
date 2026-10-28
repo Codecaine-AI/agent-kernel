@@ -36,13 +36,13 @@
 
 - This is a platform monorepo while the contracts settle:
 
-  - `@agent-kernel/protocol` — trace/event envelopes, event factories, deterministic event ids, and turn usage
-  - `@agent-kernel/db` — per-kernel SQLite observability store, schema, kernel manifest, and query helpers
-  - `@agent-kernel/kernel` — `createKernel` runtime, container identity, registry, context assembly, spawn pipeline, in-process emitter, subagents, trace doctor, read API, and transcript recovery
+  - `@codecaine-ai/agent-kernel-protocol` — trace/event envelopes, event factories, deterministic event ids, and turn usage
+  - `@codecaine-ai/agent-kernel-db` — per-kernel SQLite observability store, schema, kernel manifest, and query helpers
+  - `@codecaine-ai/agent-kernel` — `createKernel` runtime, container identity, registry, context assembly, spawn pipeline, in-process emitter, subagents, trace doctor, read API, and transcript recovery
   - `@codecaine-ai/prompt-kit` — prompt document model, canonicalization/hashing, renderers, and editor primitives (sibling repo and Core workspace member)
-  - `@agent-kernel/viewer-core` — viewer DTOs, read/catalog API paths, trace transforms, and prompt diffing
-  - `@agent-kernel/viewer-ui` — trace tree and card system, the detail panel and its data-only renderer contract, prompt lab components
-  - `@agent-kernel/viewer-shell` — mountable trace workspace, the tree/detail viewer, and the shared style system
+  - `@codecaine-ai/agent-kernel-viewer-core` — viewer DTOs, read/catalog API paths, trace transforms, and prompt diffing
+  - `@codecaine-ai/agent-kernel-viewer-ui` — trace tree and card system, the detail panel and its data-only renderer contract, prompt lab components
+  - `@codecaine-ai/agent-kernel-viewer-shell` — mountable trace workspace, the tree/detail viewer, and the shared style system
 
 ## Building a harness on it
 

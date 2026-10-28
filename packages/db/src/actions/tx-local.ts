@@ -12,7 +12,7 @@
  * other caller.
  */
 import { and, asc, eq, sql } from "drizzle-orm";
-import type { TraceEvent } from "@agent-kernel/protocol";
+import type { TraceEvent } from "@codecaine-ai/agent-kernel-protocol";
 import type { KernelDatabase } from "../client";
 import { agentRuns, type RunStatus } from "../schema/agent-runs";
 import { containers } from "../schema/containers";

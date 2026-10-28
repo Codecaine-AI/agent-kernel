@@ -7,7 +7,7 @@ import {
 	ensureKernelObservabilitySchema,
 	openKernelDatabase,
 	type KernelDatabaseHandle,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 
 import {
 	AGENT_KERNEL_ROOT_NAMESPACE,

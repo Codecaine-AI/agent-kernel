@@ -34,14 +34,14 @@ import type {
 	AgentRun,
 	KernelContainerSummary,
 	PiAgentSession,
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 import {
 	findSpanInTree,
 	type RunUsageRow,
 	type DetailBlockProvider,
 	type UsageContext,
 	type SpanCardViewOptions,
-} from "@agent-kernel/viewer-ui";
+} from "@codecaine-ai/agent-kernel-viewer-ui";
 
 import { KernelTraceViewer } from "../KernelTraceViewer";
 

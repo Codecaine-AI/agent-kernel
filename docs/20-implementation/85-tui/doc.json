@@ -18,7 +18,7 @@
           "session-binding",
           "node-runtime"
         ],
-        "covers": "Implementation area page for @agent-kernel/tui: source layout and structural decisions.",
+        "covers": "Implementation area page for @codecaine-ai/agent-kernel-tui: source layout and structural decisions.",
         "depends-on": [
           "10-system-design/70-harness-model"
         ],
@@ -71,7 +71,7 @@
       "props": {},
       "text": [
         {
-          "insert": "@agent-kernel/tui",
+          "insert": "@codecaine-ai/agent-kernel-tui",
           "attributes": {
             "code": true
           }
@@ -249,7 +249,7 @@
           "insert": " The extension imports only "
         },
         {
-          "insert": "@agent-kernel/kernel/agent-registry/registry",
+          "insert": "@codecaine-ai/agent-kernel/agent-registry/registry",
           "attributes": {
             "code": true
           }
@@ -347,7 +347,7 @@
           "insert": ", whose "
         },
         {
-          "insert": "@agent-kernel/db",
+          "insert": "@codecaine-ai/agent-kernel-db",
           "attributes": {
             "code": true
           }

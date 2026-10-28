@@ -20,14 +20,14 @@ import { fileURLToPath } from "node:url";
 
 // The db-free sub-barrel, NOT `…/agent-registry`: pi runs extensions under
 // Node, and the parent barrel re-exports register-prompt-revisions.ts, whose
-// @agent-kernel/db import evaluates bun:sqlite at load.
+// @codecaine-ai/agent-kernel-db import evaluates bun:sqlite at load.
 import {
 	buildRegistry,
 	collectManifestFiles,
 	RegistryError,
 	type AgentDefinition,
 	type AgentRegistry,
-} from "@agent-kernel/kernel/agent-registry/registry";
+} from "@codecaine-ai/agent-kernel/agent-registry/registry";
 
 export type CatalogSource = "project" | "generic";
 
@@ -121,7 +121,7 @@ function packageSrcDir(): { dir: string | null; reason: string | null } {
 	return {
 		dir: null,
 		reason:
-			"cannot locate @agent-kernel/tui's own directory under this module runtime (no import.meta.url, no __dirname)",
+			"cannot locate @codecaine-ai/agent-kernel-tui's own directory under this module runtime (no import.meta.url, no __dirname)",
 	};
 }
 
@@ -177,7 +177,7 @@ function flattenError(err: unknown): string {
 function unavailableReasonOf(err: RegistryError): string {
 	const firstLine = (err.violations[0] ?? err.message).split("\n")[0].trim();
 	// The known app-coupled signature: a sidecar importing app runtime code
-	// that reaches @agent-kernel/db, which needs bun:sqlite (absent under
+	// that reaches @codecaine-ai/agent-kernel-db, which needs bun:sqlite (absent under
 	// pi's Node runtime). Name the situation instead of echoing the module
 	// resolution error.
 	if (firstLine.includes("bun:sqlite")) {

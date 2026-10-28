@@ -10,7 +10,7 @@ import type {
 	PromptEditSessionProposalDto,
 	PromptEditSessionRequestDto,
 	PromptEditSessionStateDto,
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 import {
 	annotationsToLabRequests,

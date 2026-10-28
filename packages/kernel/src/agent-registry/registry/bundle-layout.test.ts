@@ -34,7 +34,7 @@ const PROMPT_DOCUMENT = {
 	],
 };
 
-const CONTEXT_TS = `import { defineContext } from "@agent-kernel/kernel/agent-definition";
+const CONTEXT_TS = `import { defineContext } from "@codecaine-ai/agent-kernel/agent-definition";
 
 export const context = defineContext({
   loaders: [{ kind: "text", label: "note", content: "folder form" }],
@@ -43,7 +43,7 @@ export const context = defineContext({
 export default context;
 `;
 
-const TOOLS_TS = `import { defineTools } from "@agent-kernel/kernel/agent-definition";
+const TOOLS_TS = `import { defineTools } from "@codecaine-ai/agent-kernel/agent-definition";
 import { Type } from "@earendil-works/pi-ai";
 
 export const tools = defineTools((pi) => {
@@ -61,7 +61,7 @@ export const tools = defineTools((pi) => {
 export default tools;
 `;
 
-const STATE_TS = `import { defineState } from "@agent-kernel/kernel/agent-definition";
+const STATE_TS = `import { defineState } from "@codecaine-ai/agent-kernel/agent-definition";
 
 export const state = defineState({
   seed: () => ({ n: 0 }),

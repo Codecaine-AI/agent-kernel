@@ -10,7 +10,7 @@ import { join } from "node:path";
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { getPiAgentSession, hasSessionKindColumn } from "@agent-kernel/db";
+import { getPiAgentSession, hasSessionKindColumn } from "@codecaine-ai/agent-kernel-db";
 import { fauxAssistantMessage, fauxProvider } from "@earendil-works/pi-ai";
 import type { ExtensionContext, ExtensionFactory } from "@earendil-works/pi-coding-agent";
 

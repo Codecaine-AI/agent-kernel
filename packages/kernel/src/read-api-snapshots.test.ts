@@ -20,11 +20,11 @@ import {
 	upsertTraceBlobs,
 	type KernelDatabaseHandle,
 	type NewTraceBlob,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	createPiRequestSnapshotEvent,
 	type PiRequestSnapshotData,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import { createKernelTraceReadApi } from "./read-api";
 import { createContainerReadService } from "./read-service";

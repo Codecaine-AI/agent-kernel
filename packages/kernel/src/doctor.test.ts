@@ -19,12 +19,12 @@ import {
 	upsertContainer,
 	upsertPiAgentSession,
 	type KernelDatabaseHandle,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	createCallStartEvent,
 	kernelNodeEventId,
 	type TraceEvent,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import { formatDoctorReport, runTraceDoctor } from "./doctor";
 

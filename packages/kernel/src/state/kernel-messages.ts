@@ -9,14 +9,14 @@
  * the marker survives into the request snapshot for the viewer to badge KERNEL
  * instead of USER.
  *
- * The customType constants live in @agent-kernel/protocol because they are
+ * The customType constants live in @codecaine-ai/agent-kernel-protocol because they are
  * wire-visible (see protocol/src/kernel-messages.ts).
  */
 
 import {
 	KERNEL_CONTEXT_MESSAGE_CUSTOM_TYPE,
 	KERNEL_STATE_MESSAGE_CUSTOM_TYPE,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import type { AgentMessage } from "./types";
 
@@ -25,7 +25,7 @@ export {
 	KERNEL_MESSAGE_CUSTOM_TYPE_PREFIX,
 	KERNEL_STATE_MESSAGE_CUSTOM_TYPE,
 	isKernelAuthoredMessage,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 /** A content block a kernel-authored message may carry. */
 export type KernelMessageBlock =

@@ -5,7 +5,7 @@
  */
 import { expect } from "bun:test";
 import { asc, eq, sql } from "drizzle-orm";
-import { traceEvents, type KernelDatabase } from "@agent-kernel/db";
+import { traceEvents, type KernelDatabase } from "@codecaine-ai/agent-kernel-db";
 
 import { runTraceDoctor } from "../../../doctor";
 import { KernelNodeError } from "../../types";

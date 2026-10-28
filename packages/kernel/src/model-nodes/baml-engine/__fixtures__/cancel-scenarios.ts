@@ -10,8 +10,8 @@
  * the spike's child process (`.work/model-nodes/spikes/baml-bun/src/kernel-cancel-child.ts`),
  * which owns the real `@boundaryml/baml`.
  */
-import { getAgentRun, getTraceEventsForRun } from "@agent-kernel/db";
-import type { CallEndData } from "@agent-kernel/protocol";
+import { getAgentRun, getTraceEventsForRun } from "@codecaine-ai/agent-kernel-db";
+import type { CallEndData } from "@codecaine-ai/agent-kernel-protocol";
 
 import { runTraceDoctor } from "../../../doctor";
 import { createTempKernelDb } from "../../__fixtures__/temp-kernel";

@@ -12,7 +12,7 @@ import {
 	getPiAgentSession,
 	getTraceEventsForRun,
 	type KernelDatabase,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	kernelNodeEventId,
 	type CallEndData,
@@ -20,7 +20,7 @@ import {
 	type PiRequestSnapshotData,
 	type PiTurnEndData,
 	type TraceEvent,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import { runTraceDoctor } from "../../doctor";
 import { createTempKernel, disableNetwork } from "../__fixtures__/temp-kernel";

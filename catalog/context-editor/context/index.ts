@@ -18,12 +18,12 @@
  */
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineContext } from "@agent-kernel/kernel/agent-definition";
+import { defineContext } from "@codecaine-ai/agent-kernel/agent-definition";
 import type {
 	AgentContextResolver,
 	LoadedMap,
 	SpawnContext,
-} from "@agent-kernel/kernel/context";
+} from "@codecaine-ai/agent-kernel/context";
 
 export interface ContextBlock {
 	/** XML tag emitted for this section ② block. */

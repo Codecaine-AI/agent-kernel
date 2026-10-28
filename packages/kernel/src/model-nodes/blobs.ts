@@ -3,7 +3,7 @@
  * call-input, call-output, call-raw-output, call-request, call-response,
  * classifier-context, classifier-request). Callers redact before building.
  */
-import { hashTraceBlobBytes, type TraceBlobInput } from "@agent-kernel/db";
+import { hashTraceBlobBytes, type TraceBlobInput } from "@codecaine-ai/agent-kernel-db";
 
 /** JSON with object keys sorted at every level, so equal values hash equally. */
 export function canonicalJson(value: unknown): string {

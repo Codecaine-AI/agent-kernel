@@ -17,7 +17,7 @@
  * Every attempt is redacted again here (the kernel's second pass, §4.7):
  * secret values everywhere, sensitive header values by name.
  */
-import type { TraceBlobInput } from "@agent-kernel/db";
+import type { TraceBlobInput } from "@codecaine-ai/agent-kernel-db";
 import {
 	createPiRequestSnapshotEvent,
 	createPiTurnEndEvent,
@@ -25,7 +25,7 @@ import {
 	type PiRequestSnapshotMessageRef,
 	type TraceEvent,
 	type TurnUsage,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import type { ModelPriceTable } from "../../emitter";
 import { jsonBlob, textBlob } from "../blobs";

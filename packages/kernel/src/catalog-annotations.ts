@@ -16,7 +16,7 @@
  * advisory dangling report run against the CURRENT prompt, not the one
  * cached at boot.
  */
-import type { KernelDatabase } from "@agent-kernel/db";
+import type { KernelDatabase } from "@codecaine-ai/agent-kernel-db";
 import type {
 	DanglingTarget,
 	PromptAnnotation,

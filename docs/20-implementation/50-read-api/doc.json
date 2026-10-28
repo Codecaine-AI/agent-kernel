@@ -1272,7 +1272,7 @@
           "insert": " "
         },
         {
-          "insert": "@agent-kernel/viewer-core",
+          "insert": "@codecaine-ai/agent-kernel-viewer-core",
           "attributes": {
             "code": true
           }

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import type { RunTrigger } from "@agent-kernel/db";
-import { createRunSteeredEvent } from "@agent-kernel/protocol";
+import type { RunTrigger } from "@codecaine-ai/agent-kernel-db";
+import { createRunSteeredEvent } from "@codecaine-ai/agent-kernel-protocol";
 
 import { runContextStore } from "../run-context";
 import type {

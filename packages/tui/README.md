@@ -1,4 +1,4 @@
-# @agent-kernel/tui
+# @codecaine-ai/agent-kernel-tui
 
 The kernel's terminal harness: a pi extension that boots any agent bundle as
 an interactive pi session. A peer of the app harnesses (canvas-agent,

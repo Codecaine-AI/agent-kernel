@@ -2,7 +2,7 @@
  * Per-turn request snapshot recorder — captures the system prompt plus the
  * message window one turn ran on into the content-addressed trace_blobs store
  * and emits a pi_request_snapshot trace event referencing the blobs (see
- * PiRequestSnapshotData in @agent-kernel/protocol for the sanitized-message
+ * PiRequestSnapshotData in @codecaine-ai/agent-kernel-protocol for the sanitized-message
  * contract).
  *
  * TWO CAPTURE PATHS, chosen per run by `builderOwnsCapture` — never mixed:
@@ -51,7 +51,7 @@ import {
 	upsertTraceBlobs,
 	type KernelDatabase,
 	type NewTraceBlob,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	createPiRequestSnapshotEvent,
 	type PiRequestSnapshotData,
@@ -59,7 +59,7 @@ import {
 	type PiRequestSnapshotSection,
 	type PiRequestSnapshotTool,
 	type TraceEventIds,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import type { TraceWriterSink } from "../../subagents/types";
 import type { KernelAgentSessionEventLike } from "../types";

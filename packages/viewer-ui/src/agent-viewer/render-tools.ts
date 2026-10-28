@@ -6,7 +6,7 @@
  * outline labels rows by the name attribute), a description line, and a
  * compact one-line parameter signature derived from the JSON schema.
  */
-import type { CatalogToolPreview } from "@agent-kernel/viewer-core";
+import type { CatalogToolPreview } from "@codecaine-ai/agent-kernel-viewer-core";
 
 type SchemaNode = Record<string, unknown>;
 

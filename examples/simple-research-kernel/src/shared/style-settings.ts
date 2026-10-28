@@ -1,5 +1,5 @@
 /**
- * App binding for the SHARED viewer style system (@agent-kernel/viewer-shell).
+ * App binding for the SHARED viewer style system (@codecaine-ai/agent-kernel-viewer-shell).
  *
  * The machinery (settings model, palettes, panel, rail, overlay, emission)
  * lives in viewer-shell/src/style; this module pins the app's config —
@@ -17,10 +17,10 @@ import {
 	type StyleSettings,
 	type StyleSettingsPatch,
 	type StyleSystemConfig
-} from "@agent-kernel/viewer-shell";
+} from "@codecaine-ai/agent-kernel-viewer-shell";
 import type { CSSProperties } from "react";
 
-export * from "@agent-kernel/viewer-shell";
+export * from "@codecaine-ai/agent-kernel-viewer-shell";
 
 /** This app's style-system binding. Storage keys predate the extraction. */
 export const RESEARCH_STYLE_CONFIG: StyleSystemConfig = {

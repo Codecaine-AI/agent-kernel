@@ -1,8 +1,8 @@
 /** Kernel context adapter. Canonical rendering is shared with the external Docs integration. */
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineContext } from "@agent-kernel/kernel/agent-definition";
-import type { AgentContextResolver, LoadedMap } from "@agent-kernel/kernel/context";
+import { defineContext } from "@codecaine-ai/agent-kernel/agent-definition";
+import type { AgentContextResolver, LoadedMap } from "@codecaine-ai/agent-kernel/context";
 import { AUTHORING_BUNDLES, assembleAuthoringGuidance, guidanceBundleFile } from "@codecaine-ai/docs-model/authoring-guidance";
 export { STANDARDS_BUNDLES, STYLE_GUIDE_BUNDLES } from "@codecaine-ai/docs-model/authoring-guidance";
 

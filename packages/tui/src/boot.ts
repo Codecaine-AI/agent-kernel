@@ -22,28 +22,28 @@
 
 import { dirname } from "node:path";
 
-// db-free sub-barrel — the parent agent-registry barrel pulls @agent-kernel/db
+// db-free sub-barrel — the parent agent-registry barrel pulls @codecaine-ai/agent-kernel-db
 // (bun:sqlite), which does not load under pi's Node runtime.
 import {
 	discoverStateFixtures,
 	type AgentDefinition,
 	type AgentStateFixture,
-} from "@agent-kernel/kernel/agent-registry/registry";
+} from "@codecaine-ai/agent-kernel/agent-registry/registry";
 import {
 	buildContext,
 	createDefaultCatalog,
 	createSpawnContext,
 	type SpawnContext,
-} from "@agent-kernel/kernel/context";
+} from "@codecaine-ai/agent-kernel/context";
 // db-free: this barrel is resolve-variables + resolve-system-prompt, whose
 // other imports are type-only.
-import { resolveVariables } from "@agent-kernel/kernel/spawn-pipeline/system-prompt-resolver";
+import { resolveVariables } from "@codecaine-ai/agent-kernel/spawn-pipeline/system-prompt-resolver";
 import {
 	messageText,
 	normalizeRenderOutput,
 	resolveWindowPolicy,
 	type RenderContext,
-} from "@agent-kernel/kernel/state";
+} from "@codecaine-ai/agent-kernel/state";
 
 import type { CatalogSource } from "./catalog";
 

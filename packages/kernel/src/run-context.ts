@@ -10,8 +10,8 @@
 
 import { AsyncLocalStorage } from "node:async_hooks";
 
-import type { RunTrigger } from "@agent-kernel/db";
-import type { TraceEventIds } from "@agent-kernel/protocol";
+import type { RunTrigger } from "@codecaine-ai/agent-kernel-db";
+import type { TraceEventIds } from "@codecaine-ai/agent-kernel-protocol";
 
 import type { TraceWriterSink } from "./subagents/types";
 

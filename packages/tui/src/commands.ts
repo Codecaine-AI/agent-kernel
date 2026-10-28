@@ -24,7 +24,7 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { Container, Text } from "@earendil-works/pi-tui";
 
-import { AgentVariableError } from "@agent-kernel/kernel/spawn-pipeline/system-prompt-resolver";
+import { AgentVariableError } from "@codecaine-ai/agent-kernel/spawn-pipeline/system-prompt-resolver";
 
 import { bootAgent, type BootedAgent } from "./boot";
 import {

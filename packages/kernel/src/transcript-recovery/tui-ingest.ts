@@ -3,7 +3,7 @@
  * OWNING kernel's trace db.
  *
  * A TUI boot appends two custom entries into the live Pi JSONL (see
- * @agent-kernel/tui session-binding.ts):
+ * @codecaine-ai/agent-kernel-tui session-binding.ts):
  *
  *   agent-kernel:session-binding   { containerId, runId }        — mapper identity
  *   agent-kernel:tui-session-meta  { containerId, runId, agentName, source,
@@ -45,7 +45,7 @@ import {
   upsertContainer,
   upsertPiAgentSession,
   type KernelDatabase,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import { runBackfill } from "./backfill";
 import { readJsonlFile } from "./reader";
 import type { PiCustomEvent, PiEvent } from "./types";

@@ -9,7 +9,7 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { openKernelDatabase } from "@agent-kernel/db";
+import { openKernelDatabase } from "@codecaine-ai/agent-kernel-db";
 
 import { createModelNodeContext } from "../context";
 import { runModelNode } from "../node-run";

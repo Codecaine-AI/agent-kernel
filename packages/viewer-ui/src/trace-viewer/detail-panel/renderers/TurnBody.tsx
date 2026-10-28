@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import type { PiRequestSnapshotMessageRef } from "@agent-kernel/viewer-core";
+import type { PiRequestSnapshotMessageRef } from "@codecaine-ai/agent-kernel-viewer-core";
 
 import type {
 	DetailBlockSpec,

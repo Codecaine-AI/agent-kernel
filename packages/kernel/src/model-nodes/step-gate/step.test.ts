@@ -4,8 +4,8 @@
  * attributes/events/summary on step_end, and writes that never fail a step.
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from "bun:test";
-import { updateAgentRunStatus } from "@agent-kernel/db";
-import { kernelNodeEventId, kernelRequestId } from "@agent-kernel/protocol";
+import { updateAgentRunStatus } from "@codecaine-ai/agent-kernel-db";
+import { kernelNodeEventId, kernelRequestId } from "@codecaine-ai/agent-kernel-protocol";
 
 import { createTempKernel, disableNetwork, type TempKernel } from "../__fixtures__/temp-kernel";
 import {

@@ -14,7 +14,7 @@ import {
   type CallEndData,
   type CallStartData,
   type TraceEvent,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 import type { KernelDatabase } from "../client";
 import { agentRuns, RUN_STATUS, type RunTrigger } from "../schema/agent-runs";
 import { SESSION_STATUS } from "../schema/pi-agent-sessions";

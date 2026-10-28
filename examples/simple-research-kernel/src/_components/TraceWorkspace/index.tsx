@@ -2,13 +2,13 @@ import { useCallback, useMemo } from "react";
 import {
 	type KernelTraceSessionDetail,
 	type KernelTraceSessionSummary
-} from "@agent-kernel/viewer-core";
-import { DoctorPanel } from "@agent-kernel/viewer-ui";
+} from "@codecaine-ai/agent-kernel-viewer-core";
+import { DoctorPanel } from "@codecaine-ai/agent-kernel-viewer-ui";
 import {
 	KernelTraceWorkspace,
 	type KernelTraceViewerProps,
 	type TraceWorkspaceRow
-} from "@agent-kernel/viewer-shell";
+} from "@codecaine-ai/agent-kernel-viewer-shell";
 
 import { KERNEL_TRACE_API_BASE } from "@/shared/api";
 import type { TraceIconSettings } from "@/shared/style-settings";
@@ -19,7 +19,7 @@ import { isActiveTrace, sessionLabelOf } from "./utils";
  * Thin app binding over the SHARED KernelTraceWorkspace: this file only maps
  * the research app's data (trace sessions, detail, delete rules) onto the
  * workspace adapter contract. All list/drill-in/split UX lives in
- * @agent-kernel/viewer-shell.
+ * @codecaine-ai/agent-kernel-viewer-shell.
  */
 export type TraceWorkspaceProps = {
 	detail: KernelTraceSessionDetail | null;

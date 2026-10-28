@@ -1,4 +1,4 @@
-import { KernelTraceViewer, type KernelTraceViewerProps } from "@agent-kernel/viewer-shell";
+import { KernelTraceViewer, type KernelTraceViewerProps } from "@codecaine-ai/agent-kernel-viewer-shell";
 
 import { KERNEL_TRACE_API_BASE } from "@/shared/api";
 import type { TraceIconSettings } from "@/shared/style-settings";

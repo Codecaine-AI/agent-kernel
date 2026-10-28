@@ -1,5 +1,5 @@
 import { and, asc, eq, gt, inArray, sql } from "drizzle-orm";
-import type { TraceEvent } from "@agent-kernel/protocol";
+import type { TraceEvent } from "@codecaine-ai/agent-kernel-protocol";
 import type { KernelDatabase } from "../client";
 import { traceEvents } from "../schema/trace-events";
 import type { TraceEventRow } from "../types";

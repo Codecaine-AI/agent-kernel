@@ -5,7 +5,7 @@
  * stored call_end output blob. Shared by node-run.test.ts and the child
  * process of its cross-process race.
  */
-import { getTraceBlob } from "@agent-kernel/db";
+import { getTraceBlob } from "@codecaine-ai/agent-kernel-db";
 import {
 	createDecisionMadeEvent,
 	createPiTurnEndEvent,
@@ -13,7 +13,7 @@ import {
 	type CallEndData,
 	type TraceEvent,
 	type TurnUsage,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import { jsonBlob } from "../blobs";
 import type { NodeExecution, NodeRunHandle, NodeRunSpec } from "../node-run";

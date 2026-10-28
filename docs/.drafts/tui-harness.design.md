@@ -7,7 +7,7 @@
 > `core-kernel-observatory.design.md` for the core-kernel session record.
 
 This document records the design session of 2026-08-06. It covers
-`@agent-kernel/tui` — a terminal harness that boots any kernel bundle as an
+`@codecaine-ai/agent-kernel-tui` — a terminal harness that boots any kernel bundle as an
 interactive pi session — plus the global pi layout it slots into and the
 slimming of the `pi-config` repo into the personal layer. Updated 2026-08-06
 with as-built status (see Build order / status and the disposition section).
@@ -42,7 +42,7 @@ need. Nothing about running kernels depends on it.
 ```
                 agent-kernel (library)
                /          |           \
-  canvas-agent      prompt-kit-agent    @agent-kernel/tui
+  canvas-agent      prompt-kit-agent    @codecaine-ai/agent-kernel-tui
   (app harness,     (app harness,       (terminal harness,
    server :4820)     server :4850)       pi extension)
 ```
@@ -56,7 +56,7 @@ One pi extension plus supporting modules:
 
 ```
 packages/tui/
-  package.json          @agent-kernel/tui
+  package.json          @codecaine-ai/agent-kernel-tui
   src/
     extension.ts        entry — loadable via settings `extensions` array or `pi -e`
     catalog.ts          multi-root agent resolution with precedence (below)
@@ -220,7 +220,7 @@ the justfile, dead code accumulation, and `~/.pi` drifting from the repo
 - **pi runs extensions under Node, not bun.** The tui import graph must stay
   Node-clean: import the db-free `agent-registry/registry` sub-barrel, never
   the `agent-registry` barrel (its `register-prompt-revisions` neighbor pulls
-  `@agent-kernel/db` → `bun:sqlite`, which crashes extension load; hit and
+  `@codecaine-ai/agent-kernel-db` → `bun:sqlite`, which crashes extension load; hit and
   fixed 2026-08-06). Verify extension changes with `pi -p`, not `bun -e`.
 - The same rule extends to **bundle sidecar code**: the registry evaluates
   `context.ts`/`state.ts` under pi's runtime, so sidecars must avoid bun-only

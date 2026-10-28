@@ -1,4 +1,4 @@
-import { defineTools } from "@agent-kernel/kernel/agent-definition";
+import { defineTools } from "@codecaine-ai/agent-kernel/agent-definition";
 
 import {
 	registerReadContextTool,

@@ -1,7 +1,7 @@
 /**
  * Kernel catalog API (Phase 5) — an Elysia route factory over a
  * KernelCatalogService. Serves the KERNEL_CATALOG_PATHS contract (see
- * @agent-kernel/viewer-core api.ts — the paths are duplicated here because
+ * @codecaine-ai/agent-kernel-viewer-core api.ts — the paths are duplicated here because
  * the kernel does not depend on the viewer):
  *
  *   GET  <prefix>/catalog/agents                       registry listing

@@ -23,7 +23,7 @@
  */
 import { createHash } from "node:crypto";
 
-import type { TraceBlobInput } from "@agent-kernel/db";
+import type { TraceBlobInput } from "@codecaine-ai/agent-kernel-db";
 import {
 	createDecisionMadeEvent,
 	createPiRequestSnapshotEvent,
@@ -34,7 +34,7 @@ import {
 	type DecisionMadeData,
 	type TraceEvent,
 	type TurnUsage,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 import type { ClassifierQuestion, JsonObject as PiJsonObject } from "@earendil-works/pi-ai";
 
 import { canonicalJson, defineOwn, jsonBlob } from "../blobs";

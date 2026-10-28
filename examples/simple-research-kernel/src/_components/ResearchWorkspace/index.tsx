@@ -2,8 +2,8 @@ import { useMemo } from "react";
 import {
 	type KernelTraceSessionDetail,
 	type KernelTraceSessionSummary
-} from "@agent-kernel/viewer-core";
-import type { KernelTraceViewerProps } from "@agent-kernel/viewer-shell";
+} from "@codecaine-ai/agent-kernel-viewer-core";
+import type { KernelTraceViewerProps } from "@codecaine-ai/agent-kernel-viewer-shell";
 
 import type { ResearchHarnessInfo, ResearchRunSummary } from "@/shared/types";
 import type { TraceIconSettings } from "@/shared/style-settings";

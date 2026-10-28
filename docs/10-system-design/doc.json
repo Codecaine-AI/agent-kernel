@@ -339,7 +339,7 @@
           "insert": "How agents run outside their owning apps: app harnesses vs the terminal harness ("
         },
         {
-          "insert": "@agent-kernel/tui",
+          "insert": "@codecaine-ai/agent-kernel-tui",
           "attributes": {
             "code": true
           }

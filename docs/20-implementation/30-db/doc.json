@@ -16,7 +16,7 @@
           "bootstrap",
           "actions-layer"
         ],
-        "covers": "Implementation area page for @agent-kernel/db: role, source pointer, governing design pages, and structural decisions about the SQLite-only store, bootstrap, and the actions layer.",
+        "covers": "Implementation area page for @codecaine-ai/agent-kernel-db: role, source pointer, governing design pages, and structural decisions about the SQLite-only store, bootstrap, and the actions layer.",
         "depends-on": [
           "10-system-design/20-observability-model"
         ],
@@ -55,7 +55,7 @@
       "props": {},
       "text": [
         {
-          "insert": "@agent-kernel/db",
+          "insert": "@codecaine-ai/agent-kernel-db",
           "attributes": {
             "code": true
           }

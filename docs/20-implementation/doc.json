@@ -636,7 +636,7 @@
           "insert": " This repository is the sole source of the "
         },
         {
-          "insert": "@agent-kernel/*",
+          "insert": "@codecaine-ai/agent-kernel*",
           "attributes": {
             "code": true
           }
@@ -833,7 +833,7 @@
           "insert": " and every consumer dependency on "
         },
         {
-          "insert": "@agent-kernel/*",
+          "insert": "@codecaine-ai/agent-kernel*",
           "attributes": {
             "code": true
           }

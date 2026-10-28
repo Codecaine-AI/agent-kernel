@@ -18,7 +18,7 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { KERNEL_DB_RELATIVE_PATH, openKernelDatabase } from "@agent-kernel/db";
+import { KERNEL_DB_RELATIVE_PATH, openKernelDatabase } from "@codecaine-ai/agent-kernel-db";
 
 import {
 	formatCatalogDoctorReport,

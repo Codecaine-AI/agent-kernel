@@ -35,8 +35,8 @@ decisions are recorded as D70–D80 in
 - Token usage (input/output/cache, resolved model, optional cost) lands on
   every turn and rolls up turn → run → session → container, denormalized for
   cheap reads. Verified live: run sums equal container rollups exactly.
-- `@agent-kernel/tailer` was dissolved (D80): the surviving capability lives
-  at `@agent-kernel/kernel/transcript-recovery` (`agent-kernel-backfill`
+- `@codecaine-ai/agent-kernel-tailer` was dissolved (D80): the surviving capability lives
+  at `@codecaine-ai/agent-kernel/transcript-recovery` (`agent-kernel-backfill`
   CLI) — disaster rebuild, import of externally-run sessions, schema
   re-derivation from Pi's durable JSONL. Emitter and recovery share
   deterministic event-id derivation via protocol; an intra-package parity
@@ -154,4 +154,4 @@ decisions are recorded as D70–D80 in
 
 - Merge `kernel-overhaul` (and the prompt-kit submodule's branch) once the
   walkthrough finishes; then decide whether contracts are settled enough to
-  version/publish `@agent-kernel/*` for the migrated consumers.
+  version/publish `@codecaine-ai/agent-kernel*` for the migrated consumers.

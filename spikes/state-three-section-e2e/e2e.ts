@@ -31,9 +31,9 @@ import {
 	ensureKernelObservabilitySchema,
 	kernelDatabasePath,
 	openKernelDatabase,
-} from "@agent-kernel/db";
-import { createKernel, stateFilePath, type KernelSpawnOptions } from "@agent-kernel/kernel";
-import { buildTraceSpans, type TraceSpan } from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-db";
+import { createKernel, stateFilePath, type KernelSpawnOptions } from "@codecaine-ai/agent-kernel";
+import { buildTraceSpans, type TraceSpan } from "@codecaine-ai/agent-kernel-viewer-core";
 import {
 	ModelRegistry,
 	ModelRuntime,

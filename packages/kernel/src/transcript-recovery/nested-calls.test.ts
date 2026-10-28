@@ -7,8 +7,8 @@ import {
   getTraceEventsForRun,
   openKernelDatabase,
   type KernelDatabaseHandle,
-} from "@agent-kernel/db";
-import { nestedToolEventId, type TraceEvent } from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-db";
+import { nestedToolEventId, type TraceEvent } from "@codecaine-ai/agent-kernel-protocol";
 import { runBackfill } from "./backfill";
 
 const PI_SESSION_UUID = "11111111-2222-3333-4444-555555555555";

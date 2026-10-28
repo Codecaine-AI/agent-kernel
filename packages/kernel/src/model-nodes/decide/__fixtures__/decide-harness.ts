@@ -5,7 +5,7 @@
  */
 import { expect } from "bun:test";
 import { sql } from "drizzle-orm";
-import type { KernelDatabase } from "@agent-kernel/db";
+import type { KernelDatabase } from "@codecaine-ai/agent-kernel-db";
 import { InMemoryCredentialStore } from "@earendil-works/pi-ai";
 import { ModelRegistry, ModelRuntime } from "@earendil-works/pi-coding-agent";
 

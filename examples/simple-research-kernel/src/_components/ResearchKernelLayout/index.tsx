@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, type CSSProperties, type ReactNode } from "react";
 
-import { StyleOverlay } from "@agent-kernel/viewer-shell";
+import { StyleOverlay } from "@codecaine-ai/agent-kernel-viewer-shell";
 
 import { AppShell, resolveNav, type NavSection } from "../AppShell";
 import { Icon } from "@/shared/_components/Icon";

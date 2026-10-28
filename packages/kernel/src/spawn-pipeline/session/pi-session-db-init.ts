@@ -3,7 +3,7 @@ import {
 	upsertPiAgentSession,
 	type KernelDatabase,
 	type RunTrigger,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 
 export interface SetupPiSessionAndRunArgs {
 	piSessionUuid: string;

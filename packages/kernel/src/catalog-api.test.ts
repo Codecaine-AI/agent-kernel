@@ -24,7 +24,7 @@ import {
 	upsertContainer,
 	upsertPiAgentSession,
 	type KernelDatabaseHandle,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	canonicalizePrompt,
 	hashPrompt,

@@ -26,7 +26,7 @@ import {
 	kernelDatabasePath,
 	openKernelDatabase,
 	updateContainerStatus,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	createKernel,
 	createPromptEditSessionService,
@@ -35,7 +35,7 @@ import {
 	type KernelInstance,
 	type LaunchedPromptEditSession,
 	type PromptEditSessionService,
-} from "@agent-kernel/kernel";
+} from "@codecaine-ai/agent-kernel";
 
 /** Launches whose tools binder awaits the matching prompt-editor spawn. */
 const pendingLaunches: LaunchedPromptEditSession[] = [];

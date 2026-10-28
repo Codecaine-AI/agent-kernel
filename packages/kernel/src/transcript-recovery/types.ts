@@ -1,4 +1,4 @@
-import type { TraceEvent } from "@agent-kernel/protocol";
+import type { TraceEvent } from "@codecaine-ai/agent-kernel-protocol";
 
 export interface PiTextBlock {
   type: "text";

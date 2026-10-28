@@ -4,12 +4,12 @@
  * Text loaders only: no filesystem, no network, so the built context is
  * byte-identical on every run and the L2 set behind section ② is never empty.
  */
-import { defineContext } from "@agent-kernel/kernel/agent-definition";
+import { defineContext } from "@codecaine-ai/agent-kernel/agent-definition";
 import type {
 	AgentContextResolver,
 	LoadedMap,
 	SpawnContext,
-} from "@agent-kernel/kernel/context";
+} from "@codecaine-ai/agent-kernel/context";
 
 const loaders: AgentContextResolver["loaders"] = [
 	{

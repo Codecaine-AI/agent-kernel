@@ -192,7 +192,7 @@
           "insert": " runs BAML through the "
         },
         {
-          "insert": "@agent-kernel/kernel/baml-engine",
+          "insert": "@codecaine-ai/agent-kernel/baml-engine",
           "attributes": {
             "code": true
           }
@@ -2008,7 +2008,7 @@
                 "insert": ", the lockfiles resolve 1.0.4, and cache warming is off. GameCube loads Pi only through "
               },
               {
-                "insert": "@agent-kernel/kernel/pi-sdk",
+                "insert": "@codecaine-ai/agent-kernel/pi-sdk",
                 "attributes": {
                   "code": true
                 }
@@ -3130,7 +3130,7 @@
           "insert": " from "
         },
         {
-          "insert": "@agent-kernel/kernel/baml-engine",
+          "insert": "@codecaine-ai/agent-kernel/baml-engine",
           "attributes": {
             "code": true
           }

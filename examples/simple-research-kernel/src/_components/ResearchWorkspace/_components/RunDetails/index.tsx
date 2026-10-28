@@ -1,4 +1,4 @@
-import type { KernelTraceSessionSummary } from "@agent-kernel/viewer-core";
+import type { KernelTraceSessionSummary } from "@codecaine-ai/agent-kernel-viewer-core";
 
 import type { ResearchHarnessInfo, ResearchRunSummary } from "@/shared/types";
 import { RunTrace } from "./_components/RunTrace";

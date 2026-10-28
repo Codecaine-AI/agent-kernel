@@ -19,7 +19,7 @@
           "shared-tools",
           "elysia-server"
         ],
-        "covers": "Implementation area page for @agent-kernel/core-harness: source layout, configuration sources, and structural decisions.",
+        "covers": "Implementation area page for @codecaine-ai/agent-kernel-core-harness: source layout, configuration sources, and structural decisions.",
         "depends-on": [
           "10-system-design/70-harness-model",
           "10-system-design/50-app-adapter-model"
@@ -73,7 +73,7 @@
       "props": {},
       "text": [
         {
-          "insert": "@agent-kernel/core-harness",
+          "insert": "@codecaine-ai/agent-kernel-core-harness",
           "attributes": {
             "code": true
           }

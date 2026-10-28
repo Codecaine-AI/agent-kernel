@@ -191,7 +191,7 @@
           "insert": " Kernel packages stay app-neutral. App code imports "
         },
         {
-          "insert": "@agent-kernel/*",
+          "insert": "@codecaine-ai/agent-kernel*",
           "attributes": {
             "code": true
           }
@@ -672,7 +672,7 @@
           "insert": " sidecar import deep, dependency-light kernel subpaths (for example "
         },
         {
-          "insert": "@agent-kernel/kernel/agent-registry/registry",
+          "insert": "@codecaine-ai/agent-kernel/agent-registry/registry",
           "attributes": {
             "code": true
           }
@@ -725,7 +725,7 @@
           "insert": " pi runs extensions and sidecars under Node via jiti. Barrel imports have broken real boots: the agent-registry barrel reaches "
         },
         {
-          "insert": "@agent-kernel/db",
+          "insert": "@codecaine-ai/agent-kernel-db",
           "attributes": {
             "code": true
           }
@@ -861,7 +861,7 @@
           "insert": " Folding either leg into "
         },
         {
-          "insert": "@agent-kernel/kernel",
+          "insert": "@codecaine-ai/agent-kernel",
           "attributes": {
             "code": true
           }
@@ -997,7 +997,7 @@
           [
             [
               {
-                "insert": "@agent-kernel/core-harness",
+                "insert": "@codecaine-ai/agent-kernel-core-harness",
                 "attributes": {
                   "code": true
                 }
@@ -1031,7 +1031,7 @@
           [
             [
               {
-                "insert": "@agent-kernel/tui",
+                "insert": "@codecaine-ai/agent-kernel-tui",
                 "attributes": {
                   "code": true
                 }

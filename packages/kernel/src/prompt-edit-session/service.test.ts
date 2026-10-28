@@ -15,7 +15,7 @@ import {
 	kernelDatabasePath,
 	openKernelDatabase,
 	type KernelDatabaseHandle,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	canonicalizePrompt,
 	PROMPT_KIT_SCHEMA_VERSION,

@@ -1,4 +1,4 @@
-import { newSpanId, type TraceEventIds } from "@agent-kernel/protocol";
+import { newSpanId, type TraceEventIds } from "@codecaine-ai/agent-kernel-protocol";
 
 import {
 	createSpawnLifecycleEmitter,

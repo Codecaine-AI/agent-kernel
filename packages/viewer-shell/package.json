@@ -1,5 +1,5 @@
 {
-  "name": "@agent-kernel/viewer-shell",
+  "name": "@codecaine-ai/agent-kernel-viewer-shell",
   "version": "0.0.2",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
     "./styles": "./src/style/style-system.css"
   },
   "dependencies": {
-    "@agent-kernel/viewer-core": "workspace:*",
-    "@agent-kernel/viewer-ui": "workspace:*",
+    "@codecaine-ai/agent-kernel-viewer-core": "workspace:*",
+    "@codecaine-ai/agent-kernel-viewer-ui": "workspace:*",
     "@evilmartians/agent-prism-types": "^0.0.9",
     "react": "19.2.3",
     "react-dom": "19.2.3"

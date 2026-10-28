@@ -5,7 +5,7 @@
  *
  * Id compatibility with backfill: the transcript-recovery EventMapper derives event ids
  * from (piSessionUuid, JSONL entry id, ordinal, type) via the shared
- * `piEntryEventId` helper in @agent-kernel/protocol. This emitter derives the
+ * `piEntryEventId` helper in @codecaine-ai/agent-kernel-protocol. This emitter derives the
  * IDENTICAL ids by recovering each JSONL entry id at emit time, so a later
  * backfill of the same session inserts zero duplicate rows:
  *
@@ -60,7 +60,7 @@ import {
 	type RunTraceEventIds,
 	type TraceEvent,
 	type TurnUsage,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import type { TraceWriterSink } from "../subagents/types";
 import type { KernelAgentSessionEventLike } from "../spawn-pipeline/types";

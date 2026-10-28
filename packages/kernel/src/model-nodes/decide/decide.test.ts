@@ -13,7 +13,7 @@ import {
 	getTraceEventsForRun,
 	upsertContainer,
 	type KernelDatabase,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import {
 	kernelNodeEventId,
 	type CallEndData,
@@ -21,7 +21,7 @@ import {
 	type DecisionMadeData,
 	type PiRequestSnapshotData,
 	type PiTurnEndData,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import type { CreateKernelConfig } from "../../index";
 import { createModelNodeContext, type ModelNodeLogger } from "../context";

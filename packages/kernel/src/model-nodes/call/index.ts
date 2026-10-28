@@ -31,8 +31,8 @@
  * operation deadline fired, the call ends aborted (kind "aborted" or
  * "timeout") even if the engine still returned a value.
  */
-import { getTraceBlob, type TraceBlobInput } from "@agent-kernel/db";
-import type { CallEndData } from "@agent-kernel/protocol";
+import { getTraceBlob, type TraceBlobInput } from "@codecaine-ai/agent-kernel-db";
+import type { CallEndData } from "@codecaine-ai/agent-kernel-protocol";
 import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
 
 import { jsonBlob, textBlob } from "../blobs";

@@ -5,8 +5,8 @@
  * of 0 (Pi reports 0 for Jev) or no cost at all is "unknown", so the
  * kernel's price table fills it; an unknown model leaves costEstimate unset.
  */
-import type { UsageDelta } from "@agent-kernel/db";
-import type { TurnUsage } from "@agent-kernel/protocol";
+import type { UsageDelta } from "@codecaine-ai/agent-kernel-db";
+import type { TurnUsage } from "@codecaine-ai/agent-kernel-protocol";
 
 import { applyPriceEstimate, type ModelPriceTable } from "../emitter";
 

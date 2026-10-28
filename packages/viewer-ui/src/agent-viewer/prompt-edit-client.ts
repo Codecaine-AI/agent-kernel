@@ -32,7 +32,7 @@ import {
 	type PromptEditSessionReviewFailure,
 	type PromptEditSessionStateDto,
 	type PromptEditSessionUndoSuccess,
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 type PromptEditFetch = (
 	input: string,

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	buildTraceSpans,
 	type KernelTraceSessionDetail
-} from "@agent-kernel/viewer-core";
+} from "@codecaine-ai/agent-kernel-viewer-core";
 
 import { AgentsWorkspace } from "./_components/AgentsWorkspace";
 import { ResearchWorkspace } from "./_components/ResearchWorkspace";

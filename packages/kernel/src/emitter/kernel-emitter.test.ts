@@ -14,7 +14,7 @@ import {
 	upsertContainer,
 	upsertPromotableTraceEvent,
 	type KernelDatabase,
-} from "@agent-kernel/db";
+} from "@codecaine-ai/agent-kernel-db";
 import { EventMapper, runBackfill } from "../transcript-recovery";
 import type { PiEvent } from "../transcript-recovery";
 import {
@@ -22,7 +22,7 @@ import {
 	piEntryEventId,
 	type TraceEvent,
 	type TurnUsage,
-} from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
 
 import { runTraceDoctor } from "../doctor";
 import { setupPiSessionAndRun } from "../spawn-pipeline/session/pi-session-db-init";

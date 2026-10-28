@@ -1,4 +1,4 @@
-import type { KernelTraceSessionSummary } from "@agent-kernel/viewer-core";
+import type { KernelTraceSessionSummary } from "@codecaine-ai/agent-kernel-viewer-core";
 
 import { formatTraceDate } from "@/shared/trace-ui";
 import type { ResearchRunSummary } from "@/shared/types";

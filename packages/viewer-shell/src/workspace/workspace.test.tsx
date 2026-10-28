@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { createElement as h } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { TraceSpan } from "@evilmartians/agent-prism-types";
-import { DetailShell } from "@agent-kernel/viewer-ui";
+import { DetailShell } from "@codecaine-ai/agent-kernel-viewer-ui";
 
 import {
 	KernelTraceWorkspace,

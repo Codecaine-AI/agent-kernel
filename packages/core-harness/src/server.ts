@@ -8,8 +8,8 @@
  */
 import { join } from "node:path";
 
-import { createKernelCatalogApi } from "@agent-kernel/kernel/catalog-api";
-import { createKernelTraceReadApi } from "@agent-kernel/kernel/read-api";
+import { createKernelCatalogApi } from "@codecaine-ai/agent-kernel/catalog-api";
+import { createKernelTraceReadApi } from "@codecaine-ai/agent-kernel/read-api";
 import { sql } from "drizzle-orm";
 import { Elysia } from "elysia";
 

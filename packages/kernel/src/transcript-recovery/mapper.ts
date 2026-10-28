@@ -4,7 +4,7 @@
  * Recovery role: Pi's JSONL is the durable record of a session; this maps its
  * entries back into trace rows for disaster rebuild, importing externally-run
  * sessions, and schema re-derivation. It shares id derivation and usage
- * extraction with the live kernel emitter via @agent-kernel/protocol, so both
+ * extraction with the live kernel emitter via @codecaine-ai/agent-kernel-protocol, so both
  * paths agree on event ids.
  *
  * Identity: `containerId` (required on the envelope) and optional `runId`
@@ -33,8 +33,8 @@ import {
   piEntryEventId,
   turnUsageFromPiMessage,
   TraceLevel,
-} from "@agent-kernel/protocol";
-import type { TraceEvent, TraceEventIds, TurnUsage } from "@agent-kernel/protocol";
+} from "@codecaine-ai/agent-kernel-protocol";
+import type { TraceEvent, TraceEventIds, TurnUsage } from "@codecaine-ai/agent-kernel-protocol";
 import { nestedCallRecordEvents, nestedCallRecordsOf } from "./nested-calls";
 import type { MapperResult, PiEvent, PiMessage, PiMessageEvent } from "./types";
 
@@ -68,7 +68,7 @@ const DEFAULT_MAPPER_OPTIONS = Object.freeze({
 /**
  * Deterministic UUID-shaped id from a seed string (sha-256 truncated).
  * Replaying the same JSONL entry always produces the same event id.
- * Re-exported from @agent-kernel/protocol — the kernel's in-process emitter
+ * Re-exported from @codecaine-ai/agent-kernel-protocol — the kernel's in-process emitter
  * derives the same ids so live emission + backfill never duplicate rows.
  */
 export { deterministicEventId };

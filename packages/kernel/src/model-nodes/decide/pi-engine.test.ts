@@ -6,8 +6,8 @@
  */
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "bun:test";
 import { sql } from "drizzle-orm";
-import { getAgentRun, getTraceBlob, getTraceEventsForRun, type KernelDatabase } from "@agent-kernel/db";
-import type { CallEndData, CallStartData } from "@agent-kernel/protocol";
+import { getAgentRun, getTraceBlob, getTraceEventsForRun, type KernelDatabase } from "@codecaine-ai/agent-kernel-db";
+import type { CallEndData, CallStartData } from "@codecaine-ai/agent-kernel-protocol";
 import { createModels } from "@earendil-works/pi-ai";
 import { ModelRegistry } from "@earendil-works/pi-coding-agent";
 

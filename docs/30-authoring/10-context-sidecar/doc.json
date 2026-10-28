@@ -184,7 +184,7 @@
       },
       "text": [
         {
-          "insert": "import { defineContext } from \"@agent-kernel/kernel/agent-definition\";\nimport type {\n  AgentContextResolver,\n  LoadedMap,\n  SpawnContext,\n} from \"@agent-kernel/kernel/context\";\n\nconst loaders: AgentContextResolver[\"loaders\"] = [\n  { kind: \"file\", path: \"reference/style-guide.md\" },\n  {\n    kind: \"directory\",\n    pattern: \"reference/examples/**/*.md\",\n    extensions: [\".md\"],\n  },\n];\n\nfunction assemble(loaded: LoadedMap, ctx: SpawnContext): string {\n  return [\n    \"<agent_reference>\",\n    `<agent_name>${ctx.agentName}</agent_name>`,\n    ...loaded.map((input) => input.content),\n    \"</agent_reference>\",\n  ].join(\"\\n\\n\");\n}\n\nexport const context = defineContext({ loaders, assemble });\nexport default context;"
+          "insert": "import { defineContext } from \"@codecaine-ai/agent-kernel/agent-definition\";\nimport type {\n  AgentContextResolver,\n  LoadedMap,\n  SpawnContext,\n} from \"@codecaine-ai/agent-kernel/context\";\n\nconst loaders: AgentContextResolver[\"loaders\"] = [\n  { kind: \"file\", path: \"reference/style-guide.md\" },\n  {\n    kind: \"directory\",\n    pattern: \"reference/examples/**/*.md\",\n    extensions: [\".md\"],\n  },\n];\n\nfunction assemble(loaded: LoadedMap, ctx: SpawnContext): string {\n  return [\n    \"<agent_reference>\",\n    `<agent_name>${ctx.agentName}</agent_name>`,\n    ...loaded.map((input) => input.content),\n    \"</agent_reference>\",\n  ].join(\"\\n\\n\");\n}\n\nexport const context = defineContext({ loaders, assemble });\nexport default context;"
         }
       ],
       "children": []
