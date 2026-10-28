@@ -160,7 +160,8 @@ export function createPiDecisionEngine(options: PiDecisionEngineOptions): PiDeci
 		// Pinning: classify() does not require a listed id.
 		const sibling = models.getModelsOfType("classifier", split.provider)[0];
 		if (!sibling) return undefined;
-		const clone = { ...sibling, id: split.modelId };
+		// Spreading a model widens its compat union, so the clone keeps the sibling's model type.
+		const clone = { ...sibling, id: split.modelId } as ClassifierModel<string>;
 		clones.set(ref, clone);
 		return clone;
 	};
