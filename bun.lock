@@ -13,15 +13,15 @@
       },
     },
     "examples/simple-research-kernel": {
-      "name": "@agent-kernel/example-simple-research-kernel",
+      "name": "@codecaine-ai/agent-kernel-example-simple-research-kernel",
       "version": "0.0.2",
       "dependencies": {
-        "@agent-kernel/db": "workspace:*",
-        "@agent-kernel/kernel": "workspace:*",
-        "@agent-kernel/protocol": "workspace:*",
-        "@agent-kernel/viewer-core": "workspace:*",
-        "@agent-kernel/viewer-shell": "workspace:*",
-        "@agent-kernel/viewer-ui": "workspace:*",
+        "@codecaine-ai/agent-kernel-db": "workspace:*",
+        "@codecaine-ai/agent-kernel": "workspace:*",
+        "@codecaine-ai/agent-kernel-protocol": "workspace:*",
+        "@codecaine-ai/agent-kernel-viewer-core": "workspace:*",
+        "@codecaine-ai/agent-kernel-viewer-shell": "workspace:*",
+        "@codecaine-ai/agent-kernel-viewer-ui": "workspace:*",
         "@codecaine-ai/prompt-kit": "git+https://github.com/Codecaine-AI/prompt-kit.git#cf9e9aa7333739f911ea5b64fcd1d8a760e5f511",
         "@earendil-works/pi-ai": "^0.82.1",
         "@earendil-works/pi-coding-agent": "^0.82.1",
@@ -43,10 +43,10 @@
       },
     },
     "packages/db": {
-      "name": "@agent-kernel/db",
+      "name": "@codecaine-ai/agent-kernel-db",
       "version": "0.0.2",
       "dependencies": {
-        "@agent-kernel/protocol": "workspace:*",
+        "@codecaine-ai/agent-kernel-protocol": "workspace:*",
         "drizzle-orm": "^0.45.0",
       },
       "devDependencies": {
@@ -54,15 +54,15 @@
       },
     },
     "packages/kernel": {
-      "name": "@agent-kernel/kernel",
+      "name": "@codecaine-ai/agent-kernel",
       "version": "0.0.2",
       "bin": {
         "agent-kernel-doctor": "./src/doctor-cli.ts",
         "agent-kernel-backfill": "./src/transcript-recovery/backfill-cli.ts",
       },
       "dependencies": {
-        "@agent-kernel/db": "workspace:*",
-        "@agent-kernel/protocol": "workspace:*",
+        "@codecaine-ai/agent-kernel-db": "workspace:*",
+        "@codecaine-ai/agent-kernel-protocol": "workspace:*",
         "@codecaine-ai/prompt-kit": "git+https://github.com/Codecaine-AI/prompt-kit.git#cf9e9aa7333739f911ea5b64fcd1d8a760e5f511",
         "@codecaine-ai/prompt-kit-server": "workspace:*",
         "@earendil-works/pi-ai": "^0.82.1",
@@ -75,17 +75,17 @@
       },
     },
     "packages/protocol": {
-      "name": "@agent-kernel/protocol",
+      "name": "@codecaine-ai/agent-kernel-protocol",
       "version": "0.0.2",
       "devDependencies": {
         "@types/bun": "latest",
       },
     },
     "packages/viewer-core": {
-      "name": "@agent-kernel/viewer-core",
+      "name": "@codecaine-ai/agent-kernel-viewer-core",
       "version": "0.0.2",
       "dependencies": {
-        "@agent-kernel/protocol": "workspace:*",
+        "@codecaine-ai/agent-kernel-protocol": "workspace:*",
         "@codecaine-ai/prompt-kit": "git+https://github.com/Codecaine-AI/prompt-kit.git#cf9e9aa7333739f911ea5b64fcd1d8a760e5f511",
         "@evilmartians/agent-prism-types": "^0.0.9",
         "@tanstack/react-query": "^5.99.0",
@@ -95,11 +95,11 @@
       },
     },
     "packages/viewer-shell": {
-      "name": "@agent-kernel/viewer-shell",
+      "name": "@codecaine-ai/agent-kernel-viewer-shell",
       "version": "0.0.2",
       "dependencies": {
-        "@agent-kernel/viewer-core": "workspace:*",
-        "@agent-kernel/viewer-ui": "workspace:*",
+        "@codecaine-ai/agent-kernel-viewer-core": "workspace:*",
+        "@codecaine-ai/agent-kernel-viewer-ui": "workspace:*",
         "@evilmartians/agent-prism-types": "^0.0.9",
         "react": "19.2.3",
         "react-dom": "19.2.3",
@@ -111,11 +111,11 @@
       },
     },
     "packages/viewer-ui": {
-      "name": "@agent-kernel/viewer-ui",
+      "name": "@codecaine-ai/agent-kernel-viewer-ui",
       "version": "0.0.2",
       "dependencies": {
-        "@agent-kernel/protocol": "workspace:*",
-        "@agent-kernel/viewer-core": "workspace:*",
+        "@codecaine-ai/agent-kernel-protocol": "workspace:*",
+        "@codecaine-ai/agent-kernel-viewer-core": "workspace:*",
         "@codecaine-ai/prompt-kit": "link:@codecaine-ai/prompt-kit",
         "@evilmartians/agent-prism-data": "^0.0.9",
         "@evilmartians/agent-prism-types": "^0.0.9",
@@ -134,19 +134,19 @@
     },
   },
   "packages": {
-    "@agent-kernel/db": ["@agent-kernel/db@workspace:packages/db"],
+    "@codecaine-ai/agent-kernel-db": ["@codecaine-ai/agent-kernel-db@workspace:packages/db"],
 
-    "@agent-kernel/example-simple-research-kernel": ["@agent-kernel/example-simple-research-kernel@workspace:examples/simple-research-kernel"],
+    "@codecaine-ai/agent-kernel-example-simple-research-kernel": ["@codecaine-ai/agent-kernel-example-simple-research-kernel@workspace:examples/simple-research-kernel"],
 
-    "@agent-kernel/kernel": ["@agent-kernel/kernel@workspace:packages/kernel"],
+    "@codecaine-ai/agent-kernel": ["@codecaine-ai/agent-kernel@workspace:packages/kernel"],
 
-    "@agent-kernel/protocol": ["@agent-kernel/protocol@workspace:packages/protocol"],
+    "@codecaine-ai/agent-kernel-protocol": ["@codecaine-ai/agent-kernel-protocol@workspace:packages/protocol"],
 
-    "@agent-kernel/viewer-core": ["@agent-kernel/viewer-core@workspace:packages/viewer-core"],
+    "@codecaine-ai/agent-kernel-viewer-core": ["@codecaine-ai/agent-kernel-viewer-core@workspace:packages/viewer-core"],
 
-    "@agent-kernel/viewer-shell": ["@agent-kernel/viewer-shell@workspace:packages/viewer-shell"],
+    "@codecaine-ai/agent-kernel-viewer-shell": ["@codecaine-ai/agent-kernel-viewer-shell@workspace:packages/viewer-shell"],
 
-    "@agent-kernel/viewer-ui": ["@agent-kernel/viewer-ui@workspace:packages/viewer-ui"],
+    "@codecaine-ai/agent-kernel-viewer-ui": ["@codecaine-ai/agent-kernel-viewer-ui@workspace:packages/viewer-ui"],
 
     "@alloc/quick-lru": ["@alloc/quick-lru@5.2.0", "", {}, "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw=="],
 
@@ -844,11 +844,11 @@
 
     "zod-to-json-schema": ["zod-to-json-schema@3.25.2", "", { "peerDependencies": { "zod": "^3.25.28 || ^4" } }, "sha512-O/PgfnpT1xKSDeQYSCfRI5Gy3hPf91mKVDuYLUHZJMiDFptvP41MSnWofm8dnCm0256ZNfZIM7DSzuSMAFnjHA=="],
 
-    "@agent-kernel/example-simple-research-kernel/@codecaine-ai/prompt-kit": ["@codecaine-ai/prompt-kit@github:Codecaine-AI/prompt-kit#cf9e9aa", {}, "Codecaine-AI-prompt-kit-cf9e9aa", "sha512-YlnlLFKp8kAKZw5WnbFTA4FAooaaV1Kwhtchxz2sCUbVpDRdBytUsbT7dXaSXjb0rJBBX7gk2zSA+pquixcr0w=="],
+    "@codecaine-ai/agent-kernel-example-simple-research-kernel/@codecaine-ai/prompt-kit": ["@codecaine-ai/prompt-kit@github:Codecaine-AI/prompt-kit#cf9e9aa", {}, "Codecaine-AI-prompt-kit-cf9e9aa", "sha512-YlnlLFKp8kAKZw5WnbFTA4FAooaaV1Kwhtchxz2sCUbVpDRdBytUsbT7dXaSXjb0rJBBX7gk2zSA+pquixcr0w=="],
 
-    "@agent-kernel/kernel/@codecaine-ai/prompt-kit": ["@codecaine-ai/prompt-kit@github:Codecaine-AI/prompt-kit#cf9e9aa", {}, "Codecaine-AI-prompt-kit-cf9e9aa", "sha512-YlnlLFKp8kAKZw5WnbFTA4FAooaaV1Kwhtchxz2sCUbVpDRdBytUsbT7dXaSXjb0rJBBX7gk2zSA+pquixcr0w=="],
+    "@codecaine-ai/agent-kernel/@codecaine-ai/prompt-kit": ["@codecaine-ai/prompt-kit@github:Codecaine-AI/prompt-kit#cf9e9aa", {}, "Codecaine-AI-prompt-kit-cf9e9aa", "sha512-YlnlLFKp8kAKZw5WnbFTA4FAooaaV1Kwhtchxz2sCUbVpDRdBytUsbT7dXaSXjb0rJBBX7gk2zSA+pquixcr0w=="],
 
-    "@agent-kernel/viewer-core/@codecaine-ai/prompt-kit": ["@codecaine-ai/prompt-kit@github:Codecaine-AI/prompt-kit#cf9e9aa", {}, "Codecaine-AI-prompt-kit-cf9e9aa", "sha512-YlnlLFKp8kAKZw5WnbFTA4FAooaaV1Kwhtchxz2sCUbVpDRdBytUsbT7dXaSXjb0rJBBX7gk2zSA+pquixcr0w=="],
+    "@codecaine-ai/agent-kernel-viewer-core/@codecaine-ai/prompt-kit": ["@codecaine-ai/prompt-kit@github:Codecaine-AI/prompt-kit#cf9e9aa", {}, "Codecaine-AI-prompt-kit-cf9e9aa", "sha512-YlnlLFKp8kAKZw5WnbFTA4FAooaaV1Kwhtchxz2sCUbVpDRdBytUsbT7dXaSXjb0rJBBX7gk2zSA+pquixcr0w=="],
 
     "@aws-sdk/client-bedrock-runtime/@smithy/node-http-handler": ["@smithy/node-http-handler@4.8.1", "", { "dependencies": { "@smithy/core": "^3.25.1", "@smithy/types": "^4.15.0", "tslib": "^2.6.2" } }, "sha512-emtXvoky671puri18ETf64AFIQUGIEA093F2drXpBgB0OGnBLjcwNR3CA2mYu62IAqNsS56xa5lnTxAgPq7cjw=="],
 
