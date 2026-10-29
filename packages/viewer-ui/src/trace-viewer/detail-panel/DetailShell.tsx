@@ -625,8 +625,10 @@ export function DetailShellFrame({
 					? { "data-detail-active-tab": resolvedActiveTabId }
 					: {})}
 				{...(hasTurnSections ? { "data-turn-view": "sections" } : {})}
+				// A scroll container: a keyboard user focuses it to scroll a body with no controls.
+				tabIndex={0}
 				className={cn(
-					"min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto",
+					"min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring",
 					!orderedTabs && "space-y-4 p-4",
 				)}
 			>

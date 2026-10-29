@@ -247,9 +247,11 @@ function GutterSource({
 			data-doc-body=""
 			data-doc-gutter=""
 			{...(maxHeight ? { "data-doc-scroll": "" } : {})}
+			// A scroll container: a keyboard user focuses it to scroll long lines.
+			tabIndex={0}
 			className={cn(
 				PROMPT_EDITOR_ROOT_CLASS,
-				"min-w-0 max-w-full overflow-x-auto whitespace-pre",
+				"min-w-0 max-w-full overflow-x-auto whitespace-pre focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring",
 				maxHeight && "overflow-y-auto",
 			)}
 			style={{
