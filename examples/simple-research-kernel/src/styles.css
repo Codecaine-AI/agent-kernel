@@ -110,7 +110,8 @@ body {
 	50% { opacity: 0.5; }
 }
 .tk-pulse {
-	animation: tk-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+	/* 1.8s: a slow, calm beat built from the large motion step. */
+	animation: tk-pulse calc(var(--ds-motion-duration-large) * 4.5) var(--ds-motion-easing-standard) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
