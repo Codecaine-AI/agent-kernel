@@ -24,8 +24,8 @@ function cx(...parts: Array<string | false | null | undefined>): string {
  * Every level shows its NAME (Conversation / Tools / Full / Debug) with the
  * "L#" marker as a small prefix, so the control is legible without hovering.
  * The current level is emphasized with the theme's primary (signal green);
- * levels below the current one keep a faint filled tick so the cumulative
- * "adds detail" semantics still read. Descriptions surface via title tooltips.
+ * every other marker keeps the muted text color, which holds 4.5:1 contrast.
+ * Descriptions surface via title tooltips.
  */
 export function TraceLevelSlider({
 	levels,
@@ -44,7 +44,6 @@ export function TraceLevelSlider({
 		>
 			{levels.map((level, idx) => {
 				const isCurrent = idx === value;
-				const isIncluded = idx <= value;
 				return (
 					<button
 						key={level.marker}
@@ -65,11 +64,7 @@ export function TraceLevelSlider({
 							aria-hidden="true"
 							className={cx(
 								"text-[length:var(--ds-font-size-micro)] font-bold uppercase tabular-nums tracking-[var(--ds-letter-spacing-micro)]",
-								isCurrent
-									? "text-status-success"
-									: isIncluded
-										? "text-muted-foreground"
-										: "text-muted-foreground/70",
+								isCurrent ? "text-status-success" : "text-muted-foreground",
 							)}
 						>
 							{level.marker}
