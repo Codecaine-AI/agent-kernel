@@ -110,9 +110,11 @@ function parseRows(markup: string): RenderedRow[] {
 	const chunks = markup.split(/(?=data-depth=")/g).slice(1);
 	for (const chunk of chunks) {
 		const head = chunk.match(
-			/^data-depth="(\d+)"[^>]*style="[^"]*grid-template-columns:(\d+(?:\.\d+)?)px[^"]*"[^>]*aria-label="[^"]*span card for ([^"]*) at level \d+"/,
+			/^data-depth="(\d+)"[^>]*style="[^"]*grid-template-columns:(\d+(?:\.\d+)?)px[^"]*"/,
 		);
-		if (!head) continue;
+		// The label sits on the row's card cell, which renders before any descendant row.
+		const label = chunk.match(/aria-label="[^"]*span card for ([^"]*) at level \d+"/);
+		if (!head || !label) continue;
 		const connectors: string[] = [];
 		const connectorClasses: string[] = [];
 		for (const cell of chunk.matchAll(
@@ -125,7 +127,7 @@ function parseRows(markup: string): RenderedRow[] {
 		rows.push({
 			depth: Number.parseInt(head[1]!, 10),
 			columnWidth: Number.parseFloat(head[2]!),
-			label: head[3]!,
+			label: label[1]!,
 			connectors,
 			connectorClasses,
 			slot: slot?.[1] ?? null,
