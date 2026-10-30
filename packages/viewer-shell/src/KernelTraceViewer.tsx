@@ -234,7 +234,7 @@ export function KernelTraceViewer({
 							<button
 								type="button"
 								onClick={toggleExpandAll}
-								className="ml-auto h-8 rounded-[var(--ds-radius-base)] border border-border px-2 text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground transition-colors hover:border-status-success-border hover:text-status-success"
+								className="ml-auto rounded-[var(--ds-radius-base)] border border-border px-2 py-1.5 text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground transition-colors hover:border-status-success-border hover:text-status-success"
 							>
 								{allExpanded ? "Collapse All" : "Expand All"}
 							</button>
