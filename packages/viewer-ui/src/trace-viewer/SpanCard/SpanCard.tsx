@@ -546,7 +546,6 @@ export const SpanCard: FC<SpanCardProps> = ({
             role="button"
             aria-pressed={state.isSelected}
             aria-describedby={`span-card-desc-${data.id}`}
-            aria-expanded={state.hasChildren ? state.isExpanded : undefined}
             aria-label={`${state.isSelected ? "Selected" : "Not selected"} span card for ${data.title} at level ${level}`}
           >
             {spanDisplay?.type === "user" && (
