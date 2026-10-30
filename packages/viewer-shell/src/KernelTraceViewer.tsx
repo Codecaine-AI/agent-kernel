@@ -224,7 +224,7 @@ export function KernelTraceViewer({
 						<div // Shared panel-header surface: bg-background over border-b border-border (the detail header's original dark base surface) —
 						// the SAME token pair the workspace drill-in header uses (and the
 						// detail panel header should adopt) so panel tops color-match.
-						className="flex h-12 shrink-0 items-center gap-4 border-b border-border bg-background px-3">
+						className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-3">
 							<TraceLevelSlider
 								levels={TRACE_LEVELS}
 								value={level}
@@ -234,7 +234,7 @@ export function KernelTraceViewer({
 							<button
 								type="button"
 								onClick={toggleExpandAll}
-								className="ml-auto rounded-[var(--ds-radius-base)] border border-border px-2 py-0.5 text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground transition-colors hover:border-status-success-border hover:text-status-success"
+								className="ml-auto h-8 rounded-[var(--ds-radius-base)] border border-border px-2 text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground transition-colors hover:border-status-success-border hover:text-status-success"
 							>
 								{allExpanded ? "Collapse All" : "Expand All"}
 							</button>
