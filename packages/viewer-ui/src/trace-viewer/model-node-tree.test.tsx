@@ -141,6 +141,13 @@ describe("TreeView model-node rows", () => {
 			expect(count(`data-span-row="${id}"`)).toBe(1);
 		}
 		expect(markup).toMatch(/<li role="treeitem"[^>]*data-span-id="pi:K"/);
-		expect(markup).toMatch(/<div[^>]*data-span-row="pi:K"[^>]*role="button"/);
+		// The row's button is its card cell, a sibling of the expand toggle (never its parent):
+		// the row element itself is no button, and the toggle closes before the card cell opens.
+		const row = rowMarkup("pi:K");
+		expect(row.slice(0, row.indexOf(">"))).not.toContain('role="button"');
+		const toggleEnd = row.indexOf("</button>", row.indexOf('aria-label="Collapse '));
+		const card = row.indexOf('role="button"');
+		expect(toggleEnd).toBeGreaterThan(0);
+		expect(card).toBeGreaterThan(toggleEnd);
 	});
 });

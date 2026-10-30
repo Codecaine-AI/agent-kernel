@@ -4,7 +4,9 @@ import { CARD_LINE_META, CARD_TYPE_META } from "../../variants/card-type";
 /** Status tones from the host contract's status roles; neutral is the code-chip fill. */
 const TONE_CLASS: Record<NodeChipTone, string> = {
 	success: "bg-status-success-fill text-status-success",
-	danger: "bg-destructive/10 text-destructive",
+	// The host contract has no danger fill: the design-system soft red is opaque, so the chip keeps
+	// 4.5:1 on any row tint (10% of the text color over a tinted row fell to 3.9:1).
+	danger: "bg-[var(--ds-color-status-danger-soft)] text-destructive",
 	warning: "bg-status-warning-fill text-status-warning",
 	neutral: "bg-agentprism-code-base text-agentprism-muted-foreground",
 };

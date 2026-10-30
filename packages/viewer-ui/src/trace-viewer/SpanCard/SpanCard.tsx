@@ -477,14 +477,8 @@ export const SpanCard: FC<SpanCardProps> = ({
             backgroundPosition: "top",
             backgroundRepeat: "no-repeat",
           }}
+          // A click anywhere on the row selects; the toggle stops its own click.
           onClick={eventHandlers.handleCardClick}
-          onKeyDown={eventHandlers.handleKeyDown}
-          tabIndex={0}
-          role="button"
-          aria-pressed={state.isSelected}
-          aria-describedby={`span-card-desc-${data.id}`}
-          aria-expanded={state.hasChildren ? state.isExpanded : undefined}
-          aria-label={`${state.isSelected ? "Selected" : "Not selected"} span card for ${data.title} at level ${level}`}
         >
           <div className="flex flex-nowrap self-stretch">
             {connectors.map((connector, idx) => (
@@ -539,12 +533,20 @@ export const SpanCard: FC<SpanCardProps> = ({
               </div>
             )}
           </div>
+          {/* The card cell is the row's button, not the whole row, so the
+              expand toggle beside it is never nested inside a button. */}
           <div
             className={cn(
               "relative flex min-w-0 items-center",
               "min-h-6 w-full cursor-pointer",
               level !== 0 && "pl-1",
             )}
+            onKeyDown={eventHandlers.handleKeyDown}
+            tabIndex={0}
+            role="button"
+            aria-pressed={state.isSelected}
+            aria-describedby={`span-card-desc-${data.id}`}
+            aria-label={`${state.isSelected ? "Selected" : "Not selected"} span card for ${data.title} at level ${level}`}
           >
             {spanDisplay?.type === "user" && (
               <UserMessageCard content={spanDisplay.content} chrome={chrome} />
