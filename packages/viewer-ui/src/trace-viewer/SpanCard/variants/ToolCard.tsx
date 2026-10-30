@@ -19,7 +19,7 @@ export const ToolCard: FC<ToolCardProps> = ({ name, detail, chrome }) => (
     style={chrome.style}
     label={chrome.label}
   >
-    <span style={CARD_LINE_LABEL} className={`${CARD_TYPE_LABEL} font-medium`}>{name}</span>
+    <span title={name} style={CARD_LINE_LABEL} className={`${CARD_TYPE_LABEL} max-w-full shrink-0 truncate font-medium`}>{name}</span>
     {detail && (
       <code
         style={CARD_LINE_META}
