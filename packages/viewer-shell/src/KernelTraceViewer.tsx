@@ -188,6 +188,7 @@ export function KernelTraceViewer({
 		[iconSide, iconStyle],
 	);
 
+	const expandAllLabel = allExpanded ? "Collapse all spans" : "Expand all spans";
 	const toggleExpandAll = () => {
 		if (allExpanded) {
 			setExpandedSpansIds([]);
@@ -231,12 +232,30 @@ export function KernelTraceViewer({
 								onChange={setLevel}
 							/>
 							{plugins?.treeToolbarTrailing}
+							{/* An icon, so the level names keep the width in a narrow tree pane.
+							    py-1.5 around the 16px icon matches the 30px level tabs. */}
 							<button
 								type="button"
 								onClick={toggleExpandAll}
-								className="ml-auto rounded-[var(--ds-radius-base)] border border-border px-2 py-1.5 text-[length:var(--ds-font-size-micro)] uppercase tracking-[var(--ds-letter-spacing-micro-wide)] text-muted-foreground transition-colors hover:border-status-success-border hover:text-status-success"
+								aria-label={expandAllLabel}
+								title={expandAllLabel}
+								className="ml-auto shrink-0 rounded-[var(--ds-radius-base)] border border-border p-1.5 text-muted-foreground transition-colors hover:border-status-success-border hover:text-status-success"
 							>
-								{allExpanded ? "Collapse All" : "Expand All"}
+								<svg
+									aria-hidden="true"
+									focusable="false"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth={2}
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									className="block size-4"
+								>
+									{/* lucide chevrons-down-up (collapse) and chevrons-up-down (expand) */}
+									<path d={allExpanded ? "m7 20 5-5 5 5" : "m7 15 5 5 5-5"} />
+									<path d={allExpanded ? "m7 4 5 5 5-5" : "m7 9 5-5 5 5"} />
+								</svg>
 							</button>
 						</div>
 						<div className="min-h-0 flex-1 overflow-auto">
