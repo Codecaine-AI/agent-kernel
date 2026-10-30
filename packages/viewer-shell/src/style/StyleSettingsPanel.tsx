@@ -340,7 +340,7 @@ function ColorsTab({
 						);
 					})}
 				</div>
-				<p className="mt-2 text-[length:var(--ds-font-size-micro)] leading-[var(--ds-line-height-ui)] text-muted-foreground">
+				<p className="mt-2 text-[length:var(--ds-font-size-ui-xs)] leading-[var(--ds-line-height-ui)] text-muted-foreground">
 					Both themes use the design-system colors this app loads.
 				</p>
 			</PanelSection>
