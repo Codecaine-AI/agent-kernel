@@ -3,7 +3,7 @@
     "codex-lb": {
       "baseUrl": "http://100.104.171.122:8793/backend-api/codex",
       "api": "openai-responses",
-      "apiKey": "!cat /Users/Ford/.config/token-burner/mini-macbook-key",
+      "apiKey": "!cat /Users/Ford/.config/token-gateway/mini-macbook-key",
       "models": [
         {
           "id": "gpt-5.5",
