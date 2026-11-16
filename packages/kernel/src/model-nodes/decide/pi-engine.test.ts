@@ -11,7 +11,15 @@ import type { CallEndData, CallStartData } from "@codecaine-ai/agent-kernel-prot
 import { createModels } from "@earendil-works/pi-ai";
 import { ModelRegistry } from "@earendil-works/pi-coding-agent";
 
+import { runWithContext } from "../../run-context";
 import { createModelNodeContext } from "../context";
+import {
+	realFetch,
+	startTraceHeaderStub,
+	TRACE_HEADERS,
+	TRACE_TAGS_FIXTURE,
+	type TraceHeaderStub,
+} from "../__fixtures__/trace-header-stub";
 import { createFakeClassifier, createFakeClassifierRegistry } from "../__fixtures__/fake-classifier";
 import { createTempKernel, disableNetwork, type TempKernel } from "../__fixtures__/temp-kernel";
 import { SHORT_CREDENTIAL_MESSAGE } from "../pi-models";
@@ -615,5 +623,34 @@ describe("retries and the operation deadline", () => {
 		expect(abandoned.map((e) => e.type)).toEqual(["call_start", "call_end"]);
 		expect((abandoned[1]!.eventData as CallEndData).status).toBe("aborted");
 		await expectDoctorOk(temp.tempDb.db);
+	});
+});
+
+describe("decide trace headers", () => {
+	let stub: TraceHeaderStub;
+	afterEach(() => stub.stop());
+
+	test("a decide inside a tagged run and a standalone tagged decide with a containerId send the X-Trace-* headers", async () => {
+		stub = startTraceHeaderStub(() => wire(SYSTEM_ONE_REPLY));
+		const toStub = ((_input: string | URL | Request, init?: RequestInit) => realFetch(stub.url, init)) as typeof fetch;
+		const temp = await typesafeKernel(toStub);
+		const parent = await temp.tempDb.seedParentRun();
+		await runWithContext(
+			{
+				containerId: temp.tempDb.containerId,
+				runId: parent.runId,
+				trigger: "operator",
+				agentName: "parent-agent",
+				traceWriter: { submit() {} },
+				traceTags: TRACE_TAGS_FIXTURE,
+			},
+			() => temp.kernel.decide("in-run", { finding: "type_erasing_cast" }, { questions: QUESTIONS }),
+		);
+		await temp.kernel.decide(
+			"standalone",
+			{ finding: "type_erasing_cast" },
+			{ containerId: temp.tempDb.containerId, traceTags: TRACE_TAGS_FIXTURE, questions: QUESTIONS },
+		);
+		expect(stub.received).toEqual([TRACE_HEADERS, TRACE_HEADERS]);
 	});
 });

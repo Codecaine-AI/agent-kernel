@@ -14,10 +14,20 @@ import {
 	openKernelDatabase,
 	type KernelDatabaseHandle,
 } from "@codecaine-ai/agent-kernel-db";
-import { fauxAssistantMessage, fauxProvider } from "@earendil-works/pi-ai";
+import { fauxAssistantMessage, fauxProvider, Type } from "@earendil-works/pi-ai";
 import type { ExtensionContext, ExtensionFactory } from "@earendil-works/pi-coding-agent";
 
-import { createKernel } from "../index";
+import { createKernel, type KernelInstance } from "../index";
+import {
+	realFetch,
+	responsesStream,
+	startTraceHeaderStub,
+	textItem,
+	toolCallItem,
+	TRACE_HEADERS,
+	TRACE_TAGS_FIXTURE,
+	type TraceHeaderStub,
+} from "../model-nodes/__fixtures__/trace-header-stub";
 
 const originalFetch = globalThis.fetch;
 beforeAll(() => {
@@ -45,12 +55,12 @@ afterEach(() => {
 	rmSync(root, { recursive: true, force: true });
 });
 
-function writeWorker(catalogRoot: string, model: string): void {
-	const agentDir = join(catalogRoot, "worker");
+function writeWorker(catalogRoot: string, model: string, name = "worker"): void {
+	const agentDir = join(catalogRoot, name);
 	mkdirSync(agentDir, { recursive: true });
 	writeFileSync(
 		join(agentDir, "agent.json"),
-		JSON.stringify({ name: "worker", description: "spawn test worker", model }),
+		JSON.stringify({ name, description: "spawn test worker", model }),
 	);
 	writeFileSync(
 		join(agentDir, "prompt.json"),
@@ -121,5 +131,87 @@ describe("spawnAgent", () => {
 			await kernel.traceWriter.flush();
 			kernel.dispose();
 		}
+	});
+
+	describe("trace headers", () => {
+		let stub: TraceHeaderStub;
+		let kernel: KernelInstance;
+		afterEach(async () => {
+			await kernel.traceWriter.flush();
+			kernel.dispose();
+			stub.stop();
+			globalThis.fetch = (() => {
+				throw new Error("network access is disabled in kernel tests");
+			}) as unknown as typeof fetch;
+		});
+
+		/** A kernel whose agents send through the stub; `parent` has a spawn_child tool that spawns `worker`. */
+		async function stubKernel(respond: (index: number) => Response) {
+			stub = startTraceHeaderStub(respond);
+			globalThis.fetch = realFetch;
+			const piAgentDir = join(root, "pi-agent");
+			mkdirSync(piAgentDir, { recursive: true });
+			writeFileSync(
+				join(piAgentDir, "models.json"),
+				JSON.stringify({
+					providers: {
+						stub: {
+							baseUrl: stub.url,
+							api: "openai-responses",
+							apiKey: "sk-stub-key-0123456789",
+							models: [{ id: "stub-model", name: "Stub", reasoning: false, input: ["text"], contextWindow: 128000, maxTokens: 4096 }],
+						},
+					},
+				}),
+			);
+			const catalogRoot = join(root, "catalog");
+			writeWorker(catalogRoot, "stub/stub-model");
+			writeWorker(catalogRoot, "stub/stub-model", "parent");
+			const spawnChild: ExtensionFactory = (pi) => {
+				pi.registerTool({
+					name: "spawn_child",
+					label: "spawn_child",
+					description: "Spawn the worker subagent.",
+					parameters: Type.Object({}),
+					async execute() {
+						const child = await kernel.spawnAgent("worker", "Say done.", null, { workingDir: root });
+						return { content: [{ type: "text", text: child.responseText }], details: {} };
+					},
+				});
+			};
+			kernel = createKernel({
+				id: "spawn-agent-trace-headers",
+				db: handle.db,
+				catalog: { roots: [catalogRoot] },
+				sharedTools: () => [spawnChild],
+				piSessionsDir: join(root, "pi-sessions"),
+				piAgentDir,
+				logger: quietLogger,
+			});
+			return (await kernel.container({ kind: "session", key: ["trace-headers"] })).id;
+		}
+
+		test("a tagged spawn and its subagent send all 6 X-Trace-* headers on each request", async () => {
+			const containerId = await stubKernel((index) =>
+				responsesStream([index === 0 ? toolCallItem("spawn_child") : textItem("done")]),
+			);
+			const result = await kernel.spawnAgent("parent", "Spawn the child.", null, {
+				workingDir: root,
+				containerId,
+				traceTags: TRACE_TAGS_FIXTURE,
+			});
+			expect(result.responseText).toBe("done");
+			// Parent turn 1 (tool call), the subagent's turn, parent turn 2.
+			expect(stub.received).toEqual([TRACE_HEADERS, TRACE_HEADERS, TRACE_HEADERS]);
+		});
+
+		test("an untagged run sends no X-Trace-* header, and a run outside a loop sends 5", async () => {
+			const containerId = await stubKernel(() => responsesStream([textItem("done")]));
+			await kernel.spawnAgent("worker", "Say done.", null, { workingDir: root, containerId });
+			const { loop_path: _loopPath, ...outsideLoop } = TRACE_TAGS_FIXTURE;
+			await kernel.spawnAgent("worker", "Say done.", null, { workingDir: root, containerId, traceTags: outsideLoop });
+			const { "x-trace-loop-path": _loopHeader, ...fiveHeaders } = TRACE_HEADERS;
+			expect(stub.received).toEqual([{}, fiveHeaders]);
+		});
 	});
 });

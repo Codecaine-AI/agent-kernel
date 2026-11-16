@@ -23,6 +23,17 @@ import {
 } from "@codecaine-ai/agent-kernel-protocol";
 
 import { runTraceDoctor } from "../../doctor";
+import { runWithContext } from "../../run-context";
+import { kernelCallClientOptions } from "../baml-engine/native";
+import {
+	realFetch,
+	responsesStream as stubResponses,
+	startTraceHeaderStub,
+	textItem,
+	TRACE_HEADERS,
+	TRACE_TAGS_FIXTURE,
+	type TraceHeaderStub,
+} from "../__fixtures__/trace-header-stub";
 import { createTempKernel, disableNetwork } from "../__fixtures__/temp-kernel";
 import { canonicalJson } from "../blobs";
 import { ROUTE_FAILURE_MESSAGES } from "../pi-models";
@@ -635,5 +646,63 @@ describe("kernel.call", () => {
 		for (const sentinel of ["ARGS-SENTINEL", "OUTPUT-SENTINEL", "PROMPT-SENTINEL", "RAW-SENTINEL"]) {
 			expect(text).not.toContain(sentinel);
 		}
+	});
+});
+
+describe("kernel.call trace headers", () => {
+	let stub: TraceHeaderStub;
+	afterEach(() => stub.stop());
+
+	/** A Pi-transport kit whose route points at the stub. */
+	function piKit(): Promise<CallKit> {
+		globalThis.fetch = realFetch;
+		return kit({
+			transport: "pi",
+			pi: { baseUrl: stub.url },
+			async respond(req) {
+				const out = await req.transport.complete({ messages: [{ role: "user", text: "note" }] });
+				if (out.text === null) return fakeFailure({ kind: "other", message: out.errorMessage ?? "no text" }, [out.attempt]);
+				return { ok: true, value: JSON.parse(out.text) as unknown, attempts: [out.attempt], rawText: out.text };
+			},
+		});
+	}
+
+	async function inTaggedRun<T>(k: CallKit, fn: () => Promise<T>): Promise<T> {
+		const parent = await k.temp.seedParentRun();
+		return runWithContext(
+			{
+				containerId: k.temp.containerId,
+				runId: parent.runId,
+				trigger: "operator",
+				agentName: "parent-agent",
+				traceWriter: { submit() {} },
+				traceTags: TRACE_TAGS_FIXTURE,
+			},
+			fn,
+		);
+	}
+
+	test("a call inside a tagged run sends the X-Trace-* headers on the BAML and the Pi transport", async () => {
+		stub = startTraceHeaderStub(() => stubResponses([textItem(JSON.stringify(VALUE))]));
+		// The BAML engine sends the route headers as the KernelCall client headers.
+		const baml = await kit({
+			async respond(req) {
+				const { headers } = kernelCallClientOptions(req.route, "openai-responses", 1_000) as { headers: Record<string, string> };
+				await realFetch(stub.url, { method: "POST", headers, body: "{}" });
+				return fakeOk(VALUE);
+			},
+		});
+		expect(await inTaggedRun(baml, () => baml.call("Extract", ["note"]))).toEqual(VALUE);
+		const pi = await piKit();
+		expect(await inTaggedRun(pi, () => pi.call("Extract", ["note"]))).toEqual(VALUE);
+		expect(stub.received).toEqual([TRACE_HEADERS, TRACE_HEADERS]);
+	});
+
+	test("a standalone call with an explicit containerId and traceTags sends them; an untagged call sends none", async () => {
+		stub = startTraceHeaderStub(() => stubResponses([textItem(JSON.stringify(VALUE))]));
+		const k = await piKit();
+		await k.call("Extract", ["note"], { containerId: k.temp.containerId, traceTags: TRACE_TAGS_FIXTURE });
+		await k.call("Extract", ["note"], { containerId: k.temp.containerId });
+		expect(stub.received).toEqual([TRACE_HEADERS, {}]);
 	});
 });
