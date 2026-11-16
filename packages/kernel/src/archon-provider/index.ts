@@ -8,10 +8,8 @@
  * kernel, one database handle and one kernel id, and each node attempt runs in
  * its own `archon-node` container under the run's `archon-run` container.
  *
- * The Archon provider shape is written here as local structural types,
- * because `@archon/provider-contract` is not on npm. The fork's registration
- * checks the provider with `satisfies IAgentProvider`, so a drift fails its
- * type check.
+ * The Archon provider shape lives in `./contract.ts`, the file the
+ * subpath's `types` condition names.
  */
 import { join } from "node:path";
 
@@ -26,6 +24,23 @@ import {
 import { TRACE_TAGS, type TraceTags } from "@codecaine-ai/agent-kernel-protocol";
 
 import { createKernel, type KernelCallsConfig, type KernelInstance } from "../index";
+import {
+	AGENT_KERNEL_CAPABILITIES,
+	type AgentKernelChunk,
+	type AgentKernelProvider,
+	type AgentKernelSendQueryOptions,
+	type ProviderFailureClass,
+} from "./contract";
+import type * as contract from "./contract";
+
+export {
+	AGENT_KERNEL_CAPABILITIES,
+	type AgentKernelCapabilities,
+	type AgentKernelChunk,
+	type AgentKernelProvider,
+	type AgentKernelSendQueryOptions,
+	type ProviderFailureClass,
+} from "./contract";
 
 /** The one kernel id of every Archon kernel. Container ids derive from it, so it never changes. */
 export const ARCHON_KERNEL_ID = "archon-provider-agent-kernel";
@@ -41,104 +56,6 @@ export interface AgentKernelSettings {
 	aliases: Record<string, string>;
 	piAgentDir?: string;
 }
-
-// ---------------------------------------------------------------------------
-// Local structural copy of the Archon provider contract (the parts used here).
-// ---------------------------------------------------------------------------
-
-export type ProviderFailureClass =
-	| "auth"
-	| "quota_exhausted"
-	| "budget_exceeded"
-	| "misconfigured"
-	| "rate_limited"
-	| "overloaded"
-	| "transient"
-	| "unknown";
-
-export type AgentKernelChunk =
-	| { type: "agent_message_chunk"; text: string }
-	| {
-			type: "result";
-			sessionId?: string;
-			text?: string;
-			structuredOutput?: unknown;
-			isError?: boolean;
-			errors?: string[];
-			failure?: { class: ProviderFailureClass; evidence: string };
-	  }
-	| { type: "settled" };
-
-export interface AgentKernelSendQueryOptions {
-	model?: string;
-	abortSignal?: AbortSignal;
-	outputFormat?: { type: "json_schema"; schema: Record<string, unknown> };
-	env?: Record<string, string>;
-	assistantConfig?: Record<string, unknown>;
-}
-
-export interface AgentKernelCapabilities {
-	backgroundWork: "reported" | "none" | "unobserved";
-	sessionResume: boolean;
-	sessionFork?: boolean;
-	mcp: boolean;
-	hooks: boolean;
-	skills: boolean;
-	plugins: boolean;
-	agents: boolean;
-	toolRestrictions: boolean;
-	structuredOutput: "enforced" | "best-effort" | false;
-	requiresAllPropertiesRequired: boolean;
-	envInjection: boolean;
-	costControl: boolean;
-	costReporting: boolean;
-	effortControl: boolean;
-	fallbackModel: boolean;
-	sandbox: boolean;
-	settingSources: boolean;
-	nativeTools: boolean;
-	containerExec: boolean;
-}
-
-export interface AgentKernelProvider {
-	checkCredential(request: unknown): Promise<{ state: "not_checked"; source: "native" }>;
-	sendQuery(
-		prompt: string,
-		cwd: string,
-		resumeSessionId?: string,
-		options?: AgentKernelSendQueryOptions,
-	): AsyncGenerator<AgentKernelChunk>;
-	getType(): string;
-	getCapabilities(): AgentKernelCapabilities;
-}
-
-/**
- * `structuredOutput: 'enforced'`: Archon re-asks only a best-effort provider,
- * so a bundle answer that misses the node's schema fails the node with no
- * re-ask. The bundle owns its own tools, state and model, so every
- * Archon-side feature flag is off.
- */
-export const AGENT_KERNEL_CAPABILITIES: AgentKernelCapabilities = {
-	backgroundWork: "none",
-	sessionResume: false,
-	mcp: false,
-	hooks: false,
-	skills: false,
-	plugins: false,
-	agents: false,
-	toolRestrictions: false,
-	structuredOutput: "enforced",
-	requiresAllPropertiesRequired: false,
-	envInjection: true,
-	costControl: false,
-	costReporting: false,
-	effortControl: false,
-	fallbackModel: false,
-	sandbox: false,
-	settingSources: false,
-	nativeTools: false,
-	containerExec: false,
-};
 
 // ---------------------------------------------------------------------------
 // Settings and kernels
@@ -443,3 +360,5 @@ export function createAgentKernelProvider({ root }: { root: string }): AgentKern
 		getCapabilities: () => AGENT_KERNEL_CAPABILITIES,
 	};
 }
+
+createAgentKernelProvider satisfies typeof contract.createAgentKernelProvider;
