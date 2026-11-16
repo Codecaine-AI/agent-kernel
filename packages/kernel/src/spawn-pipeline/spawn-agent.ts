@@ -338,6 +338,7 @@ export function createSpawnAgent(
 			sessionBinding,
 			piLifecycleCustomType: adapters.piLifecycleCustomType,
 			piAgentDir: opts.piAgentDir,
+			traceTags,
 			logger: log,
 		});
 		opts.onSessionCreated?.(session);

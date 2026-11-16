@@ -32,7 +32,7 @@
  * "timeout") even if the engine still returned a value.
  */
 import { getTraceBlob, type TraceBlobInput } from "@codecaine-ai/agent-kernel-db";
-import type { CallEndData } from "@codecaine-ai/agent-kernel-protocol";
+import { traceTagHeaders, type CallEndData } from "@codecaine-ai/agent-kernel-protocol";
 import type { ModelRegistry } from "@earendil-works/pi-coding-agent";
 
 import { jsonBlob, textBlob } from "../blobs";
@@ -125,13 +125,15 @@ export function createCall<TCalls>(ctx: CallNodeContext<TCalls>): KernelCallFn<T
 				...(opts.parentToolUseId !== undefined && { parentToolUseId: opts.parentToolUseId }),
 				...(opts.displayLabel !== undefined && { displayLabel: opts.displayLabel }),
 				...(opts.trigger !== undefined && { trigger: opts.trigger }),
+				...(opts.traceTags !== undefined && { traceTags: opts.traceTags }),
 			},
 			{ db },
 		);
+		const traceHeaders = traceTagHeaders(scope.traceTags);
 
 		// 2. Model and route. A route failure is recorded below, not thrown here.
 		const model = resolveModelAlias(modelRef, ctx.models.aliases);
-		const route = await resolveRoute(ctx, model, reasoning);
+		const route = await resolveRoute(ctx, model, reasoning, traceHeaders);
 		const preflight = route.ok ? route.secrets : [];
 		const promptHash = engine.promptHash(name);
 		// The claim's placeholder input; the final input lands on call_end (see the header).
@@ -185,6 +187,7 @@ export function createCall<TCalls>(ctx: CallNodeContext<TCalls>): KernelCallFn<T
 						name,
 						args,
 						route,
+						traceHeaders,
 						timeoutMs,
 						promptHash,
 						...(opts.signal !== undefined && { callerSignal: opts.signal }),
@@ -213,6 +216,7 @@ interface ExecuteCallInput<TCalls, K extends FnName<TCalls>> {
 	name: K;
 	args: CallArgs<TCalls, K>;
 	route: CallRoute;
+	traceHeaders: Record<string, string>;
 	timeoutMs: number;
 	promptHash: string;
 	callerSignal?: AbortSignal;
@@ -234,6 +238,7 @@ async function executeCall<TCalls, K extends FnName<TCalls>>(
 	const piTransport = createPiTransport(route.registry, route.model, {
 		reasoning: route.route.reasoning,
 		secrets: route.secrets,
+		headers: input.traceHeaders,
 	});
 	const transport: PiTransport = {
 		async complete(req) {
@@ -450,11 +455,18 @@ function stopReasonOf(failure: CallFailure): string {
 	return "error";
 }
 
-async function resolveRoute<TCalls>(ctx: CallNodeContext<TCalls>, model: string, reasoning: Reasoning): Promise<CallRoute> {
+/** Trace headers join the route headers, which the BAML transport sends. */
+async function resolveRoute<TCalls>(
+	ctx: CallNodeContext<TCalls>,
+	model: string,
+	reasoning: Reasoning,
+	traceHeaders: Record<string, string>,
+): Promise<CallRoute> {
 	try {
 		const registry = await ctx.piModels().registry();
 		const result = await resolveCallRoute(registry, model, reasoning);
-		return result.ok ? { ...result, registry } : result;
+		if (!result.ok) return result;
+		return { ...result, route: { ...result.route, headers: { ...result.route.headers, ...traceHeaders } }, registry };
 	} catch {
 		// Pi's runtime errors can quote credential stores; the reason stays a constant (§4.7).
 		return { ok: false, failure: { kind: "route", message: ROUTE_FAILURE_MESSAGES["models-unavailable"] } };
