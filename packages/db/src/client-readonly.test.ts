@@ -4,6 +4,13 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { createPreKindDatabase } from "./__fixtures__/pre-kind-schema";
+import {
+  getContainer,
+  listChildContainers,
+  listContainersForKernel,
+} from "./actions/containers";
+import { listContainerTree, listSessionContainersWithStats } from "./actions/read-api";
 import {
   openKernelDatabaseReadOnly,
   type KernelDatabaseHandle,
@@ -59,5 +66,31 @@ describe("openKernelDatabaseReadOnly", () => {
       openKernelDatabaseReadOnly(join(missingDir, "trace.db")),
     ).toThrow();
     expect(existsSync(missingDir)).toBe(false);
+  });
+
+  test("lists containers of a database without tag columns, with NULL tags", async () => {
+    const oldPath = join(dir, "old.db");
+    createPreKindDatabase(oldPath);
+    handle = openKernelDatabaseReadOnly(oldPath);
+    const { db } = handle;
+    const untagged = {
+      engine: null,
+      run_id: null,
+      node_path: null,
+      invocation_id: null,
+      attempt_id: null,
+      loop_path: null,
+    };
+
+    const [listed] = await listContainersForKernel(db, "kern-1");
+    expect(listed).toMatchObject({ id: "c1", appKey: ["req-1"], ...untagged });
+    expect(await getContainer(db, "c1")).toEqual(listed);
+    expect(await listChildContainers(db, "c1")).toEqual([]);
+    expect(await listContainerTree(db, "c1")).toEqual([listed]);
+    expect(
+      (await listSessionContainersWithStats(db, { kernelId: "kern-1" })).map(
+        (row) => row.container,
+      ),
+    ).toEqual([listed]);
   });
 });

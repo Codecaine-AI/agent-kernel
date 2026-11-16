@@ -1,5 +1,6 @@
 import { asc, eq } from "drizzle-orm";
 import type { KernelDatabase } from "../client";
+import { containerSelection } from "../read-compat";
 import { containers, type ContainerStatus } from "../schema/containers";
 import type { Container } from "../types";
 
@@ -108,7 +109,7 @@ export async function getContainer(
   containerId: string,
 ): Promise<Container | undefined> {
   const [row] = await db
-    .select()
+    .select(containerSelection(db))
     .from(containers)
     .where(eq(containers.id, containerId))
     .limit(1);
@@ -120,7 +121,7 @@ export async function listChildContainers(
   parentContainerId: string,
 ): Promise<Container[]> {
   return db
-    .select()
+    .select(containerSelection(db))
     .from(containers)
     .where(eq(containers.parentContainerId, parentContainerId))
     .orderBy(asc(containers.createdAt));
@@ -131,7 +132,7 @@ export async function listContainersForKernel(
   kernelId: string,
 ): Promise<Container[]> {
   return db
-    .select()
+    .select(containerSelection(db))
     .from(containers)
     .where(eq(containers.kernelId, kernelId))
     .orderBy(asc(containers.createdAt));
