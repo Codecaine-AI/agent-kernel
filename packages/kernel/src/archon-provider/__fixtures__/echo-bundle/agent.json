@@ -1,0 +1,6 @@
+{
+  "name": "echo-bundle",
+  "description": "Answers with one JSON object that echoes the prompt. The Archon provider fixture.",
+  "model": "standard",
+  "state": { "window": { "strategy": "turns", "maxTurns": 20 } }
+}

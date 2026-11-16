@@ -1,0 +1,19 @@
+{
+  "kind": "prompt",
+  "schemaVersion": "prompt-kit/v1",
+  "id": "echoBundlePrompt",
+  "nodes": [
+    {
+      "type": "section",
+      "tag": "task",
+      "children": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Answer with exactly one JSON object and nothing else. The object has one key, \"echo\", whose value is the first line of the user's message."
+          ]
+        }
+      ]
+    }
+  ]
+}
