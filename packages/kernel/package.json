@@ -45,7 +45,8 @@
     "./model-nodes": "./src/model-nodes/index.ts",
     "./model-nodes/testing": "./src/model-nodes/testing.ts",
     "./baml-engine": "./src/model-nodes/baml-engine/index.ts",
-    "./pi-sdk": "./src/pi-sdk.ts"
+    "./pi-sdk": "./src/pi-sdk.ts",
+    "./archon-provider": "./src/archon-provider/index.ts"
   },
   "dependencies": {
     "@codecaine-ai/agent-kernel-db": "workspace:*",
