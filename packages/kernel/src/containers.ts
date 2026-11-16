@@ -13,6 +13,7 @@
 import { createHash } from "node:crypto";
 
 import { upsertContainer, type Container, type KernelDatabase } from "@codecaine-ai/agent-kernel-db";
+import type { TraceTags } from "@codecaine-ai/agent-kernel-protocol";
 
 /**
  * Root namespace for all agent-kernel UUIDv5 derivation. Fixed forever —
@@ -92,6 +93,8 @@ export interface KernelContainerSpec {
 	workingDir?: string;
 	/** Opaque to the kernel. */
 	metadata?: Record<string, unknown>;
+	/** Written to the containers tag columns. Omit to keep the stored tags. */
+	traceTags?: TraceTags;
 }
 
 export type KernelContainerApi = (spec: KernelContainerSpec) => Promise<Container>;
@@ -129,6 +132,7 @@ export function createContainerApi(deps: {
 			phaseVocabulary: spec.phaseVocabulary,
 			workingDir: spec.workingDir,
 			metadata: spec.metadata,
+			traceTags: spec.traceTags,
 		});
 	};
 }

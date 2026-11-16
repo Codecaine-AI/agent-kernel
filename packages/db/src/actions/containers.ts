@@ -1,3 +1,8 @@
+import {
+  TRACE_TAGS,
+  type TraceTagName,
+  type TraceTags,
+} from "@codecaine-ai/agent-kernel-protocol";
 import { asc, eq } from "drizzle-orm";
 import type { KernelDatabase } from "../client";
 import { containerSelection } from "../read-compat";
@@ -25,6 +30,17 @@ export interface UpsertContainerInput {
   createdAt?: string;
   startedAt?: string | null;
   endedAt?: string | null;
+  /**
+   * Written to the 6 tag columns, never to metadata. A tag the object omits
+   * is written as NULL. Without traceTags, the stored tags stay.
+   */
+  traceTags?: TraceTags;
+}
+
+function traceTagColumns(tags: TraceTags): Record<TraceTagName, string | null> {
+  return Object.fromEntries(
+    TRACE_TAGS.map(({ tag }) => [tag, tags[tag] ?? null]),
+  ) as Record<TraceTagName, string | null>;
 }
 
 /**
@@ -36,6 +52,7 @@ export async function upsertContainer(
   db: KernelDatabase,
   input: UpsertContainerInput,
 ): Promise<Container> {
+  const tagColumns = input.traceTags && traceTagColumns(input.traceTags);
   const set = {
     ...(input.label !== undefined && { label: input.label }),
     ...(input.status !== undefined && { status: input.status }),
@@ -50,6 +67,7 @@ export async function upsertContainer(
     ...(input.metadata !== undefined && { metadata: input.metadata }),
     ...(input.startedAt !== undefined && { startedAt: input.startedAt }),
     ...(input.endedAt !== undefined && { endedAt: input.endedAt }),
+    ...tagColumns,
   };
 
   const [row] = await db
@@ -69,6 +87,7 @@ export async function upsertContainer(
       createdAt: input.createdAt ?? new Date().toISOString(),
       startedAt: input.startedAt,
       endedAt: input.endedAt,
+      ...tagColumns,
     })
     .onConflictDoUpdate({
       target: [containers.kernelId, containers.kind, containers.appKey],
