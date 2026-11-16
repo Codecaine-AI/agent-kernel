@@ -89,6 +89,30 @@ describe("createKernel", () => {
 		}
 	});
 
+	test("container() upgrades an old database before its first write", async () => {
+		const root = mkdtempSync(join(import.meta.dir, ".kernel-test-"));
+		const handle = openKernelDatabase({ path: join(root, "trace.db") });
+		const kernel = createKernel({ id: "kernel-test", db: handle.db });
+		try {
+			await ensureKernelObservabilitySchema(handle.db);
+			handle.db.run("ALTER TABLE containers DROP COLUMN engine");
+
+			const container = await kernel.container({
+				kind: "node",
+				key: ["n1"],
+				traceTags: { engine: "archon" },
+			});
+
+			expect(handle.db.all("SELECT id, engine FROM containers")).toEqual([
+				{ id: container.id, engine: "archon" },
+			]);
+		} finally {
+			handle.close();
+			rmSync(root, { recursive: true, force: true });
+			kernel.dispose();
+		}
+	});
+
 	test("registry() builds from catalog roots and registers prompt revisions", async () => {
 		const root = mkdtempSync(join(import.meta.dir, ".kernel-test-"));
 		const handle = openKernelDatabase({ path: join(root, "trace.db") });
