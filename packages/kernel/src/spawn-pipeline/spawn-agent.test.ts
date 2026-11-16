@@ -145,8 +145,15 @@ describe("spawnAgent", () => {
 			}) as unknown as typeof fetch;
 		});
 
-		/** A kernel whose agents send through the stub; `parent` has a spawn_child tool that spawns `worker`. */
-		async function stubKernel(respond: (index: number) => Response) {
+		/**
+		 * A kernel whose agents send through the stub. `parent` has a spawn_child
+		 * tool that spawns `worker`, and a spawn_background tool that queues
+		 * `worker` on the agent manager as "Child of <label>."
+		 */
+		async function stubKernel(
+			respond: (index: number, body: string) => Response | Promise<Response>,
+			maxBackgroundAgents?: number,
+		) {
 			stub = startTraceHeaderStub(respond);
 			globalThis.fetch = realFetch;
 			const piAgentDir = join(root, "pi-agent");
@@ -178,6 +185,22 @@ describe("spawnAgent", () => {
 						return { content: [{ type: "text", text: child.responseText }], details: {} };
 					},
 				});
+				pi.registerTool({
+					name: "spawn_background",
+					label: "spawn_background",
+					description: "Start the worker subagent in the background.",
+					parameters: Type.Object({ label: Type.String() }),
+					async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+						kernel.agentManager.spawn(
+							pi as unknown as Parameters<KernelInstance["agentManager"]["spawn"]>[0],
+							ctx as unknown as Parameters<KernelInstance["agentManager"]["spawn"]>[1],
+							"worker",
+							`Child of ${params.label}.`,
+							{ description: `child of ${params.label}`, isBackground: true, workingDir: root },
+						);
+						return { content: [{ type: "text", text: "started" }], details: {} };
+					},
+				});
 			};
 			kernel = createKernel({
 				id: "spawn-agent-trace-headers",
@@ -187,6 +210,7 @@ describe("spawnAgent", () => {
 				piSessionsDir: join(root, "pi-sessions"),
 				piAgentDir,
 				logger: quietLogger,
+				...(maxBackgroundAgents !== undefined && { concurrency: { maxBackgroundAgents } }),
 			});
 			return (await kernel.container({ kind: "session", key: ["trace-headers"] })).id;
 		}
@@ -212,6 +236,44 @@ describe("spawnAgent", () => {
 			await kernel.spawnAgent("worker", "Say done.", null, { workingDir: root, containerId, traceTags: outsideLoop });
 			const { "x-trace-loop-path": _loopHeader, ...fiveHeaders } = TRACE_HEADERS;
 			expect(stub.received).toEqual([{}, fiveHeaders]);
+		});
+
+		test("a queued background child sends its own parent's tags, not the tags of the run that drains the queue", async () => {
+			// One background slot. Parent A's child takes it and is held open, so
+			// the children of B (tagged) and C (untagged) queue. Each queued child
+			// then starts from the completion of the child before it.
+			let release!: () => void;
+			const firstChildHeld = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			const childHeaders: Record<string, Record<string, string>> = {};
+			const containerId = await stubKernel(async (index, body) => {
+				const child = /Child of (\w)\./.exec(body)?.[1];
+				if (child) {
+					childHeaders[child] = stub.received[index]!;
+					if (child === "A") await firstChildHeld;
+					return responsesStream([textItem("done")]);
+				}
+				if (body.includes("function_call_output")) return responsesStream([textItem("done")]);
+				const parent = /Parent (\w)\./.exec(body)![1]!;
+				return responsesStream([toolCallItem("spawn_background", { label: parent })]);
+			}, 1);
+			const runParent = (label: string, traceTags?: { engine: string }) =>
+				kernel.spawnAgent("parent", `Parent ${label}.`, null, {
+					workingDir: root,
+					containerId,
+					...(traceTags && { traceTags }),
+				});
+			await runParent("A", { engine: "engine-A" });
+			await runParent("B", { engine: "engine-B" });
+			await runParent("C");
+			release();
+			await kernel.agentManager.waitForAll();
+			expect(childHeaders).toEqual({
+				A: { "x-trace-engine": "engine-A" },
+				B: { "x-trace-engine": "engine-B" },
+				C: {},
+			});
 		});
 	});
 });

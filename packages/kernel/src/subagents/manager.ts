@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 
 import type { RunTrigger } from "@codecaine-ai/agent-kernel-db";
-import { createRunSteeredEvent } from "@codecaine-ai/agent-kernel-protocol";
+import { createRunSteeredEvent, type TraceTags } from "@codecaine-ai/agent-kernel-protocol";
 
-import { runContextStore } from "../run-context";
+import { runContextStore, type RunContext } from "../run-context";
 import type {
 	AgentRecord,
 	KernelExtensionAPI,
@@ -51,6 +51,8 @@ export interface AgentSpawnOptions {
 	onTurnEnd?: (turnCount: number) => void;
 	/** Fired by the spawn pipeline as soon as the run's identity exists. */
 	onRunStarted?: (info: { runId: string; containerId: string }) => void;
+	/** The parent run's trace tags. `{}` means no tags: the pipeline must not read the ambient run's. */
+	traceTags?: TraceTags;
 }
 
 export type SpawnAgentAdapter = (
@@ -73,6 +75,12 @@ interface SpawnArgs {
 	agentName: string;
 	prompt: string;
 	options: SpawnOptions;
+	/**
+	 * The run context at spawn() time. A queued child starts later, inside the
+	 * async context of whichever run's completion drains the queue, so the
+	 * parent's context must be captured here and not read in startAgent.
+	 */
+	parentRunCtx: RunContext | undefined;
 }
 
 export class AgentManager {
@@ -161,7 +169,14 @@ export class AgentManager {
 			resolve: resolveCompletion,
 		});
 
-		const args: SpawnArgs = { pi, ctx, agentName, prompt, options };
+		const args: SpawnArgs = {
+			pi,
+			ctx,
+			agentName,
+			prompt,
+			options,
+			parentRunCtx: runContextStore.getStore(),
+		};
 
 		if (options.isBackground && this.runningBackground >= this.maxConcurrent) {
 			this.queue.push({ id, args });
@@ -191,7 +206,7 @@ export class AgentManager {
 	private startAgent(
 		id: string,
 		record: AgentRecord,
-		{ ctx, agentName, prompt, options }: SpawnArgs,
+		{ ctx, agentName, prompt, options, parentRunCtx }: SpawnArgs,
 	): void {
 		record.status = "running";
 		record.startedAt = Date.now();
@@ -214,7 +229,6 @@ export class AgentManager {
 			}
 		}
 
-		const parentRunCtx = runContextStore.getStore();
 		const parentPiSessionUuid =
 			options.parentPiSessionUuid ?? ctx.sessionManager.getSessionId();
 		const adapterOptions: AgentSpawnOptions = {
@@ -227,6 +241,7 @@ export class AgentManager {
 			parentRunId: options.parentRunId ?? parentRunCtx?.runId,
 			parentPiSessionUuid,
 			phase: options.phase ?? parentRunCtx?.phase,
+			traceTags: parentRunCtx?.traceTags ?? {},
 			displayLabel: options.displayLabel,
 			parentToolUseId: options.toolCallId,
 			signal: record.abortController!.signal,

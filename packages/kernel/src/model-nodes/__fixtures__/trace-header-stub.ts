@@ -35,18 +35,22 @@ export interface TraceHeaderStub {
 	stop(): void;
 }
 
-export function startTraceHeaderStub(respond: (index: number) => Response): TraceHeaderStub {
+/** `respond` gets the request's arrival index and body, and can hold the reply by returning a promise. */
+export function startTraceHeaderStub(
+	respond: (index: number, body: string) => Response | Promise<Response>,
+): TraceHeaderStub {
 	const received: Array<Record<string, string>> = [];
 	const server = Bun.serve({
 		hostname: "127.0.0.1",
 		port: 0,
-		fetch(req) {
+		async fetch(req) {
 			const trace: Record<string, string> = {};
 			req.headers.forEach((value, name) => {
 				if (name.startsWith("x-trace-")) trace[name] = value;
 			});
 			received.push(trace);
-			return respond(received.length - 1);
+			const index = received.length - 1;
+			return respond(index, await req.text());
 		},
 	});
 	return { url: `http://127.0.0.1:${server.port}`, received, stop: () => server.stop(true) };
