@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,8 +10,8 @@ import { resolveAgent } from "./catalog";
 const fixturesCatalog = fileURLToPath(
 	new URL("../test-fixtures/catalog", import.meta.url),
 );
-const exampleDir = fileURLToPath(
-	new URL("../../../examples/simple-research-kernel", import.meta.url),
+const exampleCatalog = fileURLToPath(
+	new URL("../../../examples/simple-research-kernel/src/agent-catalog", import.meta.url),
 );
 
 const tempDirs: string[] = [];
@@ -22,6 +22,19 @@ afterAll(() => {
 function cleanCwd(): string {
 	const dir = mkdtempSync(join(tmpdir(), "tui-boot-"));
 	tempDirs.push(dir);
+	return dir;
+}
+
+// A project whose own .agent-kernel/kernel.json names the example catalog.
+// The example writes that manifest only when its server boots, so the test
+// makes it here instead of depending on a git-ignored file.
+function exampleProject(): string {
+	const dir = cleanCwd();
+	mkdirSync(join(dir, ".agent-kernel"));
+	writeFileSync(
+		join(dir, ".agent-kernel", "kernel.json"),
+		JSON.stringify({ manifestVersion: 2, catalogRoots: [exampleCatalog] }),
+	);
 	return dir;
 }
 
@@ -108,6 +121,7 @@ describe("bootAgent assembly", () => {
 
 	test("research-coordinator: ① substituted + ② assembled from its own kernel.json", async () => {
 		// cwd inside the example resolves through its .agent-kernel/kernel.json.
+		const exampleDir = exampleProject();
 		const resolved = await resolveAgent("research-coordinator", exampleDir);
 		expect(resolved).not.toBeNull();
 		expect(resolved?.source).toBe("project");
