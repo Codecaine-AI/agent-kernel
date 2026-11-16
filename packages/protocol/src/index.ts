@@ -5,3 +5,4 @@ export * from "./envelope";
 export * from "./factories";
 export * from "./ids";
 export * from "./usage";
+export * from "./trace-tags";
