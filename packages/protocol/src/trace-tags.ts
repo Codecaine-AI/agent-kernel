@@ -20,3 +20,13 @@ export type TraceTagName = (typeof TRACE_TAGS)[number]["tag"];
  * `run_id` is the engine's own run id, not the kernel run id.
  */
 export type TraceTags = Partial<Record<TraceTagName, string>>;
+
+/** The `X-Trace-*` request headers of the tags that are set. A missing or empty tag sends no header. */
+export function traceTagHeaders(tags: TraceTags | undefined): Record<string, string> {
+	const headers: Record<string, string> = {};
+	for (const { tag, header } of TRACE_TAGS) {
+		const value = tags?.[tag];
+		if (value) headers[header] = value;
+	}
+	return headers;
+}

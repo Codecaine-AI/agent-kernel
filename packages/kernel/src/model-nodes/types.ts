@@ -16,6 +16,7 @@ import type {
 	ConfidenceSource,
 	Decision,
 	ThresholdApplied,
+	TraceTags,
 	TurnUsage,
 } from "@codecaine-ai/agent-kernel-protocol";
 
@@ -45,6 +46,8 @@ export interface NodeScopeOptions {
 	parentRunId?: string;
 	parentToolUseId?: string;
 	displayLabel?: string;
+	/** Trace tags sent as `X-Trace-*` headers on the engine request. Defaults to the ambient RunContext tags. */
+	traceTags?: TraceTags;
 	/** Idempotency key, unique per kernel id (§4.6). */
 	requestId?: string;
 	signal?: AbortSignal;
