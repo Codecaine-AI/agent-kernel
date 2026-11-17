@@ -1,0 +1,11 @@
+{
+  "name": "codecaine-review-pack",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "baml-cli generate --from baml_src"
+  },
+  "dependencies": {
+    "@boundaryml/baml": "0.226.2"
+  }
+}

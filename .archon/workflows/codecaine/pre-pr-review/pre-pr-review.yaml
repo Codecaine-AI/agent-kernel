@@ -1,0 +1,419 @@
+# Written from Archon's .archon/workflows/sdlc/review/archon-review.yaml at commit
+# e783f20057c0b439373a55a997c834e05d9e062c. Diff against that file at each rebase.
+#
+# Kept from upstream, with their commands and scripts: mode, review-dir, scope,
+# review-complete, synthesize, verify-1..3, settle, publish and prune-scratch.
+# Removed: the 6 lens nodes, the route agent, `returns` and `outcome_field`.
+# Added: the `rounds` loop, the pack-context bundle node, the route decide node, the
+# 2 reviewers, the extract-findings node, the reviewed node that ends each round, and
+# tag-outside-reviewers after the loop.
+# Every node of one round sits in the body of `rounds`, because a loop body cannot
+# depend on a node outside it.
+name: pre-pr-review
+description: |
+  Review a pull request before it merges, and tag the outside reviewers once for its
+  head. Each round fixes the commit under review, writes a review brief with the
+  pack-context bundle, and routes the change to a lane with a decide node. Unless the
+  lane is trivial, 2 read-only reviewers (Codex and Claude) review the diff in parallel
+  and an extract node keeps the findings on diff lines. synthesize writes the verdict,
+  3 verifiers judge each blocking finding, settle applies their votes, and publish
+  edits one canonical comment on the pull request, only when its head is the commit
+  the round reviewed. After the rounds, the run tags Greptile and CodeRabbit once for
+  that head.
+
+  Use when: a pull request needs a review — "review this PR".
+  NOT for: fixing findings or writing code.
+
+model: ['@reviewer', medium]
+
+inputs:
+  scope:
+    default: ""
+    description: >-
+      What to review — a PR number/URL or a branch. Empty selects the current
+      branch's open PR first, otherwise the working diff against the merge-base.
+  prior_report:
+    default: ""
+    description: >-
+      Path to the previous review round's report. When set, this round verifies
+      prior findings first and reviews only the delta since the commit that round
+      reviewed, which its publish recorded beside the report.
+  work_order:
+    default: ""
+    description: >-
+      The accepted outcome and scope boundaries for this change. Empty uses the
+      PR's problem, outcome, and explicit scope instead.
+  part:
+    default: ""
+    description: >-
+      The part of an approved multi-part plan this change delivers, as JSON
+      naming the delivered part and each part's contract items, quoted:
+      `{"delivers": 1, "parts": [{"part": 1, "items": ["..."]}, {"part": 2, "items": ["..."]}]}`.
+      Empty reviews against the whole contract. The `mode` node's
+      `output_format` owns and enforces the shape.
+
+nodes:
+  # Version 1 has no node that changes code, so a run has 1 round: the check passes
+  # when the head mode fixed is the pull request's head. The engine reads any non-zero
+  # exit as an unmet check, so a failed `gh` call and a moved head look the same. With
+  # 1 iteration and on_exhausted at its default (`fail`), both fail the run instead of
+  # reviewing the same commit again, and tag-outside-reviewers does not run. A push
+  # during a round makes publish refuse, so the run fails, and the next run reviews
+  # the new head. A working diff (no pull request) passes at once: the engine
+  # substitutes scope's declared null pr as empty text, not as `null`; the check
+  # accepts both. The loop's output is the output of its terminal body node, `reviewed`.
+  - id: rounds
+    loop_group:
+      max_iterations: 1
+      until_bash: |
+        head=$mode.output.head
+        pr=$scope.output.pr
+        if [ -z "$pr" ] || [ "$pr" = null ]; then exit 0; fi
+        host=$(printf '%s' "$pr" | jq -r '.repo.host')
+        repo=$(printf '%s' "$pr" | jq -r '.repo.path')
+        number=$(printf '%s' "$pr" | jq -r '.number')
+        remote=$(gh pr view "$number" -R "$host/$repo" --json headRefOid -q .headRefOid)
+        test "$head" = "$remote"
+      nodes:
+        # Fixes what this round reviews before anything reads the change: whether it
+        # continues a previous round, the commit under review (the checkout's HEAD as
+        # the engine observed it), and, on a continuation, the previous round's
+        # reviewed commit. Every later node reads both commits from here; publish
+        # refuses a report about any other commit. It also certifies the part assignment.
+        - id: mode
+          script: review-round
+          runtime: bun
+          with:
+            prior_report: "$INPUTS.prior_report"
+            part: "$INPUTS.part"
+          output_format:
+            type: object
+            properties:
+              continuation: { type: boolean }
+              head: { type: string, minLength: 1 }
+              # The previous round's reviewed commit; empty on a first round.
+              cursor: { type: string }
+              risks: { type: string, minLength: 1 }
+              # The run's part assignment, null when the run delivers the whole contract.
+              # default: null only gives the dry run's generated stub a valid value.
+              part:
+                type: [object, 'null']
+                default: null
+                additionalProperties: false
+                properties:
+                  delivers: { type: integer, minimum: 1 }
+                  parts:
+                    type: array
+                    minItems: 1
+                    items:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        part: { type: integer, minimum: 1 }
+                        items: { type: array, minItems: 1, items: { type: string, pattern: '\S' } }
+                      required: [part, items]
+                required: [delivers, parts]
+            required: [continuation, head, cursor, risks, part]
+
+        # Every review node writes under review/. An earlier round's verifier votes are
+        # removed here, so a verifier that fails this round leaves no vote.
+        - id: review-dir
+          bash: mkdir -p "$ARTIFACTS_DIR/review" && rm -f "$ARTIFACTS_DIR"/review/verify-*.json
+
+        - id: scope
+          command: review-scope
+          context: fresh
+          mutates_checkout: false
+          depends_on: [review-dir, mode]
+          output_format:
+            type: object
+            properties:
+              # The qualified pull request this round reviewed, or `null` for a working
+              # diff. publish writes to this record and to nothing else.
+              pr: &reviewed_pr
+                type: [object, 'null']
+                default: null
+                properties:
+                  repo:
+                    type: object
+                    properties:
+                      host: { type: string, pattern: '\S' }
+                      path: { type: string, pattern: '\S' }
+                    required: [host, path]
+                  number: { type: integer, minimum: 1 }
+                required: [repo, number]
+              report:
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, enum: [review/scope.md] }
+                required: [type, run_id, path]
+            required: [pr, report]
+
+        # A kernel bundle with read-only tools writes the review brief from the scope,
+        # the changed files and the repository's docs. The provider appends the schema
+        # to the bundle's input and returns the JSON it ends with.
+        - id: pack-context
+          provider: agent-kernel
+          model: pack-context
+          mutates_checkout: false
+          depends_on: [scope]
+          prompt: |
+            The scope file of this review is $ARTIFACTS_DIR/review/scope.md. The commit
+            under review is $mode.output.head. Write the review brief.
+          output_format:
+            type: object
+            properties:
+              brief: { type: string, minLength: 1 }
+            required: [brief]
+
+        # One choice question on the TypeSafe endpoint; it leaves no gateway row. A
+        # low-confidence abstain answers `other`, which runs the reviewers.
+        - id: route
+          depends_on: [pack-context]
+          decide:
+            question: Does this change need a full code review, or is it a trivial change to prose, comments or formatting?
+            enum: [review, trivial, other]
+            input: $pack-context.output.brief
+
+        # The 2 reviewers run in parallel, read-only, and return their reports as their
+        # node output. A reviewer that fails fails the round, so the run fails and posts
+        # no review from 1 reviewer.
+        - id: review-codex
+          provider: codex
+          model: gpt-6.1-sol
+          effort: high
+          command: review-codex
+          context: fresh
+          mutates_checkout: false
+          depends_on: [mode, pack-context, route]
+          when: "$route.output.choice != 'trivial'"
+
+        - id: review-claude
+          provider: claude
+          model: claude-opus-5-5
+          effort: high
+          command: review-claude
+          context: fresh
+          mutates_checkout: false
+          depends_on: [mode, pack-context, route]
+          when: "$route.output.choice != 'trivial'"
+
+        # all_done lets this barrier settle after skipped reviewers and report how each
+        # of this round's reviewers ended (scripts/lens-outcomes.ts).
+        - id: review-complete
+          script: lens-outcomes
+          runtime: bun
+          depends_on: [route, review-codex, review-claude]
+          trigger_rule: all_done
+          # One recorded state per reviewer; lens-outcomes.ts owns the names.
+          output_format:
+            type: object
+            additionalProperties: { type: string }
+
+        # One BAML call (baml_src/findings.baml) turns the 2 reports into typed findings
+        # and keeps those on diff lines. The default trigger rule skips it after a failed
+        # reviewer, and synthesize then does not run.
+        - id: extract-findings
+          depends_on: [review-codex, review-claude]
+          when: "$route.output.choice != 'trivial'"
+          extract:
+            function: ExtractFindings
+            input: |
+              Report of review-codex:
+
+              $review-codex.output
+
+              ---
+
+              Report of review-claude:
+
+              $review-claude.output
+          output_format:
+            type: object
+            properties:
+              findings:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    sources: { type: array, items: { type: string } }
+                    file: { type: string }
+                    line: { type: integer }
+                    claim: { type: string }
+                    evidence: { type: string }
+                    correction: { type: string }
+                  required: [sources, file, line, claim, evidence, correction]
+            required: [findings]
+
+        # none_failed_min_one_success runs synthesize after a skipped extract-findings
+        # (the trivial lane), and the with binding then takes its if_skipped value: no
+        # findings. A failed extract-findings, or one skipped because a reviewer failed,
+        # still skips it. The verify nodes below judge its blocking findings again, and
+        # settle applies their votes.
+        - id: synthesize
+          command: review-synthesize
+          context: fresh
+          mutates_checkout: false
+          output_type: review-report
+          depends_on: [mode, scope, review-complete, extract-findings]
+          trigger_rule: none_failed_min_one_success
+          with:
+            findings: { from: "$extract-findings.output", if_skipped: { findings: [] } }
+          output_format:
+            type: object
+            properties:
+              ready:
+                type: boolean
+              action:
+                type: string
+                enum: [none, correct, replan, ask]
+              findings_summary:
+                type: string
+              # The report the verdict rests on, as a certified artifact pointer.
+              report: &report_pointer
+                type: object
+                properties:
+                  type: { type: string, enum: [archon_artifact] }
+                  run_id: { type: string }
+                  path: { type: string, enum: [review/report.md] }
+                required: [type, run_id, path]
+              # Work this review proved but the change does not do.
+              discoveries: &discovery_records
+                type: array
+                items:
+                  type: object
+                  properties:
+                    title: { type: string, pattern: '\S' }
+                    claim: { type: string, pattern: '\S' }
+                    evidence: { type: array, items: { type: string }, minItems: 1 }
+                    relation: { type: string, enum: [unrelated, scope_conflict, note] }
+                    source_nodes: { type: array, items: { type: string }, minItems: 1 }
+                  required: [title, claim, evidence, relation, source_nodes]
+              # The required outcome and acceptance items the contract coverage does not
+              # mark met, one line each.
+              contract_left: &contract_left
+                type: array
+                items: { type: string, pattern: '\S' }
+              # Each reason readiness fails other than an open blocking finding.
+              coverage_gaps:
+                type: array
+                items: { type: string, pattern: '\S' }
+            required: [ready, action, findings_summary, report, discoveries, contract_left, coverage_gaps]
+
+        # Three independent verifiers judge each open blocking finding when the verdict
+        # is not ready. One command serves all three: `voter` names the file each writes.
+        - id: verify-1
+          model: ['@reviewer', large]
+          command: review-verify
+          context: fresh
+          mutates_checkout: false
+          depends_on: [synthesize]
+          when: "$synthesize.output.ready == false"
+          with: { voter: "1" }
+
+        - id: verify-2
+          model: ['@reviewer', large]
+          command: review-verify
+          context: fresh
+          mutates_checkout: false
+          depends_on: [synthesize]
+          when: "$synthesize.output.ready == false"
+          with: { voter: "2" }
+
+        - id: verify-3
+          model: ['@reviewer', large]
+          command: review-verify
+          context: fresh
+          mutates_checkout: false
+          depends_on: [synthesize]
+          when: "$synthesize.output.ready == false"
+          with: { voter: "3" }
+
+        # Applies the votes and owns the final verdict (scripts/settle-review.ts).
+        - id: settle
+          script: settle-review
+          runtime: bun
+          depends_on: [synthesize, verify-1, verify-2, verify-3]
+          trigger_rule: all_done
+          with:
+            ready: "$synthesize.output.ready"
+            action: "$synthesize.output.action"
+            summary: "$synthesize.output.findings_summary"
+            report_pointer: "$synthesize.output.report"
+            discoveries: { from: "$synthesize.output.discoveries" }
+            contract_left: { from: "$synthesize.output.contract_left" }
+            coverage_gaps: { from: "$synthesize.output.coverage_gaps" }
+          output_format: &review_verdict
+            type: object
+            properties:
+              ready: { type: boolean }
+              action: { type: string, enum: [none, correct, replan, ask] }
+              findings_summary: { type: string }
+              report: *report_pointer
+              discoveries: *discovery_records
+              contract_left: *contract_left
+            required: [ready, action, findings_summary, report, discoveries, contract_left]
+
+        # The one public write of the round: it edits the same marked comment every
+        # round, and only when the checkout and the pull request are both still at the
+        # commit mode fixed.
+        - id: publish
+          script: publish-review
+          runtime: bun
+          depends_on: [settle]
+          with:
+            scope: "$INPUTS.scope"
+            pr: "$scope.output.pr"
+            report: "$ARTIFACTS_DIR/review/report.md"
+            head: "$mode.output.head"
+            ready: "$settle.output.ready"
+            action: "$settle.output.action"
+            summary: "$settle.output.findings_summary"
+            report_pointer: "$settle.output.report"
+            discoveries: { from: "$settle.output.discoveries" }
+            contract_left: { from: "$settle.output.contract_left" }
+          output_type: review-report
+          output_format: *review_verdict
+
+        # Removes the reviewers' scratch worktrees once every reviewer and synthesize
+        # have settled, whether they succeeded or failed.
+        - id: prune-scratch
+          script: prune-scratch
+          runtime: bun
+          depends_on: [synthesize, publish]
+          trigger_rule: all_done
+
+        # The terminal body node, so its output is the loop's output: the pull request
+        # and the commit this round reviewed and published. A node outside the loop can
+        # read only this. It runs only after publish and prune-scratch succeed. pr is
+        # null for a working diff; the engine substitutes it here as empty text, and
+        # fromjson reads `null` as null too.
+        - id: reviewed
+          depends_on: [publish, prune-scratch]
+          bash: |
+            head=$mode.output.head
+            pr=$scope.output.pr
+            jq -cn --arg head "$head" --arg pr "$pr" \
+              '{head: $head, pr: (if $pr == "" then null else ($pr | fromjson) end)}'
+          output_format:
+            type: object
+            properties:
+              head: { type: string, minLength: 1 }
+              pr: *reviewed_pr
+            required: [head, pr]
+
+  # Tags Greptile and CodeRabbit once for the head the review published about. It runs
+  # only after the loop completes, so a failed or refused publish tags nothing. It posts
+  # nothing for a working diff (the engine binds the loop's null pr as `null`, unlike a
+  # body node's declared null), refuses when the pull request's head moved
+  # off the reviewed head, and posts nothing when a comment already carries its marker
+  # with that head.
+  - id: tag-outside-reviewers
+    script: tag-outside-reviewers
+    runtime: bun
+    depends_on: [rounds]
+    with:
+      pr: "$rounds.output.pr"
+      head: "$rounds.output.head"

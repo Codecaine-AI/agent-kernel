@@ -1,0 +1,206 @@
+/**
+ * The pack's pull-request reads and writes, and the marked comment on an issue or
+ * pull request, through the forge contract (./forge.ts).
+ *
+ * Every write is performed and then read back by the forge plugin, which reports
+ * which of the contract's four outcomes happened. Nothing here repeats a write.
+ * Authored content, such as a pull-request body or a comment, travels in a request
+ * file, so it never reaches any process's argv.
+ */
+
+import { readFileSync } from 'node:fs';
+import { invokeForge, parsePrRecord, qualifiedRepo, record, type PrRecord, type QualifiedPr } from './forge.ts';
+
+/**
+ * The pull request a web URL names, as the forge plugin resolves it, or undefined when
+ * the URL names none. A URL's shape belongs to the forge, so nothing in the pack parses
+ * one. A forge that cannot answer throws: that is not an answer about the URL.
+ */
+export function resolvePrUrl(url: string): QualifiedPr | undefined {
+  const value = invokeForge('resolve', { remote: url, web: true });
+  const repo = qualifiedRepo(value?.repo);
+  const subject = record(value?.subject);
+  if (value?.kind !== 'resolved' || repo === undefined || subject?.kind !== 'pr' || typeof subject.number !== 'number') {
+    return undefined;
+  }
+  return { repo, number: subject.number };
+}
+
+/**
+ * The repositories the remotes of the checkout in the working directory name, as the
+ * forge plugin resolves each remote URL. A remote no installed plugin resolves, such as
+ * a local path, names none. `git remote get-url` applies the URL rewrites git applies.
+ */
+export function checkoutRepos(): QualifiedPr['repo'][] {
+  const git = (args: string[]): string => {
+    const result = Bun.spawnSync(['git', ...args], { stdout: 'pipe', stderr: 'pipe' });
+    if (result.exitCode !== 0) throw new Error(`git ${args.join(' ')} failed: ${result.stderr.toString().trim()}`);
+    return result.stdout.toString();
+  };
+  const lines = (output: string): string[] => output.split('\n').map(line => line.trim()).filter(line => line !== '');
+  return lines(git(['remote']))
+    .flatMap(remote => lines(git(['remote', 'get-url', '--all', remote])))
+    .flatMap(url => {
+      const value = invokeForge('resolve', { remote: url });
+      const repo = value?.kind === 'resolved' ? qualifiedRepo(value.repo) : undefined;
+      return repo === undefined ? [] : [repo];
+    });
+}
+
+/** The pull request a web URL names; a URL that names none refuses. */
+export function prFromUrl(url: string): QualifiedPr {
+  const pr = resolvePrUrl(url);
+  if (pr === undefined) throw new Error(`"${url}" is not a pull request URL`);
+  return pr;
+}
+
+export const PR_CREATE_UNRESOLVED = 'pr_create_unresolved';
+/** The reason a tail's report gives when a node failure ended the run. */
+export const RUN_FAILED = 'failed';
+
+export const PR_CREATE_RECORD = 'pr-create-started';
+
+export type PrPublicationRecord =
+  | { readonly repo: QualifiedPr['repo']; readonly headRepo: QualifiedPr['repo']; readonly head: string }
+  | { readonly pr: PrRecord };
+
+export function encodePrPublicationRecord(value: PrPublicationRecord): string {
+  return JSON.stringify(value);
+}
+
+export function decodePrPublicationRecord(value: unknown):
+  | { readonly state: 'started' }
+  | { readonly state: 'verified'; readonly pr: PrRecord } {
+  const row = record(value);
+  if (row && 'pr' in row) return { state: 'verified', pr: parsePrRecord(row.pr) };
+  if (
+    !qualifiedRepo(row?.repo) ||
+    !qualifiedRepo(row?.headRepo) ||
+    typeof row?.head !== 'string' || row.head === ''
+  ) throw new Error('invalid PR publication record');
+  return { state: 'started' };
+}
+
+export interface PrView {
+  readonly pr: PrRecord;
+  readonly title: string;
+  readonly body: string;
+}
+
+export interface CreatePrIntent {
+  readonly repo: QualifiedPr['repo'];
+  readonly headRepo: QualifiedPr['repo'];
+  readonly head: string;
+  readonly headRevision: string;
+  readonly base: string;
+  readonly title: string;
+  readonly bodyPath: string;
+  readonly draft: boolean;
+}
+
+/** A forge operation whose success always carries a result. */
+function forgeResult(op: string, request: Record<string, unknown>): Record<string, unknown> {
+  const value = invokeForge(op, request);
+  if (value === null) throw new Error(`forge ${op} returned no result`);
+  return value;
+}
+
+function forgePrView(value: Record<string, unknown>): PrView {
+  return {
+    pr: parsePrRecord(record(value)?.pr),
+    title: typeof value.title === 'string' ? value.title : '',
+    body: typeof value.body === 'string' ? value.body : '',
+  };
+}
+
+/**
+ * The open pull request whose head is `headRepo:head` in `repo`, or undefined. The
+ * forge's head selector answers only for an open pull request, and refuses more than one.
+ */
+export function findOpenPrByHead(
+  repo: QualifiedPr['repo'],
+  headRepo: QualifiedPr['repo'],
+  head: string
+): PrView | undefined {
+  const value = invokeForge('pr.view', { selector: { kind: 'head', repo, headRepo, head } });
+  return value === null ? undefined : forgePrView(value);
+}
+
+/**
+ * The newest pull request, open, closed or merged, whose head is `head` in `repo`
+ * itself, or undefined when the branch never had one. Asking for any state needs the
+ * plugin's `pr.view:any-state` capability; without it the host refuses the read,
+ * naming the capability.
+ */
+export function findPrByHead(repo: QualifiedPr['repo'], head: string): PrRecord | undefined {
+  const value = invokeForge('pr.view', { selector: { kind: 'head', repo, headRepo: repo, head, state: 'any' } });
+  return value === null ? undefined : forgePrView(value).pr;
+}
+
+export function viewPr(ref: QualifiedPr): PrView {
+  return forgePrView(
+    forgeResult('pr.view', { selector: { kind: 'number', ref: { repo: ref.repo, number: ref.number } } })
+  );
+}
+
+/** Open the pull request and return the record the forge read back. */
+export function createPr(intent: CreatePrIntent): PrRecord {
+  const value = forgeResult('pr.create', {
+    repo: intent.repo,
+    headRepo: intent.headRepo,
+    head: intent.head,
+    headRevision: intent.headRevision,
+    base: intent.base,
+    title: intent.title,
+    body: readFileSync(intent.bodyPath, 'utf8'),
+    draft: intent.draft,
+  });
+  return parsePrRecord(value.pr);
+}
+
+/**
+ * Replace a pull request's whole description and return the record read back from
+ * the forge. The contract has no conditional body write, so an edit saved between
+ * the caller's read and this write is lost.
+ */
+export function editPrBody(ref: QualifiedPr, body: string): PrRecord {
+  const value = forgeResult('pr.edit-body', { ref: { repo: ref.repo, number: ref.number }, body });
+  return parsePrRecord(value.pr);
+}
+
+/**
+ * Put an open pull request into draft (`draft: true`) or take it out of draft, and
+ * return the record read back from the forge. A pull request already in the wanted
+ * state is not written.
+ */
+export function setPrDraft(ref: QualifiedPr, draft: boolean): PrRecord {
+  const value = forgeResult(draft ? 'pr.draft' : 'pr.ready', {
+    ref: { repo: ref.repo, number: ref.number },
+  });
+  return parsePrRecord(value.pr);
+}
+
+/** An issue or a pull request, as a comment addresses it. */
+export interface CommentSubject {
+  readonly kind: 'issue' | 'pr';
+  readonly ref: QualifiedPr;
+}
+
+/**
+ * Write the one comment carrying `marker` on its first line, creating it if it is
+ * not there yet and replacing it in place when it is. More than one marked comment
+ * is a conflict the forge refuses: guessing which one is canonical would silently
+ * abandon the other.
+ */
+export function upsertComment(subject: CommentSubject, marker: string, body: string): { readonly url: string } {
+  const ref = { repo: subject.ref.repo, number: subject.ref.number };
+  // A pull request keeps the original operation, so a plugin that predates
+  // subjects still publishes reviews; an issue needs the subject form.
+  const value =
+    subject.kind === 'pr'
+      ? forgeResult('comment.upsert', { ref, marker, body })
+      : forgeResult('workitem.comment.upsert', { subject: { kind: 'issue', ref }, marker, body });
+  const comment = record(value.comment);
+  if (typeof comment?.url !== 'string') throw new Error('forge returned no verified comment');
+  return { url: comment.url };
+}
