@@ -1143,6 +1143,7 @@
       ],
       "children": [
         "aam-archon-caps-a",
+        "aam-archon-caps-builtins",
         "aam-archon-caps-b"
       ]
     },
@@ -1164,6 +1165,64 @@
         },
         {
           "insert": " turns off every Archon-side feature, such as MCP, hooks, skills, and session resume."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-caps-builtins": {
+      "id": "aam-archon-caps-builtins",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A bundle limits Pi's built-in tools, such as "
+        },
+        {
+          "insert": "bash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "write",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", with "
+        },
+        {
+          "insert": "coreTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "disallowedTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in its "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []
@@ -2750,7 +2809,7 @@
                 }
               }
             ],
-            "Bundle sidecars only",
+            "Bundle sidecars and permitted Pi built-ins",
             "Domain tools that write Spectre state"
           ],
           [
