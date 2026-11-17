@@ -35,7 +35,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { artifactsDir, emit, note, refuse, text } from '../../.shared/io.ts';
-import { FINDING_VALUES, type Finding, readFindings } from '../../.shared/review-item.ts';
+import { FINDING_VALUES, type Finding, readFindings, verificationNote } from '../../.shared/review-item.ts';
 import { isObject } from '../../.shared/typed.ts';
 
 /** The verifier nodes' numbers; each writes review/verify-<n>.json. */
@@ -160,16 +160,12 @@ try {
         verdict.action = FINDING_VALUES.action[Math.max(...needs.map(rank))] ?? verdict.action;
       }
       writeFileSync(findingsFile, `${JSON.stringify(findings, null, 2)}\n`);
-      const parts = [
-        disproved.length > 0 ? `${disproved.join(', ')} disproved` : '',
-        preExisting.length > 0 ? `${preExisting.join(', ')} predate this change and are now discoveries` : '',
-        rejected.length > 0 ? `${rejected.join(', ')} rejected` : '',
-      ].filter(part => part !== '');
       const outcome = verdict.ready
         ? 'With that, the verdict is Ready (action `none`).'
         : `The verdict stays not ready (action \`${verdict.action}\`).`;
-      const summary = `Verification: most verifiers rejected ${parts.join('; ')}; each is now a note, not a blocker. ${outcome}`;
-      const header = `> **Verification.** Three independent verifiers judged each open blocking finding. ${summary.slice('Verification: '.length)} The findings below are the synthesizer's, before verification; \`findings.json\` holds the settled labels.\n\n`;
+      const verification = `${verificationNote({ disproved, preExisting, rejected }, findings)} ${outcome}`;
+      const summary = `Verification: ${verification}`;
+      const header = `> **Verification.** Three independent verifiers judged each open blocking finding. ${verification} The findings below are the synthesizer's, before verification; \`findings.json\` holds the settled labels.\n\n`;
       for (const file of [join(dir, 'report.md'), latestRoundCopy(dir)]) {
         if (file !== undefined) writeFileSync(file, header + readFileSync(file, 'utf8'));
       }

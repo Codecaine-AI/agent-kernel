@@ -68,3 +68,34 @@ export function readFindingsFile(file: string): Finding[] {
   }
   return raw;
 }
+
+/** The blockers verification demoted, by why most verifiers rejected each. */
+export interface Demoted {
+  readonly disproved: readonly string[];
+  readonly preExisting: readonly string[];
+  readonly rejected: readonly string[];
+}
+
+const series = (items: readonly string[]): string =>
+  items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1) ?? ''}`;
+
+const ids = (items: readonly string[]): string => (items.length === 0 ? '' : ` (${items.join(', ')})`);
+
+/**
+ * What verification changed, for settle-review's summary and the banner on the report:
+ * the blockers most verifiers rejected, then the blocking and note counts of `settled`,
+ * the findings.json settle-review writes. The report below the banner still lists the
+ * synthesizer's labels, so the counts here are the ones a reader acts on.
+ */
+export function verificationNote(demoted: Demoted, settled: readonly Finding[]): string {
+  const named = [
+    ...demoted.disproved.map(id => `${id} (disproved)`),
+    ...demoted.preExisting.map(id => `${id} (older than this change, now a discovery)`),
+    ...demoted.rejected,
+  ];
+  const open = settled.filter(finding => finding.severity === 'blocking' && finding.status === 'open').map(finding => finding.id);
+  const notes = settled.filter(finding => finding.severity === 'note').map(finding => finding.id);
+  const blocking = `${String(open.length)} blocking ${open.length === 1 ? 'finding stays' : 'findings stay'} open${ids(open)}`;
+  const noted = `${String(notes.length)} ${notes.length === 1 ? 'finding is a note' : 'findings are notes'}${ids(notes)}`;
+  return `Most verifiers rejected ${series(named)}, so ${named.length === 1 ? 'it is' : 'each is'} now a note, not a blocker. After verification, ${blocking} and ${noted}.`;
+}
