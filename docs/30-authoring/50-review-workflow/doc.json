@@ -729,7 +729,23 @@
           }
         },
         {
-          "insert": ", only when the checkout and the PR head are both still the commit that "
+          "insert": "."
+        }
+      ],
+      "children": [
+        "rc-4c1",
+        "rc-4c2"
+      ]
+    },
+    "rc-4c1": {
+      "id": "rc-4c1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "It refuses when the checkout or the PR head is not the commit that "
         },
         {
           "insert": "mode",
@@ -739,6 +755,37 @@
         },
         {
           "insert": " fixed."
+        }
+      ],
+      "children": []
+    },
+    "rc-4c2": {
+      "id": "rc-4c2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "It refuses when the "
+        },
+        {
+          "insert": "scope",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " input names a PR by number or as a JSON record and the "
+        },
+        {
+          "insert": "scope",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " node declared a different PR."
         }
       ],
       "children": []
