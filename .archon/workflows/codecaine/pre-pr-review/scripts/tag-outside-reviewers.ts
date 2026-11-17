@@ -12,7 +12,9 @@
  *   so it must not end as a success; the next run reviews and tags the new head.
  * - A comment already holds the marker with that head: it posts nothing. So sequential
  *   runs, or a replayed node, tag each head at most once. Two runs on one pull request at
- *   the same time can both post: the trigger binding runs 1 run per pull request at a time.
+ *   the same time can both post. Nothing in this pack serializes runs: the server's trigger
+ *   binding does, with capacity 1 on the repository's review resource (see the Review
+ *   Workflow docs page). A hand run beside a triggered run is not serialized.
  *
  * Usage:
  *   bun tag-outside-reviewers.ts [--dry-run] [--reviewed-head <sha>] [<pull request>]
