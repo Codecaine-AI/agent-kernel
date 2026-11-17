@@ -4,15 +4,17 @@
  * `provider: agent-kernel` and names the bundle as its `model`.
  *
  * Archon makes a new provider for each node attempt, so the kernels live in a
- * module-scope cache keyed by root. Every provider for one root shares one
- * kernel, one database handle and one kernel id, and each node attempt runs in
- * its own `archon-node` container under the run's `archon-run` container.
+ * module-scope cache keyed by root and settings. Every provider for one root
+ * shares one database handle and one kernel id, providers with equal settings
+ * share one kernel, and each node attempt runs in its own `archon-node`
+ * container under the run's `archon-run` container.
  *
  * The Archon provider shape lives in `./contract.ts`, the file the
  * subpath's `types` condition names.
  */
 import { join } from "node:path";
 
+import { validateToolArguments, type Tool } from "@earendil-works/pi-ai";
 import {
 	ensureKernelObservabilitySchema,
 	kernelDatabasePath,
@@ -139,27 +141,41 @@ export interface ArchonKernelEntry {
 	settings: AgentKernelSettings;
 }
 
+const databases = new Map<string, Promise<KernelDatabase>>();
 const kernels = new Map<string, Promise<ArchonKernelEntry>>();
 
+/** The one database handle of `root`, on `<root>/.agent-kernel/trace.db`. A failed open is not cached. */
+function archonDatabase(root: string): Promise<KernelDatabase> {
+	let entry = databases.get(root);
+	if (!entry) {
+		entry = (async () => {
+			const { db } = openKernelDatabase({ path: kernelDatabasePath(root) });
+			await ensureKernelObservabilitySchema(db);
+			return db;
+		})();
+		entry.catch(() => databases.delete(root));
+		databases.set(root, entry);
+	}
+	return entry;
+}
+
 /**
- * The cached kernel of `root`. The first call opens `<root>/.agent-kernel/trace.db`
- * and builds the kernel from `assistantConfig`; later calls reuse it and ignore
- * their `assistantConfig`. A failed build is not cached.
+ * The cached kernel of `root` and the settings in `assistantConfig`. Equal
+ * settings share one kernel. Different settings get their own kernel, on the
+ * same database handle, kernel id and state root. A failed build is not cached.
  */
-export function archonKernel(
+export async function archonKernel(
 	root: string,
 	assistantConfig: Record<string, unknown> | undefined,
 ): Promise<ArchonKernelEntry> {
-	let entry = kernels.get(root);
+	const settings = parseAgentKernelSettings(assistantConfig);
+	const aliases = Object.entries(settings.aliases).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+	const key = JSON.stringify([root, settings.catalogRoots, aliases, settings.piAgentDir ?? null]);
+	let entry = kernels.get(key);
 	if (!entry) {
-		entry = (async () => {
-			const settings = parseAgentKernelSettings(assistantConfig);
-			const { db } = openKernelDatabase({ path: kernelDatabasePath(root) });
-			await ensureKernelObservabilitySchema(db);
-			return { kernel: createArchonKernel({ root, db, settings }), db, settings };
-		})();
-		entry.catch(() => kernels.delete(root));
-		kernels.set(root, entry);
+		entry = archonDatabase(root).then((db) => ({ kernel: createArchonKernel({ root, db, settings }), db, settings }));
+		entry.catch(() => kernels.delete(key));
+		kernels.set(key, entry);
 	}
 	return entry;
 }
@@ -193,6 +209,42 @@ export function lastJsonObject(text: string): Record<string, unknown> | undefine
 		if (start === 0) break;
 	}
 	return undefined;
+}
+
+/**
+ * The node prompt with its output_format schema and the instruction to answer
+ * with that JSON only, worded close to Archon's Pi provider. The bundle has no
+ * structured_output tool, so the JSON reply is the only way to answer.
+ */
+function promptWithOutputFormat(prompt: string, schema: Record<string, unknown>): string {
+	return `${prompt}
+
+---
+
+Deliver your final answer as your last message: reply with just one JSON object that matches the schema below, without prose or markdown code fences.
+
+Schema:
+${JSON.stringify(schema, null, 2)}`;
+}
+
+/**
+ * `value` checked against `schema` the way Pi checks a tool call's arguments,
+ * with the same coercion, or undefined when it does not match. The provider
+ * declares `structuredOutput: enforced`, so Archon trusts what it returns.
+ */
+function matchOutputFormat(
+	value: Record<string, unknown>,
+	schema: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+	const name = "structured_output";
+	try {
+		return validateToolArguments(
+			{ name, description: "", parameters: schema as unknown as Tool["parameters"] },
+			{ type: "toolCall", id: name, name, arguments: value as Parameters<typeof validateToolArguments>[1]["arguments"] },
+		) as Record<string, unknown>;
+	} catch {
+		return undefined;
+	}
 }
 
 /** A small push queue that an async generator drains. */
@@ -262,9 +314,13 @@ async function* runNode(
 	let status: ContainerStatus = "error";
 	let outcome: AgentKernelChunk | undefined;
 	let failed: unknown;
-	const spawn = kernel
-		.spawnAgent(bundle, prompt, null, {
+	// A cancelled node never starts, and a node cancelled while it ran has no result, as in Archon's Pi provider.
+	const cancelled = () => options.abortSignal?.aborted === true;
+	const input = options.outputFormat ? promptWithOutputFormat(prompt, options.outputFormat.schema) : prompt;
+	const spawn = (cancelled() ? Promise.resolve(null) : kernel.spawnAgent(bundle, input, null, {
 			workingDir: cwd,
+			// The Pi session's working directory. With it, the transcript lands in the kernel's piSessionsDir.
+			sessionDir: cwd,
 			containerId: node.id,
 			traceTags: tags,
 			phase: tags.node_path,
@@ -276,20 +332,21 @@ async function* runNode(
 				if (activity.type === "start") flush();
 			},
 			onTurnEnd: flush,
-		})
+		}))
 		.then(
 			(result) => {
 				flush();
-				if (result.aborted) {
+				if (result === null || result.aborted || cancelled()) {
 					status = "aborted";
-					failed = new Error("the node was cancelled");
+					failed = new Error("Query aborted");
 					return;
 				}
 				status = "done";
 				const chunk: AgentKernelChunk = { type: "result", text: result.responseText };
 				if (result.piSessionId !== undefined) chunk.sessionId = result.piSessionId;
 				if (options.outputFormat) {
-					const structured = lastJsonObject(result.responseText);
+					const parsed = lastJsonObject(result.responseText);
+					const structured = parsed && matchOutputFormat(parsed, options.outputFormat.schema);
 					if (structured !== undefined) chunk.structuredOutput = structured;
 				}
 				outcome = chunk;

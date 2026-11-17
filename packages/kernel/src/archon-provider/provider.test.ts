@@ -38,6 +38,11 @@ let root: string;
 let stub: TraceHeaderStub;
 /** The text the stub answers with, by the first line of the user's message. */
 let answers: Record<string, string>;
+/** The body of each model request the stub got. */
+let bodies: string[];
+/** Called on each model request, before the stub answers. */
+let onRequest: () => void;
+let savedPiAgentDirEnv: string | undefined;
 
 /** A Responses stream of one message, sent as 2 text deltas. */
 function textStream(text: string): Response {
@@ -62,29 +67,40 @@ function textStream(text: string): Response {
 	return new Response(body, { status: 200, headers: { "content-type": "text/event-stream" } });
 }
 
-beforeEach(() => {
-	root = mkdtempSync(join(tmpdir(), "archon-provider-"));
-	answers = {};
-	globalThis.fetch = realFetch;
-	stub = startTraceHeaderStub((_index, body) => {
-		const key = Object.keys(answers).find((k) => body.includes(k));
-		return textStream(key ? answers[key]! : '{"echo":"default"}');
-	});
-	const piAgentDir = join(root, "pi-agent");
-	mkdirSync(piAgentDir, { recursive: true });
+/** A Pi agent dir whose one model, `stub/<modelId>`, goes to the stub. */
+function writePiAgentDir(dir: string, modelId: string): void {
+	mkdirSync(dir, { recursive: true });
 	writeFileSync(
-		join(piAgentDir, "models.json"),
+		join(dir, "models.json"),
 		JSON.stringify({
 			providers: {
 				stub: {
 					baseUrl: stub.url,
 					api: "openai-responses",
 					apiKey: "sk-stub-key-0123456789",
-					models: [{ id: "stub-model", name: "Stub", reasoning: false, input: ["text"], contextWindow: 128000, maxTokens: 4096 }],
+					models: [{ id: modelId, name: "Stub", reasoning: false, input: ["text"], contextWindow: 128000, maxTokens: 4096 }],
 				},
 			},
 		}),
 	);
+}
+
+beforeEach(() => {
+	root = mkdtempSync(join(tmpdir(), "archon-provider-"));
+	answers = {};
+	bodies = [];
+	onRequest = () => {};
+	// Pi's default agent dir, so a session that ignores piSessionsDir lands in the temp root, never in ~/.pi.
+	savedPiAgentDirEnv = process.env.PI_CODING_AGENT_DIR;
+	process.env.PI_CODING_AGENT_DIR = join(root, "default-pi-agent");
+	globalThis.fetch = realFetch;
+	stub = startTraceHeaderStub((_index, body) => {
+		bodies.push(body);
+		onRequest();
+		const key = Object.keys(answers).find((k) => body.includes(k));
+		return textStream(key ? answers[key]! : '{"echo":"default"}');
+	});
+	writePiAgentDir(join(root, "pi-agent"), "stub-model");
 });
 
 afterEach(async () => {
@@ -92,6 +108,8 @@ afterEach(async () => {
 	await kernel.traceWriter.flush();
 	kernel.dispose();
 	stub.stop();
+	if (savedPiAgentDirEnv === undefined) delete process.env.PI_CODING_AGENT_DIR;
+	else process.env.PI_CODING_AGENT_DIR = savedPiAgentDirEnv;
 	rmSync(root, { recursive: true, force: true });
 });
 
@@ -121,9 +139,9 @@ async function attempt(
 	prompt: string,
 	env: Record<string, string>,
 	extra: Partial<AgentKernelSendQueryOptions> = {},
+	chunks: AgentKernelChunk[] = [],
 ): Promise<AgentKernelChunk[]> {
 	const provider = createAgentKernelProvider({ root });
-	const chunks: AgentKernelChunk[] = [];
 	for await (const chunk of provider.sendQuery(prompt, root, undefined, {
 		model: "echo-bundle",
 		env,
@@ -203,7 +221,7 @@ describe("Archon provider", () => {
 		// Each request carries the tags of its own node.
 		expect(stub.received.map((headers) => headers["x-trace-node-path"]).sort()).toEqual(["first", "second"]);
 		expect(stub.received.every((headers) => !("x-trace-loop-path" in headers))).toBe(true);
-		const [a, b] = await Promise.all([archonKernel(root, undefined), archonKernel(root, undefined)]);
+		const [a, b] = await Promise.all([archonKernel(root, assistantConfig()), archonKernel(root, assistantConfig())]);
 		expect(a.kernel).toBe(b.kernel);
 	});
 
@@ -249,6 +267,78 @@ describe("Archon provider", () => {
 		expect(chunks.map((chunk) => chunk.type)).toEqual(["result", "settled"]);
 		expect(resultOf(chunks)).toMatchObject({ isError: true, failure: { class: "misconfigured" } });
 		expect(stub.received).toHaveLength(0);
+	});
+
+	test("the Pi transcript lands under <root>/.agent-kernel/pi-sessions, not in Pi's default agent dir", async () => {
+		const result = resultOf(await attempt("hello", nodeEnv({ node: "n", invocation: "inv-1" })));
+
+		const [node] = containers("archon-node");
+		const transcripts = readdirSync(join(root, ".agent-kernel", "pi-sessions", node!.id, "echo-bundle"));
+		expect(transcripts).toEqual([expect.stringContaining(`${result.sessionId}.jsonl`)]);
+		expect(existsSync(join(root, "default-pi-agent", "sessions"))).toBe(false);
+	});
+
+	test("a node cancelled before it starts throws, sends no model request and marks its node aborted", async () => {
+		const controller = new AbortController();
+		controller.abort();
+
+		const chunks: AgentKernelChunk[] = [];
+		const run = attempt("hello", nodeEnv({ node: "n", invocation: "inv-1" }), { abortSignal: controller.signal }, chunks);
+
+		await expect(run).rejects.toThrow("Query aborted");
+		expect(chunks.some((chunk) => chunk.type === "result" || chunk.type === "settled")).toBe(false);
+		expect(stub.received).toHaveLength(0);
+		expect(containers("archon-node").map((row) => row.status)).toEqual(["aborted"]);
+	});
+
+	test("a node cancelled while the model answers throws and marks its node aborted", async () => {
+		const controller = new AbortController();
+		onRequest = () => controller.abort();
+
+		const chunks: AgentKernelChunk[] = [];
+		const run = attempt("hello", nodeEnv({ node: "n", invocation: "inv-1" }), { abortSignal: controller.signal }, chunks);
+
+		await expect(run).rejects.toThrow();
+		expect(chunks.some((chunk) => chunk.type === "result" || chunk.type === "settled")).toBe(false);
+		expect(containers("archon-node").map((row) => row.status)).toEqual(["aborted"]);
+	});
+
+	test("runs with different settings get 2 kernels on 1 database handle, and each uses its own settings", async () => {
+		writePiAgentDir(join(root, "other-pi-agent"), "other-model");
+		const other = { ...assistantConfig(), aliases: { standard: "stub/other-model" }, piAgentDir: join(root, "other-pi-agent") };
+
+		await attempt("hello", nodeEnv({ node: "a", invocation: "inv-1" }));
+		await attempt("hello", nodeEnv({ node: "b", invocation: "inv-2" }), { assistantConfig: other });
+
+		expect(bodies.map((body) => (JSON.parse(body) as { model: string }).model)).toEqual(["stub-model", "other-model"]);
+		const first = await archonKernel(root, assistantConfig());
+		const second = await archonKernel(root, other);
+		expect(second.kernel).not.toBe(first.kernel);
+		expect(second.db).toBe(first.db);
+		expect(new Set(containers("archon-node").map((row) => row.kernel_id)).size).toBe(1);
+		// Alias order is not part of the settings.
+		const { fast, standard, strong } = assistantConfig().aliases as Record<string, string>;
+		const reordered = await archonKernel(root, { ...assistantConfig(), aliases: { strong, standard, fast } });
+		expect(reordered.kernel).toBe(first.kernel);
+		second.kernel.dispose();
+	});
+
+	test("an output_format node sends the model the schema and a JSON-only instruction", async () => {
+		answers = { hello: '{"echo":"hello"}' };
+		await attempt("hello", nodeEnv({ node: "n", invocation: "inv-1" }), { outputFormat: OUTPUT_FORMAT });
+
+		// The schema as it sits inside the request's JSON string.
+		const schemaInBody = JSON.stringify(JSON.stringify(OUTPUT_FORMAT.schema, null, 2)).slice(1, -1);
+		expect(bodies).toHaveLength(1);
+		expect(bodies[0]).toContain(schemaInBody);
+		expect(bodies[0]).toContain("reply with just one JSON object that matches the schema");
+	});
+
+	test("a JSON answer that misses the output_format schema gives no structured output", async () => {
+		answers = { hello: '{"wrong":"hello"}' };
+		const chunks = await attempt("hello", nodeEnv({ node: "n", invocation: "inv-1" }), { outputFormat: OUTPUT_FORMAT });
+
+		expect(resultOf(chunks).structuredOutput).toBeUndefined();
 	});
 
 	test("kernel.call with model fast resolves through the aliases of assistantConfig", async () => {
