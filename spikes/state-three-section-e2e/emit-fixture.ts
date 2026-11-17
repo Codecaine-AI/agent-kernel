@@ -3,7 +3,7 @@
  * Run after e2e.ts: bun spikes/state-three-section-e2e/emit-fixture.ts
  */
 import { readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 const spikeDir = import.meta.dir;
 const repoRoot = resolve(spikeDir, "../..");
@@ -36,9 +36,11 @@ import type { RunTurnContextResponse } from "../request-snapshot-api";
 export const realTurnContext: RunTurnContextResponse = ${JSON.stringify(captured, null, "\t").replace(/\n/g, "\n")} as RunTurnContextResponse;
 `;
 
+// viewer-ui lives in the sibling trace-viewer repo; its entry resolves to its src/index.ts.
+const viewerUiSrc = dirname(Bun.resolveSync("@codecaine-ai/agent-kernel-viewer-ui", spikeDir));
 const target = join(
-	repoRoot,
-	"packages/viewer-ui/src/trace-viewer/detail-panel/renderers/__fixtures__/real-turn-context.ts",
+	viewerUiSrc,
+	"trace-viewer/detail-panel/renderers/__fixtures__/real-turn-context.ts",
 );
 await Bun.write(target, out);
 console.log(`wrote ${target}`);

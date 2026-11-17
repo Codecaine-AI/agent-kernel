@@ -4,8 +4,9 @@
 model-node shape the viewer renders: calls, decisions, steps, gates, nested
 tools, abstains, failures and retries. It is the input of three consumers:
 
-- the viewer-core characterization and route test
-  (`packages/viewer-core/src/trace-builder/__fixtures__/model-nodes-demo.json`);
+- the viewer-core characterization and route test (viewer-core lives in the
+  sibling trace-viewer repo; the fixture is its
+  `src/trace-builder/__fixtures__/model-nodes-demo.json`);
 - the design-system `viewer-ui` run profile, which serves the trace DB
   read-only (`<DS>/apps/fixtures/viewer-ui/model-nodes-demo.db`);
 - `shape.test.ts` (M6-D), which checks that the real kernel emits the same
@@ -37,7 +38,8 @@ After changing the generator, regenerate, then update only the new
 characterization snapshots:
 
 ```bash
-cd packages/viewer-core && bun test src/trace-builder/characterization.test.ts
+# from viewer-core's package directory in the trace-viewer repo
+bun test src/trace-builder/characterization.test.ts
 ```
 
 Bun writes snapshots that do not exist yet. Never pass `--update-snapshots`

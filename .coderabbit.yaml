@@ -37,8 +37,6 @@ reviews:
     - "!**/prompt/system.md"
     # TUI typecheck baseline recorded by scripts/check-tui-typecheck-baseline.ts --record
     - "!scripts/tui-typecheck-baseline.json"
-    # Vendored licensed Nucleo SVG icons
-    - "!packages/viewer-ui/src/trace-viewer/icons/nucleo-src/**"
     # TUI test fixture catalog
     - "!packages/tui/test-fixtures/**"
   path_instructions:
