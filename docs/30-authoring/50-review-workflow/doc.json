@@ -734,7 +734,10 @@
       ],
       "children": [
         "rc-4c1",
-        "rc-4c2"
+        "rc-4c2",
+        "rc-4c2a",
+        "rc-4c2b",
+        "rc-4c2c"
       ]
     },
     "rc-4c1": {
@@ -776,7 +779,7 @@
           }
         },
         {
-          "insert": " input names a PR by number or as a JSON record and the "
+          "insert": " input names a PR and the "
         },
         {
           "insert": "scope",
@@ -785,7 +788,88 @@
           }
         },
         {
-          "insert": " node declared a different PR."
+          "insert": " node declared no PR, or a PR with another host, repository or number."
+        }
+      ],
+      "children": []
+    },
+    "rc-4c2a": {
+      "id": "rc-4c2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "scope",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " input names a PR as a number, "
+        },
+        {
+          "insert": "#number",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", URL or JSON record."
+        }
+      ],
+      "children": []
+    },
+    "rc-4c2b": {
+      "id": "rc-4c2b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A number names a PR in the repository that the checkout's remotes name, so "
+        },
+        {
+          "insert": "publish",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " refuses a number when the remotes name no repository or several."
+        }
+      ],
+      "children": []
+    },
+    "rc-4c2c": {
+      "id": "rc-4c2c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "publish",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " refuses a zero-padded number such as "
+        },
+        {
+          "insert": "0013",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", because that text can also name a branch."
         }
       ],
       "children": []
