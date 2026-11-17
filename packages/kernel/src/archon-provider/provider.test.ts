@@ -425,6 +425,27 @@ describe("Archon provider", () => {
 		expect(containers("archon-node").map((row) => row.status)).toEqual(["aborted"]);
 	});
 
+	test("a reader that drops the stream while a background child runs stops the child and ends the node aborted", async () => {
+		const gate = Promise.withResolvers<void>();
+		const asked = Promise.withResolvers<void>();
+		routeBackgroundDispatch(() => gate.promise, () => asked.resolve());
+
+		const stream = createAgentKernelProvider({ root }).sendQuery("PARENT-TASK a", root, undefined, {
+			model: "background-dispatch-bundle",
+			env: nodeEnv({ node: "a", invocation: "inv-a" }),
+			assistantConfig: assistantConfig(),
+		});
+		// The parent has answered and its child waits on the model: the reader leaves now.
+		expect((await stream.next()).value?.type).toBe("agent_message_chunk");
+		await asked.promise;
+		await stream.return(undefined);
+
+		const status = await childStatus("a");
+		gate.resolve();
+		expect(status).toBe("stopped");
+		expect(containers("archon-node").map((row) => row.status)).toEqual(["aborted"]);
+	});
+
 	test("runs with different settings get 2 kernels on 1 database handle, and each uses its own settings", async () => {
 		writePiAgentDir(join(root, "other-pi-agent"), "other-model");
 		const other = { ...assistantConfig(), aliases: { standard: "stub/other-model" }, piAgentDir: join(root, "other-pi-agent") };

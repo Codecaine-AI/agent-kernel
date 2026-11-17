@@ -348,7 +348,13 @@ async function* runNode(
 	// backgroundWork "none": the node ends only after the background agents its bundle started have ended.
 	// They run in the node's container, so parallel nodes on one kernel never wait for or stop each other's.
 	const children = kernel.agentManager;
-	const stopChildren = () => children.abortContainer(node.id);
+	// The node's own signal: it follows the caller's signal, and a reader that drops the stream also aborts it.
+	const nodeAbort = new AbortController();
+	const stopChildren = () => {
+		nodeAbort.abort();
+		children.abortContainer(node.id);
+	};
+	if (options.abortSignal?.aborted) nodeAbort.abort();
 	options.abortSignal?.addEventListener("abort", stopChildren, { once: true });
 
 	// Deltas coalesce into whole blocks, sent at a tool start, a turn end and the end.
@@ -361,6 +367,7 @@ async function* runNode(
 	let status: ContainerStatus = "error";
 	let outcome: AgentKernelChunk | undefined;
 	let failed: unknown;
+	let completed = false;
 	// A cancelled node never starts, and a node cancelled while it ran has no result, as in Archon's Pi provider.
 	const cancelled = () => options.abortSignal?.aborted === true;
 	const input = options.outputFormat ? promptWithOutputFormat(prompt, options.outputFormat.schema) : prompt;
@@ -371,7 +378,7 @@ async function* runNode(
 			containerId: node.id,
 			traceTags: tags,
 			phase: tags.node_path,
-			...(options.abortSignal !== undefined && { signal: options.abortSignal }),
+			signal: nodeAbort.signal,
 			onTextDelta: (delta) => {
 				block += delta;
 			},
@@ -386,7 +393,7 @@ async function* runNode(
 		.then(
 			(result) => {
 				flush();
-				if (result === null || result.aborted || cancelled()) {
+				if (result === null || result.aborted || nodeAbort.signal.aborted) {
 					status = "aborted";
 					failed = new Error("Query aborted");
 					return;
@@ -422,6 +429,7 @@ async function* runNode(
 						failed = new Error("Query aborted");
 					}
 					if (failed !== undefined) throw failed;
+					completed = true;
 					if (outcome) yield outcome;
 					return;
 				}
@@ -429,9 +437,9 @@ async function* runNode(
 			}
 		}
 	} finally {
+		// A failed, cancelled or abandoned node stops its bundle and the children it left, before it waits for them.
+		if (!completed) stopChildren();
 		await spawn;
-		// A failed, cancelled or abandoned node stops the children it left. A finished node has none left.
-		stopChildren();
 		await children.waitForContainer(node.id);
 		options.abortSignal?.removeEventListener("abort", stopChildren);
 		await kernel.traceWriter.flush();
