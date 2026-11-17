@@ -1,0 +1,7 @@
+{
+  "name": "background-dispatch-bundle",
+  "description": "Starts one echo-bundle child in the background, then ends its own turn. The Archon provider fixture for live children.",
+  "model": "standard",
+  "coreTools": [],
+  "state": { "window": { "strategy": "turns", "maxTurns": 20 } }
+}

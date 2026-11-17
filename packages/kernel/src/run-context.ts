@@ -11,7 +11,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
 import type { RunTrigger } from "@codecaine-ai/agent-kernel-db";
-import type { TraceEventIds } from "@codecaine-ai/agent-kernel-protocol";
+import type { TraceEventIds, TraceTags } from "@codecaine-ai/agent-kernel-protocol";
 
 import type { TraceWriterSink } from "./subagents/types";
 
@@ -43,6 +43,8 @@ export type RunContext = {
 	userId?: string;
 	agentId?: string;
 	phase?: string;
+	/** Trace tags that every model request of this run sends as `X-Trace-*` headers. */
+	traceTags?: TraceTags;
 };
 
 export const runContextStore = new AsyncLocalStorage<RunContext>();

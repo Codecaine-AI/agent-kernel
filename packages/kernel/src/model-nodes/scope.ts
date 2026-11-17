@@ -8,6 +8,7 @@
  * passes `parentToolUseId`.
  */
 import { getAgentRun, getContainer, type KernelDatabase } from "@codecaine-ai/agent-kernel-db";
+import type { TraceTags } from "@codecaine-ai/agent-kernel-protocol";
 
 import { runContextStore } from "../run-context";
 import { KernelNodeError, type NodeTrigger } from "./types";
@@ -18,6 +19,7 @@ export interface NodeScopeInput {
 	parentToolUseId?: string;
 	displayLabel?: string;
 	trigger?: NodeTrigger;
+	traceTags?: TraceTags;
 }
 
 export interface ResolvedNodeScope {
@@ -26,6 +28,7 @@ export interface ResolvedNodeScope {
 	parentToolUseId?: string;
 	displayLabel?: string;
 	trigger: NodeTrigger;
+	traceTags?: TraceTags;
 }
 
 export interface ResolveNodeScopeContext {
@@ -80,6 +83,7 @@ export async function resolveNodeScope(
 		throw new KernelNodeError("no-container", `container ${containerId} does not exist`);
 	}
 
+	const traceTags = opts.traceTags ?? ambient?.traceTags;
 	const scope = {
 		...(parentRunId !== undefined && { parentRunId }),
 		...(opts.parentToolUseId !== undefined && { parentToolUseId: opts.parentToolUseId }),
@@ -89,6 +93,7 @@ export async function resolveNodeScope(
 		...scope,
 		...(opts.displayLabel !== undefined && { displayLabel: opts.displayLabel }),
 		trigger: opts.trigger ?? ctx.defaultTrigger ?? defaultNodeTrigger(scope),
+		...(traceTags !== undefined && { traceTags }),
 	};
 }
 

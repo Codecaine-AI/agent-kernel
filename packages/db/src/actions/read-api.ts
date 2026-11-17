@@ -5,7 +5,7 @@
 import { and, asc, count, desc, eq, gt, inArray, max, type SQL } from "drizzle-orm";
 
 import type { KernelDatabase } from "../client";
-import { piAgentSessionSelection } from "../read-compat";
+import { containerSelection, piAgentSessionSelection } from "../read-compat";
 import { agentRuns } from "../schema/agent-runs";
 import { containers } from "../schema/containers";
 import { piAgentSessions } from "../schema/pi-agent-sessions";
@@ -88,7 +88,7 @@ export async function listSessionContainersWithStats(
 	if (opts.kernelId) conditions.push(eq(containers.kernelId, opts.kernelId));
 
 	const rows = await db
-		.select()
+		.select(containerSelection(db))
 		.from(containers)
 		.where(and(...conditions))
 		.orderBy(desc(containers.createdAt))
@@ -140,7 +140,7 @@ export async function listContainerTree(
 ): Promise<Container[]> {
   const maxContainers = clampLimit(opts.maxContainers, 500, 5000);
   const [root] = await db
-    .select()
+    .select(containerSelection(db))
     .from(containers)
     .where(eq(containers.id, rootContainerId))
     .limit(1);
@@ -154,7 +154,7 @@ export async function listContainerTree(
   while (frontier.length > 0 && rows.length < maxContainers) {
     const remaining = maxContainers - rows.length;
     const children = await db
-      .select()
+      .select(containerSelection(db))
       .from(containers)
       .where(inArray(containers.parentContainerId, frontier))
       .orderBy(asc(containers.createdAt))

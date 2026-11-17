@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 
 import type { RunTrigger } from "@codecaine-ai/agent-kernel-db";
-import { createRunSteeredEvent } from "@codecaine-ai/agent-kernel-protocol";
+import { createRunSteeredEvent, type TraceTags } from "@codecaine-ai/agent-kernel-protocol";
 
-import { runContextStore } from "../run-context";
+import { runContextStore, type RunContext } from "../run-context";
 import type {
 	AgentRecord,
 	KernelExtensionAPI,
@@ -51,6 +51,8 @@ export interface AgentSpawnOptions {
 	onTurnEnd?: (turnCount: number) => void;
 	/** Fired by the spawn pipeline as soon as the run's identity exists. */
 	onRunStarted?: (info: { runId: string; containerId: string }) => void;
+	/** The parent run's trace tags. `{}` means no tags: the pipeline must not read the ambient run's. */
+	traceTags?: TraceTags;
 }
 
 export type SpawnAgentAdapter = (
@@ -73,6 +75,12 @@ interface SpawnArgs {
 	agentName: string;
 	prompt: string;
 	options: SpawnOptions;
+	/**
+	 * The run context at spawn() time. A queued child starts later, inside the
+	 * async context of whichever run's completion drains the queue, so the
+	 * parent's context must be captured here and not read in startAgent.
+	 */
+	parentRunCtx: RunContext | undefined;
 }
 
 export class AgentManager {
@@ -140,6 +148,8 @@ export class AgentManager {
 		const id = randomUUID().slice(0, 17);
 		const abortController = new AbortController();
 		const type: SubagentType = agentName;
+		const parentRunCtx = runContextStore.getStore();
+		const containerId = options.containerId ?? parentRunCtx?.containerId;
 
 		const record: AgentRecord = {
 			id,
@@ -150,6 +160,7 @@ export class AgentManager {
 			toolUses: 0,
 			startedAt: Date.now(),
 			abortController,
+			...(containerId !== undefined && { containerId }),
 		};
 		this.agents.set(id, record);
 		let resolveCompletion!: (r: AgentRecord) => void;
@@ -161,7 +172,14 @@ export class AgentManager {
 			resolve: resolveCompletion,
 		});
 
-		const args: SpawnArgs = { pi, ctx, agentName, prompt, options };
+		const args: SpawnArgs = {
+			pi,
+			ctx,
+			agentName,
+			prompt,
+			options,
+			parentRunCtx,
+		};
 
 		if (options.isBackground && this.runningBackground >= this.maxConcurrent) {
 			this.queue.push({ id, args });
@@ -191,7 +209,7 @@ export class AgentManager {
 	private startAgent(
 		id: string,
 		record: AgentRecord,
-		{ ctx, agentName, prompt, options }: SpawnArgs,
+		{ ctx, agentName, prompt, options, parentRunCtx }: SpawnArgs,
 	): void {
 		record.status = "running";
 		record.startedAt = Date.now();
@@ -214,7 +232,6 @@ export class AgentManager {
 			}
 		}
 
-		const parentRunCtx = runContextStore.getStore();
 		const parentPiSessionUuid =
 			options.parentPiSessionUuid ?? ctx.sessionManager.getSessionId();
 		const adapterOptions: AgentSpawnOptions = {
@@ -227,6 +244,7 @@ export class AgentManager {
 			parentRunId: options.parentRunId ?? parentRunCtx?.runId,
 			parentPiSessionUuid,
 			phase: options.phase ?? parentRunCtx?.phase,
+			traceTags: parentRunCtx?.traceTags ?? {},
 			displayLabel: options.displayLabel,
 			parentToolUseId: options.toolCallId,
 			signal: record.abortController!.signal,
@@ -468,6 +486,31 @@ export class AgentManager {
 			if (pending.length === 0) break;
 			await Promise.allSettled(pending);
 		}
+	}
+
+	/**
+	 * Resolves once every agent started in `containerId` has ended, agents
+	 * they start while it waits included. A stopped agent counts as ended
+	 * only when its run has ended, not when abort() marks it.
+	 */
+	async waitForContainer(containerId: string): Promise<void> {
+		while (true) {
+			this.drainQueue();
+			const pending = [...this.agents.values()]
+				.filter((record) => record.containerId === containerId)
+				.flatMap((record) => this.completionWaiters.get(record.id)?.promise ?? []);
+			if (pending.length === 0) return;
+			await Promise.all(pending);
+		}
+	}
+
+	/** Stops every queued or running agent started in `containerId`. Returns how many it stopped. */
+	abortContainer(containerId: string): number {
+		let count = 0;
+		for (const record of [...this.agents.values()]) {
+			if (record.containerId === containerId && this.abort(record.id)) count++;
+		}
+		return count;
 	}
 
 	clearCompleted(): void {

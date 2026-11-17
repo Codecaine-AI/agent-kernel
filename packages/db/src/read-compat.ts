@@ -6,10 +6,12 @@
  * through these concrete Drizzle selections instead, which substitute the
  * column's default when it is missing and keep the declared row types.
  */
+import { TRACE_TAGS, type TraceTagName } from "@codecaine-ai/agent-kernel-protocol";
 import { getTableColumns, sql, type SQL } from "drizzle-orm";
 import type { KernelDatabase } from "./client";
+import { containers } from "./schema/containers";
 import { piAgentSessions, type SessionKind } from "./schema/pi-agent-sessions";
-import { hasSessionKindColumn } from "./upgrade";
+import { containerTagColumns, hasSessionKindColumn } from "./upgrade";
 
 const { kind: _kind, ...piAgentSessionBaseColumns } =
   getTableColumns(piAgentSessions);
@@ -32,4 +34,26 @@ export function piAgentSessionSelection(
       ? sql<SessionKind>`${piAgentSessions.kind}`.as("kind")
       : sql<SessionKind>`'pi'`.as("kind"),
   };
+}
+
+const containerColumns = getTableColumns(containers);
+
+export type ContainerSelection = Omit<typeof containerColumns, TraceTagName> & {
+  [Tag in TraceTagName]: SQL.Aliased<string | null>;
+};
+
+/**
+ * Every containers column, with each trace tag column read as NULL when it
+ * does not exist yet. Rows keep the Container shape:
+ * `db.select(containerSelection(db)).from(containers)`.
+ */
+export function containerSelection(db: KernelDatabase): ContainerSelection {
+  const present = containerTagColumns(db);
+  const selection: Record<string, unknown> = { ...containerColumns };
+  for (const { tag } of TRACE_TAGS) {
+    selection[tag] = present.has(tag)
+      ? sql<string | null>`${containerColumns[tag]}`.as(tag)
+      : sql<string | null>`NULL`.as(tag);
+  }
+  return selection as ContainerSelection;
 }

@@ -12,7 +12,7 @@ import {
 	type RunStatus,
 	type RunTrigger,
 } from "@codecaine-ai/agent-kernel-db";
-import type { RunTraceEventIds } from "@codecaine-ai/agent-kernel-protocol";
+import type { RunTraceEventIds, TraceTags } from "@codecaine-ai/agent-kernel-protocol";
 
 import {
 	createKernelEmitter,
@@ -94,6 +94,8 @@ export interface KernelSpawnOptions {
 	 * parent run context). Derive one with kernel.container({ kind, key }).
 	 */
 	containerId?: string;
+	/** Trace tags that every model request of the run sends as `X-Trace-*` headers. Defaults to the parent run's tags. */
+	traceTags?: TraceTags;
 	/**
 	 * What opened the run. Defaults to "parent-tool" when parentToolUseId is
 	 * present, else "operator".
@@ -241,6 +243,7 @@ export function createSpawnAgent(
 		if (!cwd) throw new Error("spawnAgent requires opts.workingDir or ctx.cwd");
 		const parentCtx = runContextStore.getStore();
 		const containerId = opts.containerId ?? parentCtx?.containerId;
+		const traceTags = opts.traceTags ?? parentCtx?.traceTags;
 		if (!containerId) {
 			throw new Error(
 				"spawnAgent requires opts.containerId — derive one with kernel.container({ kind, key })",
@@ -335,6 +338,7 @@ export function createSpawnAgent(
 			sessionBinding,
 			piLifecycleCustomType: adapters.piLifecycleCustomType,
 			piAgentDir: opts.piAgentDir,
+			traceTags,
 			logger: log,
 		});
 		opts.onSessionCreated?.(session);
@@ -498,6 +502,7 @@ export function createSpawnAgent(
 				piSessionsDir: opts.piSessionsDir,
 				phase: opts.phase,
 				userId: opts.userId,
+				traceTags,
 			},
 			cwd,
 			stateManager,

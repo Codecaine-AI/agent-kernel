@@ -49,6 +49,14 @@
         "b-20-observability-model-runid-identifies-a-ker-12",
         "b-20-observability-model-pisessionid-links-even-13",
         "b-20-observability-model-kernelid-identifies-on-14",
+        "obs-trace-tags-h",
+        "obs-trace-tags-lead",
+        "obs-trace-tags-table",
+        "obs-trace-tags-flow-lead",
+        "obs-trace-tags-flow-1",
+        "obs-trace-tags-flow-2",
+        "obs-trace-tags-flow-3",
+        "obs-trace-tags-runid",
         "b-20-observability-model-linkage-rule-15",
         "b-20-observability-model-if-a-relationship-is-kno-16",
         "b-20-observability-model-linkage-table",
@@ -150,7 +158,7 @@
                 }
               },
               {
-                "insert": " (harnesses write 2; version 1 stays readable), display name, Pi sessions directory, "
+                "insert": " (harnesses write 2, and version 1 stays readable), display name, Pi sessions directory, "
               },
               {
                 "insert": "kernelRoot",
@@ -304,7 +312,58 @@
                 }
               },
               {
-                "insert": ", usage rollups"
+                "insert": ", usage rollups, and the 6 trace tag columns "
+              },
+              {
+                "insert": "engine",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "run_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "node_path",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "invocation_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "attempt_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "loop_path",
+                "attributes": {
+                  "code": true
+                }
               }
             ],
             "The single grouping primitive."
@@ -1097,6 +1156,561 @@
         },
         {
           "insert": " identifies one kernel. It namespaces container derivation and appears in the local kernel manifest."
+        }
+      ],
+      "children": []
+    },
+    "obs-trace-tags-h": {
+      "id": "obs-trace-tags-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Trace Tags"
+        }
+      ],
+      "children": []
+    },
+    "obs-trace-tags-lead": {
+      "id": "obs-trace-tags-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A trace tag names one node attempt of an outside workflow engine that runs kernel work, such as the Archon fork. "
+        },
+        {
+          "insert": "TRACE_TAGS",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "packages/protocol/src/trace-tags.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " lists the 6 tags. Each tag has one column on "
+        },
+        {
+          "insert": "containers",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", one request header, and one environment variable that the engine sets."
+        }
+      ],
+      "children": []
+    },
+    "obs-trace-tags-table": {
+      "id": "obs-trace-tags-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Tag column",
+          "Request header",
+          "Engine variable",
+          "Meaning"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "engine",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "X-Trace-Engine",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "TRACE_ENGINE",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "The engine that ran the node, such as "
+              },
+              {
+                "insert": "archon",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "run_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "X-Trace-Run",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "TRACE_RUN",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The engine's own run id"
+          ],
+          [
+            [
+              {
+                "insert": "node_path",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "X-Trace-Node-Path",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "TRACE_NODE_PATH",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The path of the node in the workflow"
+          ],
+          [
+            [
+              {
+                "insert": "invocation_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "X-Trace-Invocation",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "TRACE_INVOCATION",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The id of one invocation of the node"
+          ],
+          [
+            [
+              {
+                "insert": "attempt_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "X-Trace-Attempt",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "TRACE_ATTEMPT",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The id of one attempt of that invocation"
+          ],
+          [
+            [
+              {
+                "insert": "loop_path",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "X-Trace-Loop-Path",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "TRACE_LOOP_PATH",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The loop position of the node, unset outside a loop"
+          ]
+        ],
+        "title": "Trace tags"
+      },
+      "children": []
+    },
+    "obs-trace-tags-flow-lead": {
+      "id": "obs-trace-tags-flow-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The kernel carries the tags from the container to each model request of the node."
+        }
+      ],
+      "children": []
+    },
+    "obs-trace-tags-flow-1": {
+      "id": "obs-trace-tags-flow-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Containers",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "obs-trace-tags-flow-1a",
+        "obs-trace-tags-flow-1b"
+      ]
+    },
+    "obs-trace-tags-flow-1a": {
+      "id": "obs-trace-tags-flow-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "kernel.container",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " writes its "
+        },
+        {
+          "insert": "traceTags",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " to the 6 columns, not to "
+        },
+        {
+          "insert": "metadata",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "obs-trace-tags-flow-1b": {
+      "id": "obs-trace-tags-flow-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "An upsert without "
+        },
+        {
+          "insert": "traceTags",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " keeps the stored tags. An untagged row holds NULL in each column."
+        }
+      ],
+      "children": []
+    },
+    "obs-trace-tags-flow-2": {
+      "id": "obs-trace-tags-flow-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Runs and Node Scopes",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "obs-trace-tags-flow-2a",
+        "obs-trace-tags-flow-2b"
+      ]
+    },
+    "obs-trace-tags-flow-2a": {
+      "id": "obs-trace-tags-flow-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "spawnAgent",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " puts its "
+        },
+        {
+          "insert": "traceTags",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " option in the run context. Without the option, the run takes the tags of its parent run."
+        }
+      ],
+      "children": []
+    },
+    "obs-trace-tags-flow-2b": {
+      "id": "obs-trace-tags-flow-2b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " take the same option. Without it, they take the tags of the run that calls them."
+        }
+      ],
+      "children": []
+    },
+    "obs-trace-tags-flow-3": {
+      "id": "obs-trace-tags-flow-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Request Headers",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "obs-trace-tags-flow-3a",
+        "obs-trace-tags-flow-3b"
+      ]
+    },
+    "obs-trace-tags-flow-3a": {
+      "id": "obs-trace-tags-flow-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Each provider request of a Pi session, a "
+        },
+        {
+          "insert": "kernel.call",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " route, and a "
+        },
+        {
+          "insert": "kernel.decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " classifier sends the set tags as "
+        },
+        {
+          "insert": "X-Trace-*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " headers."
+        }
+      ],
+      "children": []
+    },
+    "obs-trace-tags-flow-3b": {
+      "id": "obs-trace-tags-flow-3b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "traceTagHeaders",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sends no header for a missing or empty tag."
+        }
+      ],
+      "children": []
+    },
+    "obs-trace-tags-runid": {
+      "id": "obs-trace-tags-runid",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The name "
+        },
+        {
+          "insert": "run_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " has 2 meanings in "
+        },
+        {
+          "insert": "trace.db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The "
+        },
+        {
+          "insert": "run_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " column of "
+        },
+        {
+          "insert": "containers",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " holds the engine's own run id. The "
+        },
+        {
+          "insert": "run_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " column of "
+        },
+        {
+          "insert": "trace_events",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " holds the kernel run id, which is "
+        },
+        {
+          "insert": "agent_runs.id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
         }
       ],
       "children": []

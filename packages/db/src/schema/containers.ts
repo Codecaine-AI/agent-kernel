@@ -55,6 +55,15 @@ export const containers = sqliteTable(
     createdAt: text("created_at").notNull(),
     startedAt: text("started_at"),
     endedAt: text("ended_at"),
+    // Trace tags (TRACE_TAGS in the protocol package). NULL on an untagged
+    // row. The keys keep the tag names, so a TraceTags object maps 1:1.
+    engine: text("engine"),
+    /** The engine's own run id. trace_events.run_id and agent_runs.id hold the kernel run id. */
+    run_id: text("run_id"),
+    node_path: text("node_path"),
+    invocation_id: text("invocation_id"),
+    attempt_id: text("attempt_id"),
+    loop_path: text("loop_path"),
   },
   (table) => [
     unique("ux_containers_kernel_kind_app_key").on(

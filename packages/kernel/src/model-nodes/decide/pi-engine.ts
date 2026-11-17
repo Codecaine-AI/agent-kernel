@@ -16,6 +16,7 @@
  *
  * `classify` never rejects.
  */
+import { traceTagHeaders, type TraceTags } from "@codecaine-ai/agent-kernel-protocol";
 import type { ClassifierAnswer, ClassifierModel, ClassifierResult } from "@earendil-works/pi-ai";
 
 import { SHORT_CREDENTIAL_MESSAGE, splitModelRef } from "../pi-models";
@@ -45,6 +46,8 @@ import {
 export interface PiEngineRequest extends EngineRequest {
 	/** Default: the engine's `maxRetryDelayMs` option (2_000). */
 	maxRetryDelayMs?: number;
+	/** Trace tags sent as `X-Trace-*` headers on each classify request. */
+	traceTags?: TraceTags;
 }
 
 export interface PiDecisionEngineOptions {
@@ -211,7 +214,7 @@ export function createPiDecisionEngine(options: PiDecisionEngineOptions): PiDeci
 			}
 			if (!model) return failure("unknown-model", `No classifier model ${request.model}`);
 
-			const capture = createClassifyCapture(options.fetch);
+			const capture = createClassifyCapture(options.fetch, traceTagHeaders(request.traceTags));
 			let wireRequest: unknown;
 			let result: ClassifierResult;
 			try {
@@ -313,7 +316,7 @@ function normalizeAnswer(answer: ClassifierAnswer, raw: unknown): EngineAnswer {
  * it sends and keeps the response body; the served model is read from 2xx
  * bodies only.
  */
-function createClassifyCapture(baseFetch: typeof fetch | undefined) {
+function createClassifyCapture(baseFetch: typeof fetch | undefined, traceHeaders: Record<string, string>) {
 	const secrets = new Set<string>();
 	let sent = 0;
 	let refused = false;
@@ -322,6 +325,10 @@ function createClassifyCapture(baseFetch: typeof fetch | undefined) {
 
 	const wrapped = async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
 		const headers = outboundHeaders(input, init);
+		if (Object.keys(traceHeaders).length > 0) {
+			for (const [name, value] of Object.entries(traceHeaders)) headers.set(name, value);
+			init = { ...init, headers };
+		}
 		for (const secret of collectSecrets(headers)) secrets.add(secret);
 		if (findShortCredential(headers) !== undefined) {
 			refused = true;

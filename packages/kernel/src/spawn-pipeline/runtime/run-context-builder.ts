@@ -10,6 +10,7 @@ export interface BuildRunContextOptions {
 	piSessionsDir?: string;
 	phase?: string;
 	userId?: string;
+	traceTags?: RunContext["traceTags"];
 }
 
 export function buildRunContext(
@@ -35,5 +36,6 @@ export function buildRunContext(
 		piSessionUuid,
 		userId: opts.userId,
 		phase: opts.phase,
+		traceTags: opts.traceTags,
 	};
 }

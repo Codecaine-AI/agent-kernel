@@ -470,7 +470,11 @@ export function createKernel<TToolRuntime = unknown, TCalls = unknown>(
 			: {}),
 	});
 
-	const container = createContainerApi({ kernelId: id, db: config.db });
+	const upsertContainer = createContainerApi({ kernelId: id, db: config.db });
+	const container: KernelContainerApi = async (spec) => {
+		await ensureSchema();
+		return upsertContainer(spec);
+	};
 
 	return {
 		id,

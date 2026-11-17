@@ -171,6 +171,8 @@ export interface PiTransportOptions {
 	/** The preflight secret set from `resolveCallRoute`. */
 	secrets?: readonly string[];
 	maxRetryDelayMs?: number;
+	/** Extra request headers, such as the `X-Trace-*` headers. */
+	headers?: Record<string, string>;
 	/** Base fetch; default `globalThis.fetch` read at send time. */
 	fetch?: typeof fetch;
 }
@@ -204,6 +206,7 @@ export function createPiTransport(
 						...(req.signal !== undefined && { signal: req.signal }),
 						...(req.timeoutMs !== undefined && { timeoutMs: req.timeoutMs }),
 						...(opts.maxRetryDelayMs !== undefined && { maxRetryDelayMs: opts.maxRetryDelayMs }),
+						...(opts.headers !== undefined && { headers: opts.headers }),
 						fetch: capture.fetch,
 					})
 					.result();
