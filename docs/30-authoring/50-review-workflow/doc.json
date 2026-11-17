@@ -631,7 +631,8 @@
       "children": [
         "rc-4a",
         "rc-4b",
-        "rc-4c"
+        "rc-4c",
+        "rc-4d"
       ]
     },
     "rc-4a": {
@@ -673,7 +674,16 @@
       },
       "text": [
         {
-          "insert": "When the verdict is not ready, 3 verify nodes judge each blocking finding, and "
+          "insert": "When the verdict is not ready, 3 verify nodes judge each open blocking finding, except a finding whose sources include "
+        },
+        {
+          "insert": "contract",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". "
         },
         {
           "insert": "settle",
@@ -682,7 +692,16 @@
           }
         },
         {
-          "insert": " applies their votes."
+          "insert": " applies their votes and never demotes a "
+        },
+        {
+          "insert": "contract",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " finding."
         }
       ],
       "children": []
@@ -701,16 +720,16 @@
           }
         },
         {
-          "insert": " edits one canonical PR comment through "
+          "insert": " edits one canonical PR comment with "
         },
         {
-          "insert": "gh",
+          "insert": "archon forge comment.upsert",
           "attributes": {
             "code": true
           }
         },
         {
-          "insert": ", only when the PR head is still the commit that "
+          "insert": ", only when the checkout and the PR head are both still the commit that "
         },
         {
           "insert": "mode",
@@ -720,6 +739,37 @@
         },
         {
           "insert": " fixed."
+        }
+      ],
+      "children": []
+    },
+    "rc-4d": {
+      "id": "rc-4d",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Only the loop check and "
+        },
+        {
+          "insert": "tag-outside-reviewers",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " call "
+        },
+        {
+          "insert": "gh",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " directly."
         }
       ],
       "children": []
@@ -817,10 +867,69 @@
         }
       ],
       "children": [
+        "rw-loop-3gate",
         "rw-loop-3a",
         "rw-loop-3b",
         "rw-loop-3c"
       ]
+    },
+    "rw-loop-3gate": {
+      "id": "rw-loop-3gate",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The loop completes only when "
+        },
+        {
+          "insert": "publish",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "prune-scratch",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " both succeed and the terminal node "
+        },
+        {
+          "insert": "reviewed",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " returns "
+        },
+        {
+          "insert": "{head, pr}",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so a failed cleanup tags nothing even after "
+        },
+        {
+          "insert": "publish",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " posted."
+        }
+      ],
+      "children": []
     },
     "rw-loop-3a": {
       "id": "rw-loop-3a",
@@ -901,7 +1010,16 @@
           }
         },
         {
-          "insert": " refuse, so the run fails, and the next run reviews the new head."
+          "insert": " refuse, so the run fails. The queued run for the new head reviews it only after the checkout advances to the PR head, and otherwise it fails at "
+        },
+        {
+          "insert": "publish",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " too."
         }
       ],
       "children": []
@@ -1034,7 +1152,7 @@
           }
         },
         {
-          "insert": " runs after the loop and tags Greptile and CodeRabbit in one PR comment. It searches the PR comments for its marker and the head sha, and posts nothing when a comment already holds both. It refuses when the live head differs from the reviewed head or when the PR is not open. For a working diff, it posts nothing."
+          "insert": " runs after the loop and tags Greptile and CodeRabbit in one PR comment. It searches the PR comments for its marker and the head sha, and posts nothing when a comment already holds both. It fails when the live head differs from the reviewed head, and it posts nothing when the PR is not open. For a working diff, it posts nothing."
         }
       ],
       "children": []
@@ -1442,7 +1560,16 @@
           }
         },
         {
-          "insert": ", and the queued run for the new head reviews it."
+          "insert": ". The queued run for the new head reviews it only after the pack checkout advances to that head, and otherwise it fails at "
+        },
+        {
+          "insert": "publish",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " too."
         }
       ],
       "children": []
@@ -1502,7 +1629,34 @@
           }
         },
         {
-          "insert": ". The kernel provider runs all 3 in process. Violet nodes run on Archon's Claude and Codex providers, and gray nodes are scripts or bash."
+          "insert": ". The kernel provider runs all 3 in process. Violet marks the other model-backed nodes. Only the 2 reviewers pin Archon's Codex and Claude providers, and "
+        },
+        {
+          "insert": "scope",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "synthesize",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and the verify nodes use the configured "
+        },
+        {
+          "insert": "@reviewer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " preset. Gray nodes are scripts or bash."
         }
       ],
       "children": []

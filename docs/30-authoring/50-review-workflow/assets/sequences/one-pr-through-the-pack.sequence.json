@@ -258,7 +258,15 @@
               "from": "p2",
               "to": "p8",
               "line": "sync",
-              "text": "edit the canonical review comment"
+              "text": "edit the review comment via archon forge"
+            },
+            {
+              "kind": "message",
+              "id": "m24",
+              "from": "p2",
+              "to": "p2",
+              "line": "sync",
+              "text": "prune-scratch removes scratch worktrees"
             },
             {
               "kind": "fragment",
@@ -266,24 +274,57 @@
               "op": "alt",
               "operands": [
                 {
-                  "guard": "head that mode fixed equals the PR head",
-                  "items": [
-                    {
-                      "kind": "message",
-                      "id": "m24",
-                      "from": "p2",
-                      "to": "p2",
-                      "line": "sync",
-                      "text": "end the rounds with head and pr"
-                    }
-                  ]
-                },
-                {
-                  "guard": "head moved or the gh call fails",
+                  "guard": "publish and prune-scratch succeeded",
                   "items": [
                     {
                       "kind": "message",
                       "id": "m25",
+                      "from": "p2",
+                      "to": "p2",
+                      "line": "sync",
+                      "text": "reviewed returns {head, pr}"
+                    },
+                    {
+                      "kind": "fragment",
+                      "id": "f4",
+                      "op": "alt",
+                      "operands": [
+                        {
+                          "guard": "head that mode fixed equals the PR head",
+                          "items": [
+                            {
+                              "kind": "message",
+                              "id": "m26",
+                              "from": "p2",
+                              "to": "p2",
+                              "line": "sync",
+                              "text": "end the rounds with head and pr"
+                            }
+                          ]
+                        },
+                        {
+                          "guard": "head moved or the gh call fails",
+                          "items": [
+                            {
+                              "kind": "message",
+                              "id": "m27",
+                              "from": "p2",
+                              "to": "p2",
+                              "line": "sync",
+                              "text": "fail the run"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "guard": "publish or prune-scratch failed",
+                  "items": [
+                    {
+                      "kind": "message",
+                      "id": "m28",
                       "from": "p2",
                       "to": "p2",
                       "line": "sync",
@@ -299,7 +340,7 @@
     },
     {
       "kind": "fragment",
-      "id": "f4",
+      "id": "f5",
       "op": "opt",
       "operands": [
         {
@@ -307,7 +348,7 @@
           "items": [
             {
               "kind": "message",
-              "id": "m26",
+              "id": "m29",
               "from": "p2",
               "to": "p8",
               "line": "sync",

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "review-chain",
   "title": "Pre-PR review pack on Archon",
-  "description": "The pre-PR review as an Archon workflow pack, read top to bottom. A pull_request binding (selector pr.lifecycle, actions opened and head_updated) hands a receipt to resource admission (capacity 1, overlap queue), which admits one run and maps the PR number to the input scope. The Review pack frame holds the rounds loop_group (max_iterations 1, on_exhausted fail). Row one runs left to right: mode (script review-round, fixes the head), scope, pack-context (teal kernel bundle node, provider agent-kernel), route (orange decide node, lanes review, trivial and other). Unless the lane is trivial, route starts the 2 reviewers in parallel: review-codex (Codex gpt-6.1-sol, high) and review-claude (Claude claude-opus-5-5, high). On the trivial lane, synthesize runs with no findings. Row two runs right to left: review-complete (all_done), extract-findings (orange extract node), synthesize, settle, publish. When synthesize is not ready, verify-1 to verify-3 vote and settle applies the votes. After publish, the loop check asks whether the head mode fixed equals the PR head: yes ends the rounds and hands {head, pr} to tag-outside-reviewers, which tags Greptile and CodeRabbit once per head; no, or a failed gh call, fails the run. Below the pack: the kernel provider writes an archon-node container with 6 trace tag columns for pack-context, route and extract-findings to trace.db; each LLM node sends X-Trace-* headers to Token Gateway, which stores llm_calls rows; the decide call of route goes to the TypeSafe endpoint and leaves no gateway row; every node writes workflow_events. Stickies give the color key with the 6 tags, what the pack changes from upstream archon-review, and the tag step. Teal is a kernel bundle node, orange an extract or decide node, violet a model node on Archon's providers, gray a script or bash node, red a failed run.",
+  "description": "The pre-PR review as an Archon workflow pack, read top to bottom. A pull_request binding (selector pr.lifecycle, actions opened and head_updated) hands a receipt to resource admission (capacity 1, overlap queue), which admits one run and maps the PR number to the input scope. The Review pack frame holds the rounds loop_group (max_iterations 1, on_exhausted fail). Row one runs left to right: mode (script review-round, fixes the head), scope, pack-context (teal kernel bundle node, provider agent-kernel), route (orange decide node, lanes review, trivial and other). Unless the lane is trivial, route starts the 2 reviewers in parallel: review-codex (Codex gpt-6.1-sol, high) and review-claude (Claude claude-opus-5-5, high). Two branches leave the reviewers independently: review-complete (all_done) records each reviewer's outcome, and extract-findings (orange extract node) runs only when both reviewers succeed. Both join at synthesize, which also depends on mode and scope. On the trivial lane, synthesize runs with no findings. Row two runs right to left: extract-findings, synthesize, settle, publish. When synthesize is not ready, verify-1 to verify-3 vote and settle applies the votes. Row three runs left to right: after publish, prune-scratch (all_done) removes the scratch worktrees; the terminal body node reviewed runs only when publish and prune-scratch both succeed and returns {head, pr}, and a cleanup failure fails the run. Then the loop check asks whether the head mode fixed equals the PR head: yes ends the rounds and hands {head, pr} to tag-outside-reviewers, which tags Greptile and CodeRabbit once per head; no, or a failed gh call, fails the run. Below the pack: the kernel provider writes archon-run and archon-node containers with 6 trace tag columns for pack-context, route and extract-findings to trace.db; each LLM node sends X-Trace-* headers to Token Gateway, which stores llm_calls rows; the decide call of route goes to the TypeSafe endpoint and leaves no gateway row; every node writes workflow_events. Stickies give the color key with the 6 tags, what the pack changes from upstream archon-review, and the tag step. Teal is a kernel bundle node, orange an extract or decide node, violet a model-backed node (only the 2 reviewers pin Codex and Claude; scope, synthesize and the verify nodes use the @reviewer preset), gray a script or bash node, red a failed run.",
   "mode": "diagram",
   "objects": [
     {
@@ -40,7 +40,7 @@
       "id": "s01-trigger-binding",
       "type": "process",
       "text": "pull_request binding",
-      "detail": "selector pr.lifecycle",
+      "detail": "pr.lifecycle · opened, head_updated",
       "color": "green",
       "parentId": "s01-trigger",
       "geometry": {
@@ -249,7 +249,7 @@
       "color": "yellow",
       "parentId": "s03-rounds",
       "geometry": {
-        "x": 200,
+        "x": 1020,
         "y": 1320,
         "width": 280,
         "height": 140
@@ -313,7 +313,7 @@
       "id": "s02-pack-tag",
       "type": "process",
       "text": "tag-outside-reviewers",
-      "detail": "script · once per reviewed head",
+      "detail": "script · once per head · fails if head moved · skips a PR not open",
       "color": "gray",
       "parentId": "s02-pack",
       "geometry": {
@@ -379,7 +379,7 @@
       "id": "s07-trace-db",
       "type": "rectangle",
       "text": "trace.db",
-      "detail": "kernel nodes only · one container each",
+      "detail": "containers archon-run and archon-node · 6 tag columns",
       "color": "blue",
       "parentId": "s00-page",
       "geometry": {
@@ -412,7 +412,7 @@
     {
       "id": "s02-pack-color-key",
       "type": "sticky",
-      "text": "**Node colors.** Teal: kernel bundle node. Orange: extract or decide node. The kernel provider runs both in process. Violet: model node on Archon's Claude or Codex provider. Gray: script or bash. Red: run fails. Trace tags: engine, run_id, node_path, invocation_id, attempt_id, loop_path.",
+      "text": "**Node colors.** Teal: kernel bundle node. Orange: extract or decide node. The kernel provider runs both in process. Violet: model-backed node. Only the 2 reviewers pin Codex and Claude. The others use the `@reviewer` preset. Gray: script or bash. Red: run fails. Trace tags: engine, run_id, node_path, invocation_id, attempt_id, loop_path.",
       "color": "yellow",
       "parentId": "s02-pack",
       "geometry": {
@@ -428,7 +428,7 @@
     {
       "id": "s06-outside-note",
       "type": "sticky",
-      "text": "### Tag step\n- `tag-outside-reviewers` runs once, after `rounds` completes.\n- It searches the PR comments for its marker and the head sha, and posts once per head.\n- It refuses when the head moved or the PR is not open.",
+      "text": "### Tag step\n- `tag-outside-reviewers` runs once, after `rounds` completes.\n- It searches the PR comments for its marker and the head sha, and posts once per head.\n- It fails when the head moved, and posts nothing when the PR is not open.",
       "color": "yellow",
       "parentId": "s00-page",
       "geometry": {
@@ -480,8 +480,8 @@
       "color": "violet",
       "parentId": "s03-rounds",
       "geometry": {
-        "x": 920,
-        "y": 1340,
+        "x": 600,
+        "y": 960,
         "width": 280,
         "height": 100
       },
@@ -496,7 +496,7 @@
       "color": "red",
       "parentId": "s03-rounds",
       "geometry": {
-        "x": 620,
+        "x": 1420,
         "y": 1320,
         "width": 140,
         "height": 140
@@ -530,6 +530,38 @@
       "geometry": {
         "x": 1380,
         "y": 1840,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s03-rounds-prune",
+      "type": "process",
+      "text": "prune-scratch",
+      "color": "gray",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 200,
+        "y": 1340,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s03-rounds-reviewed",
+      "type": "process",
+      "text": "reviewed",
+      "color": "gray",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 620,
+        "y": 1340,
         "width": 280,
         "height": 100
       },
@@ -602,19 +634,6 @@
       }
     },
     {
-      "id": "s03-rounds-complete-to-extract",
-      "from": {
-        "objectId": "s03-rounds-complete",
-        "anchor": "bottom"
-      },
-      "to": {
-        "objectId": "s03-rounds-extract",
-        "anchor": "top"
-      },
-      "style": "solid",
-      "arrow": "forward"
-    },
-    {
       "id": "s03-rounds-extract-to-synthesize",
       "from": {
         "objectId": "s03-rounds-extract",
@@ -625,19 +644,6 @@
         "anchor": "right"
       },
       "label": "findings",
-      "style": "solid",
-      "arrow": "forward"
-    },
-    {
-      "id": "s03-rounds-publish-to-ready",
-      "from": {
-        "objectId": "s03-rounds-publish",
-        "anchor": "bottom"
-      },
-      "to": {
-        "objectId": "s03-rounds-ready",
-        "anchor": "top"
-      },
       "style": "solid",
       "arrow": "forward"
     },
@@ -829,11 +835,12 @@
     {
       "id": "s03-rounds-verify-to-settle",
       "from": {
-        "objectId": "s03-rounds-verify"
+        "objectId": "s03-rounds-verify",
+        "anchor": "bottom"
       },
       "to": {
         "objectId": "s03-rounds-settle",
-        "anchor": "bottom"
+        "anchor": "top"
       },
       "label": "votes",
       "style": "solid",
@@ -942,6 +949,89 @@
         "anchor": "top"
       },
       "label": "X-Trace-*",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-publish-to-prune",
+      "from": {
+        "objectId": "s03-rounds-publish",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "s03-rounds-prune",
+        "anchor": "top"
+      },
+      "label": "all_done",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-prune-to-reviewed",
+      "from": {
+        "objectId": "s03-rounds-prune",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "s03-rounds-reviewed",
+        "anchor": "left"
+      },
+      "label": "both succeed",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-reviewed-to-ready",
+      "from": {
+        "objectId": "s03-rounds-reviewed",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "s03-rounds-ready",
+        "anchor": "left"
+      },
+      "label": "{head, pr}",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-prune-to-fail",
+      "from": {
+        "objectId": "s03-rounds-prune",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "s03-rounds-fail",
+        "anchor": "bottom"
+      },
+      "label": "cleanup fails",
+      "style": "solid",
+      "arrow": "forward",
+      "color": "red"
+    },
+    {
+      "id": "s05-reviewers-to-s03-rounds-extract",
+      "from": {
+        "objectId": "s05-reviewers"
+      },
+      "to": {
+        "objectId": "s03-rounds-extract",
+        "anchor": "top"
+      },
+      "label": "both reports",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-complete-to-synthesize",
+      "from": {
+        "objectId": "s03-rounds-complete"
+      },
+      "to": {
+        "objectId": "s03-rounds-synthesize",
+        "anchor": "top"
+      },
+      "label": "reviewer outcomes",
       "style": "solid",
       "arrow": "forward"
     }
