@@ -3506,7 +3506,7 @@
           }
         },
         {
-          "insert": ", which viewer-ui does not declare in its devDependencies. Run viewer-ui tests from "
+          "insert": ", which viewer-ui does not declare in its devDependencies. viewer-ui lives in the trace-viewer repo, so run its tests there from "
         },
         {
           "insert": "packages/viewer-ui",
@@ -3515,7 +3515,7 @@
           }
         },
         {
-          "insert": ", because a run from the agent-kernel root hangs."
+          "insert": "."
         }
       ],
       "children": []

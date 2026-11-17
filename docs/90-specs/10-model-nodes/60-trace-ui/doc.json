@@ -455,7 +455,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Five changes in viewer-core and viewer-ui are built, and they produce the node rows and detail cards."
+          "insert": "Five changes in viewer-core and viewer-ui are built, and they produce the node rows and detail cards. Both packages live in the trace-viewer repo, so each path below is relative to that repo."
         }
       ],
       "children": []
@@ -479,12 +479,7 @@
         {
           "insert": "packages/viewer-core/src/trace-builder/pairEvents.ts",
           "attributes": {
-            "code": true,
-            "reference": {
-              "kind": "source",
-              "path": "packages/viewer-core/src/trace-builder/pairEvents.ts",
-              "line": 36
-            }
+            "code": true
           }
         },
         {
@@ -548,12 +543,7 @@
         {
           "insert": "packages/viewer-core/src/trace-builder/spanAttributes.ts",
           "attributes": {
-            "code": true,
-            "reference": {
-              "kind": "source",
-              "path": "packages/viewer-core/src/trace-builder/spanAttributes.ts",
-              "line": 401
-            }
+            "code": true
           }
         },
         {
@@ -599,12 +589,7 @@
         {
           "insert": "packages/viewer-core/src/build-trace-spans.ts",
           "attributes": {
-            "code": true,
-            "reference": {
-              "kind": "source",
-              "path": "packages/viewer-core/src/build-trace-spans.ts",
-              "line": 194
-            }
+            "code": true
           }
         },
         {
@@ -640,12 +625,7 @@
         {
           "insert": "packages/viewer-core/src/trace-builder/spanFactories.ts",
           "attributes": {
-            "code": true,
-            "reference": {
-              "kind": "source",
-              "path": "packages/viewer-core/src/trace-builder/spanFactories.ts",
-              "line": 74
-            }
+            "code": true
           }
         },
         {
@@ -691,12 +671,7 @@
         {
           "insert": "packages/viewer-ui/src/trace-viewer/detail-panel/rendererRegistry.ts",
           "attributes": {
-            "code": true,
-            "reference": {
-              "kind": "source",
-              "path": "packages/viewer-ui/src/trace-viewer/detail-panel/rendererRegistry.ts",
-              "line": 33
-            }
+            "code": true
           }
         },
         {
@@ -806,12 +781,7 @@
         {
           "insert": "packages/viewer-core/src/trace-builder/nesting.ts",
           "attributes": {
-            "code": true,
-            "reference": {
-              "kind": "source",
-              "path": "packages/viewer-core/src/trace-builder/nesting.ts",
-              "line": 419
-            }
+            "code": true
           }
         },
         {

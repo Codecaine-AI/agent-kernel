@@ -542,19 +542,16 @@
           }
         },
         {
-          "insert": " in "
+          "insert": " hangs it under that run. That function lives in "
         },
         {
           "insert": "packages/viewer-core/src/trace-builder/model-nodes.ts",
           "attributes": {
-            "reference": {
-              "kind": "source",
-              "path": "packages/viewer-core/src/trace-builder/model-nodes.ts"
-            }
+            "code": true
           }
         },
         {
-          "insert": " hangs it under that run."
+          "insert": " of the trace-viewer repo."
         }
       ],
       "children": []

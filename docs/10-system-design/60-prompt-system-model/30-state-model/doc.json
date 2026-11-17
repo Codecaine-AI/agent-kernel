@@ -2767,19 +2767,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The trace viewer was reworked across roughly twenty review rounds with Ford. Almost all of it is UX and belongs to the viewer's design record. The layout standard, the rejected alternatives, and the review outcomes live in the "
-        },
-        {
-          "insert": "Viewer Model",
-          "attributes": {
-            "reference": {
-              "kind": "doc",
-              "path": "10-system-design/40-viewer-model"
-            }
-          }
-        },
-        {
-          "insert": ". Only the one decision that crossed into the kernel and the protocol is recorded here."
+          "insert": "The trace viewer was reworked across roughly twenty review rounds with Ford. Almost all of it is UX and belongs to the viewer's design record. The layout standard, the rejected alternatives, and the review outcomes belong to the trace-viewer repo, which holds the viewer packages. Only the one decision that crossed into the kernel and the protocol is recorded here."
         }
       ],
       "children": []
@@ -3020,7 +3008,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Source: as-built: "
+          "insert": "The as-built source is "
         },
         {
           "insert": "packages/protocol/src/kernel-messages.ts",
@@ -3029,7 +3017,7 @@
           }
         },
         {
-          "insert": ",\n"
+          "insert": ", "
         },
         {
           "insert": "packages/kernel/src/state/kernel-messages.ts",
@@ -3038,7 +3026,7 @@
           }
         },
         {
-          "insert": ", and viewer-ui's\n"
+          "insert": ", and the viewer-ui files "
         },
         {
           "insert": "snapshot-message-view.tsx",
@@ -3047,7 +3035,7 @@
           }
         },
         {
-          "insert": " / "
+          "insert": " and "
         },
         {
           "insert": "turn/turn-block-content.tsx",
@@ -3056,7 +3044,7 @@
           }
         },
         {
-          "insert": ". UX context:\ndetail-view-options.html §6 (the deferred \"badge the state render's\nattachments correctly\" row, now closed at the producer)."
+          "insert": " in the trace-viewer repo. The UX context is §6 of detail-view-options.html, the deferred \"badge the state render's attachments correctly\" row, which the producer closed."
         }
       ],
       "children": []

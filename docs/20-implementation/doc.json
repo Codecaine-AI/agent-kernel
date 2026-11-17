@@ -146,18 +146,6 @@
             "note": "Pi extension: /kernel command, bundle boot"
           },
           {
-            "path": "packages/viewer-core/",
-            "note": "DTOs, path constants, span transforms"
-          },
-          {
-            "path": "packages/viewer-ui/",
-            "note": "trace tree, detail, prompt lab components"
-          },
-          {
-            "path": "packages/viewer-shell/",
-            "note": "mountable KernelTraceViewer shell"
-          },
-          {
             "path": "catalog/",
             "note": "agent bundles for this repo's kernel"
           },
@@ -351,7 +339,7 @@
           }
         },
         {
-          "insert": "; "
+          "insert": ", and "
         },
         {
           "insert": "tui",
@@ -369,97 +357,7 @@
           }
         },
         {
-          "insert": ". On the viewer side, "
-        },
-        {
-          "insert": "viewer-core",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " depends on "
-        },
-        {
-          "insert": "protocol",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " and "
-        },
-        {
-          "insert": "prompt-kit",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": "; "
-        },
-        {
-          "insert": "viewer-ui",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " on "
-        },
-        {
-          "insert": "viewer-core",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": ", "
-        },
-        {
-          "insert": "protocol",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": ", and "
-        },
-        {
-          "insert": "prompt-kit",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": "; "
-        },
-        {
-          "insert": "viewer-shell",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " on "
-        },
-        {
-          "insert": "viewer-core",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " and "
-        },
-        {
-          "insert": "viewer-ui",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": ". The kernel depends on no viewer package: where it serves a viewer contract, it duplicates the route paths and matches the DTO shapes structurally instead of importing them. No kernel package imports Spectre packages, Spectre paths, or Spectre naming; apps consume the kernel through package exports and adapters, never through package internals."
+          "insert": ". The viewer packages live in the trace-viewer repo, and the kernel depends on none of them. Where the kernel serves a viewer contract, it duplicates the route paths and matches the DTO shapes structurally instead of importing them. No kernel package imports Spectre packages, Spectre paths, or Spectre naming. Apps consume the kernel through package exports and adapters, never through package internals."
         }
       ],
       "children": []
@@ -488,43 +386,7 @@
           }
         },
         {
-          "insert": " only. "
-        },
-        {
-          "insert": "viewer-ui",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " also lists "
-        },
-        {
-          "insert": "db",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " and "
-        },
-        {
-          "insert": "kernel",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " as "
-        },
-        {
-          "insert": "devDependencies",
-          "attributes": {
-            "code": true
-          }
-        },
-        {
-          "insert": " for one end-to-end test."
+          "insert": " only."
         }
       ],
       "children": []
@@ -1034,7 +896,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Area page for the kernel read API consumed by viewer-core."
+          "insert": "Area page for the kernel read API, which the trace viewer reads."
         }
       ],
       "children": []
@@ -1065,7 +927,7 @@
       "props": {},
       "text": [
         {
-          "insert": "The viewer packages: DTOs and transforms, the tree/card/detail surface, and the workspace shell."
+          "insert": "Where the trace viewer packages live: the trace-viewer repo."
         }
       ],
       "children": []

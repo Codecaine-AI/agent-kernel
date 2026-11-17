@@ -228,7 +228,7 @@
       "props": {},
       "text": [
         {
-          "insert": "How viewer-core, viewer-ui, and viewer-shell turn trace data into a base UI."
+          "insert": "What the kernel gives a trace viewer, and where the trace-viewer repo keeps the viewer packages."
         }
       ],
       "children": []
