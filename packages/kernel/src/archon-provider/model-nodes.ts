@@ -8,7 +8,8 @@
  *   failure or a result that misses the schema sends one more call, up to
  *   `retries`. The last failure throws, so the node fails.
  * - decide: one `kernel.decide` on the base kernel with one choice question.
- *   An abstain answers `other`.
+ *   A low-confidence abstain answers `other`. An engine error, a refusal or a
+ *   malformed answer throws, so the node fails.
  */
 import { createRequire } from "node:module";
 import { join } from "node:path";
@@ -156,19 +157,20 @@ export async function runDecide(
 		traceTags: scope.traceTags,
 		...(scope.signal !== undefined && { signal: scope.signal }),
 	});
+	// Only a low-confidence abstain is an answer. An engine error, a refusal or a malformed answer fails the node.
+	if (outcome.error !== undefined || (outcome.abstained && outcome.abstainReason !== "low-confidence")) {
+		const detail = outcome.error !== undefined ? `${outcome.error.kind}: ${outcome.error.message}` : outcome.abstainReason;
+		throw new Error(`decide failed on ${outcome.model || node.classifier}: ${detail}`);
+	}
 	const distribution = outcome.answers[DECIDE_QUESTION_ID]?.distribution ?? {};
-	const choice = outcome.chosen === "abstain" ? DECIDE_FALLBACK_CHOICE : outcome.chosen;
+	// `chosen` is "abstain" when the kernel abstained, and also when a label named "abstain" won.
+	const choice = outcome.abstained ? DECIDE_FALLBACK_CHOICE : outcome.chosen;
 	return {
 		choice,
-		reason: outcome.abstained ? abstainReason(outcome.abstainReason, outcome.error?.kind) : spread(distribution),
+		reason: outcome.abstained ? "low-confidence" : spread(distribution),
 		probability: distribution[choice] ?? 0,
 		abstained: outcome.abstained,
 	};
-}
-
-function abstainReason(reason: string | undefined, errorKind: string | undefined): string {
-	const base = reason ?? "abstained";
-	return errorKind !== undefined ? `${base} (${errorKind})` : base;
 }
 
 /** "top 0.88, margin 0.71": the top probability and its lead over the runner-up. */

@@ -274,10 +274,11 @@ describe("decide nodes", () => {
 	};
 
 	/** A kernel on the shared handle whose classifier is the fake, and the tagged container of one decide node. */
-	async function decideKernel(probabilities: Record<string, number>) {
+	async function decideKernel(probabilities: Record<string, number>, options: { configured?: boolean; error?: string } = {}) {
 		const { db } = await archonKernel(root, assistantConfig());
-		const fake = createFakeClassifier();
+		const fake = createFakeClassifier({ ...(options.configured !== undefined && { configured: options.configured }) });
 		fake.setScript(() => {
+			if (options.error !== undefined) return { error: options.error };
 			const [choice] = Object.entries(probabilities).sort(([, p], [, q]) => q - p)[0]!;
 			return { answers: { choice: { type: "choice", choice, probabilities, confidence: 0.9 } } };
 		});
@@ -308,5 +309,37 @@ describe("decide nodes", () => {
 
 		expect(result).toEqual({ choice: "reply", reason: "top 0.88, margin 0.81", probability: 0.88, abstained: false });
 		kernel.dispose();
+	});
+
+	test("an enum label named abstain can win", async () => {
+		const { kernel, fake, scope } = await decideKernel({ abstain: 0.95, reply: 0.03, other: 0.02 });
+		const node = { ...DECIDE, enum: ["abstain", "reply", "other"], classifier: fake.ref };
+		const result = await runDecide(kernel, node, scope);
+
+		expect(result).toEqual({ choice: "abstain", reason: "top 0.95, margin 0.92", probability: 0.95, abstained: false });
+		kernel.dispose();
+	});
+
+	test("a classifier error fails the node instead of answering other", async () => {
+		const { kernel, fake, scope } = await decideKernel({}, { error: "upstream exploded" });
+		await expect(runDecide(kernel, { ...DECIDE, classifier: fake.ref }, scope)).rejects.toThrow(/decide failed.*provider/);
+		kernel.dispose();
+	});
+
+	test("an unconfigured classifier fails the node instead of answering other", async () => {
+		const { kernel, fake, scope } = await decideKernel({}, { configured: false });
+		await expect(runDecide(kernel, { ...DECIDE, classifier: fake.ref }, scope)).rejects.toThrow(/decide failed.*not-configured/);
+		kernel.dispose();
+	});
+
+	test("through sendQuery, a decide node whose classifier cannot answer yields a failure and an error container", async () => {
+		const chunks = await attempt('{"sender":"ana","ask":"reset"}', nodeEnv("classify", ""), {
+			outputFormat: undefined,
+			nodeConfig: { nodeId: "classify", model_node: { ...DECIDE, classifier: "fast" } },
+		});
+
+		expect(resultOf(chunks)).toMatchObject({ isError: true });
+		expect(resultOf(chunks).errors![0]).toContain("decide failed");
+		expect(nodeRows().map((row) => row.status)).toEqual(["error"]);
 	});
 });
