@@ -78,11 +78,14 @@ function publishManifest(m: Member): any {
 }
 
 const work = mkdtempSync(join(tmpdir(), "agent-kernel-smoke-"));
-const restoreAll = () => {
-  for (const m of publicMembers) writeFileSync(join(m.dir, "package.json"), m.raw);
+// Only the manifest being packed holds a temporary edit. Restoring only that one keeps any edit saved after its pack.
+let packing: Member | undefined;
+const restorePacking = () => {
+  if (packing) writeFileSync(join(packing.dir, "package.json"), packing.raw);
+  packing = undefined;
 };
 process.once("SIGINT", () => {
-  restoreAll();
+  restorePacking();
   rmSync(work, { recursive: true, force: true });
   process.exit(130);
 });
@@ -92,12 +95,13 @@ try {
   const tarballs = new Map<string, string>();
   for (const m of publicMembers) {
     const indent = m.raw.match(/^\{\n([ \t]+)/)?.[1] ?? "  ";
+    packing = m;
     writeFileSync(join(m.dir, "package.json"), JSON.stringify(publishManifest(m), null, indent) + "\n");
     try {
       const out = run(["npm", "pack", "--ignore-scripts", "--json", "--pack-destination", work], m.dir);
       tarballs.set(m.manifest.name, `file:${join(work, JSON.parse(out)[0].filename)}`);
     } finally {
-      writeFileSync(join(m.dir, "package.json"), m.raw);
+      restorePacking();
     }
   }
   console.log(`packed ${[...tarballs.keys()].map((n) => `${n}@${localVersions.get(n)}`).join(", ")}`);
@@ -142,6 +146,6 @@ try {
   console.error(`✗ ${(error as Error).message}`);
   process.exitCode = 1;
 } finally {
-  restoreAll();
+  restorePacking();
   rmSync(work, { recursive: true, force: true });
 }
