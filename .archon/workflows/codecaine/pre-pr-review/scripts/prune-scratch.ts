@@ -1,9 +1,8 @@
 /**
  * Remove this run's reviewer scratch worktrees: see ../../.shared/scratch.ts.
  *
- * Only the review's own directories, one per lens and the deciding agent's: delivery
- * runs simplify beside the review, and its scratch worktrees are still in use when
- * the review settles. Simplify prunes its own.
+ * Only the directories this review's commands create: one per reviewer and
+ * synthesize's.
  */
 
 import { artifactsDir, refuse, report } from '../../.shared/io.ts';

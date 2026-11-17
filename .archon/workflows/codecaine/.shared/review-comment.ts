@@ -1,6 +1,6 @@
 /**
  * The pull request's canonical review comment: the one comment publish-review writes
- * and edits in place, and the merge queue's gate reads.
+ * and edits in place.
  *
  * Its first lines are stamped by the publishing script from the round's certified
  * output, never by the report's author: the marker, the commit the round reviewed, the

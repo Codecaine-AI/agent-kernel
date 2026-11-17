@@ -18,7 +18,7 @@ export const GITHUB_FORGE_PLUGIN = 'coleam00/Archon/plugins/forge-github';
 // Per-user GitHub mode scrubs the shared token from a run started by a user who has
 // not connected their own identity, so a shared `GH_TOKEN` cannot fix that refusal.
 const SETUP =
-  'The SDLC pack reaches the forge through a forge plugin. For github.com, install it with ' +
+  'This pack reaches the forge through a forge plugin. For github.com, install it with ' +
   `\`archon plugin add ${GITHUB_FORGE_PLUGIN}\`, and set \`GH_TOKEN\` in ` +
   "Archon's env file (`~/.archon/.env`, `ARCHON_HOME/.env` when configured, or `/.archon/.env` in Docker), " +
   'set `GITHUB_TOKEN`, use `gh auth login`, or configure GitHub App mode. When per-user GitHub ' +

@@ -14,12 +14,12 @@
  * mismatch. Any mismatch refuses, so a verdict about one commit can never
  * stand as the verdict on another. This node stamps that commit and the certified
  * verdict on the comment itself (../../.shared/review-comment.ts) rather than trusting
- * the report's text to name them; the merge queue's gate reads both. Once published, the
+ * the report's text to name them, so a merge gate can read both. Once published, the
  * commit is recorded beside the report as the next round's cursor.
  *
  * Bound inputs (`with:` bindings, canonical text in env):
- * - INPUTS_SCOPE: the review's requested scope. Delivery passes its verified
- *   pull-request record here, and that record is then the only write target.
+ * - INPUTS_SCOPE: the review's requested scope. A caller can pass a recorded
+ *   pull request here as JSON, and that record is then the only write target.
  * - INPUTS_PR: the qualified pull request the scope agent declared it reviewed,
  *   or `null` for a working diff. It names the target of a standalone review.
  * - INPUTS_REPORT: path to the report this node publishes.
@@ -42,7 +42,7 @@ import {
 import { emit, note, refuse, text } from '../../.shared/io.ts';
 import { REVIEW_MARKER, reviewCommentBody } from '../../.shared/review-comment.ts';
 
-/** The pull request delivery recorded, when the scope is that JSON record. */
+/** The pull request the scope records, when the scope is that JSON record. */
 function recordedPr(scope: string): QualifiedPr | undefined {
   let parsed: unknown;
   try {
@@ -103,7 +103,7 @@ try {
     (declared?.number !== recorded.number || !sameRepo(declared.repo, recorded.repo))
   ) {
     throw new Error(
-      `the review scope declared ${label(declared)}, but delivery recorded ${label(recorded)}`
+      `the review scope declared ${label(declared)}, but the scope records ${label(recorded)}`
     );
   }
   if (!pr) {

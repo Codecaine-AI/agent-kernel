@@ -19,7 +19,7 @@
  * blocking finding stays open and synthesis declared no coverage gap. Otherwise
  * the action is the most severe of the remaining open blockers' own `action`s and
  * of what the coverage gaps need, so a demoted blocker that alone needed `ask` or
- * `replan` no longer stops delivery. The gaps need synthesis's action when it is
+ * `replan` no longer sets the verdict's action. The gaps need synthesis's action when it is
  * more severe than any blocker it saw, which only a gap explains; otherwise
  * `correct`, the next round being the retry. The report
  * and its round copy get a short verification section at the top, so the published
