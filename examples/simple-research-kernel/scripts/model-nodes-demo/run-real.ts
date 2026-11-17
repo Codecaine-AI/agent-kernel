@@ -108,9 +108,9 @@ import {
 	fauxText,
 	fauxToolCall,
 	InMemoryCredentialStore,
-	Type,
 	type FauxProviderHandle,
 } from "@earendil-works/pi-ai";
+import { Type } from "typebox";
 
 // ─── Identity ────────────────────────────────────────────────────────────────
 

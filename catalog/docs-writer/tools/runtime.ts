@@ -36,7 +36,7 @@ import {
 	lintDocument,
 	titleHeadingFixOps,
 } from "@codecaine-ai/docs-model/lint";
-import { Type } from "@earendil-works/pi-ai";
+import { Type } from "typebox";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const SKIP_DIRS = new Set(["node_modules", ".git", "reference", "dist", "build"]);
