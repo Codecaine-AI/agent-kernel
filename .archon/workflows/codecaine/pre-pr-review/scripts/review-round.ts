@@ -14,14 +14,12 @@
  * the delta run backwards or cover commits the previous round never read, so the
  * round refuses instead.
  *
- * This node runs first, so it is the one owner of both commits: scope, route,
- * synthesis and publish read them from its output. It also emits one boolean per
- * lens, the facts a continuation's lens gates need: the code lens always reruns,
- * and so does every lens that a blocker still open in the previous round's
- * `findings.json` names in its `sources`, to verify the correction fixed it and
- * caused nothing new in its area. An open note does not rerun its lens: no
- * correction owes it a fix. A first round emits all six false. Whether any other
- * lens runs is the route agent's judgment.
+ * This node runs first, so it is the one owner of both commits: scope, the
+ * reviewers, synthesis and publish read them from its output, and the `rounds`
+ * loop compares its head with the pull request's. It also emits one boolean per
+ * lens of REVIEW_LENSES (the pack's 2 reviewers): on a continuation every
+ * reviewer reruns over the correction delta, so each flag is true; a first round
+ * emits them false.
  *
  * The prior report is a declared input an outside caller can fill with a path
  * from an earlier run, so its existence is checked here too: a continuation that
@@ -65,13 +63,13 @@ function lensFlags(rerun: ReadonlySet<string>): Record<ReviewLens, boolean> {
   return Object.fromEntries(REVIEW_LENSES.map(lens => [lens, rerun.has(lens)])) as Record<ReviewLens, boolean>;
 }
 
-/** The code lens, and every lens a blocker still open in the previous round names. */
+/**
+ * Every reviewer reruns on a continuation. Reading the previous findings still
+ * refuses a missing or malformed record, so a continuation never starts from one.
+ */
 function owingLenses(findingsFile: string): Set<string> {
-  const owing = new Set<string>(['code']);
-  for (const finding of readFindingsFile(findingsFile)) {
-    if (finding.severity === 'blocking' && finding.status === 'open') for (const source of finding.sources) owing.add(source);
-  }
-  return owing;
+  readFindingsFile(findingsFile);
+  return new Set<string>(REVIEW_LENSES);
 }
 
 function isFile(path: string): boolean {
