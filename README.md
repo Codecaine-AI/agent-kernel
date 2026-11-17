@@ -55,6 +55,7 @@
 ## Setup
 
 - Install dependencies with `bun install`.
+- To run the `pre-pr-review` workflow pack, also run `bun install --frozen-lockfile` in `.archon/workflows/codecaine`. Its extract node loads the BAML runtime from the pack's own `node_modules`, and Archon copies only `.archon/` into a run, so the root install cannot supply it.
 
 ## Validation
 
