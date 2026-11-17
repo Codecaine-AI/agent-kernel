@@ -303,6 +303,31 @@ describe("Archon provider", () => {
 		expect(containers("archon-node").map((row) => row.status)).toEqual(["aborted"]);
 	});
 
+	test("a node cancelled after the model answered, before the result is read, throws and marks its node aborted", async () => {
+		const controller = new AbortController();
+		const provider = createAgentKernelProvider({ root });
+		const chunks: AgentKernelChunk[] = [];
+		const run = (async () => {
+			for await (const chunk of provider.sendQuery("hello", root, undefined, {
+				model: "echo-bundle",
+				env: nodeEnv({ node: "n", invocation: "inv-1" }),
+				assistantConfig: assistantConfig(),
+				abortSignal: controller.signal,
+			})) {
+				chunks.push(chunk);
+				// The reader stops on the first text chunk, long enough for the spawn to finish, then cancels.
+				if (chunks.length === 1) {
+					await new Promise((resolve) => setTimeout(resolve, 200));
+					controller.abort();
+				}
+			}
+		})();
+
+		await expect(run).rejects.toThrow("Query aborted");
+		expect(chunks.map((chunk) => chunk.type)).toEqual(["agent_message_chunk"]);
+		expect(containers("archon-node").map((row) => row.status)).toEqual(["aborted"]);
+	});
+
 	test("runs with different settings get 2 kernels on 1 database handle, and each uses its own settings", async () => {
 		writePiAgentDir(join(root, "other-pi-agent"), "other-model");
 		const other = { ...assistantConfig(), aliases: { standard: "stub/other-model" }, piAgentDir: join(root, "other-pi-agent") };

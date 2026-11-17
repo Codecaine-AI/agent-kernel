@@ -366,6 +366,11 @@ async function* runNode(
 			for (const chunk of queue.take()) {
 				if (chunk.type === "settled") {
 					await spawn;
+					// The consumer can cancel between the end of the spawn and this read.
+					if (failed === undefined && cancelled()) {
+						status = "aborted";
+						failed = new Error("Query aborted");
+					}
 					if (failed !== undefined) throw failed;
 					if (outcome) yield outcome;
 					return;
