@@ -13,7 +13,7 @@
         "x": 0,
         "y": 0,
         "width": 1760,
-        "height": 900
+        "height": 580
       }
     },
     {
@@ -98,7 +98,7 @@
       "type": "rectangle",
       "text": "viewer-core\nAPI client, trace builder",
       "color": "teal",
-      "parentId": "group-packages",
+      "parentId": "group-trace-viewer",
       "geometry": {
         "x": 460,
         "y": 700,
@@ -111,7 +111,7 @@
       "type": "rectangle",
       "text": "viewer-ui\nReact trace and catalog components",
       "color": "teal",
-      "parentId": "group-packages",
+      "parentId": "group-trace-viewer",
       "geometry": {
         "x": 880,
         "y": 700,
@@ -124,7 +124,7 @@
       "type": "rectangle",
       "text": "viewer-shell\nKernelTraceWorkspace, KernelTraceViewer",
       "color": "teal",
-      "parentId": "group-packages",
+      "parentId": "group-trace-viewer",
       "geometry": {
         "x": 1300,
         "y": 700,
@@ -182,6 +182,18 @@
         "y": 1000,
         "width": 320,
         "height": 120
+      }
+    },
+    {
+      "id": "group-trace-viewer",
+      "type": "section",
+      "text": "trace-viewer (sibling repo)",
+      "parentId": null,
+      "geometry": {
+        "x": 400,
+        "y": 640,
+        "width": 1360,
+        "height": 240
       }
     }
   ],

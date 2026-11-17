@@ -32,6 +32,16 @@
         "b-50-read-api-routes-heading",
         "b-50-read-api-routes-lead",
         "b-50-read-api-routes-trace-link",
+        "b-50-read-api-trace-routes-lead",
+        "b-50-read-api-trace-routes-table",
+        "b-50-read-api-list-filters-lead",
+        "b-50-read-api-list-filters-none",
+        "b-50-read-api-list-filters-tags",
+        "b-50-read-api-list-filters-kind",
+        "b-50-read-api-list-filters-old-db",
+        "b-50-read-api-list-filters-empty",
+        "b-50-read-api-trace-tags-lead",
+        "b-50-read-api-trace-tags-shape",
         "b-50-read-api-routes-conventions",
         "b-50-read-api-detail-lead",
         "b-50-read-api-detail-shape",
@@ -81,7 +91,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Source: "
+          "insert": "The source files are "
         },
         {
           "insert": "packages/kernel/src/read-api.ts",
@@ -117,7 +127,7 @@
           }
         },
         {
-          "insert": ", "
+          "insert": ", and "
         },
         {
           "insert": "prompt-edit-session-api.ts",
@@ -126,7 +136,7 @@
           }
         },
         {
-          "insert": "; client-side path constants in "
+          "insert": ". The client-side path constants live in "
         },
         {
           "insert": "packages/viewer-core/src/api.ts",
@@ -135,7 +145,7 @@
           }
         },
         {
-          "insert": "."
+          "insert": " of the trace-viewer repo."
         }
       ],
       "children": []
@@ -267,6 +277,467 @@
           "insert": " answers 404."
         }
       ],
+      "children": []
+    },
+    "b-50-read-api-trace-routes-lead": {
+      "id": "b-50-read-api-trace-routes-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "createKernelTraceReadApi",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " registers 5 GET routes. The table lists them in the order of "
+        },
+        {
+          "insert": "read-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the paths omit the prefix. Every trace route answers 500 with "
+        },
+        {
+          "insert": "{ error }",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " when the service throws."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-trace-routes-table": {
+      "id": "b-50-read-api-trace-routes-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Route",
+          "Service method",
+          "Query parameters",
+          "Answers 404 when"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "GET /containers/:containerId/trace",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "getContainerTrace",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", required"
+              }
+            ],
+            [
+              {
+                "insert": "after",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "limit",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The service finds no container"
+          ],
+          [
+            [
+              {
+                "insert": "GET /trace-sessions",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "listSessionContainers",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "kind",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "engine",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "run_id",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "limit",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The service has no list method"
+          ],
+          [
+            [
+              {
+                "insert": "GET /trace-sessions/:id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "getContainerTrace",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "after",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", "
+              },
+              {
+                "insert": "limit",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The service finds no container"
+          ],
+          [
+            [
+              {
+                "insert": "GET /blobs/:hash",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "getBlob",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "None",
+            "The method is absent, the hash is not `b1-<sha256hex>`, or no blob matches"
+          ],
+          [
+            [
+              {
+                "insert": "GET /runs/:runId/turns/:turnNumber/context",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "getRunTurnContext",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "None",
+            "The method is absent, the turn is not a non-negative integer, or the turn has no snapshot"
+          ]
+        ],
+        "title": "Trace read routes"
+      },
+      "children": []
+    },
+    "b-50-read-api-list-filters-lead": {
+      "id": "b-50-read-api-list-filters-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The 3 filters of "
+        },
+        {
+          "insert": "GET /trace-sessions",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " choose which containers "
+        },
+        {
+          "insert": "listSessionContainersWithStats",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "packages/db/src/actions/read-api.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " returns."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-list-filters-none": {
+      "id": "b-50-read-api-list-filters-none",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "With no filter, the list holds only containers of kind "
+        },
+        {
+          "insert": "session",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-list-filters-tags": {
+      "id": "b-50-read-api-list-filters-tags",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "With "
+        },
+        {
+          "insert": "engine",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "run_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and no "
+        },
+        {
+          "insert": "kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the list holds the matching containers of every kind."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-list-filters-kind": {
+      "id": "b-50-read-api-list-filters-kind",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A "
+        },
+        {
+          "insert": "kind",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " value limits the list to that kind, with or without a tag filter."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-list-filters-old-db": {
+      "id": "b-50-read-api-list-filters-old-db",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A tag filter on a database without that tag column returns an empty list."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-list-filters-empty": {
+      "id": "b-50-read-api-list-filters-empty",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The route ignores a filter with an empty value."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-trace-tags-lead": {
+      "id": "b-50-read-api-trace-tags-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A container summary ("
+        },
+        {
+          "insert": "KernelContainerSummaryPayload",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") and a list row ("
+        },
+        {
+          "insert": "KernelSessionContainerSummary",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ") both carry the 6 trace tags of the container. "
+        },
+        {
+          "insert": "traceTags",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in "
+        },
+        {
+          "insert": "read-service.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " copies them from the container row."
+        }
+      ],
+      "children": []
+    },
+    "b-50-read-api-trace-tags-shape": {
+      "id": "b-50-read-api-trace-tags-shape",
+      "type": "state-shape",
+      "props": {
+        "description": "The 6 trace tag fields of a container summary and a list row.",
+        "example": "{\n  \"engine\": \"archon\",\n  \"runId\": \"wf-run-1\",\n  \"nodePath\": \"review/fix\",\n  \"invocationId\": \"inv-1\",\n  \"attemptId\": \"att-1\",\n  \"loopPath\": \"loop/2\"\n}",
+        "fields": [
+          {
+            "name": "engine",
+            "type": "string | null",
+            "description": "Column `engine`. The engine that ran the node, such as `archon`. Null when the column is NULL or absent."
+          },
+          {
+            "name": "runId",
+            "type": "string | null",
+            "description": "Column `run_id`. The engine's own run id, not the kernel run id. Null when the column is NULL or absent."
+          },
+          {
+            "name": "nodePath",
+            "type": "string | null",
+            "description": "Column `node_path`. Null when the column is NULL or absent."
+          },
+          {
+            "name": "invocationId",
+            "type": "string | null",
+            "description": "Column `invocation_id`. Null when the column is NULL or absent."
+          },
+          {
+            "name": "attemptId",
+            "type": "string | null",
+            "description": "Column `attempt_id`. Null when the column is NULL or absent."
+          },
+          {
+            "name": "loopPath",
+            "type": "string | null",
+            "description": "Column `loop_path`. Null when the column is NULL or absent."
+          }
+        ],
+        "name": "Trace tags",
+        "source": {
+          "path": "packages/kernel/src/read-service.ts",
+          "symbol": "traceTags"
+        }
+      },
       "children": []
     },
     "b-50-read-api-routes-conventions": {
@@ -1278,7 +1749,7 @@
           }
         },
         {
-          "insert": " defines the client side of each URL shape: "
+          "insert": ", in the trace-viewer repo, defines the client side of each URL shape: "
         },
         {
           "insert": "KERNEL_TRACE_READ_PATHS",
@@ -1323,7 +1794,7 @@
           }
         },
         {
-          "insert": " for a cross-kernel observer plane. No server implements it yet."
+          "insert": " for a cross-kernel observer plane, which no server implements."
         }
       ],
       "children": []
@@ -1340,7 +1811,7 @@
           }
         },
         {
-          "insert": " Sharing the constants would make the kernel import a viewer package, which reverses the package dependency direction. The cost is that a path rename must change both sides by hand. "
+          "insert": " Sharing the constants would make the kernel import a viewer package, which reverses the package dependency direction. The cost is that a path rename must change both repos by hand. "
         },
         {
           "insert": "packages/viewer-ui/src/kernel-route-parity.test.ts",
@@ -1349,7 +1820,7 @@
           }
         },
         {
-          "insert": " guards the pair. It builds the route factories over stub services, enumerates the registered routes, and fails when a method and path shape exists on one side only. The test lives in viewer-ui because that package already takes the kernel as a devDependency. Its one allowlisted gap is "
+          "insert": " in the trace-viewer repo guards the pair. It builds the route factories over stub services, enumerates the registered routes, and fails when a method and path shape exists on one side only. The test lives in viewer-ui because that package takes the kernel as a devDependency. Its one allowlisted gap is "
         },
         {
           "insert": "KERNEL_OBSERVER_READ_PATHS",
@@ -1384,7 +1855,7 @@
           }
         },
         {
-          "insert": ", "
+          "insert": " in the trace-viewer repo, "
         },
         {
           "insert": "packages/kernel/src/read-api.ts",

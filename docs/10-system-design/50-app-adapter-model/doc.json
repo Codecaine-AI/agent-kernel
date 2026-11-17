@@ -2145,17 +2145,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Viewer Model",
-          "attributes": {
-            "reference": {
-              "kind": "doc",
-              "path": "10-system-design/40-viewer-model",
-              "label": "Viewer Model"
-            }
-          }
-        },
-        {
-          "insert": " covers the viewer side: hosts mount "
+          "insert": "Hosts mount "
         },
         {
           "insert": "KernelTraceWorkspace",
@@ -2173,7 +2163,20 @@
           }
         },
         {
-          "insert": " and extend them only through its host seams. The host app owns surrounding navigation, headers, filters, and workflow panels. Generic trace-tree behavior belongs in viewer packages, domain interpretation in the host app."
+          "insert": " from the viewer packages of the trace-viewer repo. "
+        },
+        {
+          "insert": "Viewer Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/40-viewer-model",
+              "label": "Viewer Model"
+            }
+          }
+        },
+        {
+          "insert": " names what the kernel gives them. The host app owns surrounding navigation, headers, filters, and workflow panels. Generic trace-tree behavior belongs in the viewer packages, and domain interpretation belongs in the host app."
         }
       ],
       "children": []

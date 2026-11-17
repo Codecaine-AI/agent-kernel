@@ -2610,19 +2610,7 @@
           }
         },
         {
-          "insert": " means untagged: transcript-captured turns and every snapshot written before section tags existed. Readers render an untagged request flat. The whole downstream chain follows that rule, the viewer included ("
-        },
-        {
-          "insert": "Viewer Model",
-          "attributes": {
-            "reference": {
-              "kind": "doc",
-              "path": "10-system-design/40-viewer-model"
-            }
-          }
-        },
-        {
-          "insert": ")."
+          "insert": " means untagged: transcript-captured turns and every snapshot written before section tags existed. Readers render an untagged request flat. The whole downstream chain follows that rule, the trace viewer in the trace-viewer repo included."
         }
       ],
       "children": []
@@ -2696,7 +2684,6 @@
         "operations": [
           {
             "name": "GET /kernel/containers/:containerId/trace",
-            "kind": "query",
             "description": "Calls the required getContainerTrace. Returns one container subtree: the root, its descendant containers, their Pi sessions and runs, and their events. Answers 404 when the service finds no container.",
             "params": [
               {
@@ -2706,14 +2693,14 @@
               {
                 "name": "after",
                 "type": "string",
-                "description": "ISO 8601 timestamp. Only events strictly later are returned; container, session, and run rows always come back in full.",
-                "required": false
+                "required": false,
+                "description": "ISO 8601 timestamp. Only events strictly later are returned; container, session, and run rows always come back in full."
               },
               {
                 "name": "limit",
                 "type": "number",
-                "description": "Event row cap. Default 5000, clamped to 1 through 10000. The route options defaultLimit and maxLimit change both.",
-                "required": false
+                "required": false,
+                "description": "Event row cap. Default 5000, clamped to 1 through 10000. The route options defaultLimit and maxLimit change both."
               }
             ],
             "returns": "KernelContainerTraceDetail",
@@ -2750,18 +2737,36 @@
                 }
               ],
               "example": "{\n  \"session\": {\n    \"id\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n    \"containerId\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n    \"kind\": \"session\",\n    \"label\": \"Docs refresh\",\n    \"topic\": \"Docs refresh\",\n    \"status\": \"running\",\n    \"createdAt\": \"2026-09-29T14:02:55.010Z\",\n    \"updatedAt\": \"2026-09-29T14:03:12.481Z\"\n  },\n  \"container\": {\n    \"id\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n    \"kind\": \"session\",\n    \"status\": \"running\",\n    \"usageInputTokens\": 18240,\n    \"usageOutputTokens\": 1310\n  },\n  \"containers\": [\n    {\n      \"id\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n      \"kind\": \"session\"\n    }\n  ],\n  \"pi_sessions\": [\n    {\n      \"id\": \"0199a1b2-7c3d-7e4f-8a5b-6c7d8e9f0a1b\",\n      \"agentName\": \"docs-writer\",\n      \"promptHash\": \"pk1-cf07194ee232eb531e15f690000d19846dea69cf05504782658afcfacb9228a2\",\n      \"eventCount\": 42\n    }\n  ],\n  \"agent_runs\": [\n    {\n      \"id\": \"e2a4c6d8-1f3b-4c5d-9e7f-8a0b1c2d3e4f\",\n      \"piSessionId\": \"0199a1b2-7c3d-7e4f-8a5b-6c7d8e9f0a1b\",\n      \"trigger\": \"operator\",\n      \"status\": \"running\"\n    }\n  ],\n  \"events\": [\n    {\n      \"eventId\": \"9c4e1a7b-2d3f-4a8e-b150-6f2d8c9e0a14\",\n      \"type\": \"tool_call_start\",\n      \"runId\": \"e2a4c6d8-1f3b-4c5d-9e7f-8a0b1c2d3e4f\",\n      \"piSessionId\": \"0199a1b2-7c3d-7e4f-8a5b-6c7d8e9f0a1b\",\n      \"traceLevel\": 1,\n      \"timestamp\": \"2026-09-29T14:03:12.481Z\"\n    }\n  ]\n}"
-            }
+            },
+            "kind": "query"
           },
           {
             "name": "GET /kernel/trace-sessions",
-            "kind": "query",
-            "description": "Calls the optional listSessionContainers; answers 404 when the service omits it. Lists containers of kind \"session\", most recent activity first. The default service scopes the list to its kernel, ignores after, and caps limit at 500.",
+            "description": "Calls the optional listSessionContainers, and answers 404 when the service omits it. With no filter, it lists containers of kind \"session\". With an engine or run_id filter and no kind, it lists the matching containers of every kind. Rows come most recent activity first. The default service scopes the list to its kernel, ignores after, and caps limit at 500.",
             "params": [
+              {
+                "name": "kind",
+                "type": "string",
+                "required": false,
+                "description": "Lists only containers of this kind."
+              },
+              {
+                "name": "engine",
+                "type": "string",
+                "required": false,
+                "description": "Matches the engine trace tag. A database without the engine column returns an empty list."
+              },
+              {
+                "name": "run_id",
+                "type": "string",
+                "required": false,
+                "description": "Matches the run_id trace tag, the engine's own run id. A database without the run_id column returns an empty list."
+              },
               {
                 "name": "limit",
                 "type": "number",
-                "description": "Parsed like the trace route before the service applies its own cap.",
-                "required": false
+                "required": false,
+                "description": "Parsed like the trace route before the service applies its own cap."
               }
             ],
             "returns": "KernelSessionContainerList",
@@ -2818,16 +2823,46 @@
                     {
                       "name": "metadata",
                       "type": "object"
+                    },
+                    {
+                      "name": "engine",
+                      "type": "string | null",
+                      "description": "Trace tag engine. Null when the column is NULL or absent."
+                    },
+                    {
+                      "name": "runId",
+                      "type": "string | null",
+                      "description": "Trace tag run_id. Null when the column is NULL or absent."
+                    },
+                    {
+                      "name": "nodePath",
+                      "type": "string | null",
+                      "description": "Trace tag node_path. Null when the column is NULL or absent."
+                    },
+                    {
+                      "name": "invocationId",
+                      "type": "string | null",
+                      "description": "Trace tag invocation_id. Null when the column is NULL or absent."
+                    },
+                    {
+                      "name": "attemptId",
+                      "type": "string | null",
+                      "description": "Trace tag attempt_id. Null when the column is NULL or absent."
+                    },
+                    {
+                      "name": "loopPath",
+                      "type": "string | null",
+                      "description": "Trace tag loop_path. Null when the column is NULL or absent."
                     }
                   ]
                 }
               ],
-              "example": "{\n  \"trace_sessions\": [\n    {\n      \"id\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n      \"containerId\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n      \"kind\": \"session\",\n      \"label\": \"Docs refresh\",\n      \"topic\": \"Docs refresh\",\n      \"status\": \"running\",\n      \"phase\": null,\n      \"createdAt\": \"2026-09-29T14:02:55.010Z\",\n      \"updatedAt\": \"2026-09-29T14:03:12.481Z\",\n      \"piSessionCount\": 2,\n      \"eventCount\": 42,\n      \"latestEventAt\": \"2026-09-29T14:03:12.481Z\",\n      \"metadata\": {\n        \"topic\": \"Docs refresh\"\n      }\n    }\n  ]\n}"
-            }
+              "example": "{\n  \"trace_sessions\": [\n    {\n      \"id\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n      \"containerId\": \"5b1f3c2a-8e47-5d90-a3c6-2f1e7d4b9a08\",\n      \"kind\": \"session\",\n      \"label\": \"Docs refresh\",\n      \"topic\": \"Docs refresh\",\n      \"status\": \"running\",\n      \"phase\": null,\n      \"createdAt\": \"2026-09-29T14:02:55.010Z\",\n      \"updatedAt\": \"2026-09-29T14:03:12.481Z\",\n      \"piSessionCount\": 2,\n      \"eventCount\": 42,\n      \"latestEventAt\": \"2026-09-29T14:03:12.481Z\",\n      \"metadata\": {\n        \"topic\": \"Docs refresh\"\n      },\n      \"engine\": null,\n      \"runId\": null,\n      \"nodePath\": null,\n      \"invocationId\": null,\n      \"attemptId\": null,\n      \"loopPath\": null\n    }\n  ]\n}"
+            },
+            "kind": "query"
           },
           {
             "name": "GET /kernel/trace-sessions/:id",
-            "kind": "query",
             "description": "Container-backed alias. A trace session is a container of kind \"session\", so the route makes the same getContainerTrace call with the same query, return shape, and 404.",
             "params": [
               {
@@ -2838,21 +2873,21 @@
               {
                 "name": "after",
                 "type": "string",
-                "description": "ISO 8601 timestamp. Only events strictly later are returned; container, session, and run rows always come back in full.",
-                "required": false
+                "required": false,
+                "description": "ISO 8601 timestamp. Only events strictly later are returned; container, session, and run rows always come back in full."
               },
               {
                 "name": "limit",
                 "type": "number",
-                "description": "Event row cap. Default 5000, clamped to 1 through 10000. The route options defaultLimit and maxLimit change both.",
-                "required": false
+                "required": false,
+                "description": "Event row cap. Default 5000, clamped to 1 through 10000. The route options defaultLimit and maxLimit change both."
               }
             ],
-            "returns": "KernelContainerTraceDetail"
+            "returns": "KernelContainerTraceDetail",
+            "kind": "query"
           },
           {
             "name": "GET /kernel/runs/:runId/turns/:turnNumber/context",
-            "kind": "query",
             "description": "Calls the optional getRunTurnContext and resolves the latest pi_request_snapshot for the turn into readable content. Answers 404 when the service omits the method, when turnNumber is not a non-negative integer, or when the run has no snapshot for that turn. A missing or unparseable message blob becomes a missing_blob placeholder plus a warning, not a failed request. A named tools blob that cannot be resolved omits tools and adds a warning, because a partial roster is worse than none.",
             "params": [
               {
@@ -2915,28 +2950,28 @@
                 {
                   "name": "sections",
                   "type": "PiRequestSnapshotSection[]",
-                  "description": "Absent on untagged snapshots.",
-                  "required": false
+                  "required": false,
+                  "description": "Absent on untagged snapshots."
                 },
                 {
                   "name": "tools",
                   "type": "PiRequestSnapshotTool[]",
-                  "description": "Absent when the roster was not captured or could not be resolved.",
-                  "required": false
+                  "required": false,
+                  "description": "Absent when the roster was not captured or could not be resolved."
                 },
                 {
                   "name": "warnings",
                   "type": "string[]",
-                  "description": "Present only when blob resolution was partial.",
-                  "required": false
+                  "required": false,
+                  "description": "Present only when blob resolution was partial."
                 }
               ],
               "example": "{\n  \"run_id\": \"e2a4c6d8-1f3b-4c5d-9e7f-8a0b1c2d3e4f\",\n  \"turn_number\": 0,\n  \"prompt_hash\": \"pk1-cf07194ee232eb531e15f690000d19846dea69cf05504782658afcfacb9228a2\",\n  \"system_prompt\": \"You are the docs-writer agent. ...\",\n  \"message_count\": 2,\n  \"messages\": [\n    {\n      \"role\": \"custom\",\n      \"customType\": \"kernel:context\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"...\"\n        }\n      ]\n    },\n    {\n      \"missing_blob\": \"b1-9dc02223da426384268a0b489b28b008464099491967f6f0597853e939953ea0\"\n    }\n  ],\n  \"refs\": [\n    {\n      \"blob_hash\": \"b1-e4223ed20d7ea5740a326e2b268ca6db91d041cf5194f577e393a8ba3b85d8e9\",\n      \"role\": \"custom\",\n      \"index\": 0,\n      \"text_chars\": 1840,\n      \"image_count\": 0,\n      \"tool_call_count\": 0\n    },\n    {\n      \"blob_hash\": \"b1-9dc02223da426384268a0b489b28b008464099491967f6f0597853e939953ea0\",\n      \"role\": \"user\",\n      \"index\": 1,\n      \"text_chars\": 96,\n      \"image_count\": 0,\n      \"tool_call_count\": 0\n    }\n  ],\n  \"totals\": {\n    \"text_chars\": 1936,\n    \"image_count\": 0\n  },\n  \"sections\": [\n    {\n      \"kind\": \"context\",\n      \"start\": 0,\n      \"end\": 1\n    },\n    {\n      \"kind\": \"tail\",\n      \"start\": 1,\n      \"end\": 2\n    }\n  ],\n  \"tools\": [\n    {\n      \"name\": \"read_doc\",\n      \"description\": \"Read one doc bundle.\",\n      \"parameters\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"path\": {\n            \"type\": \"string\"\n          }\n        }\n      }\n    }\n  ],\n  \"warnings\": [\n    \"missing message blob b1-9dc02223da426384268a0b489b28b008464099491967f6f0597853e939953ea0 (index 1)\"\n  ]\n}"
-            }
+            },
+            "kind": "query"
           },
           {
             "name": "GET /kernel/blobs/:hash",
-            "kind": "query",
             "description": "Calls the optional getBlob. Answers 404 when the service omits it, when hash is not b1- plus 64 lowercase hex characters, or when no blob matches. The viewer renders images through this route instead of inlining base64.",
             "params": [
               {
@@ -2944,7 +2979,8 @@
                 "type": "string"
               }
             ],
-            "returns": "Raw bytes with content-type set to the blob's MIME type and an immutable one-year cache-control header"
+            "returns": "Raw bytes with content-type set to the blob's MIME type and an immutable one-year cache-control header",
+            "kind": "query"
           }
         ],
         "title": "Trace read routes"
@@ -2989,7 +3025,7 @@
       "props": {},
       "text": [
         {
-          "insert": "Route paths are exported constants from viewer-core, including the container-first cross-kernel observer paths ("
+          "insert": "Route paths are exported constants of viewer-core in the trace-viewer repo. They include the container-first cross-kernel observer paths ("
         },
         {
           "insert": "/kernels",

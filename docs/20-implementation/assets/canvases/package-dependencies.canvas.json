@@ -29,18 +29,6 @@
       }
     },
     {
-      "id": "group-viewer",
-      "type": "section",
-      "text": "Viewer packages",
-      "parentId": null,
-      "geometry": {
-        "x": 1120,
-        "y": 0,
-        "width": 340,
-        "height": 640
-      }
-    },
-    {
       "id": "core-harness",
       "type": "rectangle",
       "text": "core-harness",
@@ -113,45 +101,6 @@
       "parentId": "group-external",
       "geometry": {
         "x": 750,
-        "y": 500,
-        "width": 240,
-        "height": 90
-      }
-    },
-    {
-      "id": "viewer-shell",
-      "type": "rectangle",
-      "text": "viewer-shell",
-      "color": "teal",
-      "parentId": "group-viewer",
-      "geometry": {
-        "x": 1170,
-        "y": 100,
-        "width": 240,
-        "height": 90
-      }
-    },
-    {
-      "id": "viewer-ui",
-      "type": "rectangle",
-      "text": "viewer-ui",
-      "color": "teal",
-      "parentId": "group-viewer",
-      "geometry": {
-        "x": 1170,
-        "y": 300,
-        "width": 240,
-        "height": 90
-      }
-    },
-    {
-      "id": "viewer-core",
-      "type": "rectangle",
-      "text": "viewer-core",
-      "color": "teal",
-      "parentId": "group-viewer",
-      "geometry": {
-        "x": 1170,
         "y": 500,
         "width": 240,
         "height": 90
@@ -272,97 +221,6 @@
       "to": {
         "objectId": "protocol",
         "anchor": "left"
-      },
-      "style": "solid",
-      "arrow": "forward"
-    },
-    {
-      "id": "viewer-shell-to-viewer-ui",
-      "from": {
-        "objectId": "viewer-shell",
-        "anchor": "bottom"
-      },
-      "to": {
-        "objectId": "viewer-ui",
-        "anchor": "top"
-      },
-      "style": "solid",
-      "arrow": "forward"
-    },
-    {
-      "id": "viewer-shell-to-viewer-core",
-      "from": {
-        "objectId": "viewer-shell",
-        "anchor": "right"
-      },
-      "to": {
-        "objectId": "viewer-core",
-        "anchor": "right"
-      },
-      "style": "solid",
-      "arrow": "forward"
-    },
-    {
-      "id": "viewer-ui-to-viewer-core",
-      "from": {
-        "objectId": "viewer-ui",
-        "anchor": "bottom"
-      },
-      "to": {
-        "objectId": "viewer-core",
-        "anchor": "top"
-      },
-      "style": "solid",
-      "arrow": "forward"
-    },
-    {
-      "id": "viewer-ui-to-prompt-kit",
-      "from": {
-        "objectId": "viewer-ui",
-        "anchor": "left"
-      },
-      "to": {
-        "objectId": "prompt-kit",
-        "anchor": "right"
-      },
-      "style": "solid",
-      "arrow": "forward"
-    },
-    {
-      "id": "viewer-ui-to-protocol",
-      "from": {
-        "objectId": "viewer-ui",
-        "anchor": "left"
-      },
-      "to": {
-        "objectId": "protocol",
-        "anchor": "top"
-      },
-      "style": "solid",
-      "arrow": "forward"
-    },
-    {
-      "id": "viewer-core-to-prompt-kit",
-      "from": {
-        "objectId": "viewer-core",
-        "anchor": "left"
-      },
-      "to": {
-        "objectId": "prompt-kit",
-        "anchor": "right"
-      },
-      "style": "solid",
-      "arrow": "forward"
-    },
-    {
-      "id": "viewer-core-to-protocol",
-      "from": {
-        "objectId": "viewer-core",
-        "anchor": "bottom"
-      },
-      "to": {
-        "objectId": "protocol",
-        "anchor": "right"
       },
       "style": "solid",
       "arrow": "forward"
