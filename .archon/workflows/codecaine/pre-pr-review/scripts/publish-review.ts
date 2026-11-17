@@ -21,7 +21,8 @@
  * - INPUTS_SCOPE: the review's requested scope. A caller can pass a recorded
  *   pull request here as JSON, and that record is then the only write target.
  * - INPUTS_PR: the qualified pull request the scope agent declared it reviewed,
- *   or `null` for a working diff. It names the target of a standalone review.
+ *   or `null` for a working diff. It names the target of a standalone review. When
+ *   the scope is a bare pull-request number, the declaration must carry it.
  * - INPUTS_REPORT: path to the report this node publishes.
  * - INPUTS_HEAD: the commit this round reviewed, as review-round fixed it.
  * - INPUTS_READY / INPUTS_ACTION / INPUTS_SUMMARY / INPUTS_REPORT_POINTER /
@@ -81,6 +82,14 @@ try {
   const coverage = Array.isArray(verdict.contract_left) && verdict.contract_left.length === 0 ? 'complete' : 'open';
   const recorded = recordedPr(text(process.env.INPUTS_SCOPE));
   const declared = declaredPr(text(process.env.INPUTS_PR));
+  // A bare number, such as the trigger's subject.number, names the pull request too,
+  // so the scope agent's declaration must carry that number.
+  const asked = /^[1-9][0-9]*$/.test(text(process.env.INPUTS_SCOPE).trim())
+    ? Number(text(process.env.INPUTS_SCOPE).trim())
+    : undefined;
+  if (asked !== undefined && declared?.number !== asked) {
+    throw new Error(`the review scope is pull request #${String(asked)}, but the scope agent declared ${label(declared)}`);
+  }
   const pr = recorded ?? declared;
   const head = text(process.env.INPUTS_HEAD).trim();
   const reportPath = text(process.env.INPUTS_REPORT);
