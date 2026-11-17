@@ -5,7 +5,8 @@
 # review-complete, synthesize, verify-1..3, settle, publish and prune-scratch.
 # Removed: the 6 lens nodes, the route agent, `returns` and `outcome_field`.
 # Added: the `rounds` loop, the pack-context bundle node, the route decide node, the
-# 2 reviewers, the extract-findings node, and tag-outside-reviewers after the loop.
+# 2 reviewers, the extract-findings node, the reviewed node that ends each round, and
+# tag-outside-reviewers after the loop.
 # Every node of one round sits in the body of `rounds`, because a loop body cannot
 # depend on a node outside it.
 name: pre-pr-review
@@ -55,7 +56,9 @@ nodes:
   # Version 1 has no node that changes code, so a run has 1 round: the check passes
   # when the head mode fixed is the pull request's head. A push during a round makes
   # publish refuse, so the run fails, and the next run reviews the new head. A working
-  # diff (no pull request) passes at once.
+  # diff (no pull request) passes at once: the engine substitutes scope's declared null
+  # pr as empty text, not as `null`; the check accepts both. The loop's output is the
+  # output of its terminal body node, `reviewed`.
   - id: rounds
     loop_group:
       max_iterations: 5
@@ -63,7 +66,7 @@ nodes:
       until_bash: |
         head=$mode.output.head
         pr=$scope.output.pr
-        if [ "$pr" = "null" ]; then exit 0; fi
+        if [ -z "$pr" ] || [ "$pr" = null ]; then exit 0; fi
         host=$(printf '%s' "$pr" | jq -r '.repo.host')
         repo=$(printf '%s' "$pr" | jq -r '.repo.path')
         number=$(printf '%s' "$pr" | jq -r '.number')
@@ -130,7 +133,7 @@ nodes:
             properties:
               # The qualified pull request this round reviewed, or `null` for a working
               # diff. publish writes to this record and to nothing else.
-              pr:
+              pr: &reviewed_pr
                 type: [object, 'null']
                 default: null
                 properties:
@@ -385,12 +388,35 @@ nodes:
           depends_on: [synthesize, publish]
           trigger_rule: all_done
 
-  # Tags Greptile and CodeRabbit once for the pull request's head. The script searches
-  # the comments for its marker and the head sha first, and posts nothing when it finds
-  # both.
+        # The terminal body node, so its output is the loop's output: the pull request
+        # and the commit this round reviewed and published. A node outside the loop can
+        # read only this. It runs only after publish and prune-scratch succeed. pr is
+        # null for a working diff; the engine substitutes it here as empty text, and
+        # fromjson reads `null` as null too.
+        - id: reviewed
+          depends_on: [publish, prune-scratch]
+          bash: |
+            head=$mode.output.head
+            pr=$scope.output.pr
+            jq -cn --arg head "$head" --arg pr "$pr" \
+              '{head: $head, pr: (if $pr == "" then null else ($pr | fromjson) end)}'
+          output_format:
+            type: object
+            properties:
+              head: { type: string, minLength: 1 }
+              pr: *reviewed_pr
+            required: [head, pr]
+
+  # Tags Greptile and CodeRabbit once for the head the review published about. It runs
+  # only after the loop completes, so a failed or refused publish tags nothing. It posts
+  # nothing for a working diff (the engine binds the loop's null pr as `null`, unlike a
+  # body node's declared null), refuses when the pull request's head moved
+  # off the reviewed head, and posts nothing when a comment already carries its marker
+  # with that head.
   - id: tag-outside-reviewers
     script: tag-outside-reviewers
     runtime: bun
     depends_on: [rounds]
     with:
-      pr: "$INPUTS.scope"
+      pr: "$rounds.output.pr"
+      head: "$rounds.output.head"
