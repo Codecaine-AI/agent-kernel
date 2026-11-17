@@ -28,7 +28,8 @@
  * current branch, and the live head is tagged as is.
  *
  * Output: `would tag <sha>` on a dry run, `tagged <sha>: <comment url>` after it posts,
- * `already tagged <sha>`, and `no pull request` when there is none.
+ * `already tagged <sha>`, `no pull request` when there is none, and `no open pull request`
+ * when it is closed or merged.
  */
 
 import { decideTag, tagMarker } from '../../.shared/outside-reviewers.ts';
@@ -88,15 +89,20 @@ function main(): void {
     return;
   }
   const target = selector(pr);
-  const viewed = spawnGh(['pr', 'view', ...(target === '' ? [] : [target]), '--json', 'number,headRefOid,url']);
+  const viewed = spawnGh(['pr', 'view', ...(target === '' ? [] : [target]), '--json', 'number,headRefOid,url,state']);
   if (!viewed.ok && target === '' && /no pull requests found|no git remotes found/i.test(viewed.stderr)) {
     report('no pull request');
     return;
   }
   if (!viewed.ok) throw new Error(`gh pr view failed: ${viewed.stderr}`);
-  const view = JSON.parse(viewed.stdout) as { number: number; headRefOid: string; url: string };
+  const view = JSON.parse(viewed.stdout) as { number: number; headRefOid: string; url: string; state: string };
+  if (view.state !== 'OPEN') {
+    report(`no open pull request: #${String(view.number)} is ${view.state.toLowerCase()}`);
+    return;
+  }
   const url = new URL(view.url);
   const repo = url.pathname.split('/').slice(1, 3).join('/');
+  const repoArg = `${url.hostname}/${repo}`;
   const comments =
     reviewedHead !== undefined && reviewedHead !== view.headRefOid
       ? [] // the head moved: decideTag refuses without reading them
@@ -104,7 +110,10 @@ function main(): void {
           .split('\n')
           .filter(line => line !== '')
           .map(line => JSON.parse(line) as string);
-  const decision = decideTag({ reviewedHead, liveHead: view.headRefOid, comments });
+  // Read the head again after the comments, the last read before the post, so a push
+  // during pagination refuses too. The read and the post are still not atomic.
+  const liveHead = gh(['pr', 'view', String(view.number), '--repo', repoArg, '--json', 'headRefOid', '-q', '.headRefOid']);
+  const decision = decideTag({ reviewedHead, liveHead, comments });
   switch (decision.kind) {
     case 'head-moved':
       refuse(`tag-outside-reviewers: head moved: reviewed ${decision.reviewed}, now ${decision.live}; tagged nothing`);
@@ -118,7 +127,7 @@ function main(): void {
         return;
       }
       const body = [tagMarker(decision.head), ...TAGS].join('\n');
-      const posted = gh(['pr', 'comment', String(view.number), '--repo', `${url.hostname}/${repo}`, '--body', body]);
+      const posted = gh(['pr', 'comment', String(view.number), '--repo', repoArg, '--body', body]);
       report(`tagged ${decision.head}: ${posted}`);
       return;
     }
