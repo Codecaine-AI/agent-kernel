@@ -3,24 +3,27 @@
  * Consumer smoke check: installs the publishable packages the way an npm user
  * gets them, then imports the kernel's public entry points.
  *
- * 1. Rewrites each public manifest to its publish form (`workspace:*` becomes
- *    `^<version>`, dev workspace deps drop out), the same way Core's
- *    scripts/release.ts does, packs it with `npm pack`, and restores the manifest.
+ * 1. Copies each public package folder into a temp folder, rewrites the copy's
+ *    manifest to its publish form (`workspace:*` becomes `^<version>`, dev
+ *    workspace deps drop out) and adds the repo LICENSE and README.md when the
+ *    package has none, the same way Core's scripts/release.ts does. Then it
+ *    packs the copy with `npm pack`. The source tree is never written.
  * 2. Installs the tarballs into a new, empty temp folder with a fresh
  *    resolution from the registry: no lockfile, no workspace, `--no-cache`.
  *    Third-party ranges such as `@earendil-works/pi-*` resolve to the newest
  *    version they allow, which is what a new consumer gets.
  * 3. Imports each entry point in ENTRY_POINTS and checks its key exports.
  *
- * It never publishes. It leaves the working tree as it found it.
+ * It never publishes. Its only output is the temp folder, which it removes on
+ * exit, on an error and on SIGINT or SIGTERM.
  *
  * Usage: bun run smoke:consumer   (needs network access to the npm registry)
  */
 
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { Glob } from "bun";
+import { basename, dirname, join, resolve } from "node:path";
+import { Glob, type Subprocess } from "bun";
 
 const ROOT = resolve(import.meta.dir, "..");
 const DEP_FIELDS = ["dependencies", "peerDependencies", "optionalDependencies", "devDependencies"] as const;
@@ -33,15 +36,23 @@ const ENTRY_POINTS: Record<string, string[]> = {
 
 type Member = { dir: string; raw: string; manifest: any };
 
-/** Throws, so the finally block below still restores the manifests and removes the temp folder. */
+/** Throws, so the finally block below still removes the temp folder. */
 function fail(message: string): never {
   throw new Error(message);
 }
 
-function run(cmd: string[], cwd: string): string {
-  const proc = Bun.spawnSync(cmd, { cwd, stdout: "pipe", stderr: "pipe" });
-  const out = proc.stdout.toString();
-  if (proc.exitCode !== 0) fail(`${cmd.join(" ")} failed in ${cwd}:\n${proc.stderr.toString().trim() || out.trim()}`);
+/** The child process that runs now, so a signal handler can stop it before it removes the temp folder. */
+let child: Subprocess | undefined;
+
+async function run(cmd: string[], cwd: string): Promise<string> {
+  child = Bun.spawn(cmd, { cwd, stdout: "pipe", stderr: "pipe" });
+  const [out, err, exitCode] = await Promise.all([
+    new Response(child.stdout as ReadableStream).text(),
+    new Response(child.stderr as ReadableStream).text(),
+    child.exited,
+  ]);
+  child = undefined;
+  if (exitCode !== 0) fail(`${cmd.join(" ")} failed in ${cwd}:\n${err.trim() || out.trim()}`);
   return out;
 }
 
@@ -78,44 +89,43 @@ function publishManifest(m: Member): any {
 }
 
 const work = mkdtempSync(join(tmpdir(), "agent-kernel-smoke-"));
-// Only the manifest being packed holds a temporary edit. Restoring only that one keeps any edit saved after its pack.
-let packing: Member | undefined;
-const restorePacking = () => {
-  if (packing) writeFileSync(join(packing.dir, "package.json"), packing.raw);
-  packing = undefined;
-};
-process.once("SIGINT", () => {
-  restorePacking();
-  rmSync(work, { recursive: true, force: true });
-  process.exit(130);
-});
+const removeWork = () => rmSync(work, { recursive: true, force: true });
+for (const [signal, code] of [["SIGINT", 130], ["SIGTERM", 143]] as const) {
+  process.once(signal, async () => {
+    const running = child;
+    running?.kill();
+    await running?.exited;
+    removeWork();
+    process.exit(code);
+  });
+}
 
 try {
-  // 1. Pack each public package with its publish-form manifest.
+  // 1. Pack a copy of each public package with its publish-form manifest. The source folder stays untouched.
   const tarballs = new Map<string, string>();
   for (const m of publicMembers) {
+    const copy = join(work, "packages", basename(m.dir));
+    cpSync(m.dir, copy, { recursive: true, filter: (src) => basename(src) !== "node_modules" });
     const indent = m.raw.match(/^\{\n([ \t]+)/)?.[1] ?? "  ";
-    packing = m;
-    writeFileSync(join(m.dir, "package.json"), JSON.stringify(publishManifest(m), null, indent) + "\n");
-    try {
-      const out = run(["npm", "pack", "--ignore-scripts", "--json", "--pack-destination", work], m.dir);
-      tarballs.set(m.manifest.name, `file:${join(work, JSON.parse(out)[0].filename)}`);
-    } finally {
-      restorePacking();
+    writeFileSync(join(copy, "package.json"), JSON.stringify(publishManifest(m), null, indent) + "\n");
+    for (const file of ["LICENSE", "README.md"]) {
+      if (!existsSync(join(copy, file))) cpSync(join(ROOT, file), join(copy, file));
     }
+    const out = await run(["npm", "pack", "--ignore-scripts", "--json", "--pack-destination", work], copy);
+    tarballs.set(m.manifest.name, `file:${join(work, JSON.parse(out)[0].filename)}`);
   }
   console.log(`packed ${[...tarballs.keys()].map((n) => `${n}@${localVersions.get(n)}`).join(", ")}`);
 
   // 2. Install the tarballs into an empty consumer with a fresh registry resolution.
   // The overrides make each package's ^<version> range on its siblings use the local tarball.
   const consumer = join(work, "consumer");
-  run(["mkdir", consumer], work);
+  mkdirSync(consumer);
   const deps = Object.fromEntries(tarballs);
   writeFileSync(
     join(consumer, "package.json"),
     JSON.stringify({ name: "smoke-consumer", private: true, type: "module", dependencies: deps, overrides: deps }, null, 2),
   );
-  run(["bun", "install", "--no-cache", "--no-save"], consumer);
+  await run(["bun", "install", "--no-cache", "--no-save"], consumer);
   const resolved = Object.keys(publishManifest(publicMembers.find((m) => m.manifest.name === "@codecaine-ai/agent-kernel")!).dependencies)
     .filter((dep) => !tarballs.has(dep))
     .map((dep) => `${dep}@${JSON.parse(readFileSync(join(consumer, "node_modules", dep, "package.json"), "utf8")).version}`);
@@ -139,13 +149,14 @@ try {
     process.exit(failed ? 1 : 0);
   `;
   writeFileSync(join(consumer, "check.mjs"), check);
-  const proc = Bun.spawnSync(["bun", "check.mjs"], { cwd: consumer, stdout: "inherit", stderr: "inherit" });
-  if (proc.exitCode !== 0) fail("a consumer import failed on a fresh install");
+  child = Bun.spawn(["bun", "check.mjs"], { cwd: consumer, stdout: "inherit", stderr: "inherit" });
+  const exitCode = await child.exited;
+  child = undefined;
+  if (exitCode !== 0) fail("a consumer import failed on a fresh install");
   console.log("consumer smoke check passed");
 } catch (error) {
   console.error(`✗ ${(error as Error).message}`);
   process.exitCode = 1;
 } finally {
-  restorePacking();
-  rmSync(work, { recursive: true, force: true });
+  removeWork();
 }
