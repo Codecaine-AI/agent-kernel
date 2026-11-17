@@ -1,11 +1,28 @@
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { registerAgentCommands } from "./commands";
 
-const exampleDir = fileURLToPath(
-	new URL("../../../examples/simple-research-kernel", import.meta.url),
+// A project whose own .agent-kernel/kernel.json names the example catalog.
+// The example writes that manifest only when its server boots, so the test
+// makes it here instead of depending on a git-ignored file.
+const exampleCatalog = fileURLToPath(
+	new URL("../../../examples/simple-research-kernel/src/agent-catalog", import.meta.url),
 );
+const exampleDir = mkdtempSync(join(tmpdir(), "tui-commands-"));
+mkdirSync(join(exampleDir, ".agent-kernel"));
+writeFileSync(
+	join(exampleDir, ".agent-kernel", "kernel.json"),
+	JSON.stringify({
+		manifestVersion: 2,
+		kernelId: "simple-research-kernel",
+		catalogRoots: [exampleCatalog],
+	}),
+);
+afterAll(() => rmSync(exampleDir, { recursive: true, force: true }));
 
 interface Notification {
 	message: string;
@@ -128,7 +145,8 @@ describe("/kernel command surfaces", () => {
 		expect(meta.origin).toBe("tui");
 		expect(meta.cwd).toBe(exampleDir);
 		// exampleDir has its own .agent-kernel — ownership resolves to it.
-		expect(String(meta.targetKernelRoot)).toContain("simple-research-kernel");
+		expect(meta.targetKernelRoot).toBe(join(exampleDir, ".agent-kernel"));
+		expect(meta.kernelId).toBe("simple-research-kernel");
 	});
 
 	test("manifest disallowedTools are blocked after boot; reads stay open", async () => {

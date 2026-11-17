@@ -4,6 +4,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { TRACE_TAGS } from "@codecaine-ai/agent-kernel-protocol";
+
 import { createPreKindDatabase, tableColumnNames } from "./__fixtures__/pre-kind-schema";
 import { ensureKernelObservabilitySchema } from "./bootstrap";
 import {
@@ -19,6 +21,9 @@ import {
 } from "./upgrade";
 
 const STEP = "pi_agent_sessions.kind";
+const TAGS = TRACE_TAGS.map(({ tag }) => tag);
+const TAG_STEPS = TAGS.map((tag) => `containers.${tag}`);
+const ALL_STEPS = [STEP, ...TAG_STEPS];
 
 let dir: string;
 let dbPath: string;
@@ -62,7 +67,7 @@ describe("upgradeKernelObservabilitySchema", () => {
 
     const report = await upgradeKernelObservabilitySchema(db);
 
-    expect(report).toEqual({ applied: [STEP], skipped: [], readOnly: false });
+    expect(report).toEqual({ applied: ALL_STEPS, skipped: [], readOnly: false });
     expect(kindColumn(dbPath)).toMatchObject({ notnull: 1, dflt_value: "'pi'" });
     expect(
       db.all<{ id: string; kind: string }>("SELECT id, kind FROM pi_agent_sessions"),
@@ -79,14 +84,32 @@ describe("upgradeKernelObservabilitySchema", () => {
     // A second handle has no cached knowledge and probes the schema itself.
     const third = await upgradeKernelObservabilitySchema(open().db);
 
-    expect(second).toEqual({ applied: [], skipped: [STEP], readOnly: false });
-    expect(third).toEqual({ applied: [], skipped: [STEP], readOnly: false });
+    expect(second).toEqual({ applied: [], skipped: ALL_STEPS, readOnly: false });
+    expect(third).toEqual({ applied: [], skipped: ALL_STEPS, readOnly: false });
     // The bootstrap path (CREATE IF NOT EXISTS, then upgrade) is idempotent too.
     await ensureKernelObservabilitySchema(db);
     await ensureKernelObservabilitySchema(db);
     expect(tableColumnNames(dbPath, "pi_agent_sessions").filter((c) => c === "kind")).toEqual([
       "kind",
     ]);
+  });
+
+  test("adds the 6 trace tag columns to an old database once", async () => {
+    createPreKindDatabase(dbPath);
+    const { db } = open();
+
+    await ensureKernelObservabilitySchema(db);
+    await ensureKernelObservabilitySchema(db);
+
+    const columns = tableColumnNames(dbPath, "containers");
+    for (const tag of TAGS) {
+      expect(columns.filter((column) => column === tag)).toEqual([tag]);
+    }
+    expect(
+      db.all<Record<string, string | null>>(
+        `SELECT id, ${TAGS.join(", ")} FROM containers`,
+      ),
+    ).toEqual([{ id: "c1", ...Object.fromEntries(TAGS.map((tag) => [tag, null])) }]);
   });
 
   test("treats a concurrent duplicate column as applied", async () => {
@@ -112,8 +135,9 @@ describe("upgradeKernelObservabilitySchema", () => {
 
     const report = await upgradeKernelObservabilitySchema(lateHandle);
 
-    expect(probes).toBe(1);
-    expect(report).toEqual({ applied: [STEP], skipped: [], readOnly: false });
+    // One probe per table: the duplicate column is not re-probed.
+    expect(probes).toBe(2);
+    expect(report).toEqual({ applied: ALL_STEPS, skipped: [], readOnly: false });
     expect(kindColumn(dbPath)).toMatchObject({ notnull: 1, dflt_value: "'pi'" });
   });
 
@@ -124,7 +148,7 @@ describe("upgradeKernelObservabilitySchema", () => {
     expect(kindColumn(dbPath)).toMatchObject({ notnull: 1, dflt_value: "'pi'" });
     expect(await upgradeKernelObservabilitySchema(db)).toEqual({
       applied: [],
-      skipped: [STEP],
+      skipped: ALL_STEPS,
       readOnly: false,
     });
   });
@@ -136,8 +160,9 @@ describe("upgradeKernelObservabilitySchema", () => {
 
     const report = await upgradeKernelObservabilitySchema(readOnly.db);
 
-    expect(report).toEqual({ applied: [], skipped: [STEP], readOnly: true });
+    expect(report).toEqual({ applied: [], skipped: ALL_STEPS, readOnly: true });
     expect(tableColumnNames(dbPath, "pi_agent_sessions")).not.toContain("kind");
+    expect(tableColumnNames(dbPath, "containers")).not.toContain("engine");
   });
 
   test("retries SQLITE_BUSY until the other writer releases its lock", async () => {
@@ -153,7 +178,7 @@ describe("upgradeKernelObservabilitySchema", () => {
 
     const report = await upgradeKernelObservabilitySchema(db);
 
-    expect(report.applied).toEqual([STEP]);
+    expect(report.applied).toEqual(ALL_STEPS);
     expect(Date.now() - startedAt).toBeGreaterThanOrEqual(140);
     expect(kindColumn(dbPath)).toBeDefined();
   });

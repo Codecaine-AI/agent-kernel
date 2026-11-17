@@ -14,6 +14,8 @@ import {
 	type ExtensionFactory,
 } from "@earendil-works/pi-coding-agent";
 
+import { traceTagHeaders, type TraceTags } from "@codecaine-ai/agent-kernel-protocol";
+
 import { checkDomainAccess, mapToolToOperation } from "../hooks";
 import type { StateExtensionHandle } from "../../state";
 import type { AgentConfig, DomainRule } from "../types";
@@ -55,6 +57,8 @@ export interface CreatePiSessionInput {
 	sessionBinding?: SessionBindingInput;
 	piLifecycleCustomType?: string;
 	piAgentDir?: string;
+	/** Trace tags that every provider request of the session sends as `X-Trace-*` headers. */
+	traceTags?: TraceTags;
 	logger?: PiSessionFactoryLoggerLike;
 }
 
@@ -108,10 +112,20 @@ export async function createPiSession(
 		configModel: resolved.config.model || "(none)",
 	});
 
+	const traceHeaders = traceTagHeaders(input.traceTags);
 	const extensionFactories: ExtensionFactory[] = [
 		...(input.toolFactories ?? []),
 		...(domain?.length ? [buildDomainGuardFactory(domain, cwd)] : []),
 		...(input.stateExtension ? [input.stateExtension.factory] : []),
+		...(Object.keys(traceHeaders).length
+			? [
+					((pi) => {
+						pi.on("before_provider_headers", (event) => {
+							Object.assign(event.headers, traceHeaders);
+						});
+					}) satisfies ExtensionFactory,
+				]
+			: []),
 	];
 	if (!input.piAgentDir) {
 		throw new Error("createPiSession requires input.piAgentDir");

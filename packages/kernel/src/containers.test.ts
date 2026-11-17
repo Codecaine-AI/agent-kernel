@@ -143,4 +143,34 @@ describe("createContainerApi", () => {
 			rmSync(dir, { recursive: true, force: true });
 		}
 	});
+
+	test("writes traceTags to the tag columns, not to metadata", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "kernel-container-"));
+		const handle = openKernelDatabase({ path: join(dir, "trace.db") });
+		await ensureKernelObservabilitySchema(handle.db);
+		const container = createContainerApi({ kernelId: "demo-kernel", db: handle.db });
+		const traceTags = {
+			engine: "archon",
+			run_id: "8c2d4e6f-1a3b-4c5d-8e9f-0a1b2c3d4e5f",
+			node_path: "rounds.pack-context",
+			invocation_id: "5b0e7c1a-9d24-4f6b-a3c8-2e1f0d9b7a64",
+			attempt_id: "c41d2f80-6a3e-4b97-8f15-7d0a9e3c5b21",
+			loop_path: "rounds:2",
+		};
+		const storedRow = () =>
+			handle.db.all(
+				"SELECT engine, run_id, node_path, invocation_id, attempt_id, loop_path, metadata FROM containers",
+			);
+		try {
+			await container({ kind: "node", key: ["n1"], metadata: { slot: 1 }, traceTags });
+			expect(storedRow()).toEqual([{ ...traceTags, metadata: '{"slot":1}' }]);
+
+			// An upsert without traceTags keeps the stored tags.
+			await container({ kind: "node", key: ["n1"], label: "renamed" });
+			expect(storedRow()).toEqual([{ ...traceTags, metadata: '{"slot":1}' }]);
+		} finally {
+			handle.close();
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
 });

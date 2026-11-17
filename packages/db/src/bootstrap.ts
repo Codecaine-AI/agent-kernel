@@ -32,6 +32,12 @@ export async function ensureKernelObservabilitySchema(
       created_at          TEXT NOT NULL,
       started_at          TEXT,
       ended_at            TEXT,
+      engine              TEXT,
+      run_id              TEXT,
+      node_path           TEXT,
+      invocation_id       TEXT,
+      attempt_id          TEXT,
+      loop_path           TEXT,
       UNIQUE (kernel_id, kind, app_key)
     )
   `);

@@ -147,7 +147,6 @@ export function renderDocMarkdown(doc: DocDocument): string {
 			case "list-item":
 				lines.push(`${"  ".repeat(Math.max(0, depth))}- ${text}`);
 				break;
-			case "quote":
 			case "callout":
 				lines.push(`> ${text}`, "");
 				break;

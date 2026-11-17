@@ -39,6 +39,8 @@ export interface AgentRecord {
 	notificationTimeout?: ReturnType<typeof setTimeout>;
 	pendingSteers?: string[];
 	isBackground?: boolean;
+	/** The container of the run that started the agent, known from spawn time, even while queued. */
+	containerId?: string;
 	/** Trace identity of the spawned run, once the pipeline reports it. */
 	traceIds?: { containerId: string; runId: string; piSessionUuid?: string };
 }

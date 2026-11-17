@@ -1,0 +1,19 @@
+{
+  "kind": "prompt",
+  "schemaVersion": "prompt-kit/v1",
+  "id": "backgroundDispatchBundlePrompt",
+  "nodes": [
+    {
+      "type": "section",
+      "tag": "task",
+      "children": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Call start_child once with the label from the user's message, then answer with one JSON object."
+          ]
+        }
+      ]
+    }
+  ]
+}

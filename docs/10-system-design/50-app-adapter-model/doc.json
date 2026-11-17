@@ -48,10 +48,30 @@
         "b-50-app-adapter-model-host-boot-heading",
         "b-50-app-adapter-model-host-boot-lead",
         "b-50-app-adapter-model-host-boot-sequence",
+        "aam-archon-h",
+        "aam-archon-lead",
+        "aam-archon-export",
+        "aam-archon-po-lead",
+        "aam-archon-po",
+        "aam-archon-rules-lead",
+        "aam-archon-cache",
+        "aam-archon-so",
+        "aam-archon-cancel",
+        "aam-archon-caps",
+        "aam-model-nodes-h",
+        "aam-model-nodes-lead",
+        "aam-model-nodes-table",
+        "aam-decide-shape-lead",
+        "aam-decide-shape",
+        "aam-pack-kernels-lead",
+        "aam-pack-engine",
         "b-50-app-adapter-model-container-mapping-19",
         "b-50-app-adapter-model-the-kernel-uses-containe-20",
         "b-50-app-adapter-model-ts-21",
         "b-50-app-adapter-model-the-same-kind-and-key-al-22",
+        "aam-cmap-archon-lead",
+        "aam-cmap-archon-table",
+        "aam-cmap-archon-keys",
         "b-50-app-adapter-model-app-side-tools-23",
         "b-50-app-adapter-model-agent-specific-private-t-24",
         "b-50-app-adapter-model-app-side-loaders-25",
@@ -63,6 +83,7 @@
         "b-50-app-adapter-model-read-api-and-viewer-31",
         "b-50-app-adapter-model-the-kernel-instance-ship-32",
         "b-50-app-adapter-model-the-base-viewer-path-is-33",
+        "aam-read-archon",
         "b-50-app-adapter-model-model-access-the-models-34",
         "b-50-app-adapter-model-kernels-do-not-use-inter-35",
         "b-50-app-adapter-model-json-36",
@@ -634,6 +655,988 @@
       },
       "children": []
     },
+    "aam-archon-h": {
+      "id": "aam-archon-h",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Archon Fork as a Host"
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-lead": {
+      "id": "aam-archon-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The Archon fork, Codecaine-AI/archon, hosts the kernel as an in-process agent provider. The subpath export "
+        },
+        {
+          "insert": "@codecaine-ai/agent-kernel/archon-provider",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " holds the provider, and the fork registers it in its providers package. A workflow node selects it with "
+        },
+        {
+          "insert": "provider: agent-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and names a bundle as its "
+        },
+        {
+          "insert": "model",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-export": {
+      "id": "aam-archon-export",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "createAgentKernelProvider({ root })",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " builds the provider. The fork passes its home folder as "
+        },
+        {
+          "insert": "root",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so every node of every run writes to "
+        },
+        {
+          "insert": "<root>/.agent-kernel/trace.db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The "
+        },
+        {
+          "insert": "types",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " condition of the subpath points at "
+        },
+        {
+          "insert": "src/archon-provider/contract.ts",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", a copy of the parts of Archon's provider contract that the provider uses. The fork checks the provider with "
+        },
+        {
+          "insert": "satisfies IAgentProvider",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so a drift between the 2 contracts fails the fork's type check."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-po-lead": {
+      "id": "aam-archon-po-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The outline shows one "
+        },
+        {
+          "insert": "sendQuery",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " call for a bundle node. The marked step writes kernel trace events."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-po": {
+      "id": "aam-archon-po",
+      "type": "process-outline",
+      "props": {
+        "steps": [
+          {
+            "text": "Kernel Provider `sendQuery` for a Bundle Node",
+            "steps": [
+              {
+                "text": "Resolve the Node",
+                "steps": [
+                  {
+                    "text": "`archonKernel` returns the cached kernel for `root` and the `assistants.agent-kernel` settings"
+                  },
+                  {
+                    "text": "`traceTagsFromEnv` reads the 6 trace tags from the `TRACE_*` variables in `options.env`"
+                  },
+                  {
+                    "text": "The provider fails the node as misconfigured if `TRACE_RUN`, `TRACE_INVOCATION`, or `TRACE_ATTEMPT` is empty, or if no bundle has the `model` name"
+                  }
+                ]
+              },
+              {
+                "text": "Run the Bundle",
+                "steps": [
+                  {
+                    "text": "`kernel.container` upserts the `archon-run` container and its `archon-node` child, with the trace tags"
+                  },
+                  {
+                    "text": "`spawnAgent` runs the bundle in the `archon-node` container with the trace tags and the abort signal",
+                    "trace": true
+                  }
+                ]
+              },
+              {
+                "text": "Answer Archon",
+                "steps": [
+                  {
+                    "text": "The provider sends the reply text as `agent_message_chunk` items at each tool start, each turn end, and the end"
+                  },
+                  {
+                    "text": "`agentManager.waitForContainer` waits until every background agent that the bundle started in the `archon-node` container ends, as `backgroundWork: \"none\"` requires"
+                  },
+                  {
+                    "text": "The provider sends one `result` chunk and closes the `archon-node` container as `done`, `error`, or `aborted`"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "children": []
+    },
+    "aam-archon-rules-lead": {
+      "id": "aam-archon-rules-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Four rules shape what the fork gets back from a node."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-cache": {
+      "id": "aam-archon-cache",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Kernel Cache",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "aam-archon-cache-a",
+        "aam-archon-cache-b"
+      ]
+    },
+    "aam-archon-cache-a": {
+      "id": "aam-archon-cache-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Archon makes a new provider for each node attempt, so the kernels live in a module cache. Providers with equal settings share one kernel."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-cache-b": {
+      "id": "aam-archon-cache-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Every kernel of one "
+        },
+        {
+          "insert": "root",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " shares one database handle and the kernel id "
+        },
+        {
+          "insert": "archon-provider-agent-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". A failed build is not cached."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-so": {
+      "id": "aam-archon-so",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Structured Output",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "aam-archon-so-a",
+        "aam-archon-so-b",
+        "aam-archon-so-c"
+      ]
+    },
+    "aam-archon-so-a": {
+      "id": "aam-archon-so-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "For a node with an "
+        },
+        {
+          "insert": "output_format",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", the provider adds the schema to the prompt and asks for one JSON object as the last message. The bundle has no "
+        },
+        {
+          "insert": "structured_output",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " tool."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-so-b": {
+      "id": "aam-archon-so-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "matchOutputFormat",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " checks the last JSON object of the reply against the schema, with Pi's tool-argument check. A reply that misses the schema gets no "
+        },
+        {
+          "insert": "structuredOutput",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-so-c": {
+      "id": "aam-archon-so-c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The provider declares "
+        },
+        {
+          "insert": "structuredOutput: \"enforced\"",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and Archon re-asks only a best-effort provider. A reply that misses the schema fails the node with no re-ask."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-cancel": {
+      "id": "aam-archon-cancel",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Cancellation and Failure",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "aam-archon-cancel-a",
+        "aam-archon-cancel-b",
+        "71c83f52-db0a-49fc-9d13-1dd4d20c7c81",
+        "aam-archon-cancel-c"
+      ]
+    },
+    "aam-archon-cancel-a": {
+      "id": "aam-archon-cancel-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "If the abort signal fired before the spawn, the bundle never starts. A node cancelled while it runs, or after the spawn ends, sends no result."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-cancel-b": {
+      "id": "aam-archon-cancel-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A cancelled "
+        },
+        {
+          "insert": "sendQuery",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " throws, as Archon's other providers do, and the container ends as "
+        },
+        {
+          "insert": "aborted",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "71c83f52-db0a-49fc-9d13-1dd4d20c7c81": {
+      "id": "71c83f52-db0a-49fc-9d13-1dd4d20c7c81",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "When a node is cancelled or fails, "
+        },
+        {
+          "insert": "agentManager.abortContainer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " stops the background agents in its "
+        },
+        {
+          "insert": "archon-node",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " container, and the node ends after those agents end."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-cancel-c": {
+      "id": "aam-archon-cancel-c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Any other failure sends a "
+        },
+        {
+          "insert": "result",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " chunk with "
+        },
+        {
+          "insert": "isError",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and a failure class, such as "
+        },
+        {
+          "insert": "misconfigured",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", then "
+        },
+        {
+          "insert": "settled",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-caps": {
+      "id": "aam-archon-caps",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Capabilities",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "aam-archon-caps-a",
+        "aam-archon-caps-builtins",
+        "aam-archon-caps-b"
+      ]
+    },
+    "aam-archon-caps-a": {
+      "id": "aam-archon-caps-a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The bundle owns its tools, state, and model, so "
+        },
+        {
+          "insert": "AGENT_KERNEL_CAPABILITIES",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " turns off every Archon-side feature, such as MCP, hooks, skills, and session resume."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-caps-builtins": {
+      "id": "aam-archon-caps-builtins",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A bundle limits Pi's built-in tools, such as "
+        },
+        {
+          "insert": "bash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "write",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", with "
+        },
+        {
+          "insert": "coreTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "disallowedTools",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in its "
+        },
+        {
+          "insert": "agent.json",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "aam-archon-caps-b": {
+      "id": "aam-archon-caps-b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "envInjection",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is off. The provider reads the trace tags and "
+        },
+        {
+          "insert": "PACK_DIR",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " from "
+        },
+        {
+          "insert": "options.env",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and no other variable reaches the bundle."
+        }
+      ],
+      "children": []
+    },
+    "aam-model-nodes-h": {
+      "id": "aam-model-nodes-h",
+      "type": "heading",
+      "props": {
+        "level": 3
+      },
+      "text": [
+        {
+          "insert": "Extract and Decide Nodes"
+        }
+      ],
+      "children": []
+    },
+    "aam-model-nodes-lead": {
+      "id": "aam-model-nodes-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A node with "
+        },
+        {
+          "insert": "nodeConfig.model_node",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " is an extract node or a decide node of the fork. The provider runs it in the same "
+        },
+        {
+          "insert": "archon-node",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " container, with no bundle and no Pi agent session. The typed object is both the result text and "
+        },
+        {
+          "insert": "structuredOutput",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "aam-model-nodes-table": {
+      "id": "aam-model-nodes-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Node",
+          "Kernel",
+          "Call",
+          "Failure rule"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "extract",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "The pack kernel of "
+              },
+              {
+                "insert": "PACK_DIR",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "One "
+              },
+              {
+                "insert": "kernel.call",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " of the BAML function the node names, at the node's "
+              },
+              {
+                "insert": "tier",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", checked against "
+              },
+              {
+                "insert": "output_format",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "A parse failure or a schema miss sends one more call, up to "
+              },
+              {
+                "insert": "retries",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". The last miss, any other call failure, an empty "
+              },
+              {
+                "insert": "PACK_DIR",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", or a missing "
+              },
+              {
+                "insert": "output_format",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " fails the node."
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "decide",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "The base kernel",
+            [
+              {
+                "insert": "One "
+              },
+              {
+                "insert": "kernel.decide",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " with one choice question over the node's "
+              },
+              {
+                "insert": "enum",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", on the "
+              },
+              {
+                "insert": "classifier",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " model, with the optional "
+              },
+              {
+                "insert": "threshold",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "A low-confidence abstain and a refusal both answer "
+              },
+              {
+                "insert": "other",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". An engine error or a malformed answer fails the node."
+              }
+            ]
+          ]
+        ],
+        "title": "Extract and decide nodes"
+      },
+      "children": []
+    },
+    "aam-decide-shape-lead": {
+      "id": "aam-decide-shape-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "A decide node answers with 4 fields, the fixed "
+        },
+        {
+          "insert": "output_format",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " of the fork's decide grammar."
+        }
+      ],
+      "children": []
+    },
+    "aam-decide-shape": {
+      "id": "aam-decide-shape",
+      "type": "state-shape",
+      "props": {
+        "example": "{\"choice\":\"billing\",\"reason\":\"top 0.88, margin 0.71\",\"probability\":0.88,\"abstained\":false}",
+        "fields": [
+          {
+            "name": "choice",
+            "type": "string",
+            "description": "One value of the node's enum. An abstain answers other."
+          },
+          {
+            "name": "reason",
+            "type": "string",
+            "description": "The top probability and its margin over the runner-up, or low-confidence, or refusal."
+          },
+          {
+            "name": "probability",
+            "type": "number",
+            "description": "The probability of choice in the classifier's distribution, or 0 when the distribution has no entry for it."
+          },
+          {
+            "name": "abstained",
+            "type": "boolean",
+            "description": "True for a low-confidence abstain and for a refusal."
+          }
+        ],
+        "name": "Decide result",
+        "source": {
+          "path": "packages/kernel/src/archon-provider/contract.ts",
+          "symbol": "DecideResult"
+        }
+      },
+      "children": []
+    },
+    "aam-pack-kernels-lead": {
+      "id": "aam-pack-kernels-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "An extract node runs on the kernel of its pack, the workflow folder that "
+        },
+        {
+          "insert": "PACK_DIR",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " names. "
+        },
+        {
+          "insert": "createKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " takes its call engine once, so "
+        },
+        {
+          "insert": "archonPackKernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " builds one kernel for each pack on first use. That kernel shares the base kernel's id, database handle, state root, aliases, and Pi agent dir."
+        }
+      ],
+      "children": []
+    },
+    "aam-pack-engine": {
+      "id": "aam-pack-engine",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "loadPackCallEngine",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " builds the BAML call engine from the pack's committed "
+        },
+        {
+          "insert": "baml_client",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and the "
+        },
+        {
+          "insert": "@boundaryml/baml",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " runtime that the pack installs. The kernel never loads BAML itself."
+        }
+      ],
+      "children": []
+    },
     "b-50-app-adapter-model-container-mapping-19": {
       "id": "b-50-app-adapter-model-container-mapping-19",
       "type": "heading",
@@ -696,6 +1699,178 @@
       "text": [
         {
           "insert": "The same kind and key always resolve to the same container id, so the mapping needs no join table and the app never stores hashed grouping ids of its own. App workflow tables carry product semantics. Kernel rows carry runtime and observability."
+        }
+      ],
+      "children": []
+    },
+    "aam-cmap-archon-lead": {
+      "id": "aam-cmap-archon-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The Archon provider owns 2 container kinds. The kernel keys agent state by container and agent name. Each node attempt gets its own "
+        },
+        {
+          "insert": "archon-node",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " container, so 2 parallel nodes that run one bundle never share a state file."
+        }
+      ],
+      "children": []
+    },
+    "aam-cmap-archon-table": {
+      "id": "aam-cmap-archon-table",
+      "type": "structured-table",
+      "props": {
+        "columns": [
+          "Kind",
+          "Key",
+          "Parent",
+          "Label",
+          "Trace tag columns"
+        ],
+        "rows": [
+          [
+            [
+              {
+                "insert": "archon-run",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "[run_id]",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            "None",
+            "None",
+            [
+              {
+                "insert": "engine",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": "run_id",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ]
+          ],
+          [
+            [
+              {
+                "insert": "archon-node",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "[run_id, invocation_id, attempt_id]",
+                "attributes": {
+                  "code": true
+                }
+              }
+            ],
+            [
+              {
+                "insert": "The "
+              },
+              {
+                "insert": "archon-run",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " container of the run"
+              }
+            ],
+            [
+              {
+                "insert": "The "
+              },
+              {
+                "insert": "node_path",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " tag"
+              }
+            ],
+            "All 6"
+          ]
+        ],
+        "title": "Archon container kinds"
+      },
+      "children": []
+    },
+    "aam-cmap-archon-keys": {
+      "id": "aam-cmap-archon-keys",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "Archon gives a node a new "
+        },
+        {
+          "insert": "invocation_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for each loop round and a new "
+        },
+        {
+          "insert": "attempt_id",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for each retry, so each one resolves to a new "
+        },
+        {
+          "insert": "archon-node",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " container. "
+        },
+        {
+          "insert": "Observability Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/20-observability-model",
+              "label": "Observability Model"
+            }
+          }
+        },
+        {
+          "insert": " defines the 6 trace tag columns."
         }
       ],
       "children": []
@@ -1003,6 +2178,44 @@
       ],
       "children": []
     },
+    "aam-read-archon": {
+      "id": "aam-read-archon",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The Archon provider mounts no read API and no viewer. A read API over "
+        },
+        {
+          "insert": "<root>/.agent-kernel/trace.db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " returns the span tree of one node attempt from "
+        },
+        {
+          "insert": "GET /kernel/containers/:containerId/trace",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", with the id of its "
+        },
+        {
+          "insert": "archon-node",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " container. The trace tag columns join that container to the fork's own run records."
+        }
+      ],
+      "children": []
+    },
     "b-50-app-adapter-model-model-access-the-models-34": {
       "id": "b-50-app-adapter-model-model-access-the-models-34",
       "type": "heading",
@@ -1257,10 +2470,19 @@
           }
         },
         {
-          "insert": "), prompt-kit-agent, and core-harness ("
+          "insert": "), prompt-kit-agent, core-harness ("
         },
         {
           "insert": "packages/core-harness",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "), and the Archon provider ("
+        },
+        {
+          "insert": "packages/kernel/src/archon-provider",
           "attributes": {
             "code": true
           }
@@ -1275,7 +2497,7 @@
           }
         },
         {
-          "insert": ". Spectre was the first host, and the kernel was extracted from it. Spectre now runs its own copy of the kernel; its column is history."
+          "insert": ". Spectre was the first host, and the kernel was extracted from it. Spectre now runs its own copy of the kernel, so its column is history."
         }
       ],
       "children": []
@@ -1289,6 +2511,7 @@
           "canvas-agent",
           "prompt-kit-agent",
           "core-harness",
+          "Archon provider",
           "Spectre (historical)"
         ],
         "rows": [
@@ -1311,7 +2534,7 @@
                 }
               },
               {
-                "insert": "; prompt edits use "
+                "insert": ". Prompt edits use "
               },
               {
                 "insert": "session",
@@ -1361,6 +2584,26 @@
                 "attributes": {
                   "code": true
                 }
+              }
+            ],
+            [
+              {
+                "insert": "archon-run",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " and "
+              },
+              {
+                "insert": "archon-node",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", keyed by trace tags"
               }
             ],
             [
@@ -1368,13 +2611,22 @@
                 "insert": "Spectre session id through "
               },
               {
-                "insert": "kernel.container({ kind: \"session\", key })",
+                "insert": "kernel.container",
                 "attributes": {
                   "code": true
                 }
               },
               {
-                "insert": "; app state in Spectre tables"
+                "insert": " with kind "
+              },
+              {
+                "insert": "session",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". App state in Spectre tables."
               }
             ]
           ],
@@ -1405,6 +2657,20 @@
                 "attributes": {
                   "code": true
                 }
+              }
+            ],
+            [
+              {
+                "insert": "The "
+              },
+              {
+                "insert": "node_path",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " tag"
               }
             ],
             [
@@ -1470,6 +2736,7 @@
             ],
             "None",
             "None",
+            "None",
             [
               {
                 "insert": "checkpoint-slice",
@@ -1484,6 +2751,17 @@
           ],
           [
             "App state",
+            [
+              {
+                "insert": "appContext",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " not set"
+              }
+            ],
             [
               {
                 "insert": "appContext",
@@ -1539,7 +2817,7 @@
                 }
               },
               {
-                "insert": " for layout sidecar tools; "
+                "insert": " for layout sidecar tools, and "
               },
               {
                 "insert": "promptEditSharedTools",
@@ -1564,7 +2842,8 @@
                 }
               }
             ],
-            "Spectre tools that mutate spec, plan, build, docs, projects, or asks"
+            "Bundle sidecars and permitted Pi built-ins",
+            "Domain tools that write Spectre state"
           ],
           [
             "Viewer",
@@ -1587,7 +2866,7 @@
             ],
             [
               {
-                "insert": "None; serves read and catalog APIs under "
+                "insert": "None. Serves read and catalog APIs under "
               },
               {
                 "insert": "/kernel",
@@ -1598,7 +2877,7 @@
             ],
             [
               {
-                "insert": "None; serves read and catalog APIs under "
+                "insert": "None. Serves read and catalog APIs under "
               },
               {
                 "insert": "/kernel",
@@ -1607,6 +2886,7 @@
                 }
               }
             ],
+            "None. Mounts no read API.",
             "Spectre session header and phase-specific panels"
           ]
         ]

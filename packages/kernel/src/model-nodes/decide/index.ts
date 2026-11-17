@@ -224,6 +224,7 @@ function buildDecider(ctx: ModelNodeContext): Decider {
 					...(opts.parentToolUseId !== undefined && { parentToolUseId: opts.parentToolUseId }),
 					...(opts.displayLabel !== undefined && { displayLabel: opts.displayLabel }),
 					...(opts.trigger !== undefined && { trigger: opts.trigger }),
+					...(opts.traceTags !== undefined && { traceTags: opts.traceTags }),
 				},
 				{ db: ctx.db(), defaultTrigger: "judge" },
 			);
@@ -296,6 +297,7 @@ function buildDecider(ctx: ModelNodeContext): Decider {
 								timeoutMs,
 								maxRetries,
 								maxRetryDelayMs: config.maxRetryDelayMs,
+								...(scope.traceTags !== undefined && { traceTags: scope.traceTags }),
 							});
 					const execution = buildExecution<Q>({
 						handle,
