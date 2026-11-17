@@ -1,7 +1,10 @@
 {
 	"extends": "../../tsconfig.json",
 	"compilerOptions": {
-		"noEmit": true
+		"noEmit": true,
+		// docs-system and canvas packages export TS source that imports with
+		// `.ts` extensions, and the docs-writer catalog pulls them into this program.
+		"allowImportingTsExtensions": true
 	},
 	"include": ["src/**/*", "scripts/**/*", "test-fixtures/**/*.ts"]
 }
