@@ -345,6 +345,12 @@ async function* runNode(
 		return;
 	}
 
+	// backgroundWork "none": the node ends only after the background agents its bundle started have ended.
+	// They run in the node's container, so parallel nodes on one kernel never wait for or stop each other's.
+	const children = kernel.agentManager;
+	const stopChildren = () => children.abortContainer(node.id);
+	options.abortSignal?.addEventListener("abort", stopChildren, { once: true });
+
 	// Deltas coalesce into whole blocks, sent at a tool start, a turn end and the end.
 	const queue = chunkQueue();
 	let block = "";
@@ -373,6 +379,9 @@ async function* runNode(
 				if (activity.type === "start") flush();
 			},
 			onTurnEnd: flush,
+		}).then(async (result) => {
+			await children.waitForContainer(node.id);
+			return result;
 		}))
 		.then(
 			(result) => {
@@ -421,6 +430,10 @@ async function* runNode(
 		}
 	} finally {
 		await spawn;
+		// A failed, cancelled or abandoned node stops the children it left. A finished node has none left.
+		stopChildren();
+		await children.waitForContainer(node.id);
+		options.abortSignal?.removeEventListener("abort", stopChildren);
 		await kernel.traceWriter.flush();
 		await updateContainerStatus(db, node.id, status, { endedAt: new Date().toISOString() });
 	}

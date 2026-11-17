@@ -148,6 +148,8 @@ export class AgentManager {
 		const id = randomUUID().slice(0, 17);
 		const abortController = new AbortController();
 		const type: SubagentType = agentName;
+		const parentRunCtx = runContextStore.getStore();
+		const containerId = options.containerId ?? parentRunCtx?.containerId;
 
 		const record: AgentRecord = {
 			id,
@@ -158,6 +160,7 @@ export class AgentManager {
 			toolUses: 0,
 			startedAt: Date.now(),
 			abortController,
+			...(containerId !== undefined && { containerId }),
 		};
 		this.agents.set(id, record);
 		let resolveCompletion!: (r: AgentRecord) => void;
@@ -175,7 +178,7 @@ export class AgentManager {
 			agentName,
 			prompt,
 			options,
-			parentRunCtx: runContextStore.getStore(),
+			parentRunCtx,
 		};
 
 		if (options.isBackground && this.runningBackground >= this.maxConcurrent) {
@@ -483,6 +486,31 @@ export class AgentManager {
 			if (pending.length === 0) break;
 			await Promise.allSettled(pending);
 		}
+	}
+
+	/**
+	 * Resolves once every agent started in `containerId` has ended, agents
+	 * they start while it waits included. A stopped agent counts as ended
+	 * only when its run has ended, not when abort() marks it.
+	 */
+	async waitForContainer(containerId: string): Promise<void> {
+		while (true) {
+			this.drainQueue();
+			const pending = [...this.agents.values()]
+				.filter((record) => record.containerId === containerId)
+				.flatMap((record) => this.completionWaiters.get(record.id)?.promise ?? []);
+			if (pending.length === 0) return;
+			await Promise.all(pending);
+		}
+	}
+
+	/** Stops every queued or running agent started in `containerId`. Returns how many it stopped. */
+	abortContainer(containerId: string): number {
+		let count = 0;
+		for (const record of [...this.agents.values()]) {
+			if (record.containerId === containerId && this.abort(record.id)) count++;
+		}
+		return count;
 	}
 
 	clearCompleted(): void {

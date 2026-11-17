@@ -829,6 +829,9 @@
                     "text": "The provider sends the reply text as `agent_message_chunk` items at each tool start, each turn end, and the end"
                   },
                   {
+                    "text": "`agentManager.waitForContainer` waits until every background agent that the bundle started in the `archon-node` container ends, as `backgroundWork: \"none\"` requires"
+                  },
+                  {
                     "text": "The provider sends one `result` chunk and closes the `archon-node` container as `done`, `error`, or `aborted`"
                   }
                 ]
@@ -1031,6 +1034,7 @@
       "children": [
         "aam-archon-cancel-a",
         "aam-archon-cancel-b",
+        "71c83f52-db0a-49fc-9d13-1dd4d20c7c81",
         "aam-archon-cancel-c"
       ]
     },
@@ -1074,6 +1078,35 @@
         },
         {
           "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "71c83f52-db0a-49fc-9d13-1dd4d20c7c81": {
+      "id": "71c83f52-db0a-49fc-9d13-1dd4d20c7c81",
+      "type": "list-item",
+      "props": {},
+      "text": [
+        {
+          "insert": "When a node is cancelled or fails, "
+        },
+        {
+          "insert": "agentManager.abortContainer",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " stops the background agents in its "
+        },
+        {
+          "insert": "archon-node",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " container, and the node ends after those agents end."
         }
       ],
       "children": []

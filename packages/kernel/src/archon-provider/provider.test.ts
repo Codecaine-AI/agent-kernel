@@ -15,7 +15,9 @@ import { getTraceEventsForRun, kernelDatabasePath } from "@codecaine-ai/agent-ke
 import { createFakeCallEngine, fakeOk } from "../model-nodes/testing";
 import {
 	realFetch,
+	responsesStream,
 	startTraceHeaderStub,
+	toolCallItem,
 	type TraceHeaderStub,
 } from "../model-nodes/__fixtures__/trace-header-stub";
 import {
@@ -42,6 +44,8 @@ let answers: Record<string, string>;
 let bodies: string[];
 /** Called on each model request, before the stub answers. */
 let onRequest: () => void;
+/** Answers a request before `answers` does, when it returns a reply. */
+let route: (body: string) => Response | Promise<Response> | undefined;
 let savedPiAgentDirEnv: string | undefined;
 
 /** A Responses stream of one message, sent as 2 text deltas. */
@@ -90,6 +94,7 @@ beforeEach(() => {
 	answers = {};
 	bodies = [];
 	onRequest = () => {};
+	route = () => undefined;
 	// Pi's default agent dir, so a session that ignores piSessionsDir lands in the temp root, never in ~/.pi.
 	savedPiAgentDirEnv = process.env.PI_CODING_AGENT_DIR;
 	process.env.PI_CODING_AGENT_DIR = join(root, "default-pi-agent");
@@ -97,6 +102,8 @@ beforeEach(() => {
 	stub = startTraceHeaderStub((_index, body) => {
 		bodies.push(body);
 		onRequest();
+		const routed = route(body);
+		if (routed) return routed;
 		const key = Object.keys(answers).find((k) => body.includes(k));
 		return textStream(key ? answers[key]! : '{"echo":"default"}');
 	});
@@ -140,6 +147,7 @@ async function attempt(
 	env: Record<string, string>,
 	extra: Partial<AgentKernelSendQueryOptions> = {},
 	chunks: AgentKernelChunk[] = [],
+	onChunk: (chunk: AgentKernelChunk) => void = () => {},
 ): Promise<AgentKernelChunk[]> {
 	const provider = createAgentKernelProvider({ root });
 	for await (const chunk of provider.sendQuery(prompt, root, undefined, {
@@ -149,6 +157,7 @@ async function attempt(
 		...extra,
 	})) {
 		chunks.push(chunk);
+		onChunk(chunk);
 	}
 	return chunks;
 }
@@ -177,6 +186,32 @@ function containers(kind: string): ContainerRow[] {
 	} finally {
 		db.close();
 	}
+}
+
+/**
+ * Routes the background-dispatch bundle: its first turn calls start_child
+ * with the label of "PARENT-TASK <label>", its second turn answers. The
+ * child of each label answers only once `childGate(label)` resolves, and
+ * `childAsked(label)` resolves when its request arrives.
+ */
+function routeBackgroundDispatch(childGate: (label: string) => Promise<void>, childAsked: (label: string) => void): void {
+	route = (body) => {
+		const child = /CHILD-TASK (\w+)/.exec(body)?.[1];
+		if (child) {
+			childAsked(child);
+			return childGate(child).then(() => textStream(`{"echo":"child ${child}"}`));
+		}
+		const parent = /PARENT-TASK (\w+)/.exec(body)?.[1];
+		if (!parent) return undefined;
+		if (body.includes("function_call_output")) return textStream(`{"echo":"parent ${parent}"}`);
+		return responsesStream([toolCallItem("start_child", { label: parent })]);
+	};
+}
+
+/** The status of the background child that the node of `label` started. */
+async function childStatus(label: string): Promise<string | undefined> {
+	const { kernel } = await archonKernel(root, assistantConfig());
+	return kernel.agentManager.listAgents().find((record) => record.description === `child of ${label}`)?.status;
 }
 
 function resultOf(chunks: AgentKernelChunk[]): Extract<AgentKernelChunk, { type: "result" }> {
@@ -324,6 +359,68 @@ describe("Archon provider", () => {
 		})();
 
 		await expect(run).rejects.toThrow("Query aborted");
+		expect(chunks.map((chunk) => chunk.type)).toEqual(["agent_message_chunk"]);
+		expect(containers("archon-node").map((row) => row.status)).toEqual(["aborted"]);
+	});
+
+	test("2 parallel nodes each end only after their own background child ends, not the other node's", async () => {
+		const gates = { a: Promise.withResolvers<void>(), b: Promise.withResolvers<void>() };
+		const asked = { a: Promise.withResolvers<void>(), b: Promise.withResolvers<void>() };
+		routeBackgroundDispatch(
+			(label) => gates[label as "a" | "b"].promise,
+			(label) => asked[label as "a" | "b"].resolve(),
+		);
+		const statusAtResult: Record<string, Record<string, string | undefined>> = {};
+		const run = (label: "a" | "b", onText: () => void) =>
+			attempt(
+				`PARENT-TASK ${label}`,
+				nodeEnv({ node: label, invocation: `inv-${label}` }),
+				{ model: "background-dispatch-bundle" },
+				[],
+				(chunk) => {
+					if (chunk.type === "agent_message_chunk") onText();
+					if (chunk.type === "result") {
+						void Promise.all([childStatus("a"), childStatus("b")]).then(([a, b]) => (statusAtResult[label] = { a, b }));
+					}
+				},
+			);
+
+		// Node a's parent has answered; its child answers once node b's child runs too.
+		const runA = run("a", () => void asked.b.promise.then(() => gates.a.resolve()));
+		const runB = run("b", () => {});
+		const chunksA = await runA;
+		// Node b's child answers only after node a has settled.
+		gates.b.resolve();
+		const chunksB = await runB;
+
+		expect(chunksA.map((chunk) => chunk.type)).toEqual(["agent_message_chunk", "result", "settled"]);
+		expect(chunksB.map((chunk) => chunk.type)).toEqual(["agent_message_chunk", "result", "settled"]);
+		expect(statusAtResult).toEqual({ a: { a: "completed", b: "running" }, b: { a: "completed", b: "completed" } });
+		expect(containers("archon-node").map((row) => row.status)).toEqual(["done", "done"]);
+	});
+
+	test("a node cancelled while its background child runs stops the child, throws and marks its node aborted", async () => {
+		const gate = Promise.withResolvers<void>();
+		const asked = Promise.withResolvers<void>();
+		routeBackgroundDispatch(() => gate.promise, () => asked.resolve());
+		const controller = new AbortController();
+
+		const chunks: AgentKernelChunk[] = [];
+		const run = attempt(
+			"PARENT-TASK a",
+			nodeEnv({ node: "a", invocation: "inv-a" }),
+			{ model: "background-dispatch-bundle", abortSignal: controller.signal },
+			chunks,
+			// The parent has answered and its child waits on the model: cancel now.
+			(chunk) => {
+				if (chunk.type === "agent_message_chunk") void asked.promise.then(() => controller.abort());
+			},
+		);
+
+		await expect(run).rejects.toThrow("Query aborted");
+		const status = await childStatus("a");
+		gate.resolve();
+		expect(status).toBe("stopped");
 		expect(chunks.map((chunk) => chunk.type)).toEqual(["agent_message_chunk"]);
 		expect(containers("archon-node").map((row) => row.status)).toEqual(["aborted"]);
 	});
