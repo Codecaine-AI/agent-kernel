@@ -107,9 +107,17 @@ function main(): void {
     .split('\n')
     .filter(line => line !== '')
     .map(line => JSON.parse(line) as string);
-  // Read the head again after the comments, the last read before the post, so a push
-  // during pagination refuses too. The read and the post are still not atomic.
-  const liveHead = gh(['pr', 'view', String(view.number), '--repo', repoArg, '--json', 'headRefOid', '-q', '.headRefOid']);
+  // Read the state and the head again after the comments, the last read before the post, so a
+  // merge, a close or a push during pagination refuses too. The read and the post are still not atomic.
+  const live = JSON.parse(gh(['pr', 'view', String(view.number), '--repo', repoArg, '--json', 'headRefOid,state'])) as {
+    headRefOid: string;
+    state: string;
+  };
+  if (live.state !== 'OPEN') {
+    report(`no open pull request: #${String(view.number)} is ${live.state.toLowerCase()}`);
+    return;
+  }
+  const liveHead = live.headRefOid;
   const decision = decideTag({ reviewedHead, liveHead, comments });
   switch (decision.kind) {
     case 'head-moved':
