@@ -10,12 +10,18 @@
  * `git worktree prune`, which would also drop unrelated missing registrations.
  */
 
-import { existsSync, realpathSync, rmSync } from 'node:fs';
+import { existsSync, lstatSync, realpathSync, rmSync } from 'node:fs';
 import { join, sep } from 'node:path';
 
 /** Remove every registered worktree under `scratch`, then the directory itself. */
 export function pruneScratch(scratch: string): string[] {
   if (!existsSync(scratch)) return [];
+  // A symlink here would make its target, perhaps another worktree, the cleanup root.
+  // Remove only the link.
+  if (lstatSync(scratch).isSymbolicLink()) {
+    rmSync(scratch);
+    return [];
+  }
   // The native resolver: on Windows it expands 8.3 short names (RUNNER~1), which git
   // never prints, so both sides of the comparison name a directory the same way.
   const root = realpathSync.native(scratch);
@@ -46,7 +52,6 @@ export function pruneScratch(scratch: string): string[] {
     }
     removed.push(path);
   }
-  // The directory as named, never its resolved target: a symlink there loses only the link.
   rmSync(scratch, { recursive: true, force: true });
   return removed;
 }

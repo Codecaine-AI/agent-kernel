@@ -79,8 +79,7 @@ nodes:
         # continues a previous round, the commit under review (the checkout's HEAD as
         # the engine observed it), and, on a continuation, the previous round's
         # reviewed commit. Every later node reads both commits from here; publish
-        # refuses a report about any other commit. It also emits one flag per reviewer
-        # (.shared/review-policy.ts) and certifies the part assignment.
+        # refuses a report about any other commit. It also certifies the part assignment.
         - id: mode
           script: review-round
           runtime: bun
@@ -95,10 +94,6 @@ nodes:
               # The previous round's reviewed commit; empty on a first round.
               cursor: { type: string }
               risks: { type: string, minLength: 1 }
-              # One flag per lens of REVIEW_LENSES: true on a continuation, where
-              # every reviewer reruns over the correction delta.
-              review-codex: { type: boolean }
-              review-claude: { type: boolean }
               # The run's part assignment, null when the run delivers the whole contract.
               # default: null only gives the dry run's generated stub a valid value.
               part:
@@ -118,7 +113,7 @@ nodes:
                         items: { type: array, minItems: 1, items: { type: string, pattern: '\S' } }
                       required: [part, items]
                 required: [delivers, parts]
-            required: [continuation, head, cursor, risks, review-codex, review-claude, part]
+            required: [continuation, head, cursor, risks, part]
 
         # Every review node writes under review/. An earlier round's verifier votes are
         # removed here, so a verifier that fails this round leaves no vote.

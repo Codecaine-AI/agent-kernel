@@ -5,7 +5,7 @@ Produce one evidence-based verdict and write the review report humans read. You 
 There are two modes in `$ARTIFACTS_DIR/review/scope.md`:
 
 - **Full review:** aggregate the findings of the 2 independent reviewers, `review-codex` and `review-claude`. Connect and prioritize their evidence; do not perform another broad review or invent findings beyond the contract coverage below.
-- **Continuation review:** continue from the previous report as the reviewer. This round's reviewers reviewed only the correction delta and judged every prior finding against it. Aggregate their findings, verify the prior findings, and decide whether the change converged. Do not treat the latest SHA as a new PR and do not repeat the reviewers' work in your own head as a checklist.
+- **Continuation review:** continue from the previous report as the reviewer. This round's reviewers reviewed only the correction delta. They did not read the previous report, so you alone verify the prior findings. Aggregate their findings, verify the prior findings, and decide whether the change converged. Do not treat the latest SHA as a new PR and do not repeat the reviewers' work in your own head as a checklist.
 
 ## Read the review state
 

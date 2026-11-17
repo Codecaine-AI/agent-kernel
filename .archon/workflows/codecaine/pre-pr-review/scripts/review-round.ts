@@ -16,17 +16,15 @@
  *
  * This node runs first, so it is the one owner of both commits: scope, the
  * reviewers, synthesis and publish read them from its output, and the `rounds`
- * loop compares its head with the pull request's. It also emits one boolean per
- * lens of REVIEW_LENSES (the pack's 2 reviewers): on a continuation every
- * reviewer reruns over the correction delta, so each flag is true; a first round
- * emits them false.
+ * loop compares its head with the pull request's. Both reviewers run every round
+ * that is not trivial, so it emits no per-reviewer flag.
  *
  * The prior report is a declared input an outside caller can fill with a path
  * from an earlier run, so its existence is checked here too: a continuation that
  * cannot read the report it continues from would review nothing and say it
  * reviewed everything. The `findings.json` beside it is read through its shared
  * reader, so a missing or malformed record refuses the round rather than
- * silently skipping a lens that owes a verification.
+ * continuing from findings synthesis cannot read.
  *
  * The part assignment passes through unchanged: the node's `output_format` owns
  * its shape, so the engine refuses a malformed one before lenses or synthesis read it.
@@ -40,7 +38,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { nodeStartCommit } from '../../.shared/checkout.ts';
 import { readFindingsFile } from '../../.shared/review-item.ts';
-import { FULL_REVIEW_RISKS, REVIEW_LENSES, type ReviewLens } from '../../.shared/review-policy.ts';
+import { FULL_REVIEW_RISKS } from '../../.shared/review-policy.ts';
 import { emit, nullableJson, refuse, trimmed } from '../../.shared/io.ts';
 
 /**
@@ -57,20 +55,6 @@ function partAssignment(value: string | undefined): unknown {
 
 /** Where publish-review records the commit a published report reviewed. */
 const REVIEWED_HEAD = 'reviewed-head';
-
-/** One boolean per lens, true for each lens named in `rerun`. */
-function lensFlags(rerun: ReadonlySet<string>): Record<ReviewLens, boolean> {
-  return Object.fromEntries(REVIEW_LENSES.map(lens => [lens, rerun.has(lens)])) as Record<ReviewLens, boolean>;
-}
-
-/**
- * Every reviewer reruns on a continuation. Reading the previous findings still
- * refuses a missing or malformed record, so a continuation never starts from one.
- */
-function owingLenses(findingsFile: string): Set<string> {
-  readFindingsFile(findingsFile);
-  return new Set<string>(REVIEW_LENSES);
-}
 
 function isFile(path: string): boolean {
   try {
@@ -94,7 +78,7 @@ try {
   const prior = trimmed(process.env.INPUTS_PRIOR_REPORT);
   const head = nodeStartCommit();
   if (prior === '') {
-    emit({ continuation: false, head, cursor: '', risks: FULL_REVIEW_RISKS, ...lensFlags(new Set()), part });
+    emit({ continuation: false, head, cursor: '', risks: FULL_REVIEW_RISKS, part });
   } else {
     if (!isFile(prior)) throw new Error(`the previous review report does not exist: ${prior}`);
     const recorded = join(dirname(prior), REVIEWED_HEAD);
@@ -109,8 +93,9 @@ try {
         `the checkout is at ${head}, which does not descend from ${cursor}, the commit the previous round reviewed; reviewing it would diff backwards or skip commits`
       );
     }
-    const rerun = lensFlags(owingLenses(join(dirname(prior), 'findings.json')));
-    emit({ continuation: true, head, cursor, risks: FULL_REVIEW_RISKS, ...rerun, part });
+    // Refuses a missing or malformed record, so a continuation never starts from one.
+    readFindingsFile(join(dirname(prior), 'findings.json'));
+    emit({ continuation: true, head, cursor, risks: FULL_REVIEW_RISKS, part });
   }
 } catch (error) {
   refuse(`review-round: ${error instanceof Error ? error.message : String(error)}`);

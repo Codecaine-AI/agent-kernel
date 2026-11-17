@@ -1,8 +1,10 @@
 /**
- * Standalone client for `archon forge`, the one way this pack reads and writes the
- * forge. Every operation goes through an installed forge plugin, reached through the
- * host command (`ARCHON_CLI_COMMAND`). A plugin that cannot answer fails the
- * operation; nothing falls back to another CLI.
+ * Standalone client for `archon forge`, the way publish-review reads and writes the
+ * pull request. Every operation goes through an installed forge plugin, reached through
+ * the host command (`ARCHON_CLI_COMMAND`). A plugin that cannot answer fails the
+ * operation; this client falls back to no other CLI. Two callers do not use it and call
+ * `gh` directly: the `rounds` loop's check reads the pull request's head, and
+ * tag-outside-reviewers reads the pull request and posts the tag comment.
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
