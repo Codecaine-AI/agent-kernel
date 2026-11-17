@@ -31,12 +31,38 @@ export type AgentKernelChunk =
 	  }
 	| { type: "settled" };
 
+/** An `extract:` node of the fork: one BAML function of the workflow's pack. */
+export interface ExtractModelNode {
+	kind: "extract";
+	function: string;
+	tier: "fast" | "standard" | "strong";
+	/** Extra calls after a parse failure or a schema miss. */
+	retries: number;
+}
+
+/** A `decide:` node of the fork: one choice question on a classifier. */
+export interface DecideModelNode {
+	kind: "decide";
+	question: string;
+	/** Always holds `other`. */
+	enum: string[];
+	/** A Pi model ref, `typesafe/jev-1.13.0` unless the YAML names another. */
+	classifier: string;
+	threshold?: { minProbability: number; minMargin: number };
+}
+
+/** `nodeConfig.model_node`, set on the fork's extract and decide nodes. */
+export type ModelNodeConfig = ExtractModelNode | DecideModelNode;
+
 export interface AgentKernelSendQueryOptions {
 	model?: string;
 	abortSignal?: AbortSignal;
 	outputFormat?: { type: "json_schema"; schema: Record<string, unknown> };
+	/** `PACK_DIR` names the pack root of the workflow, or is empty outside a pack. */
 	env?: Record<string, string>;
 	assistantConfig?: Record<string, unknown>;
+	/** Archon's raw node config. The provider reads only `model_node`. */
+	nodeConfig?: { model_node?: unknown; [key: string]: unknown };
 }
 
 export interface AgentKernelCapabilities {
@@ -102,6 +128,14 @@ export const AGENT_KERNEL_CAPABILITIES: AgentKernelCapabilities = {
 	nativeTools: false,
 	containerExec: false,
 };
+
+/** The output of a decide node, the fixed `output_format` of the fork's grammar. */
+export interface DecideResult {
+	choice: string;
+	reason: string;
+	probability: number;
+	abstained: boolean;
+}
 
 /** Implemented in `./index.ts`, which checks its signature against this one. */
 export declare function createAgentKernelProvider(opts: { root: string }): AgentKernelProvider;

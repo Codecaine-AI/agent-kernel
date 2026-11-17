@@ -9,12 +9,15 @@
  * share one kernel, and each node attempt runs in its own `archon-node`
  * container under the run's `archon-run` container.
  *
+ * A node with `nodeConfig.model_node` is an extract or decide node of the
+ * fork. It runs in the same containers, through `./model-nodes.ts`: an
+ * extract on the kernel of its pack, a decide on the base kernel.
+ *
  * The Archon provider shape lives in `./contract.ts`, the file the
  * subpath's `types` condition names.
  */
 import { join } from "node:path";
 
-import { validateToolArguments, type Tool } from "@earendil-works/pi-ai";
 import {
 	ensureKernelObservabilitySchema,
 	kernelDatabasePath,
@@ -26,6 +29,7 @@ import {
 import { TRACE_TAGS, type TraceTags } from "@codecaine-ai/agent-kernel-protocol";
 
 import { createKernel, type KernelCallsConfig, type KernelInstance } from "../index";
+import type { CallEngine } from "../model-nodes/types";
 import {
 	AGENT_KERNEL_CAPABILITIES,
 	type AgentKernelChunk,
@@ -34,6 +38,16 @@ import {
 	type ProviderFailureClass,
 } from "./contract";
 import type * as contract from "./contract";
+import {
+	loadPackCallEngine,
+	matchOutputFormat,
+	parseModelNode,
+	runDecide,
+	runExtract,
+	type ModelNodeConfig,
+	type ModelNodeScope,
+	type PackCalls,
+} from "./model-nodes";
 
 export {
 	AGENT_KERNEL_CAPABILITIES,
@@ -41,8 +55,13 @@ export {
 	type AgentKernelChunk,
 	type AgentKernelProvider,
 	type AgentKernelSendQueryOptions,
+	type DecideModelNode,
+	type DecideResult,
+	type ExtractModelNode,
+	type ModelNodeConfig,
 	type ProviderFailureClass,
 } from "./contract";
+export { loadPackCallEngine } from "./model-nodes";
 
 /** The one kernel id of every Archon kernel. Container ids derive from it, so it never changes. */
 export const ARCHON_KERNEL_ID = "archon-provider-agent-kernel";
@@ -142,6 +161,7 @@ export interface ArchonKernelEntry {
 }
 
 const databases = new Map<string, Promise<KernelDatabase>>();
+/** Base kernels by root and settings, and pack kernels by root, settings and pack folder. */
 const kernels = new Map<string, Promise<ArchonKernelEntry>>();
 
 /** The one database handle of `root`, on `<root>/.agent-kernel/trace.db`. A failed open is not cached. */
@@ -164,16 +184,44 @@ function archonDatabase(root: string): Promise<KernelDatabase> {
  * settings share one kernel. Different settings get their own kernel, on the
  * same database handle, kernel id and state root. A failed build is not cached.
  */
-export async function archonKernel(
+export function archonKernel(
 	root: string,
 	assistantConfig: Record<string, unknown> | undefined,
 ): Promise<ArchonKernelEntry> {
+	return cachedKernel(root, assistantConfig, null, async () => undefined);
+}
+
+/**
+ * The cached kernel of the pack at `packDir`: the base kernel's id, database
+ * handle, state root, aliases and Pi agent dir, with the call engine that
+ * `loadEngine` builds from the pack on first use. `createKernel` takes its
+ * call engine once, so each pack needs its own kernel. A failed build is not cached.
+ */
+export function archonPackKernel(
+	root: string,
+	assistantConfig: Record<string, unknown> | undefined,
+	packDir: string,
+	loadEngine: (packDir: string) => Promise<CallEngine<PackCalls>> = loadPackCallEngine,
+): Promise<ArchonKernelEntry> {
+	return cachedKernel(root, assistantConfig, packDir, () => loadEngine(packDir));
+}
+
+function cachedKernel(
+	root: string,
+	assistantConfig: Record<string, unknown> | undefined,
+	packDir: string | null,
+	loadEngine: () => Promise<CallEngine<PackCalls> | undefined>,
+): Promise<ArchonKernelEntry> {
 	const settings = parseAgentKernelSettings(assistantConfig);
 	const aliases = Object.entries(settings.aliases).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-	const key = JSON.stringify([root, settings.catalogRoots, aliases, settings.piAgentDir ?? null]);
+	const key = JSON.stringify([root, settings.catalogRoots, aliases, settings.piAgentDir ?? null, packDir]);
 	let entry = kernels.get(key);
 	if (!entry) {
-		entry = archonDatabase(root).then((db) => ({ kernel: createArchonKernel({ root, db, settings }), db, settings }));
+		entry = Promise.all([archonDatabase(root), loadEngine()]).then(([db, engine]) => ({
+			kernel: createArchonKernel({ root, db, settings, ...(engine !== undefined && { calls: { engine } }) }),
+			db,
+			settings,
+		}));
 		entry.catch(() => kernels.delete(key));
 		kernels.set(key, entry);
 	}
@@ -227,26 +275,6 @@ Schema:
 ${JSON.stringify(schema, null, 2)}`;
 }
 
-/**
- * `value` checked against `schema` the way Pi checks a tool call's arguments,
- * with the same coercion, or undefined when it does not match. The provider
- * declares `structuredOutput: enforced`, so Archon trusts what it returns.
- */
-function matchOutputFormat(
-	value: Record<string, unknown>,
-	schema: Record<string, unknown>,
-): Record<string, unknown> | undefined {
-	const name = "structured_output";
-	try {
-		return validateToolArguments(
-			{ name, description: "", parameters: schema as unknown as Tool["parameters"] },
-			{ type: "toolCall", id: name, name, arguments: value as Parameters<typeof validateToolArguments>[1]["arguments"] },
-		) as Record<string, unknown>;
-	} catch {
-		return undefined;
-	}
-}
-
 /** A small push queue that an async generator drains. */
 function chunkQueue() {
 	const items: AgentKernelChunk[] = [];
@@ -284,10 +312,18 @@ async function* runNode(
 			"the node environment has no TRACE_RUN, TRACE_INVOCATION or TRACE_ATTEMPT",
 		);
 	}
-	const bundle = options.model;
-	if (!bundle) throw new ProviderError("misconfigured", "the node names no bundle as its model");
-	if ((await kernel.registry()).tryGet(bundle) === null) {
-		throw new ProviderError("misconfigured", `no bundle named '${bundle}' in assistants.agent-kernel.catalogRoots`);
+	let modelNode: ModelNodeConfig | undefined;
+	try {
+		modelNode = parseModelNode(options.nodeConfig?.model_node);
+	} catch (error) {
+		throw new ProviderError("misconfigured", error instanceof Error ? error.message : String(error));
+	}
+	const bundle = options.model ?? "";
+	if (modelNode === undefined) {
+		if (!bundle) throw new ProviderError("misconfigured", "the node names no bundle as its model");
+		if ((await kernel.registry()).tryGet(bundle) === null) {
+			throw new ProviderError("misconfigured", `no bundle named '${bundle}' in assistants.agent-kernel.catalogRoots`);
+		}
 	}
 
 	const run = await kernel.container({
@@ -303,6 +339,11 @@ async function* runNode(
 		workingDir: cwd,
 		traceTags: tags,
 	});
+
+	if (modelNode !== undefined) {
+		yield* runModelNode(root, db, kernel, modelNode, { containerId: node.id, traceTags: tags, prompt }, options);
+		return;
+	}
 
 	// Deltas coalesce into whole blocks, sent at a tool start, a turn end and the end.
 	const queue = chunkQueue();
@@ -382,6 +423,52 @@ async function* runNode(
 		await spawn;
 		await kernel.traceWriter.flush();
 		await updateContainerStatus(db, node.id, status, { endedAt: new Date().toISOString() });
+	}
+}
+
+/**
+ * Runs an extract or decide node in its `archon-node` container and yields
+ * its result, with the typed object as the structured output. Flushes the
+ * trace writer of the kernel that ran the node and closes the container.
+ */
+async function* runModelNode(
+	root: string,
+	db: KernelDatabase,
+	base: KernelInstance,
+	modelNode: ModelNodeConfig,
+	scope: ModelNodeScope,
+	options: AgentKernelSendQueryOptions,
+): AsyncGenerator<AgentKernelChunk> {
+	const cancelled = () => options.abortSignal?.aborted === true;
+	const signal = options.abortSignal;
+	let ran = base;
+	let status: ContainerStatus = "error";
+	try {
+		if (cancelled()) throw new Error("Query aborted");
+		let structured: Record<string, unknown>;
+		if (modelNode.kind === "extract") {
+			const packDir = options.env?.PACK_DIR;
+			if (!packDir) {
+				throw new ProviderError(
+					"misconfigured",
+					"the extract node has an empty PACK_DIR: put the workflow in a pack whose root holds baml_src and the generated baml_client",
+				);
+			}
+			if (!options.outputFormat) throw new ProviderError("misconfigured", "the extract node has no output_format");
+			ran = (await archonPackKernel(root, options.assistantConfig, packDir)).kernel;
+			structured = await runExtract(ran, modelNode, options.outputFormat.schema, { ...scope, ...(signal && { signal }) });
+		} else {
+			structured = { ...(await runDecide(base, modelNode, { ...scope, ...(signal && { signal }) })) };
+		}
+		if (cancelled()) throw new Error("Query aborted");
+		status = "done";
+		yield { type: "result", text: JSON.stringify(structured), structuredOutput: structured };
+	} catch (error) {
+		if (cancelled()) status = "aborted";
+		throw error;
+	} finally {
+		await ran.traceWriter.flush();
+		await updateContainerStatus(db, scope.containerId, status, { endedAt: new Date().toISOString() });
 	}
 }
 
