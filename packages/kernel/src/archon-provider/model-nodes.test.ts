@@ -326,6 +326,13 @@ describe("decide nodes", () => {
 		kernel.dispose();
 	});
 
+	test("a refusal is an answer: it gives other with reason refusal", async () => {
+		const { kernel, fake, scope } = await decideKernel({}, { error: "the model refused to answer" });
+		const result = await runDecide(kernel, { ...DECIDE, classifier: fake.ref }, scope);
+		expect(result).toEqual({ choice: "other", reason: "refusal", probability: 0, abstained: true });
+		kernel.dispose();
+	});
+
 	test("an unconfigured classifier fails the node instead of answering other", async () => {
 		const { kernel, fake, scope } = await decideKernel({}, { configured: false });
 		await expect(runDecide(kernel, { ...DECIDE, classifier: fake.ref }, scope)).rejects.toThrow(/decide failed.*not-configured/);

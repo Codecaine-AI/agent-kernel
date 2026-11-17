@@ -157,8 +157,9 @@ export async function runDecide(
 		traceTags: scope.traceTags,
 		...(scope.signal !== undefined && { signal: scope.signal }),
 	});
-	// Only a low-confidence abstain is an answer. An engine error, a refusal or a malformed answer fails the node.
-	if (outcome.error !== undefined || (outcome.abstained && outcome.abstainReason !== "low-confidence")) {
+	// A low-confidence abstain and a refusal are answers. An engine error or a malformed answer fails the node.
+	const refused = outcome.abstained && outcome.abstainReason === "refusal";
+	if (!refused && (outcome.error !== undefined || (outcome.abstained && outcome.abstainReason !== "low-confidence"))) {
 		const detail = outcome.error !== undefined ? `${outcome.error.kind}: ${outcome.error.message}` : outcome.abstainReason;
 		throw new Error(`decide failed on ${outcome.model || node.classifier}: ${detail}`);
 	}
@@ -167,7 +168,7 @@ export async function runDecide(
 	const choice = outcome.abstained ? DECIDE_FALLBACK_CHOICE : outcome.chosen;
 	return {
 		choice,
-		reason: outcome.abstained ? "low-confidence" : spread(distribution),
+		reason: refused ? "refusal" : outcome.abstained ? "low-confidence" : spread(distribution),
 		probability: distribution[choice] ?? 0,
 		abstained: outcome.abstained,
 	};
