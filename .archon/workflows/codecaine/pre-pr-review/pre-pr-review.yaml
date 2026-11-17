@@ -54,15 +54,17 @@ inputs:
 
 nodes:
   # Version 1 has no node that changes code, so a run has 1 round: the check passes
-  # when the head mode fixed is the pull request's head. A push during a round makes
-  # publish refuse, so the run fails, and the next run reviews the new head. A working
-  # diff (no pull request) passes at once: the engine substitutes scope's declared null
-  # pr as empty text, not as `null`; the check accepts both. The loop's output is the
-  # output of its terminal body node, `reviewed`.
+  # when the head mode fixed is the pull request's head. The engine reads any non-zero
+  # exit as an unmet check, so a failed `gh` call and a moved head look the same. With
+  # 1 iteration and on_exhausted at its default (`fail`), both fail the run instead of
+  # reviewing the same commit again, and tag-outside-reviewers does not run. A push
+  # during a round makes publish refuse, so the run fails, and the next run reviews
+  # the new head. A working diff (no pull request) passes at once: the engine
+  # substitutes scope's declared null pr as empty text, not as `null`; the check
+  # accepts both. The loop's output is the output of its terminal body node, `reviewed`.
   - id: rounds
     loop_group:
-      max_iterations: 5
-      on_exhausted: complete
+      max_iterations: 1
       until_bash: |
         head=$mode.output.head
         pr=$scope.output.pr
