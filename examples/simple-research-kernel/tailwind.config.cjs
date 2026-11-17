@@ -1,3 +1,10 @@
+const { dirname, join } = require("node:path");
+
+// viewer-shell and viewer-ui live in the sibling trace-viewer checkout and reach this app through
+// workspace:* deps. Tailwind never scans node_modules, so each package's source is named through its
+// resolved entry (src/index.ts).
+const packageSource = (name) => join(dirname(require.resolve(name)), "**/*.{ts,tsx}");
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
 	// The design-system preset (decision 3): its utilities read --ds-* from tokens.css, and it removes
@@ -7,8 +14,8 @@ module.exports = {
 	content: [
 		"./index.html",
 		"./src/**/*.{ts,tsx}",
-		"../../packages/viewer-shell/src/**/*.{ts,tsx}",
-		"../../packages/viewer-ui/src/**/*.{ts,tsx}",
+		packageSource("@codecaine-ai/agent-kernel-viewer-shell"),
+		packageSource("@codecaine-ai/agent-kernel-viewer-ui"),
 		// The prompt-authoring UI lives in the sibling prompt-kit checkout and
 		// reaches this app through a workspace:* dep; Tailwind never scans
 		// node_modules, so its source is named explicitly or the prompt lab

@@ -40,16 +40,14 @@
   - `@codecaine-ai/agent-kernel-db` — per-kernel SQLite observability store, schema, kernel manifest, and query helpers
   - `@codecaine-ai/agent-kernel` — `createKernel` runtime, container identity, registry, context assembly, spawn pipeline, in-process emitter, subagents, trace doctor, read API, and transcript recovery
   - `@codecaine-ai/prompt-kit` — prompt document model, canonicalization/hashing, renderers, and editor primitives (sibling repo and Core workspace member)
-  - `@codecaine-ai/agent-kernel-viewer-core` — viewer DTOs, read/catalog API paths, trace transforms, and prompt diffing
-  - `@codecaine-ai/agent-kernel-viewer-ui` — trace tree and card system, the detail panel and its data-only renderer contract, prompt lab components
-  - `@codecaine-ai/agent-kernel-viewer-shell` — mountable trace workspace, the tree/detail viewer, and the shared style system
+- The trace viewer packages (`@codecaine-ai/agent-kernel-viewer-core`, `-viewer-ui`, `-viewer-shell`) live in the sibling [trace-viewer](https://github.com/Codecaine-AI/trace-viewer) repo, a Core workspace member.
 
 ## Building a harness on it
 
 - A harness is the problem-specific application layer that makes the kernel good at one task.
 - A host application (the harness) consumes the kernel through a thin adapter.
 - The harness owns workflow sessions, phase semantics, domain tools, app-specific loaders, app DB tables, and custom viewer panels.
-- The kernel owns spawning, context assembly, observability storage, trace reading, and viewer primitives.
+- The kernel owns spawning, context assembly, observability storage, and trace reading. The viewer primitives live in trace-viewer.
 - The identity model behind all of this (containers, sessions, runs, turns, linkage invariants) is documented in [docs/10-system-design/15-identity-model/](docs/10-system-design/15-identity-model/); the overhaul plan that produced it lives in [docs/.drafts/agent-kernel-overhaul.plan.md](docs/.drafts/agent-kernel-overhaul.plan.md).
 
 ## Setup
@@ -63,7 +61,7 @@
 - Run `bun run typecheck`.
 - Run `bun run test`.
 - The boundary check is the important portability gate: platform packages must not import the host application or reference host-app paths.
-- Per-package typechecks exist as `bun run typecheck:<name>` for `protocol`, `db`, `kernel`, `tui`, `core-harness`, `viewer-core`, `viewer-ui`, `viewer-shell`, and `examples`.
+- Per-package typechecks exist as `bun run typecheck:<name>` for `protocol`, `db`, `kernel`, `tui`, `core-harness`, and `examples`.
 - When changing package boundaries, also sweep manually: `rg -n "@spectre|\.spectre|Spectre|SPECTRE|apps/backend|apps/frontend|checkpoint-slice|SessionStateManager" packages docs` — app-specific names may appear in docs only when explaining adapter boundaries, never in package source.
 - To check a kernel trace database against the linkage/usage invariants, run the trace doctor: `bun run packages/kernel/src/doctor-cli.ts <db-path>`. Without an argument it defaults to `.agent-kernel/trace.db` under the current directory; non-zero exit means violations.
 

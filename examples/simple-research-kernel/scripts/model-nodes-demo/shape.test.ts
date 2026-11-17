@@ -9,7 +9,7 @@
  * typesafe provider over a scripted wire, a faux Pi chat model; no network, no
  * file outside a temp dir). The trace is read back through the container read
  * service, exactly as the viewer API serves it, and compared with
- * `packages/viewer-core/src/trace-builder/__fixtures__/model-nodes-demo.json`
+ * viewer-core's `src/trace-builder/__fixtures__/model-nodes-demo.json` (in the trace-viewer repo)
  * by structure only: ids, times, names and other values are dropped.
  *
  * Runs as an extra `tests.safe` command of the design-system `viewer-ui`
@@ -18,7 +18,7 @@
  */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { openKernelDatabaseReadOnly } from "@codecaine-ai/agent-kernel-db";
@@ -32,8 +32,13 @@ import {
 	type TraceEvent,
 } from "@codecaine-ai/agent-kernel-viewer-core";
 
-import fixtureJson from "../../../../packages/viewer-core/src/trace-builder/__fixtures__/model-nodes-demo.json";
 import { KERNEL_ID, runRealDemo, type RunRealResult } from "./run-real";
+
+// viewer-core lives in the sibling trace-viewer repo; its entry resolves to its src/index.ts.
+const VIEWER_CORE_SRC = dirname(Bun.resolveSync("@codecaine-ai/agent-kernel-viewer-core", import.meta.dir));
+const fixtureJson = await Bun.file(
+	join(VIEWER_CORE_SRC, "trace-builder/__fixtures__/model-nodes-demo.json"),
+).json();
 
 interface TraceRows {
 	containers: KernelContainerSummary[];

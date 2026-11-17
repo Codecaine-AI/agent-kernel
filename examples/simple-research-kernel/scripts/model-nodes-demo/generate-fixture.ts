@@ -36,7 +36,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import { sql } from "drizzle-orm";
 
@@ -2193,9 +2193,10 @@ function gateDecideRecord(name: string, runId: string, probability: number): Gat
 // ─── Output ──────────────────────────────────────────────────────────────────
 
 const SCRIPT_DIR = import.meta.dir;
+// viewer-core lives in the sibling trace-viewer repo; its entry resolves to its src/index.ts.
 const DEFAULT_JSON_PATH = resolve(
-	SCRIPT_DIR,
-	"../../../../packages/viewer-core/src/trace-builder/__fixtures__/model-nodes-demo.json",
+	dirname(Bun.resolveSync("@codecaine-ai/agent-kernel-viewer-core", SCRIPT_DIR)),
+	"trace-builder/__fixtures__/model-nodes-demo.json",
 );
 const DEFAULT_ROUTES_PATH = resolve(SCRIPT_DIR, "routes.json");
 

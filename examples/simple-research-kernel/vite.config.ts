@@ -22,6 +22,11 @@ const APP_DIR = dirname(fileURLToPath(import.meta.url));
 const PROMPT_KIT_DIR = resolve(APP_DIR, "../../../prompt-kit");
 const ANNOTATIONS_DIR = resolve(APP_DIR, "../../../annotations");
 /**
+ * The viewer packages (@codecaine-ai/agent-kernel-viewer-core, -ui, -shell) live in the sibling
+ * trace-viewer checkout, outside this repo, so their source and CSS need the same grant.
+ */
+const TRACE_VIEWER_DIR = resolve(APP_DIR, "../../../trace-viewer");
+/**
  * @codecaine-ai/design-system (fonts.css, tokens.css, host-contract.css) is a Core
  * workspace link whose real path is outside this repo: without this grant the dev
  * server answers 403 for its font files (design-system guide/consume.md §8).
@@ -46,7 +51,7 @@ export default defineConfig({
 		port,
 		strictPort: true,
 		fs: {
-			allow: [resolve(APP_DIR, "../.."), PROMPT_KIT_DIR, ANNOTATIONS_DIR, DESIGN_SYSTEM_DIR]
+			allow: [resolve(APP_DIR, "../.."), PROMPT_KIT_DIR, ANNOTATIONS_DIR, TRACE_VIEWER_DIR, DESIGN_SYSTEM_DIR]
 		},
 		proxy: {
 			"/kernel": apiTarget,
