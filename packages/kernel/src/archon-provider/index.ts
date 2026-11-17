@@ -440,6 +440,8 @@ async function* runNode(
 		// A failed, cancelled or abandoned node stops its bundle and the children it left, before it waits for them.
 		if (!completed) stopChildren();
 		await spawn;
+		// A reader that left before the result was read did not get a finished node.
+		if (!completed && status === "done") status = "aborted";
 		await children.waitForContainer(node.id);
 		options.abortSignal?.removeEventListener("abort", stopChildren);
 		await kernel.traceWriter.flush();

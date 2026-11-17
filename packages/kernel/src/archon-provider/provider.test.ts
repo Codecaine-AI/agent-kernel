@@ -425,6 +425,20 @@ describe("Archon provider", () => {
 		expect(containers("archon-node").map((row) => row.status)).toEqual(["aborted"]);
 	});
 
+	test("a reader that drops the stream after the bundle ended, before the result is read, ends the node aborted", async () => {
+		const stream = createAgentKernelProvider({ root }).sendQuery("hello", root, undefined, {
+			model: "echo-bundle",
+			env: nodeEnv({ node: "n", invocation: "inv-1" }),
+			assistantConfig: assistantConfig(),
+		});
+		expect((await stream.next()).value?.type).toBe("agent_message_chunk");
+		// Long enough for the spawn to finish.
+		await new Promise((resolve) => setTimeout(resolve, 200));
+		await stream.return(undefined);
+
+		expect(containers("archon-node").map((row) => row.status)).toEqual(["aborted"]);
+	});
+
 	test("a reader that drops the stream while a background child runs stops the child and ends the node aborted", async () => {
 		const gate = Promise.withResolvers<void>();
 		const asked = Promise.withResolvers<void>();
