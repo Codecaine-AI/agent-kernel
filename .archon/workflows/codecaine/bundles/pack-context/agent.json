@@ -1,0 +1,12 @@
+{
+  "$schema": "agent-kernel/agent-v1",
+  "name": "pack-context",
+  "description": "Writes the review brief of the pre-pr-review workflow: what the change under review does, which docs and conventions of the repository apply to it, and how much review it needs. Reads only.",
+  "model": "standard",
+  "host": "any",
+  "coreTools": ["read", "grep", "find", "ls"],
+  "disallowedTools": ["bash", "edit", "write"],
+  "extensions": false,
+  "maxTurns": 30,
+  "state": { "window": { "strategy": "turns", "maxTurns": 30 } }
+}
