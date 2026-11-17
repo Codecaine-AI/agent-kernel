@@ -1,0 +1,950 @@
+{
+  "schemaVersion": 1,
+  "id": "review-chain",
+  "title": "Pre-PR review pack on Archon",
+  "description": "The pre-PR review as an Archon workflow pack, read top to bottom. A pull_request binding (selector pr.lifecycle, actions opened and head_updated) hands a receipt to resource admission (capacity 1, overlap queue), which admits one run and maps the PR number to the input scope. The Review pack frame holds the rounds loop_group (max_iterations 1, on_exhausted fail). Row one runs left to right: mode (script review-round, fixes the head), scope, pack-context (teal kernel bundle node, provider agent-kernel), route (orange decide node, lanes review, trivial and other). Unless the lane is trivial, route starts the 2 reviewers in parallel: review-codex (Codex gpt-6.1-sol, high) and review-claude (Claude claude-opus-5-5, high). On the trivial lane, synthesize runs with no findings. Row two runs right to left: review-complete (all_done), extract-findings (orange extract node), synthesize, settle, publish. When synthesize is not ready, verify-1 to verify-3 vote and settle applies the votes. After publish, the loop check asks whether the head mode fixed equals the PR head: yes ends the rounds and hands {head, pr} to tag-outside-reviewers, which tags Greptile and CodeRabbit once per head; no, or a failed gh call, fails the run. Below the pack: the kernel provider writes an archon-node container with 6 trace tag columns for pack-context, route and extract-findings to trace.db; each LLM node sends X-Trace-* headers to Token Gateway, which stores llm_calls rows; the decide call of route goes to the TypeSafe endpoint and leaves no gateway row; every node writes workflow_events. Stickies give the color key with the 6 tags, what the pack changes from upstream archon-review, and the tag step. Teal is a kernel bundle node, orange an extract or decide node, violet a model node on Archon's providers, gray a script or bash node, red a failed run.",
+  "mode": "diagram",
+  "objects": [
+    {
+      "id": "s00-page",
+      "type": "section",
+      "text": "Pre-PR review pack on Archon",
+      "color": "white",
+      "parentId": null,
+      "geometry": {
+        "x": 0,
+        "y": 0,
+        "width": 2800,
+        "height": 2000
+      }
+    },
+    {
+      "id": "s01-trigger",
+      "type": "section",
+      "text": "Trigger",
+      "detail": "GitHub source plugin",
+      "color": "gray",
+      "parentId": "s00-page",
+      "geometry": {
+        "x": 40,
+        "y": 100,
+        "width": 900,
+        "height": 200
+      },
+      "style": {
+        "shape": "section"
+      },
+      "icon": "webhook"
+    },
+    {
+      "id": "s01-trigger-binding",
+      "type": "process",
+      "text": "pull_request binding",
+      "detail": "selector pr.lifecycle",
+      "color": "green",
+      "parentId": "s01-trigger",
+      "geometry": {
+        "x": 80,
+        "y": 160,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s01-trigger-admission",
+      "type": "process",
+      "text": "Resource admission",
+      "detail": "capacity 1 · overlap queue",
+      "color": "yellow",
+      "parentId": "s01-trigger",
+      "geometry": {
+        "x": 560,
+        "y": 160,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s02-pack",
+      "type": "section",
+      "text": "Review pack",
+      "detail": "pre-pr-review/pre-pr-review.yaml",
+      "color": "gray",
+      "parentId": "s00-page",
+      "geometry": {
+        "x": 40,
+        "y": 360,
+        "width": 2280,
+        "height": 1400
+      },
+      "style": {
+        "shape": "section"
+      },
+      "icon": "package"
+    },
+    {
+      "id": "s03-rounds",
+      "type": "section",
+      "text": "rounds",
+      "detail": "loop_group · max_iterations 1 · on_exhausted fail",
+      "color": "blue",
+      "parentId": "s02-pack",
+      "geometry": {
+        "x": 80,
+        "y": 420,
+        "width": 2200,
+        "height": 1100
+      },
+      "style": {
+        "shape": "section"
+      },
+      "icon": "loop"
+    },
+    {
+      "id": "s03-rounds-scope",
+      "type": "process",
+      "text": "scope",
+      "detail": "command review-scope · PR or working diff",
+      "color": "violet",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 600,
+        "y": 500,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s03-rounds-mode",
+      "type": "process",
+      "text": "mode",
+      "detail": "script review-round",
+      "color": "gray",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 200,
+        "y": 500,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s03-rounds-pack-context",
+      "type": "process",
+      "text": "pack-context",
+      "detail": "kernel · provider agent-kernel",
+      "color": "teal",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 1020,
+        "y": 520,
+        "width": 300,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s03-rounds-route",
+      "type": "process",
+      "text": "route",
+      "detail": "decide · typesafe/jev-1.13.0 · kernel provider",
+      "color": "orange",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 1600,
+        "y": 500,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s03-rounds-complete",
+      "type": "process",
+      "text": "review-complete",
+      "detail": "script lens-outcomes · all_done",
+      "color": "gray",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 1420,
+        "y": 960,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s03-rounds-extract",
+      "type": "process",
+      "text": "extract-findings",
+      "detail": "extract · BAML ExtractFindings · kernel provider",
+      "color": "orange",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 1400,
+        "y": 1180,
+        "width": 300,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s03-rounds-synthesize",
+      "type": "process",
+      "text": "synthesize",
+      "detail": "agent · sets ready",
+      "color": "violet",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 1000,
+        "y": 1160,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s03-rounds-publish",
+      "type": "process",
+      "text": "publish",
+      "detail": "script · upserts one comment",
+      "color": "gray",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 200,
+        "y": 1160,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s03-rounds-ready",
+      "type": "decision",
+      "text": "head = PR head?",
+      "color": "yellow",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 200,
+        "y": 1320,
+        "width": 280,
+        "height": 140
+      },
+      "style": {
+        "shape": "diamond"
+      }
+    },
+    {
+      "id": "s05-reviewers",
+      "type": "section",
+      "text": "Coding-agent reviewers",
+      "detail": "parallel",
+      "color": "violet",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 260,
+        "y": 680,
+        "width": 840,
+        "height": 220
+      },
+      "style": {
+        "shape": "section"
+      }
+    },
+    {
+      "id": "s05-reviewers-codex",
+      "type": "process",
+      "text": "review-codex",
+      "detail": "Codex · gpt-6.1-sol · high",
+      "color": "violet",
+      "parentId": "s05-reviewers",
+      "geometry": {
+        "x": 300,
+        "y": 760,
+        "width": 360,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s05-reviewers-claude",
+      "type": "process",
+      "text": "review-claude",
+      "detail": "Claude · claude-opus-5-5 · high",
+      "color": "violet",
+      "parentId": "s05-reviewers",
+      "geometry": {
+        "x": 700,
+        "y": 760,
+        "width": 360,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s02-pack-tag",
+      "type": "process",
+      "text": "tag-outside-reviewers",
+      "detail": "script · once per reviewed head",
+      "color": "gray",
+      "parentId": "s02-pack",
+      "geometry": {
+        "x": 1920,
+        "y": 1560,
+        "width": 320,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s06-outside",
+      "type": "section",
+      "text": "Outside reviewers",
+      "color": "gray",
+      "parentId": "s00-page",
+      "geometry": {
+        "x": 2380,
+        "y": 1480,
+        "width": 380,
+        "height": 380
+      },
+      "style": {
+        "shape": "section"
+      },
+      "icon": "users"
+    },
+    {
+      "id": "s06-outside-greptile",
+      "type": "process",
+      "text": "Greptile",
+      "color": "pink",
+      "parentId": "s06-outside",
+      "geometry": {
+        "x": 2420,
+        "y": 1560,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s06-outside-coderabbit",
+      "type": "process",
+      "text": "CodeRabbit",
+      "color": "pink",
+      "parentId": "s06-outside",
+      "geometry": {
+        "x": 2420,
+        "y": 1720,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s07-trace-db",
+      "type": "rectangle",
+      "text": "trace.db",
+      "detail": "kernel nodes only · one container each",
+      "color": "blue",
+      "parentId": "s00-page",
+      "geometry": {
+        "x": 40,
+        "y": 1820,
+        "width": 620,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s07-workflow-events",
+      "type": "rectangle",
+      "text": "workflow_events",
+      "detail": "every node · Archon DB",
+      "color": "blue",
+      "parentId": "s00-page",
+      "geometry": {
+        "x": 1760,
+        "y": 1840,
+        "width": 500,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s02-pack-color-key",
+      "type": "sticky",
+      "text": "**Node colors.** Teal: kernel bundle node. Orange: extract or decide node. The kernel provider runs both in process. Violet: model node on Archon's Claude or Codex provider. Gray: script or bash. Red: run fails. Trace tags: engine, run_id, node_path, invocation_id, attempt_id, loop_path.",
+      "color": "yellow",
+      "parentId": "s02-pack",
+      "geometry": {
+        "x": 120,
+        "y": 1520,
+        "width": 760,
+        "height": 140
+      },
+      "style": {
+        "shape": "note"
+      }
+    },
+    {
+      "id": "s06-outside-note",
+      "type": "sticky",
+      "text": "### Tag step\n- `tag-outside-reviewers` runs once, after `rounds` completes.\n- It searches the PR comments for its marker and the head sha, and posts once per head.\n- It refuses when the head moved or the PR is not open.",
+      "color": "yellow",
+      "parentId": "s00-page",
+      "geometry": {
+        "x": 2380,
+        "y": 1220,
+        "width": 380,
+        "height": 220
+      },
+      "style": {
+        "shape": "note"
+      }
+    },
+    {
+      "id": "s02-pack-includes",
+      "type": "sticky",
+      "text": "### What the pack changes\n- Written from upstream `archon-review` at a pinned commit.\n- Removes the 6 lens nodes and the route agent.\n- Adds `pack-context`, the `route` decide node, 2 static reviewers, `extract-findings` and `tag-outside-reviewers`.\n- Version 1 runs 1 round.",
+      "color": "yellow",
+      "parentId": "s00-page",
+      "geometry": {
+        "x": 2380,
+        "y": 420,
+        "width": 380,
+        "height": 260
+      },
+      "style": {
+        "shape": "note"
+      }
+    },
+    {
+      "id": "s03-rounds-settle",
+      "type": "process",
+      "text": "settle",
+      "color": "gray",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 600,
+        "y": 1160,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s03-rounds-verify",
+      "type": "process",
+      "text": "verify-1, 2, 3",
+      "color": "violet",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 920,
+        "y": 1340,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s03-rounds-fail",
+      "type": "octagon",
+      "text": "run fails",
+      "color": "red",
+      "parentId": "s03-rounds",
+      "geometry": {
+        "x": 620,
+        "y": 1320,
+        "width": 140,
+        "height": 140
+      },
+      "style": {
+        "shape": "octagon"
+      }
+    },
+    {
+      "id": "s07-token-gateway",
+      "type": "rectangle",
+      "text": "Token Gateway llm_calls",
+      "color": "blue",
+      "parentId": "s00-page",
+      "geometry": {
+        "x": 700,
+        "y": 1840,
+        "width": 620,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    },
+    {
+      "id": "s07-typesafe",
+      "type": "process",
+      "text": "TypeSafe endpoint",
+      "color": "pink",
+      "parentId": "s00-page",
+      "geometry": {
+        "x": 1380,
+        "y": 1840,
+        "width": 280,
+        "height": 100
+      },
+      "style": {
+        "shape": "rounded-rect"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "id": "s01-trigger-binding-to-admission",
+      "from": {
+        "objectId": "s01-trigger-binding",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "s01-trigger-admission",
+        "anchor": "left"
+      },
+      "label": "receipt",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-pack-context-to-route",
+      "from": {
+        "objectId": "s03-rounds-pack-context",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "s03-rounds-route",
+        "anchor": "left"
+      },
+      "label": "brief",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-route-to-s05-reviewers",
+      "from": {
+        "objectId": "s03-rounds-route",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "s05-reviewers",
+        "anchor": "top"
+      },
+      "label": "review or other · starts both",
+      "style": "solid",
+      "arrow": "forward",
+      "labelPosition": {
+        "along": 0.75
+      }
+    },
+    {
+      "id": "s05-reviewers-to-s03-rounds-complete",
+      "from": {
+        "objectId": "s05-reviewers",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "s03-rounds-complete",
+        "anchor": "top"
+      },
+      "label": "all_done",
+      "style": "solid",
+      "arrow": "forward",
+      "labelPosition": {
+        "along": 0.3
+      }
+    },
+    {
+      "id": "s03-rounds-complete-to-extract",
+      "from": {
+        "objectId": "s03-rounds-complete",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "s03-rounds-extract",
+        "anchor": "top"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-extract-to-synthesize",
+      "from": {
+        "objectId": "s03-rounds-extract",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "s03-rounds-synthesize",
+        "anchor": "right"
+      },
+      "label": "findings",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-publish-to-ready",
+      "from": {
+        "objectId": "s03-rounds-publish",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "s03-rounds-ready",
+        "anchor": "top"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-ready-to-s02-pack-tag",
+      "from": {
+        "objectId": "s03-rounds-ready",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "s02-pack-tag",
+        "anchor": "top"
+      },
+      "label": "yes · rounds end · {head, pr}",
+      "style": "solid",
+      "arrow": "forward",
+      "labelPosition": {
+        "along": 0.2
+      }
+    },
+    {
+      "id": "s02-pack-tag-to-greptile",
+      "from": {
+        "objectId": "s02-pack-tag",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "s06-outside-greptile",
+        "anchor": "left"
+      },
+      "style": "dashed",
+      "arrow": "forward",
+      "labelPosition": {
+        "along": 0.7
+      }
+    },
+    {
+      "id": "s02-pack-tag-to-coderabbit",
+      "from": {
+        "objectId": "s02-pack-tag",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "s06-outside-coderabbit",
+        "anchor": "left"
+      },
+      "style": "dashed",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-extract-to-s07-trace-db",
+      "from": {
+        "objectId": "s03-rounds-extract",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "s07-trace-db",
+        "anchor": "top",
+        "position": [
+          0.8284,
+          0
+        ]
+      },
+      "label": "archon-node · 6 tags",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-pack-context-to-s07-trace-db",
+      "from": {
+        "objectId": "s03-rounds-pack-context",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "s07-trace-db",
+        "anchor": "top",
+        "position": [
+          0.9701,
+          0
+        ]
+      },
+      "label": "archon-node · 6 tags",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s02-pack-to-s07-workflow-events",
+      "from": {
+        "objectId": "s02-pack",
+        "anchor": "bottom",
+        "position": [
+          0.7281,
+          1
+        ]
+      },
+      "to": {
+        "objectId": "s07-workflow-events",
+        "anchor": "top",
+        "position": [
+          0.3111,
+          0
+        ]
+      },
+      "label": "every node writes events",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s01-trigger-admission-to-s03-rounds-mode",
+      "from": {
+        "objectId": "s01-trigger-admission",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "s03-rounds-mode",
+        "anchor": "top"
+      },
+      "label": "run admitted · scope = PR number",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-mode-to-scope",
+      "from": {
+        "objectId": "s03-rounds-mode",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "s03-rounds-scope",
+        "anchor": "left"
+      },
+      "label": "head",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-scope-to-pack-context",
+      "from": {
+        "objectId": "s03-rounds-scope",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "s03-rounds-pack-context",
+        "anchor": "left"
+      },
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-route-to-synthesize",
+      "from": {
+        "objectId": "s03-rounds-route"
+      },
+      "to": {
+        "objectId": "s03-rounds-synthesize"
+      },
+      "label": "trivial · no findings",
+      "style": "dashed",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-synthesize-to-verify",
+      "from": {
+        "objectId": "s03-rounds-synthesize",
+        "anchor": "bottom"
+      },
+      "to": {
+        "objectId": "s03-rounds-verify",
+        "anchor": "top"
+      },
+      "label": "not ready",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-synthesize-to-settle",
+      "from": {
+        "objectId": "s03-rounds-synthesize",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "s03-rounds-settle",
+        "anchor": "right"
+      },
+      "label": "verdict",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-verify-to-settle",
+      "from": {
+        "objectId": "s03-rounds-verify"
+      },
+      "to": {
+        "objectId": "s03-rounds-settle",
+        "anchor": "bottom"
+      },
+      "label": "votes",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-settle-to-publish",
+      "from": {
+        "objectId": "s03-rounds-settle",
+        "anchor": "left"
+      },
+      "to": {
+        "objectId": "s03-rounds-publish",
+        "anchor": "right"
+      },
+      "label": "final verdict",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-ready-to-fail",
+      "from": {
+        "objectId": "s03-rounds-ready",
+        "anchor": "right"
+      },
+      "to": {
+        "objectId": "s03-rounds-fail",
+        "anchor": "left"
+      },
+      "label": "no or gh fails",
+      "style": "solid",
+      "arrow": "forward",
+      "color": "red"
+    },
+    {
+      "id": "s03-rounds-route-to-s07-trace-db",
+      "from": {
+        "objectId": "s03-rounds-route"
+      },
+      "to": {
+        "objectId": "s07-trace-db"
+      },
+      "label": "archon-node · agent_runs",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-route-to-s07-typesafe",
+      "from": {
+        "objectId": "s03-rounds-route"
+      },
+      "to": {
+        "objectId": "s07-typesafe",
+        "anchor": "top"
+      },
+      "label": "decide call · no gateway row",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-pack-context-to-s07-token-gateway",
+      "from": {
+        "objectId": "s03-rounds-pack-context"
+      },
+      "to": {
+        "objectId": "s07-token-gateway",
+        "anchor": "top"
+      },
+      "label": "X-Trace-*",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s05-reviewers-codex-to-s07-token-gateway",
+      "from": {
+        "objectId": "s05-reviewers-codex"
+      },
+      "to": {
+        "objectId": "s07-token-gateway",
+        "anchor": "top"
+      },
+      "label": "X-Trace-*",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s05-reviewers-claude-to-s07-token-gateway",
+      "from": {
+        "objectId": "s05-reviewers-claude"
+      },
+      "to": {
+        "objectId": "s07-token-gateway",
+        "anchor": "top"
+      },
+      "label": "X-Trace-*",
+      "style": "solid",
+      "arrow": "forward"
+    },
+    {
+      "id": "s03-rounds-extract-to-s07-token-gateway",
+      "from": {
+        "objectId": "s03-rounds-extract"
+      },
+      "to": {
+        "objectId": "s07-token-gateway",
+        "anchor": "top"
+      },
+      "label": "X-Trace-*",
+      "style": "solid",
+      "arrow": "forward"
+    }
+  ],
+  "annotations": []
+}

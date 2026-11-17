@@ -1,0 +1,329 @@
+{
+  "version": 1,
+  "id": "one-pr-through-the-pack",
+  "title": "One PR through the pack",
+  "participants": [
+    {
+      "id": "p1",
+      "name": "GitHub",
+      "kind": "participant"
+    },
+    {
+      "id": "p2",
+      "name": "Archon",
+      "kind": "participant",
+      "label": "Archon: binding, admission, executor"
+    },
+    {
+      "id": "p3",
+      "name": "Kernel provider",
+      "kind": "participant",
+      "label": "agent-kernel provider, in process"
+    },
+    {
+      "id": "p4",
+      "name": "trace.db",
+      "kind": "participant"
+    },
+    {
+      "id": "p5",
+      "name": "TypeSafe",
+      "kind": "participant"
+    },
+    {
+      "id": "p6",
+      "name": "Token Gateway",
+      "kind": "participant"
+    },
+    {
+      "id": "p7",
+      "name": "Reviewers",
+      "kind": "participant",
+      "label": "Codex and Claude providers"
+    },
+    {
+      "id": "p8",
+      "name": "PR comment",
+      "kind": "participant",
+      "label": "GitHub PR comment"
+    }
+  ],
+  "items": [
+    {
+      "kind": "message",
+      "id": "m1",
+      "from": "p1",
+      "to": "p2",
+      "line": "async",
+      "text": "pull_request (opened, head_updated)"
+    },
+    {
+      "kind": "message",
+      "id": "m2",
+      "from": "p2",
+      "to": "p2",
+      "line": "sync",
+      "text": "admit run, capacity 1, queue"
+    },
+    {
+      "kind": "fragment",
+      "id": "f1",
+      "op": "loop",
+      "operands": [
+        {
+          "guard": "rounds, max_iterations 1",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m3",
+              "from": "p2",
+              "to": "p2",
+              "line": "sync",
+              "text": "mode fixes the head under review"
+            },
+            {
+              "kind": "message",
+              "id": "m4",
+              "from": "p2",
+              "to": "p3",
+              "line": "sync",
+              "text": "sendQuery(pack-context)"
+            },
+            {
+              "kind": "message",
+              "id": "m5",
+              "from": "p3",
+              "to": "p4",
+              "line": "sync",
+              "text": "upsert archon-run and archon-node"
+            },
+            {
+              "kind": "note",
+              "id": "n1",
+              "anchor": "p4",
+              "side": "over",
+              "text": "The archon-node row holds the 6 trace tag columns"
+            },
+            {
+              "kind": "message",
+              "id": "m6",
+              "from": "p3",
+              "to": "p6",
+              "line": "sync",
+              "text": "LLM calls with X-Trace-* headers"
+            },
+            {
+              "kind": "message",
+              "id": "m7",
+              "from": "p3",
+              "to": "p2",
+              "line": "return",
+              "text": "review brief"
+            },
+            {
+              "kind": "message",
+              "id": "m8",
+              "from": "p2",
+              "to": "p3",
+              "line": "sync",
+              "text": "sendQuery(route)"
+            },
+            {
+              "kind": "message",
+              "id": "m9",
+              "from": "p3",
+              "to": "p4",
+              "line": "sync",
+              "text": "upsert archon-node (6 tag columns)"
+            },
+            {
+              "kind": "message",
+              "id": "m10",
+              "from": "p3",
+              "to": "p5",
+              "line": "sync",
+              "text": "decide call, not through Token Gateway"
+            },
+            {
+              "kind": "message",
+              "id": "m11",
+              "from": "p5",
+              "to": "p3",
+              "line": "return",
+              "text": "review, trivial or other"
+            },
+            {
+              "kind": "message",
+              "id": "m12",
+              "from": "p3",
+              "to": "p4",
+              "line": "sync",
+              "text": "write agent_runs row"
+            },
+            {
+              "kind": "message",
+              "id": "m13",
+              "from": "p3",
+              "to": "p2",
+              "line": "return",
+              "text": "lane"
+            },
+            {
+              "kind": "fragment",
+              "id": "f2",
+              "op": "opt",
+              "operands": [
+                {
+                  "guard": "lane is not trivial",
+                  "items": [
+                    {
+                      "kind": "message",
+                      "id": "m14",
+                      "from": "p2",
+                      "to": "p7",
+                      "line": "sync",
+                      "text": "review-codex on gpt-6.1-sol, high"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m15",
+                      "from": "p2",
+                      "to": "p7",
+                      "line": "sync",
+                      "text": "review-claude on claude-opus-5-5, high"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m16",
+                      "from": "p7",
+                      "to": "p6",
+                      "line": "sync",
+                      "text": "LLM calls with X-Trace-* headers"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m17",
+                      "from": "p7",
+                      "to": "p2",
+                      "line": "return",
+                      "text": "2 reports"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m18",
+                      "from": "p2",
+                      "to": "p3",
+                      "line": "sync",
+                      "text": "sendQuery(extract-findings)"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m19",
+                      "from": "p3",
+                      "to": "p4",
+                      "line": "sync",
+                      "text": "upsert archon-node (6 tag columns)"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m20",
+                      "from": "p3",
+                      "to": "p6",
+                      "line": "sync",
+                      "text": "ExtractFindings with X-Trace-* headers"
+                    },
+                    {
+                      "kind": "message",
+                      "id": "m21",
+                      "from": "p3",
+                      "to": "p2",
+                      "line": "return",
+                      "text": "findings on diff lines"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "message",
+              "id": "m22",
+              "from": "p2",
+              "to": "p2",
+              "line": "sync",
+              "text": "synthesize and settle the verdict"
+            },
+            {
+              "kind": "message",
+              "id": "m23",
+              "from": "p2",
+              "to": "p8",
+              "line": "sync",
+              "text": "edit the canonical review comment"
+            },
+            {
+              "kind": "fragment",
+              "id": "f3",
+              "op": "alt",
+              "operands": [
+                {
+                  "guard": "head that mode fixed equals the PR head",
+                  "items": [
+                    {
+                      "kind": "message",
+                      "id": "m24",
+                      "from": "p2",
+                      "to": "p2",
+                      "line": "sync",
+                      "text": "end the rounds with head and pr"
+                    }
+                  ]
+                },
+                {
+                  "guard": "head moved or the gh call fails",
+                  "items": [
+                    {
+                      "kind": "message",
+                      "id": "m25",
+                      "from": "p2",
+                      "to": "p2",
+                      "line": "sync",
+                      "text": "fail the run"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "fragment",
+      "id": "f4",
+      "op": "opt",
+      "operands": [
+        {
+          "guard": "rounds completed",
+          "items": [
+            {
+              "kind": "message",
+              "id": "m26",
+              "from": "p2",
+              "to": "p8",
+              "line": "sync",
+              "text": "tag outside reviewers once per head"
+            },
+            {
+              "kind": "note",
+              "id": "n2",
+              "anchor": "p8",
+              "side": "over",
+              "text": "Searches the comments for its marker and the head sha first"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "style": {}
+}

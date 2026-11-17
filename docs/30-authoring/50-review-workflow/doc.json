@@ -1,0 +1,1589 @@
+{
+  "schemaVersion": 1,
+  "id": "doc-1436ac0a7d3bcf7b4a769cef0398632c",
+  "title": "Review Workflow",
+  "root": "root",
+  "blocks": {
+    "root": {
+      "id": "root",
+      "type": "paragraph",
+      "props": {},
+      "children": [
+        "rw-open",
+        "rc-lead",
+        "rw-h-nodes",
+        "rw-nodes-lead",
+        "rc-1",
+        "rc-2",
+        "rc-3",
+        "rc-4",
+        "rw-h-loop",
+        "rw-loop-lead",
+        "rw-loop-3",
+        "rw-loop-1",
+        "rw-loop-2",
+        "rw-h-outside",
+        "rw-outside",
+        "rw-h-trigger",
+        "rw-trigger-lead",
+        "rw-trigger-1",
+        "rw-trigger-2",
+        "rw-trigger-3",
+        "rw-trigger-4",
+        "rw-binding-lead",
+        "rw-binding-shape",
+        "rw-h-limits",
+        "rw-limits-lead",
+        "rw-limit-1",
+        "rw-limit-2",
+        "rw-h-board",
+        "rw-canvas-note",
+        "rw-canvas",
+        "rw-h-seq",
+        "rw-seq-lead",
+        "rw-seq"
+      ]
+    },
+    "rw-open": {
+      "id": "rw-open",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "pre-pr-review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " workflow reviews a pull request of this repo before it merges. It runs on the Archon fork, with a kernel node, an "
+        },
+        {
+          "insert": "extract",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " node and a "
+        },
+        {
+          "insert": "decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " node beside Claude Code and Codex nodes. Greptile and CodeRabbit then review what survives."
+        }
+      ],
+      "children": []
+    },
+    "rc-lead": {
+      "id": "rc-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The pack lives at "
+        },
+        {
+          "insert": ".archon/workflows/codecaine/pre-pr-review/pre-pr-review.yaml",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". It is written from upstream "
+        },
+        {
+          "insert": "archon-review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in Archon's sdlc pack, at a pinned commit. It removes the 6 lens nodes and the route agent, and adds one kernel node, two nodes in the fork's node modes, and 2 static reviewers."
+        }
+      ],
+      "children": []
+    },
+    "rw-h-nodes": {
+      "id": "rw-h-nodes",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Node Order"
+        }
+      ],
+      "children": []
+    },
+    "rw-nodes-lead": {
+      "id": "rw-nodes-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "One review round runs four steps after "
+        },
+        {
+          "insert": "mode",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " fixes the commit under review and "
+        },
+        {
+          "insert": "scope",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " names the PR or the working diff. "
+        },
+        {
+          "insert": "pack-context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " sets "
+        },
+        {
+          "insert": "provider: agent-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and "
+        },
+        {
+          "insert": "route",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "extract-findings",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " use the "
+        },
+        {
+          "insert": "decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "extract",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " modes that "
+        },
+        {
+          "insert": "App Adapter Model",
+          "attributes": {
+            "reference": {
+              "kind": "doc",
+              "path": "10-system-design/50-app-adapter-model"
+            }
+          }
+        },
+        {
+          "insert": " describes. The kernel provider runs all three in process, and all three return structured output."
+        }
+      ],
+      "children": []
+    },
+    "rc-1": {
+      "id": "rc-1",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "pack-context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", a kernel node, runs before "
+        },
+        {
+          "insert": "route",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and writes the review brief."
+        }
+      ],
+      "children": [
+        "rc-1a",
+        "rc-1b"
+      ]
+    },
+    "rc-1a": {
+      "id": "rc-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Its bundle reads the scope, the changed files and the repo docs with the read-only tools "
+        },
+        {
+          "insert": "read",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "grep",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "find",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "ls",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "rc-1b": {
+      "id": "rc-1b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The node returns one "
+        },
+        {
+          "insert": "brief",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " field."
+        }
+      ],
+      "children": []
+    },
+    "rc-2": {
+      "id": "rc-2",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "route",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", a "
+        },
+        {
+          "insert": "decide",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " node, returns the lane "
+        },
+        {
+          "insert": "review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "trivial",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " or "
+        },
+        {
+          "insert": "other",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " for the brief."
+        }
+      ],
+      "children": [
+        "rc-2c",
+        "rc-2d",
+        "rc-2e",
+        "rc-2a",
+        "rc-2b",
+        "rc-2f"
+      ]
+    },
+    "rc-2c": {
+      "id": "rc-2c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The decide call goes to the TypeSafe endpoint with the classifier "
+        },
+        {
+          "insert": "typesafe/jev-1.13.0",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and not through Token Gateway."
+        }
+      ],
+      "children": []
+    },
+    "rc-2d": {
+      "id": "rc-2d",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A low-confidence abstain answers "
+        },
+        {
+          "insert": "other",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "rc-2e": {
+      "id": "rc-2e",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The 2 read-only reviewers run in parallel unless the lane is "
+        },
+        {
+          "insert": "trivial",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "rc-2a": {
+      "id": "rc-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "review-codex",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " runs Codex "
+        },
+        {
+          "insert": "gpt-6.1-sol",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " at "
+        },
+        {
+          "insert": "reasoningEffort=high",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " through Archon's Codex provider."
+        }
+      ],
+      "children": []
+    },
+    "rc-2b": {
+      "id": "rc-2b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "review-claude",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " runs Claude Code "
+        },
+        {
+          "insert": "claude-opus-5-5",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " at "
+        },
+        {
+          "insert": "effort=high",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " through Archon's Claude provider."
+        }
+      ],
+      "children": []
+    },
+    "rc-2f": {
+      "id": "rc-2f",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A reviewer that fails fails the run, so the run publishes nothing from 1 reviewer."
+        }
+      ],
+      "children": []
+    },
+    "rc-3": {
+      "id": "rc-3",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "extract-findings",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", an "
+        },
+        {
+          "insert": "extract",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " node with no kernel bundle, turns both reports into one deduplicated set of typed findings."
+        }
+      ],
+      "children": [
+        "rc-3b",
+        "rc-3a"
+      ]
+    },
+    "rc-3b": {
+      "id": "rc-3b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The node runs the BAML function "
+        },
+        {
+          "insert": "ExtractFindings",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "rc-3a": {
+      "id": "rc-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The node keeps only the findings that the reviewers marked as on diff lines."
+        }
+      ],
+      "children": []
+    },
+    "rc-4": {
+      "id": "rc-4",
+      "type": "list-item",
+      "props": {
+        "ordered": true
+      },
+      "text": [
+        {
+          "insert": "synthesize",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", kept from the copy of "
+        },
+        {
+          "insert": "archon-review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", writes the verdict from the typed findings."
+        }
+      ],
+      "children": [
+        "rc-4a",
+        "rc-4b",
+        "rc-4c"
+      ]
+    },
+    "rc-4a": {
+      "id": "rc-4a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "On the "
+        },
+        {
+          "insert": "trivial",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " lane, "
+        },
+        {
+          "insert": "synthesize",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " runs with no findings."
+        }
+      ],
+      "children": []
+    },
+    "rc-4b": {
+      "id": "rc-4b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "When the verdict is not ready, 3 verify nodes judge each blocking finding, and "
+        },
+        {
+          "insert": "settle",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " applies their votes."
+        }
+      ],
+      "children": []
+    },
+    "rc-4c": {
+      "id": "rc-4c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "publish",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " edits one canonical PR comment through "
+        },
+        {
+          "insert": "gh",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", only when the PR head is still the commit that "
+        },
+        {
+          "insert": "mode",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " fixed."
+        }
+      ],
+      "children": []
+    },
+    "rw-h-loop": {
+      "id": "rw-h-loop",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "The Rounds Loop"
+        }
+      ],
+      "children": []
+    },
+    "rw-loop-lead": {
+      "id": "rw-loop-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The pack takes the loop shape of "
+        },
+        {
+          "insert": "archon-deliver",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in Archon's sdlc pack. A "
+        },
+        {
+          "insert": "rounds",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " node of kind "
+        },
+        {
+          "insert": "loop_group",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " holds every node of one round, with "
+        },
+        {
+          "insert": "max_iterations: 1",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and the default "
+        },
+        {
+          "insert": "on_exhausted",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "fail",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". Version 1 has no node that changes code, so a run has 1 round."
+        }
+      ],
+      "children": []
+    },
+    "rw-loop-3": {
+      "id": "rw-loop-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Loop End",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "rw-loop-3a",
+        "rw-loop-3b",
+        "rw-loop-3c"
+      ]
+    },
+    "rw-loop-3a": {
+      "id": "rw-loop-3a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The "
+        },
+        {
+          "insert": "until_bash",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " check passes when the head that "
+        },
+        {
+          "insert": "mode",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " fixed equals the PR head, and at once for a working diff with no PR."
+        }
+      ],
+      "children": []
+    },
+    "rw-loop-3b": {
+      "id": "rw-loop-3b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A failed "
+        },
+        {
+          "insert": "gh",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " call or a moved head fails the run, and "
+        },
+        {
+          "insert": "tag-outside-reviewers",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " does not run."
+        }
+      ],
+      "children": []
+    },
+    "rw-loop-3c": {
+      "id": "rw-loop-3c",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A push during a round makes "
+        },
+        {
+          "insert": "publish",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " refuse, so the run fails, and the next run reviews the new head."
+        }
+      ],
+      "children": []
+    },
+    "rw-loop-1": {
+      "id": "rw-loop-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Static Reviewers",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "rw-loop-1a"
+      ]
+    },
+    "rw-loop-1a": {
+      "id": "rw-loop-1a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Dynamic child workflows cannot run inside a loop group ("
+        },
+        {
+          "insert": "packages/workflows/src/loader/dag-structure.ts:409",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in Archon). The two reviewers are therefore fixed nodes in the YAML."
+        }
+      ],
+      "children": []
+    },
+    "rw-loop-2": {
+      "id": "rw-loop-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Recovery",
+          "attributes": {
+            "bold": true
+          }
+        }
+      ],
+      "children": [
+        "rw-loop-2a",
+        "rw-loop-2b"
+      ]
+    },
+    "rw-loop-2a": {
+      "id": "rw-loop-2a",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "Loop recovery can restart at iteration one with node caching off ("
+        },
+        {
+          "insert": "packages/workflows/src/dag/nodes/loop-group/resume.ts:95",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " in Archon)."
+        }
+      ],
+      "children": []
+    },
+    "rw-loop-2b": {
+      "id": "rw-loop-2b",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "publish",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " edits one marked comment, and the tag step checks its marker first, so a replayed round posts no second comment."
+        }
+      ],
+      "children": []
+    },
+    "rw-h-outside": {
+      "id": "rw-h-outside",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Outside Reviewers"
+        }
+      ],
+      "children": []
+    },
+    "rw-outside": {
+      "id": "rw-outside",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The script node "
+        },
+        {
+          "insert": "tag-outside-reviewers",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " runs after the loop and tags Greptile and CodeRabbit in one PR comment. It searches the PR comments for its marker and the head sha, and posts nothing when a comment already holds both. It refuses when the live head differs from the reviewed head or when the PR is not open. For a working diff, it posts nothing."
+        }
+      ],
+      "children": []
+    },
+    "rw-h-trigger": {
+      "id": "rw-h-trigger",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Trigger"
+        }
+      ],
+      "children": []
+    },
+    "rw-trigger-lead": {
+      "id": "rw-trigger-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "In version 1 the trigger is local. "
+        },
+        {
+          "insert": "archon serve",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " runs on localhost with the GitHub source plugin and one binding, and a locally signed "
+        },
+        {
+          "insert": "pull_request",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " delivery starts the workflow. A webhook from GitHub is later work."
+        }
+      ],
+      "children": []
+    },
+    "rw-trigger-1": {
+      "id": "rw-trigger-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The overlap policy is "
+        },
+        {
+          "insert": "queue",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so a new push waits for the current run."
+        }
+      ],
+      "children": []
+    },
+    "rw-trigger-2": {
+      "id": "rw-trigger-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The capacity is 1 run at a time on the resource "
+        },
+        {
+          "insert": "github:Codecaine-AI/agent-kernel:review",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "rw-trigger-3": {
+      "id": "rw-trigger-3",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A repeated delivery id starts no second run."
+        }
+      ],
+      "children": []
+    },
+    "rw-trigger-4": {
+      "id": "rw-trigger-4",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "The plugin maps GitHub's "
+        },
+        {
+          "insert": "synchronize",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " action to "
+        },
+        {
+          "insert": "head_updated",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", so the selector lists "
+        },
+        {
+          "insert": "opened",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "head_updated",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "rw-binding-lead": {
+      "id": "rw-binding-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The binding lives in the GitHub source plugin config that "
+        },
+        {
+          "insert": "ARCHON_WEBHOOK_SOURCES",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " names. The example binds the pack to pull requests on "
+        },
+        {
+          "insert": "Codecaine-AI/agent-kernel",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and maps the PR number to the input "
+        },
+        {
+          "insert": "scope",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". In the example, "
+        },
+        {
+          "insert": "hostId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", "
+        },
+        {
+          "insert": "runAsUserId",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "launch.cwd",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " hold placeholder values. The field list comes from Archon's trigger guide, "
+        },
+        {
+          "insert": "packages/docs-web/src/content/docs/guides/workflow-triggers.md",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": "."
+        }
+      ],
+      "children": []
+    },
+    "rw-binding-shape": {
+      "id": "rw-binding-shape",
+      "type": "state-shape",
+      "props": {
+        "example": "{\"bindingId\":\"agent-kernel-pre-pr-review\",\"hostId\":\"my-trigger-host\",\"runAsUserId\":\"my-archon-user-id\",\"resource\":\"github:Codecaine-AI/agent-kernel:review\",\"capacity\":1,\"overlap\":\"queue\",\"launch\":{\"cwd\":\"/path/to/agent-kernel\",\"workflowName\":\"pre-pr-review\",\"inputs\":{},\"isolation\":{\"kind\":\"in-place\"}},\"selector\":{\"kind\":\"pr.lifecycle\",\"actions\":[\"opened\",\"head_updated\"],\"repository\":{\"host\":\"github.com\",\"path\":\"Codecaine-AI/agent-kernel\"},\"predicates\":[{\"field\":\"pr.base.branch\",\"equals\":\"main\"}]},\"inputMapping\":{\"scope\":{\"source\":\"field\",\"field\":\"subject.number\"}}}",
+        "fields": [
+          {
+            "name": "bindingId",
+            "type": "string",
+            "description": "Stable id. A replayed delivery reuses the binding snapshot it first matched."
+          },
+          {
+            "name": "hostId",
+            "type": "string",
+            "description": "Must equal ARCHON_TRIGGER_HOST on the server that starts the runs."
+          },
+          {
+            "name": "runAsUserId",
+            "type": "string",
+            "description": "The Archon user the run executes as. The GitHub actor never selects it."
+          },
+          {
+            "name": "resource",
+            "type": "string",
+            "description": "Names the work that must not overlap. Every binding on it must declare the same capacity."
+          },
+          {
+            "name": "capacity",
+            "type": "integer",
+            "required": false,
+            "description": "Runs that can hold the resource at once. Default 1."
+          },
+          {
+            "name": "overlap",
+            "type": "\"queue\" | \"skip\"",
+            "description": "queue keeps the request in durable FIFO order. skip records the blocker and drops it."
+          },
+          {
+            "name": "launch",
+            "type": "object",
+            "fields": [
+              {
+                "name": "cwd",
+                "type": "string",
+                "description": "Absolute checkout path the run starts in."
+              },
+              {
+                "name": "workflowName",
+                "type": "string",
+                "description": "The workflow to start. Here the review pack."
+              },
+              {
+                "name": "inputs",
+                "type": "object",
+                "description": "Literal inputs merged with inputMapping."
+              },
+              {
+                "name": "isolation",
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "kind",
+                    "type": "string",
+                    "description": "`in-place` runs in the `cwd` checkout as it is, with no worktree. The run reviews whatever commit that checkout holds."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "selector",
+            "type": "object",
+            "fields": [
+              {
+                "name": "kind",
+                "type": "\"pr.lifecycle\"",
+                "description": "The source event kind for pull_request events."
+              },
+              {
+                "name": "actions",
+                "type": "string[]",
+                "description": "Matching lifecycle actions. The plugin maps GitHub's `synchronize` to `head_updated`."
+              },
+              {
+                "name": "repository",
+                "type": "object",
+                "fields": [
+                  {
+                    "name": "host",
+                    "type": "string"
+                  },
+                  {
+                    "name": "path",
+                    "type": "string",
+                    "description": "owner/repo"
+                  }
+                ]
+              },
+              {
+                "name": "predicates",
+                "type": "{ field, equals }[]",
+                "required": false
+              }
+            ]
+          },
+          {
+            "name": "inputMapping",
+            "type": "Record<string, { source, field | value }>",
+            "description": "source field copies an event field. source literal supplies a typed JSON value."
+          }
+        ],
+        "name": "Review pack binding",
+        "source": {
+          "path": "packages/docs-web/src/content/docs/guides/workflow-triggers.md"
+        }
+      },
+      "children": []
+    },
+    "rw-h-limits": {
+      "id": "rw-h-limits",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Known Limits"
+        }
+      ],
+      "children": []
+    },
+    "rw-limits-lead": {
+      "id": "rw-limits-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The in-place binding of version 1 has 2 known limits. Both make a run fail at "
+        },
+        {
+          "insert": "publish",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and neither posts a wrong review."
+        }
+      ],
+      "children": []
+    },
+    "rw-limit-1": {
+      "id": "rw-limit-1",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A push from another checkout can start an in-place run before the pack checkout is at that head."
+        }
+      ],
+      "children": []
+    },
+    "rw-limit-2": {
+      "id": "rw-limit-2",
+      "type": "list-item",
+      "props": {
+        "ordered": false
+      },
+      "text": [
+        {
+          "insert": "A push during a run makes that run fail at "
+        },
+        {
+          "insert": "publish",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and the queued run for the new head reviews it."
+        }
+      ],
+      "children": []
+    },
+    "rw-h-board": {
+      "id": "rw-h-board",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "Review Pack Board"
+        }
+      ],
+      "children": []
+    },
+    "rw-canvas-note": {
+      "id": "rw-canvas-note",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The board shows one run of the pack, from the "
+        },
+        {
+          "insert": "pull_request",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " binding to the outside reviewers. Teal marks the kernel bundle node "
+        },
+        {
+          "insert": "pack-context",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and orange marks the 2 mode nodes "
+        },
+        {
+          "insert": "route",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " and "
+        },
+        {
+          "insert": "extract-findings",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ". The kernel provider runs all 3 in process. Violet nodes run on Archon's Claude and Codex providers, and gray nodes are scripts or bash."
+        }
+      ],
+      "children": []
+    },
+    "rw-canvas": {
+      "id": "rw-canvas",
+      "type": "canvas",
+      "props": {
+        "src": "./assets/canvases/review-chain.canvas.json",
+        "title": "Pre-PR review pack on Archon"
+      },
+      "children": []
+    },
+    "rw-h-seq": {
+      "id": "rw-h-seq",
+      "type": "heading",
+      "props": {
+        "level": 2
+      },
+      "text": [
+        {
+          "insert": "One PR Through the Pack"
+        }
+      ],
+      "children": []
+    },
+    "rw-seq-lead": {
+      "id": "rw-seq-lead",
+      "type": "paragraph",
+      "props": {},
+      "text": [
+        {
+          "insert": "The sequence follows one PR from the delivery to the outside reviewers. Each kernel provider call upserts its own "
+        },
+        {
+          "insert": "archon-node",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " container in "
+        },
+        {
+          "insert": "trace.db",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": ", and each LLM call reaches Token Gateway with the "
+        },
+        {
+          "insert": "X-Trace-*",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " headers. The "
+        },
+        {
+          "insert": "route",
+          "attributes": {
+            "code": true
+          }
+        },
+        {
+          "insert": " decide call goes to TypeSafe directly."
+        }
+      ],
+      "children": []
+    },
+    "rw-seq": {
+      "id": "rw-seq",
+      "type": "sequence",
+      "props": {
+        "src": "./assets/sequences/one-pr-through-the-pack.sequence.json",
+        "title": "One PR through the pack"
+      },
+      "children": []
+    }
+  }
+}
