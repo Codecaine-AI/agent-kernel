@@ -3,7 +3,8 @@
  * KernelTraceReadService implementation over the kernel's local trace db:
  *
  *   - getContainerTrace   → getKernelTraceReadRows (one container subtree)
- *   - listSessionContainers → containers of kind "session" with stats
+ *   - listSessionContainers → containers of kind "session" (or the ones
+ *	 that match the kind, engine and runId filters) with stats
  *
  * Payload shapes are plain data mirroring the viewer contract (structurally
  * compatible with @codecaine-ai/agent-kernel-viewer-core's KernelTraceSessionDetail /
@@ -48,6 +49,13 @@ export interface KernelContainerSummaryPayload {
 	usageCacheRead: number;
 	usageCacheWrite: number;
 	usageCostEstimate: number | null;
+	/** Trace tags (TRACE_TAGS). Null when unset or on a database without the tag columns. */
+	engine: string | null;
+	runId: string | null;
+	nodePath: string | null;
+	invocationId: string | null;
+	attemptId: string | null;
+	loopPath: string | null;
 }
 
 export interface KernelPiSessionPayload {
@@ -142,6 +150,12 @@ export interface KernelSessionContainerSummary {
 	eventCount: number;
 	latestEventAt: string | null;
 	metadata: Record<string, unknown>;
+	engine: string | null;
+	runId: string | null;
+	nodePath: string | null;
+	invocationId: string | null;
+	attemptId: string | null;
+	loopPath: string | null;
 }
 
 export interface KernelSessionContainerList {
@@ -221,6 +235,17 @@ function metadataString(
 	return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+function traceTags(row: Container) {
+	return {
+		engine: row.engine ?? null,
+		runId: row.run_id ?? null,
+		nodePath: row.node_path ?? null,
+		invocationId: row.invocation_id ?? null,
+		attemptId: row.attempt_id ?? null,
+		loopPath: row.loop_path ?? null,
+	};
+}
+
 function toContainer(row: Container): KernelContainerSummaryPayload {
 	return {
 		id: row.id,
@@ -240,6 +265,7 @@ function toContainer(row: Container): KernelContainerSummaryPayload {
 		usageCacheRead: row.usageCacheRead,
 		usageCacheWrite: row.usageCacheWrite,
 		usageCostEstimate: row.usageCostEstimate ?? null,
+		...traceTags(row),
 	};
 }
 
@@ -361,6 +387,9 @@ export function createContainerReadService(
 			await beforeRead?.();
 			const rows = await listSessionContainersWithStats(db, {
 				kernelId,
+				kind: query.kind,
+				engine: query.engine,
+				runId: query.runId,
 				limit: query.limit ?? 100,
 			});
 
@@ -387,6 +416,7 @@ export function createContainerReadService(
 					eventCount,
 					latestEventAt,
 					metadata: (container.metadata as Record<string, unknown> | null) ?? {},
+					...traceTags(container),
 				}),
 			);
 			traceSessions.sort((a, b) =>

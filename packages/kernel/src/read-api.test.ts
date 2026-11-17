@@ -99,6 +99,31 @@ describe("createKernelTraceReadApi", () => {
 		expect(body.query.limit).toBe(3);
 	});
 
+	test("passes the kind, engine and run_id list filters to the service", async () => {
+		const queries: unknown[] = [];
+		const app = createKernelTraceReadApi({
+			async getContainerTrace() {
+				return detail;
+			},
+			async listSessionContainers(query) {
+				queries.push(query);
+				return { trace_sessions: [] };
+			},
+		});
+
+		await app.handle(new Request("http://localhost/kernel/trace-sessions?limit=3"));
+		await app.handle(
+			new Request(
+				"http://localhost/kernel/trace-sessions?kind=archon-node&engine=archon&run_id=run-a",
+			),
+		);
+
+		expect(queries).toEqual([
+			{ after: null, limit: 3 },
+			{ after: null, limit: 5000, kind: "archon-node", engine: "archon", runId: "run-a" },
+		]);
+	});
+
 	test("returns 404 for the list route when list support is absent", async () => {
 		const app = createKernelTraceReadApi({
 			async getContainerTrace() {

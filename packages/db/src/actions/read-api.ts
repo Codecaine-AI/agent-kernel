@@ -10,6 +10,7 @@ import { agentRuns } from "../schema/agent-runs";
 import { containers } from "../schema/containers";
 import { piAgentSessions } from "../schema/pi-agent-sessions";
 import { traceEvents } from "../schema/trace-events";
+import { containerTagColumns } from "../upgrade";
 import type {
   AgentRun,
   Container,
@@ -68,13 +69,21 @@ export interface SessionContainerStatsRow {
 export interface ListSessionContainersOptions {
 	/** Scope to one kernel's containers. */
 	kernelId?: string;
-	/** Container kind to list; defaults to "session". */
+	/**
+	 * Container kind to list. Defaults to "session" when no engine or runId
+	 * filter is given. With one of them, every kind matches.
+	 */
 	kind?: string;
+	/** The `engine` trace tag. */
+	engine?: string;
+	/** The `run_id` trace tag (the engine's own run id). */
+	runId?: string;
 	limit?: number;
 }
 
 /**
- * Containers of kind "session" (newest first) with the per-container pi
+ * Containers of kind "session", or the containers that match the given
+ * kind and trace tag filters (newest first), with the per-container pi
  * session count, event count, and latest event timestamp — the rows behind
  * the trace-sessions index.
  */
@@ -83,9 +92,24 @@ export async function listSessionContainersWithStats(
 	opts: ListSessionContainersOptions = {},
 ): Promise<SessionContainerStatsRow[]> {
 	const limit = clampLimit(opts.limit, 100, 500);
-	const kind = opts.kind ?? "session";
-	const conditions: SQL[] = [eq(containers.kind, kind)];
+	const tagFilters = [
+		["engine", opts.engine],
+		["run_id", opts.runId],
+	] as const;
+	const filtersByTag = tagFilters.some(([, value]) => value);
+	const kind = opts.kind ?? (filtersByTag ? undefined : "session");
+	const conditions: SQL[] = [];
+	if (kind) conditions.push(eq(containers.kind, kind));
 	if (opts.kernelId) conditions.push(eq(containers.kernelId, opts.kernelId));
+	if (filtersByTag) {
+		// A database without the tag columns has no tagged containers.
+		const present = containerTagColumns(db);
+		for (const [tag, value] of tagFilters) {
+			if (!value) continue;
+			if (!present.has(tag)) return [];
+			conditions.push(eq(containers[tag], value));
+		}
+	}
 
 	const rows = await db
 		.select(containerSelection(db))

@@ -13,6 +13,10 @@ import { Elysia } from "elysia";
 export interface KernelTraceReadQuery {
 	after?: string | null;
 	limit?: number;
+	/** List filters (trace-sessions only): container kind and trace tags. */
+	kind?: string;
+	engine?: string;
+	runId?: string;
 }
 
 /**
@@ -33,7 +37,8 @@ export interface KernelTraceReadService<TDetail = unknown, TList = unknown> {
 	) => Promise<TDetail | null | undefined>;
 	/**
 	 * Optional list support: containers of kind "session" for the
-	 * trace-sessions index. When absent the list route answers 404.
+	 * trace-sessions index, or the containers that match the kind, engine
+	 * and runId filters. When absent the list route answers 404.
 	 */
 	listSessionContainers?: (query: KernelTraceReadQuery) => Promise<TList>;
 	/**
@@ -130,7 +135,12 @@ export function createKernelTraceReadApi<TDetail = unknown, TList = unknown>(
 			}
 
 			try {
-				return await service.listSessionContainers(makeQuery(query));
+				return await service.listSessionContainers({
+					...makeQuery(query),
+					...(query.kind && { kind: query.kind }),
+					...(query.engine && { engine: query.engine }),
+					...(query.run_id && { runId: query.run_id }),
+				});
 			} catch (error) {
 				console.error("Error listing kernel session containers:", error);
 				set.status = 500;
