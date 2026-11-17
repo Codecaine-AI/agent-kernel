@@ -103,13 +103,10 @@ function main(): void {
   const url = new URL(view.url);
   const repo = url.pathname.split('/').slice(1, 3).join('/');
   const repoArg = `${url.hostname}/${repo}`;
-  const comments =
-    reviewedHead !== undefined && reviewedHead !== view.headRefOid
-      ? [] // the head moved: decideTag refuses without reading them
-      : gh(['api', '--hostname', url.hostname, '--paginate', `repos/${repo}/issues/${String(view.number)}/comments`, '--jq', '.[].body | @json'])
-          .split('\n')
-          .filter(line => line !== '')
-          .map(line => JSON.parse(line) as string);
+  const comments = gh(['api', '--hostname', url.hostname, '--paginate', `repos/${repo}/issues/${String(view.number)}/comments`, '--jq', '.[].body | @json'])
+    .split('\n')
+    .filter(line => line !== '')
+    .map(line => JSON.parse(line) as string);
   // Read the head again after the comments, the last read before the post, so a push
   // during pagination refuses too. The read and the post are still not atomic.
   const liveHead = gh(['pr', 'view', String(view.number), '--repo', repoArg, '--json', 'headRefOid', '-q', '.headRefOid']);
