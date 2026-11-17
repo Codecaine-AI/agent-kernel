@@ -1999,13 +1999,31 @@
                 "insert": "The kernel declares "
               },
               {
-                "insert": ">=1.3.0 <1.5.0",
+                "insert": "^1.5.0",
                 "attributes": {
                   "code": true
                 }
               },
               {
-                "insert": ", and the Core lockfile resolves 1.4.0. GameCube declares "
+                "insert": " and "
+              },
+              {
+                "insert": "typebox",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " "
+              },
+              {
+                "insert": "1.3.27",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ", the version Pi 1.5 pins. GameCube declares "
               },
               {
                 "insert": "^1.0.4",
@@ -2046,7 +2064,7 @@
                 }
               },
               {
-                "insert": ", and the kernel imports "
+                "insert": ", so the kernel imports "
               },
               {
                 "insert": "Type",
@@ -2055,7 +2073,34 @@
                 }
               },
               {
-                "insert": " from there."
+                "insert": " from "
+              },
+              {
+                "insert": "typebox",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": ". A second "
+              },
+              {
+                "insert": "typebox",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": " copy can give tool types that do not match Pi's "
+              },
+              {
+                "insert": "ToolDefinition",
+                "attributes": {
+                  "code": true
+                }
+              },
+              {
+                "insert": "."
               }
             ],
             [
