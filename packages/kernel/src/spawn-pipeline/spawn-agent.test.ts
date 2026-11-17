@@ -14,7 +14,8 @@ import {
 	openKernelDatabase,
 	type KernelDatabaseHandle,
 } from "@codecaine-ai/agent-kernel-db";
-import { fauxAssistantMessage, fauxProvider, Type } from "@earendil-works/pi-ai";
+import { fauxAssistantMessage, fauxProvider } from "@earendil-works/pi-ai";
+import { Type } from "typebox";
 import type { ExtensionContext, ExtensionFactory } from "@earendil-works/pi-coding-agent";
 
 import { createKernel, type KernelInstance } from "../index";

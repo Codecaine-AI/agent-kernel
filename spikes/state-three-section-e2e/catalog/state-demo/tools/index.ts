@@ -4,7 +4,7 @@
  * must never split).
  */
 import { defineTools } from "@codecaine-ai/agent-kernel/agent-definition";
-import { Type } from "@earendil-works/pi-ai";
+import { Type } from "typebox";
 
 export const tools = defineTools((pi) => {
 	pi.registerTool({

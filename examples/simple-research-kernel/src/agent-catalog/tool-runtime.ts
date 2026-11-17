@@ -1,5 +1,5 @@
 import { defineSpawnerTool } from "@codecaine-ai/agent-kernel/agent-definition";
-import { Type } from "@earendil-works/pi-ai";
+import { Type } from "typebox";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 export type ToolTextResult = {

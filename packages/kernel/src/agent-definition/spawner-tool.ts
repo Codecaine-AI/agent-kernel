@@ -15,7 +15,7 @@
  * `parentToolUseId`, `trigger: "parent-tool"`, and the current run-context
  * identity automatically, so the tool author cannot get these wrong.
  */
-import type { Static, TSchema } from "@earendil-works/pi-ai";
+import type { Static, TSchema } from "typebox";
 import type {
 	AgentToolResult,
 	ToolDefinition,
