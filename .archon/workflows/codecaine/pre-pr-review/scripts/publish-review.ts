@@ -18,11 +18,13 @@
  * commit is recorded beside the report as the next round's cursor.
  *
  * Bound inputs (`with:` bindings, canonical text in env):
- * - INPUTS_SCOPE: the review's requested scope. A caller can pass a recorded
- *   pull request here as JSON, and that record is then the only write target.
+ * - INPUTS_SCOPE: the review's requested scope. When it names a pull request (a
+ *   number or `#number` in the checkout's repository, a URL, or a recorded pull
+ *   request as JSON; ../../.shared/scope.ts), that pull request is the only write
+ *   target, and the declaration must be it: same host, repository and number.
  * - INPUTS_PR: the qualified pull request the scope agent declared it reviewed,
- *   or `null` for a working diff. It names the target of a standalone review. When
- *   the scope is a bare pull-request number, the declaration must carry it.
+ *   or `null` for a working diff. It names the target only when the scope names
+ *   none: an empty scope or a branch.
  * - INPUTS_REPORT: path to the report this node publishes.
  * - INPUTS_HEAD: the commit this round reviewed, as review-round fixed it.
  * - INPUTS_READY / INPUTS_ACTION / INPUTS_SUMMARY / INPUTS_REPORT_POINTER /
@@ -33,26 +35,11 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { nodeStartCommit } from '../../.shared/checkout.ts';
-import { upsertComment, viewPr } from '../../.shared/pr.ts';
-import {
-  parseQualifiedPr,
-  record,
-  sameRepo,
-  type QualifiedPr,
-} from '../../.shared/forge.ts';
+import { checkoutRepos, resolvePrUrl, upsertComment, viewPr } from '../../.shared/pr.ts';
+import { parseQualifiedPr, type QualifiedPr } from '../../.shared/forge.ts';
 import { emit, note, refuse, text } from '../../.shared/io.ts';
 import { REVIEW_MARKER, reviewCommentBody } from '../../.shared/review-comment.ts';
-
-/** The pull request the scope records, when the scope is that JSON record. */
-function recordedPr(scope: string): QualifiedPr | undefined {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(scope);
-  } catch {
-    return undefined; // a PR URL, a branch name, or empty
-  }
-  return record(parsed) ? parseQualifiedPr(scope) : undefined;
-}
+import { declaredMismatch, prLabel as label, scopeIdentity } from '../../.shared/scope.ts';
 
 /** The pull request the scope agent declared, or undefined for a working diff. */
 function declaredPr(value: string): QualifiedPr | undefined {
@@ -63,10 +50,6 @@ function declaredPr(value: string): QualifiedPr | undefined {
     return undefined;
   }
   return parseQualifiedPr(target);
-}
-
-function label(pr: QualifiedPr | undefined): string {
-  return pr ? `${pr.repo.host}/${pr.repo.path}#${String(pr.number)}` : 'no pull request';
 }
 
 try {
@@ -80,17 +63,12 @@ try {
   };
   // Complete only on an empty list: a review that left anything open never lets a merge close the issue.
   const coverage = Array.isArray(verdict.contract_left) && verdict.contract_left.length === 0 ? 'complete' : 'open';
-  const recorded = recordedPr(text(process.env.INPUTS_SCOPE));
   const declared = declaredPr(text(process.env.INPUTS_PR));
-  // A bare number, such as the trigger's subject.number, names the pull request too,
-  // so the scope agent's declaration must carry that number.
-  const asked = /^[1-9][0-9]*$/.test(text(process.env.INPUTS_SCOPE).trim())
-    ? Number(text(process.env.INPUTS_SCOPE).trim())
-    : undefined;
-  if (asked !== undefined && declared?.number !== asked) {
-    throw new Error(`the review scope is pull request #${String(asked)}, but the scope agent declared ${label(declared)}`);
-  }
-  const pr = recorded ?? declared;
+  // The pull request the scope names, from the scope and forge facts alone, never from
+  // the declaration it checks. A bare number, such as the trigger's subject.number,
+  // names one in the checkout's repository.
+  const asked = scopeIdentity(text(process.env.INPUTS_SCOPE), { prAtUrl: resolvePrUrl, checkoutRepos });
+  const pr = asked ?? declared;
   const head = text(process.env.INPUTS_HEAD).trim();
   const reportPath = text(process.env.INPUTS_REPORT);
   const report = readFileSync(reportPath, 'utf8');
@@ -107,14 +85,8 @@ try {
       );
     }
   }
-  if (
-    recorded &&
-    (declared?.number !== recorded.number || !sameRepo(declared.repo, recorded.repo))
-  ) {
-    throw new Error(
-      `the review scope declared ${label(declared)}, but the scope records ${label(recorded)}`
-    );
-  }
+  const mismatch = asked && declaredMismatch(asked, declared);
+  if (mismatch) throw new Error(mismatch);
   if (!pr) {
     note('publish-review: the review scope is a working diff, so no comment was published.');
   } else {

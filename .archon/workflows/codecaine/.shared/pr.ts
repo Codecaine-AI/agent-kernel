@@ -26,6 +26,27 @@ export function resolvePrUrl(url: string): QualifiedPr | undefined {
   return { repo, number: subject.number };
 }
 
+/**
+ * The repositories the remotes of the checkout in the working directory name, as the
+ * forge plugin resolves each remote URL. A remote no installed plugin resolves, such as
+ * a local path, names none. `git remote get-url` applies the URL rewrites git applies.
+ */
+export function checkoutRepos(): QualifiedPr['repo'][] {
+  const git = (args: string[]): string => {
+    const result = Bun.spawnSync(['git', ...args], { stdout: 'pipe', stderr: 'pipe' });
+    if (result.exitCode !== 0) throw new Error(`git ${args.join(' ')} failed: ${result.stderr.toString().trim()}`);
+    return result.stdout.toString();
+  };
+  const lines = (output: string): string[] => output.split('\n').map(line => line.trim()).filter(line => line !== '');
+  return lines(git(['remote']))
+    .flatMap(remote => lines(git(['remote', 'get-url', '--all', remote])))
+    .flatMap(url => {
+      const value = invokeForge('resolve', { remote: url });
+      const repo = value?.kind === 'resolved' ? qualifiedRepo(value.repo) : undefined;
+      return repo === undefined ? [] : [repo];
+    });
+}
+
 /** The pull request a web URL names; a URL that names none refuses. */
 export function prFromUrl(url: string): QualifiedPr {
   const pr = resolvePrUrl(url);
