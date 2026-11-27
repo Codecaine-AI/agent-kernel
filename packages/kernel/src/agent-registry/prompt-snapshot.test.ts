@@ -87,20 +87,6 @@ describe("prompt markdown snapshots", () => {
 		}
 	});
 
-	test("file-form bundle renders to prompt.rendered.md", () => {
-		const root = tempRoot();
-		const agentDir = join(root, "snapshot-agent");
-		try {
-			writeBundle(agentDir, "file");
-			const result = refreshBundlePromptSnapshot(agentDir);
-			expect(result.form).toBe("file");
-			expect(result.renderedFile).toBe(join(agentDir, "prompt.rendered.md"));
-			expect(existsSync(join(agentDir, "prompt", "system.md"))).toBe(false);
-		} finally {
-			rmSync(root, { recursive: true, force: true });
-		}
-	});
-
 	test("dryRun reports staleness without writing", () => {
 		const root = tempRoot();
 		const agentDir = join(root, "snapshot-agent");

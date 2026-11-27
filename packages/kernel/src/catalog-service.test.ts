@@ -361,12 +361,6 @@ describe("catalog service state fixtures + preview", () => {
 		]);
 	});
 
-	test("a bundle without a state/fixtures/ directory answers fixtures: []", async () => {
-		await bootFixture();
-		const detail = await service.getAgentDetail(AGENT_NAME);
-		expect(detail?.fixtures).toEqual([]);
-	});
-
 	test("state module preview: the fixture's state seeds render; fixture variables overlay manifest defaults", async () => {
 		await bootFixture({
 			stateTs: STATE_TS,

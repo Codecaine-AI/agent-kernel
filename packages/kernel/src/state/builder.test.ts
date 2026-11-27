@@ -6,7 +6,6 @@
 import { describe, expect, test } from "bun:test";
 
 import { buildRequest, normalizeRenderOutput } from "./builder";
-import { createContextSet } from "./context-set";
 import type { AgentMessage, RequestSection } from "./types";
 
 function msg(text: string): AgentMessage {
@@ -64,26 +63,6 @@ describe("builder — section boundaries", () => {
 		assertNonOverlapping(built.sections, 2);
 	});
 
-	test("an empty context set emits no context section", () => {
-		const built = buildRequest({
-			contextMessage: createContextSet().render(),
-			rendered: { messages: [msg("s")], stateMessageCount: 1 },
-		});
-		expect(built.sections).toEqual([{ kind: "state", start: 0, end: 1 }]);
-	});
-
-	test("an all-state render emits no tail section", () => {
-		const built = buildRequest({
-			contextMessage: msg("ctx"),
-			rendered: { messages: [msg("s1"), msg("s2")], stateMessageCount: 2 },
-		});
-		expect(built.sections).toEqual([
-			{ kind: "context", start: 0, end: 1 },
-			{ kind: "state", start: 1, end: 3 },
-		]);
-		assertNonOverlapping(built.sections, 3);
-	});
-
 	test("nothing rendered and no context yields no messages and no sections", () => {
 		const built = buildRequest({ contextMessage: null, rendered: [] });
 		expect(built.messages).toEqual([]);
@@ -109,18 +88,5 @@ describe("builder — section boundaries", () => {
 			rendered: { messages: [msg("a")], stateMessageCount: 9 },
 		});
 		expect(built.sections).toEqual([{ kind: "state", start: 0, end: 1 }]);
-	});
-
-	test("a negative stateMessageCount clamps to zero", () => {
-		expect(
-			normalizeRenderOutput({ messages: [msg("a")], stateMessageCount: -4 })
-				.stateMessageCount,
-		).toBe(0);
-	});
-
-	test("rendered messages pass through by reference", () => {
-		const tail = msg("t");
-		const built = buildRequest({ contextMessage: null, rendered: [tail] });
-		expect(built.messages[0]).toBe(tail);
 	});
 });

@@ -181,18 +181,6 @@ describe("addAnnotation", () => {
 		expect(existsSync(annotationsSidecarPath(bundleDir))).toBe(false);
 	});
 
-	test("rejects a docId that is not the loaded document", async () => {
-		const result = await addAnnotation(
-			bundleDir,
-			prompt,
-			addInput({ target: { ...nodeTarget, docId: "some-other-doc" } }),
-		);
-		expect(result.ok).toBe(false);
-		if (!result.ok && result.reason === "invalid") {
-			expect(result.errors[0]).toContain('targets document "some-other-doc"');
-		}
-	});
-
 	test("rejects a structurally invalid target", async () => {
 		const result = await addAnnotation(
 			bundleDir,

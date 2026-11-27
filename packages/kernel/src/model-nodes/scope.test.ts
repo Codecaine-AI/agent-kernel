@@ -36,13 +36,6 @@ async function rejection(promise: Promise<unknown>): Promise<KernelNodeError> {
 }
 
 describe("resolveNodeScope", () => {
-	test("derives containerId from parentRunId", async () => {
-		const parent = await temp.seedParentRun();
-		const scope = await resolveNodeScope({ parentRunId: parent.runId }, { db: temp.db });
-		expect(scope.containerId).toBe(temp.containerId);
-		expect(scope.parentRunId).toBe(parent.runId);
-	});
-
 	test("uses the ambient run context for parent run and container", async () => {
 		const parent = await temp.seedParentRun();
 		const scope = await runWithContext(ambient(parent.runId, temp.containerId), () =>

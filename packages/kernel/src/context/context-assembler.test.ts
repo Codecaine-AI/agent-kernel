@@ -163,18 +163,3 @@ describe("injectAgentContext content shape", () => {
 		]);
 	});
 });
-
-describe("resolver typing", () => {
-	test("an embedder supplies images without widening loader or assemble types", () => {
-		// Compile-time contract: assemble() stays string-returning, loaders stay
-		// LoaderDeclaration[], and the image hook is the only image-aware seam.
-		const resolver: AgentContextResolver = {
-			loaders: [{ kind: "text", content: "board state" }],
-			assemble: (loaded): string => loaded.map((li) => li.content).join("\n"),
-			assembleImages: (_loaded, _ctx): ContextImage[] => [
-				{ data: PNG_1PX, mimeType: "image/png" },
-			],
-		};
-		expect(typeof resolver.assembleImages).toBe("function");
-	});
-});

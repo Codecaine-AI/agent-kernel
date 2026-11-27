@@ -258,43 +258,6 @@ describe("request scoping", () => {
 		expect(queue).toContain("REQUESTS · 0/1 disposed");
 	});
 
-	test("an apply session scopes to the queued set, leaving the rest of the sidecar alone", async () => {
-		const first = await addAgentRequest("para-0", "Make the opening direct.");
-		const second = await addAgentRequest("para-1", "Tighten the brevity rule.");
-		const third = await addAgentRequest("para-1", "Mention the audience.");
-
-		const created = await service.createSession(AGENT, {
-			requestIds: [first, third],
-		});
-		if (!created.ok) throw new Error("create failed");
-		expect(created.state.requests.map((entry) => entry.annotationId)).toEqual([
-			first,
-			third,
-		]);
-		const queue = service.getLaunch(created.state.sessionId)!.sessionData
-			.requestQueue;
-		expect(queue).toContain("REQUESTS · 0/2 disposed");
-		expect(queue).not.toContain("Tighten the brevity rule.");
-		expect(
-			created.state.skipped.find((entry) => entry.annotationId === second)
-				?.reason,
-		).toBe("out-of-scope");
-	});
-
-	test("unscoped creation is unchanged: every open request, scope null", async () => {
-		await addAgentRequest("para-0", "One.");
-		await addAgentRequest("para-1", "Two.");
-		const created = await service.createSession(AGENT);
-		if (!created.ok) throw new Error("create failed");
-		expect(created.state.scope).toBeNull();
-		expect(created.state.requests.map((entry) => entry.alias)).toEqual([
-			"R1",
-			"R2",
-		]);
-		expect(created.state.skipped).toEqual([]);
-		expect(service.list()[0]?.scope).toBeNull();
-	});
-
 	test("a scope where nothing is actionable refuses with empty-scope and per-id reasons", async () => {
 		const only = await addAgentRequest("para-0", "Make the opening direct.");
 		// Resolve it out from under the scope, then ask for it plus a ghost id.

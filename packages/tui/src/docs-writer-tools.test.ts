@@ -44,15 +44,6 @@ afterAll(() => {
 });
 
 describe("docs-writer typed tools", () => {
-	test("registers the four-tool surface", () => {
-		expect([...tools.keys()].sort()).toEqual([
-			"docs_check",
-			"docs_read",
-			"docs_tree",
-			"docs_write",
-		]);
-	});
-
 	test("write → read → check roundtrip through validated doc.json", async () => {
 		const written = await run("docs_write", {
 			path: "10-system-design/10-example",

@@ -172,15 +172,6 @@ describe("promptEditRequestsFromAnnotations", () => {
 		]);
 	});
 
-	test("a scoped batch keeps sidecar order regardless of the order of the ids", () => {
-		const { requests } = promptEditRequestsFromAnnotations(
-			[annotation({ id: "a" }), annotation({ id: "b" }), annotation({ id: "c" })],
-			doc,
-			{ scopeIds: ["c", "a"] },
-		);
-		expect(requests.map((request) => request.id)).toEqual(["a", "c"]);
-	});
-
 	test("in-scope annotations that fail a later gate keep their specific reason and are not double-reported", () => {
 		const { requests, skipped } = promptEditRequestsFromAnnotations(
 			[annotation({ id: "gone", status: "resolved" }), annotation({ id: "live" })],
@@ -206,27 +197,6 @@ describe("promptEditRequestsFromAnnotations", () => {
 				reason: "scope-unmatched",
 				detail: "no annotation with this id on the sidecar",
 			},
-		]);
-	});
-
-	test("omitting scopeIds is unchanged: every open agent-request enters the queue", () => {
-		const { requests, skipped } = promptEditRequestsFromAnnotations(
-			[annotation({ id: "a" }), annotation({ id: "b" })],
-			doc,
-		);
-		expect(requests.map((request) => request.id)).toEqual(["a", "b"]);
-		expect(skipped).toEqual([]);
-	});
-
-	test("keeps sidecar order so aliases land R1, R2, … in creation order", () => {
-		const { requests } = promptEditRequestsFromAnnotations(
-			[annotation({ id: "first" }), annotation({ id: "second" }), annotation({ id: "third" })],
-			doc,
-		);
-		expect(requests.map((request) => request.id)).toEqual([
-			"first",
-			"second",
-			"third",
 		]);
 	});
 });

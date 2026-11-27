@@ -342,6 +342,7 @@ describe("manifest agent registry (agent.json)", () => {
 		}
 	});
 
+	// regression: 6df90cc
 	test("boot accepts a required variable and an optional variable side by side", async () => {
 		const root = tempRoot();
 		try {

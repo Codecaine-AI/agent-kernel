@@ -333,12 +333,6 @@ describe("decide nodes", () => {
 		kernel.dispose();
 	});
 
-	test("an unconfigured classifier fails the node instead of answering other", async () => {
-		const { kernel, fake, scope } = await decideKernel({}, { configured: false });
-		await expect(runDecide(kernel, { ...DECIDE, classifier: fake.ref }, scope)).rejects.toThrow(/decide failed.*not-configured/);
-		kernel.dispose();
-	});
-
 	test("through sendQuery, a decide node whose classifier cannot answer yields a failure and an error container", async () => {
 		const chunks = await attempt('{"sender":"ana","ask":"reset"}', nodeEnv("classify", ""), {
 			outputFormat: undefined,

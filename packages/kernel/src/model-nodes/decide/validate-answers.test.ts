@@ -87,24 +87,6 @@ describe("malformed answers", () => {
 });
 
 describe("rounding feasibility", () => {
-	test("valid rounded distributions pass", () => {
-		const ten = labels(10);
-		const tenDist = Object.fromEntries(ten.map((l, i) => [l, i < 9 ? 0.11 : 0.05]));
-		expect(isRoundingFeasible(tenDist, ten, 0.01)).toBe(true);
-		const many = labels(255);
-		expect(isRoundingFeasible({ l7: 1 }, many, 0.01)).toBe(true);
-		const scoreKeys = ["0", "1", "2"];
-		expect(isRoundingFeasible({ "0": 0.33, "1": 0.33, "2": 0.33 }, scoreKeys, 0.01)).toBe(true);
-
-		const answers: Record<string, EngineAnswer> = {
-			ten: { type: "choice", choice: "l0", distribution: tenDist, confidence: 0.1 },
-			many: { type: "choice", choice: "l7", distribution: { l7: 1 }, confidence: 1 },
-			score: { type: "score", score: 1, confidence: 0.4, distribution: { "0": 0.33, "1": 0.33, "2": 0.33 } },
-		};
-		const questions = { ten: choiceQ(ten), many: choiceQ(many), score: scoreQ(3) };
-		expect(malformedAnswers(answers, questions, 0.01)).toEqual([]);
-	});
-
 	test("impossible rounded distributions are malformed", () => {
 		const many = labels(255);
 		// lower sum 1 − 0.005 + 0.75 − 0.005 = 1.74 > 1

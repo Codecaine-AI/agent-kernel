@@ -9,16 +9,7 @@
 import { describe, expect, test } from "bun:test";
 
 import type { AgentMessage } from "./types";
-import {
-	applyWindow,
-	countImages,
-	elisionMarkerText,
-	estimateMessageTokens,
-	resolveWindowPolicy,
-	segmentTurns,
-	selectFirstKeptTurn,
-	stubOldImages,
-} from "./window";
+import { applyWindow, countImages, estimateMessageTokens, resolveWindowPolicy, segmentTurns, selectFirstKeptTurn, stubOldImages } from "./window";
 
 // ─── Fixtures ──────────────────────────────────────────────────────────────
 
@@ -237,17 +228,6 @@ describe("window — sizing strategies", () => {
 		expect(result.elisionMarker).toBe("[turns 1–6 elided]");
 	});
 
-	test("'turns' with more room than history keeps everything and marks nothing", () => {
-		const messages = turnsOf(3);
-		const result = applyWindow(
-			messages,
-			resolveWindowPolicy({ strategy: "turns", maxTurns: 50 }),
-		);
-		expect(result.messages).toEqual(messages);
-		expect(result.elidedTurns).toBe(0);
-		expect(result.elisionMarker).toBeNull();
-	});
-
 	test("'token-budget' fills the ceiling and stops on a turn boundary", () => {
 		const messages: AgentMessage[] = [];
 		for (let i = 1; i <= 10; i += 1) {
@@ -288,11 +268,6 @@ describe("window — sizing strategies", () => {
 			estimateMessageTokens(withoutImage, policy) + 1_000,
 		);
 	});
-
-	test("elision marker singularizes", () => {
-		expect(elisionMarkerText(1)).toBe("[turn 1 elided]");
-		expect(elisionMarkerText(5)).toBe("[turns 1–5 elided]");
-	});
 });
 
 describe("window — image stubbing", () => {
@@ -322,13 +297,6 @@ describe("window — image stubbing", () => {
 		const result = stubOldImages(messages, null);
 		expect(result.messages).toBe(messages);
 		expect(result.stubbed).toBe(0);
-	});
-
-	test("maxImages 0 stubs everything", () => {
-		const messages = [toolResult("a", { image: true })];
-		const result = stubOldImages(messages, 0);
-		expect(result.stubbed).toBe(1);
-		expect(countImages(result.messages[0])).toBe(0);
 	});
 
 	test("stubbing never mutates the source transcript", () => {

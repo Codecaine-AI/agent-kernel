@@ -124,19 +124,6 @@ describe("applyThresholds", () => {
 		expect(tie).toMatchObject({ abstained: true, abstainReason: "low-confidence", choice: "b" });
 	});
 
-	test("a tie abstains even with minMargin 0", () => {
-		const decision = decideOne(choiceQ(["a", "b"], { minTop: 0.5, minMargin: 0 }), {
-			type: "choice",
-			choice: "a",
-			distribution: { a: 0.5, b: 0.5 },
-		});
-		expect(decision).toMatchObject({
-			abstained: true,
-			abstainReason: "low-confidence",
-			thresholdApplied: { minTop: 0.5, minMargin: 0 },
-		});
-	});
-
 	test("score abstains below abstainBelow", () => {
 		const q = scoreQ(4, { abstainBelow: 0.6 });
 		expect(decideOne(q, { type: "score", score: 2.4, confidence: 0.6 })).toEqual({

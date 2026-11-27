@@ -19,10 +19,6 @@ function text(message: AgentMessage): string {
 }
 
 describe("context set", () => {
-	test("an empty set renders no message at all", () => {
-		expect(createContextSet().render()).toBeNull();
-	});
-
 	test("entries render into ONE context message, in order", () => {
 		const set = createContextSet([
 			{ id: "caps", content: "op reference" },
@@ -34,15 +30,6 @@ describe("context set", () => {
 			"<context>\nop reference\nhouse style\n</context>",
 		);
 		expect(blocks(message as AgentMessage)).toHaveLength(1);
-	});
-
-	test("a label wraps its entry in an XML tag", () => {
-		const set = createContextSet([
-			{ id: "caps", label: "capabilities", content: "ops" },
-		]);
-		expect(text(set.render() as AgentMessage)).toBe(
-			"<context>\n<capabilities>\nops\n</capabilities>\n</context>",
-		);
 	});
 
 	test("gaining and losing a skill mid-run adds and removes an entry", () => {

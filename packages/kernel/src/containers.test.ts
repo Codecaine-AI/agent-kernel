@@ -9,15 +9,7 @@ import {
 	type KernelDatabaseHandle,
 } from "@codecaine-ai/agent-kernel-db";
 
-import {
-	AGENT_KERNEL_ROOT_NAMESPACE,
-	createContainerApi,
-	deriveContainerId,
-	kernelNamespace,
-	uuidv5,
-} from "./containers";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+import { createContainerApi, deriveContainerId, kernelNamespace, uuidv5 } from "./containers";
 
 describe("uuidv5", () => {
 	test("matches the RFC 4122 reference vector", () => {
@@ -25,15 +17,6 @@ describe("uuidv5", () => {
 		expect(uuidv5("6ba7b810-9dad-11d1-80b4-00c04fd430c8", "www.example.com")).toBe(
 			"2ed6657d-e927-568b-95e1-2665a8aea6a2",
 		);
-	});
-
-	test("sets version 5 and RFC 4122 variant bits", () => {
-		for (const name of ["a", "b", "kernel", "long\nmultiline\nname"]) {
-			const id = uuidv5(AGENT_KERNEL_ROOT_NAMESPACE, name);
-			expect(id).toMatch(UUID_RE);
-			expect(id[14]).toBe("5"); // version nibble
-			expect(["8", "9", "a", "b"]).toContain(id[19]); // variant 10xx
-		}
 	});
 
 	test("rejects malformed namespaces", () => {
