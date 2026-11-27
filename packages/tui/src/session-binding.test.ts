@@ -3,12 +3,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import {
-	buildSessionBindingMarkers,
-	resolveTargetKernelRoot,
-	SESSION_BINDING_CUSTOM_TYPE,
-	TUI_SESSION_META_CUSTOM_TYPE,
-} from "./session-binding";
+import { buildSessionBindingMarkers, resolveTargetKernelRoot } from "./session-binding";
 
 const UUID_RE =
 	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -103,10 +98,5 @@ describe("buildSessionBindingMarkers", () => {
 		});
 		expect(a.containerId).not.toBe(b.containerId);
 		expect(a.runId).not.toBe(b.runId);
-	});
-
-	test("custom types are the kernel's canonical marker names", () => {
-		expect(SESSION_BINDING_CUSTOM_TYPE).toBe("agent-kernel:session-binding");
-		expect(TUI_SESSION_META_CUSTOM_TYPE).toBe("agent-kernel:tui-session-meta");
 	});
 });

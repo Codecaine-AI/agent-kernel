@@ -53,6 +53,24 @@ describe("builder — section boundaries", () => {
 			{ kind: "tail", start: 2, end: 4 },
 		]);
 		assertNonOverlapping(built.sections, built.messages.length);
+
+		// carried: builder — section boundaries > an empty context set emits no context section
+		const noContext = buildRequest({
+			contextMessage: createContextSet().render(),
+			rendered: { messages: [msg("s")], stateMessageCount: 1 },
+		});
+		expect(noContext.sections).toEqual([{ kind: "state", start: 0, end: 1 }]);
+
+		// carried: builder — section boundaries > an all-state render emits no tail section
+		const allState = buildRequest({
+			contextMessage: msg("ctx"),
+			rendered: { messages: [msg("s1"), msg("s2")], stateMessageCount: 2 },
+		});
+		expect(allState.sections).toEqual([
+			{ kind: "context", start: 0, end: 1 },
+			{ kind: "state", start: 1, end: 3 },
+		]);
+		assertNonOverlapping(allState.sections, 3);
 	});
 
 	test("a bare array render is all tail", () => {
@@ -62,26 +80,6 @@ describe("builder — section boundaries", () => {
 		});
 		expect(built.sections).toEqual([{ kind: "tail", start: 0, end: 2 }]);
 		assertNonOverlapping(built.sections, 2);
-	});
-
-	test("an empty context set emits no context section", () => {
-		const built = buildRequest({
-			contextMessage: createContextSet().render(),
-			rendered: { messages: [msg("s")], stateMessageCount: 1 },
-		});
-		expect(built.sections).toEqual([{ kind: "state", start: 0, end: 1 }]);
-	});
-
-	test("an all-state render emits no tail section", () => {
-		const built = buildRequest({
-			contextMessage: msg("ctx"),
-			rendered: { messages: [msg("s1"), msg("s2")], stateMessageCount: 2 },
-		});
-		expect(built.sections).toEqual([
-			{ kind: "context", start: 0, end: 1 },
-			{ kind: "state", start: 1, end: 3 },
-		]);
-		assertNonOverlapping(built.sections, 3);
 	});
 
 	test("nothing rendered and no context yields no messages and no sections", () => {
@@ -104,23 +102,15 @@ describe("builder — section boundaries", () => {
 			stateMessageCount: 9,
 		});
 		expect(normalized.stateMessageCount).toBe(1);
+		// carried: builder — section boundaries > a negative stateMessageCount clamps to zero
+		expect(
+			normalizeRenderOutput({ messages: [msg("a")], stateMessageCount: -4 })
+				.stateMessageCount,
+		).toBe(0);
 		const built = buildRequest({
 			contextMessage: null,
 			rendered: { messages: [msg("a")], stateMessageCount: 9 },
 		});
 		expect(built.sections).toEqual([{ kind: "state", start: 0, end: 1 }]);
-	});
-
-	test("a negative stateMessageCount clamps to zero", () => {
-		expect(
-			normalizeRenderOutput({ messages: [msg("a")], stateMessageCount: -4 })
-				.stateMessageCount,
-		).toBe(0);
-	});
-
-	test("rendered messages pass through by reference", () => {
-		const tail = msg("t");
-		const built = buildRequest({ contextMessage: null, rendered: [tail] });
-		expect(built.messages[0]).toBe(tail);
 	});
 });

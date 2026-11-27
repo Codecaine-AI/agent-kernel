@@ -533,6 +533,7 @@ describe("kernel.decide", () => {
 		await expectDoctorOk(temp.tempDb.db);
 	});
 
+	// regression: e91003e
 	test("a late success after the operation deadline ends aborted with kind timeout", async () => {
 		// Deadline 50 + 50 ms grace; the engine ignores the signal and answers well after it.
 		const engine = scriptedEngine(async () => {

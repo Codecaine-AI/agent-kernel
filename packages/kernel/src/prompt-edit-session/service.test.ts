@@ -173,7 +173,7 @@ describe("createSession", () => {
 	});
 
 	test("annotation-derived state snapshot with review overlay defaults", async () => {
-		await addAgentRequest("para-0", "Make the opening direct.");
+		const seeded = await addAgentRequest("para-0", "Make the opening direct.");
 		const created = await service.createSession(AGENT, { instruction: "Go." });
 		expect(created.ok).toBe(true);
 		if (!created.ok) return;
@@ -196,6 +196,22 @@ describe("createSession", () => {
 		expect(service.list().map((row) => row.sessionId)).toEqual([
 			state.sessionId,
 		]);
+
+		// carried: request scoping > unscoped creation is unchanged: every open request, scope null
+		// Fresh fixture: release the agent and empty the sidecar first.
+		expect(service.dispose(state.sessionId)).toBe(true);
+		expect((await catalog.removeAnnotation(AGENT, seeded))?.ok).toBe(true);
+		await addAgentRequest("para-0", "One.");
+		await addAgentRequest("para-1", "Two.");
+		const unscoped = await service.createSession(AGENT);
+		if (!unscoped.ok) throw new Error("create failed");
+		expect(unscoped.state.scope).toBeNull();
+		expect(unscoped.state.requests.map((entry) => entry.alias)).toEqual([
+			"R1",
+			"R2",
+		]);
+		expect(unscoped.state.skipped).toEqual([]);
+		expect(service.list()[0]?.scope).toBeNull();
 	});
 
 	test("the spawn call sits behind the injectable function; failures land on agent state", async () => {
@@ -230,7 +246,7 @@ describe("createSession", () => {
 describe("request scoping", () => {
 	test("a run-now session tracks and renders ONLY the scoped request", async () => {
 		const first = await addAgentRequest("para-0", "Make the opening direct.");
-		await addAgentRequest("para-1", "Tighten the brevity rule.");
+		const other = await addAgentRequest("para-1", "Tighten the brevity rule.");
 
 		const created = await service.createSession(AGENT, { requestIds: [first] });
 		expect(created.ok).toBe(true);
@@ -256,43 +272,32 @@ describe("request scoping", () => {
 		expect(queue).toContain("Make the opening direct.");
 		expect(queue).not.toContain("Tighten the brevity rule.");
 		expect(queue).toContain("REQUESTS · 0/1 disposed");
-	});
 
-	test("an apply session scopes to the queued set, leaving the rest of the sidecar alone", async () => {
-		const first = await addAgentRequest("para-0", "Make the opening direct.");
-		const second = await addAgentRequest("para-1", "Tighten the brevity rule.");
-		const third = await addAgentRequest("para-1", "Mention the audience.");
-
-		const created = await service.createSession(AGENT, {
-			requestIds: [first, third],
+		// carried: request scoping > an apply session scopes to the queued set, leaving the rest of the sidecar alone
+		// Fresh fixture: release the agent and empty the sidecar first.
+		expect(service.dispose(created.state.sessionId)).toBe(true);
+		for (const id of [first, other]) {
+			expect((await catalog.removeAnnotation(AGENT, id))?.ok).toBe(true);
+		}
+		const applyFirst = await addAgentRequest("para-0", "Make the opening direct.");
+		const applySecond = await addAgentRequest("para-1", "Tighten the brevity rule.");
+		const applyThird = await addAgentRequest("para-1", "Mention the audience.");
+		const apply = await service.createSession(AGENT, {
+			requestIds: [applyFirst, applyThird],
 		});
-		if (!created.ok) throw new Error("create failed");
-		expect(created.state.requests.map((entry) => entry.annotationId)).toEqual([
-			first,
-			third,
+		if (!apply.ok) throw new Error("create failed");
+		expect(apply.state.requests.map((entry) => entry.annotationId)).toEqual([
+			applyFirst,
+			applyThird,
 		]);
-		const queue = service.getLaunch(created.state.sessionId)!.sessionData
+		const applyQueue = service.getLaunch(apply.state.sessionId)!.sessionData
 			.requestQueue;
-		expect(queue).toContain("REQUESTS · 0/2 disposed");
-		expect(queue).not.toContain("Tighten the brevity rule.");
+		expect(applyQueue).toContain("REQUESTS · 0/2 disposed");
+		expect(applyQueue).not.toContain("Tighten the brevity rule.");
 		expect(
-			created.state.skipped.find((entry) => entry.annotationId === second)
+			apply.state.skipped.find((entry) => entry.annotationId === applySecond)
 				?.reason,
 		).toBe("out-of-scope");
-	});
-
-	test("unscoped creation is unchanged: every open request, scope null", async () => {
-		await addAgentRequest("para-0", "One.");
-		await addAgentRequest("para-1", "Two.");
-		const created = await service.createSession(AGENT);
-		if (!created.ok) throw new Error("create failed");
-		expect(created.state.scope).toBeNull();
-		expect(created.state.requests.map((entry) => entry.alias)).toEqual([
-			"R1",
-			"R2",
-		]);
-		expect(created.state.skipped).toEqual([]);
-		expect(service.list()[0]?.scope).toBeNull();
 	});
 
 	test("a scope where nothing is actionable refuses with empty-scope and per-id reasons", async () => {

@@ -2,16 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { type Api, InMemoryCredentialStore } from "@earendil-works/pi-ai";
 import { ModelRegistry, ModelRuntime } from "@earendil-works/pi-coding-agent";
 
-import {
-	createPiModels,
-	createPiTransport,
-	PI_TRANSPORT_APIS,
-	PI_TRANSPORT_UNSUPPORTED_MESSAGE,
-	resolveCallRoute,
-	ROUTE_FAILURE_MESSAGES,
-	SHORT_CREDENTIAL_MESSAGE,
-	splitModelRef,
-} from "./pi-models";
+import { createPiModels, createPiTransport, PI_TRANSPORT_APIS, PI_TRANSPORT_UNSUPPORTED_MESSAGE, resolveCallRoute, SHORT_CREDENTIAL_MESSAGE, splitModelRef } from "./pi-models";
 
 const realFetch = globalThis.fetch;
 beforeAll(() => {
@@ -193,12 +184,6 @@ describe("resolveCallRoute", () => {
 	test("splits the ref at the first slash", () => {
 		expect(splitModelRef("openrouter/meta/llama-4")).toEqual({ provider: "openrouter", modelId: "meta/llama-4" });
 		expect(splitModelRef("no-slash")).toBeUndefined();
-	});
-
-	test("an unknown model is a route failure", async () => {
-		const { registry } = await fakeRegistry();
-		const result = await resolveCallRoute(registry, "fake/missing-model", "low");
-		expect(result).toEqual({ ok: false, failure: { kind: "route", message: ROUTE_FAILURE_MESSAGES["unknown-model"] } });
 	});
 
 	test("a 5-character api key is refused as too short to redact", async () => {

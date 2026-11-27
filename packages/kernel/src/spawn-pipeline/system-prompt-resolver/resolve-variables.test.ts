@@ -43,16 +43,11 @@ describe("resolveVariables", () => {
 		).toEqual({ topic: "fallback", extra: 1 });
 	});
 
-	test("a variable without required: true may resolve to undefined", () => {
-		expect(
-			resolveVariables({ plain: {}, flagged: { optional: true } }),
-		).toEqual({ plain: undefined, flagged: undefined });
-	});
-
 	test("required: false is not enforced", () => {
-		expect(resolveVariables({ topic: { required: false } })).toEqual({
-			topic: undefined,
-		});
+		// carried: resolveVariables > a variable without required: true may resolve to undefined
+		expect(
+			resolveVariables({ topic: { required: false }, plain: {}, flagged: { optional: true } }),
+		).toEqual({ topic: undefined, plain: undefined, flagged: undefined });
 	});
 
 	test("throws MISSING_REQUIRED_VARIABLES listing every missing name, sorted", () => {
@@ -73,12 +68,6 @@ describe("resolveVariables", () => {
 		expect(err.message).toBe("Missing required variables: alpha, zeta");
 	});
 
-	test("a default satisfies required", () => {
-		expect(
-			resolveVariables({ topic: { required: true, default: "fallback" } }),
-		).toEqual({ topic: "fallback" });
-	});
-
 	test("falsy caller values and defaults satisfy required", () => {
 		expect(
 			resolveVariables(
@@ -90,6 +79,10 @@ describe("resolveVariables", () => {
 				{ text: "", flag: false },
 			),
 		).toEqual({ text: "", count: 0, flag: false });
+		// carried: resolveVariables > a default satisfies required
+		expect(
+			resolveVariables({ topic: { required: true, default: "fallback" } }),
+		).toEqual({ topic: "fallback" });
 	});
 
 	test("a null caller value or null default does not satisfy required", () => {
@@ -131,6 +124,7 @@ describe("resolveSystemPrompt", () => {
 		expect(resolved.systemPrompt).toBe("[]");
 	});
 
+	// regression: 6df90cc
 	test("a missing required variable fails the spawn instead of rendering empty", () => {
 		const err = captureVariableError(() =>
 			resolveSystemPrompt({

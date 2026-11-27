@@ -82,20 +82,14 @@ describe("prompt markdown snapshots", () => {
 			const again = refreshBundlePromptSnapshot(agentDir);
 			expect(again.changed).toBe(false);
 			expect(again.canonicalized).toBe(false);
-		} finally {
-			rmSync(root, { recursive: true, force: true });
-		}
-	});
 
-	test("file-form bundle renders to prompt.rendered.md", () => {
-		const root = tempRoot();
-		const agentDir = join(root, "snapshot-agent");
-		try {
-			writeBundle(agentDir, "file");
-			const result = refreshBundlePromptSnapshot(agentDir);
-			expect(result.form).toBe("file");
-			expect(result.renderedFile).toBe(join(agentDir, "prompt.rendered.md"));
-			expect(existsSync(join(agentDir, "prompt", "system.md"))).toBe(false);
+			// carried: prompt markdown snapshots > file-form bundle renders to prompt.rendered.md
+			const fileDir = join(root, "file-form-agent");
+			writeBundle(fileDir, "file");
+			const fileResult = refreshBundlePromptSnapshot(fileDir);
+			expect(fileResult.form).toBe("file");
+			expect(fileResult.renderedFile).toBe(join(fileDir, "prompt.rendered.md"));
+			expect(existsSync(join(fileDir, "prompt", "system.md"))).toBe(false);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}

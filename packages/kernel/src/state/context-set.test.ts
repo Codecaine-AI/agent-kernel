@@ -19,10 +19,6 @@ function text(message: AgentMessage): string {
 }
 
 describe("context set", () => {
-	test("an empty set renders no message at all", () => {
-		expect(createContextSet().render()).toBeNull();
-	});
-
 	test("entries render into ONE context message, in order", () => {
 		const set = createContextSet([
 			{ id: "caps", content: "op reference" },
@@ -34,13 +30,12 @@ describe("context set", () => {
 			"<context>\nop reference\nhouse style\n</context>",
 		);
 		expect(blocks(message as AgentMessage)).toHaveLength(1);
-	});
 
-	test("a label wraps its entry in an XML tag", () => {
-		const set = createContextSet([
+		// carried: context set > a label wraps its entry in an XML tag
+		const labelled = createContextSet([
 			{ id: "caps", label: "capabilities", content: "ops" },
 		]);
-		expect(text(set.render() as AgentMessage)).toBe(
+		expect(text(labelled.render() as AgentMessage)).toBe(
 			"<context>\n<capabilities>\nops\n</capabilities>\n</context>",
 		);
 	});
@@ -109,6 +104,9 @@ describe("context set", () => {
 	});
 
 	test("removing an unknown id reports false; clear empties the set", () => {
+		// carried: context set > an empty set renders no message at all
+		expect(createContextSet().render()).toBeNull();
+
 		const set = createContextSet([{ id: "a", content: "a" }]);
 		expect(set.remove("nope")).toBe(false);
 		expect(set.get("a")?.content).toBe("a");
