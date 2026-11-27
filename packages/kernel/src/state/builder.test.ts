@@ -6,6 +6,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { buildRequest, normalizeRenderOutput } from "./builder";
+import { createContextSet } from "./context-set";
 import type { AgentMessage, RequestSection } from "./types";
 
 function msg(text: string): AgentMessage {
@@ -52,6 +53,24 @@ describe("builder — section boundaries", () => {
 			{ kind: "tail", start: 2, end: 4 },
 		]);
 		assertNonOverlapping(built.sections, built.messages.length);
+
+		// carried: builder — section boundaries > an empty context set emits no context section
+		const noContext = buildRequest({
+			contextMessage: createContextSet().render(),
+			rendered: { messages: [msg("s")], stateMessageCount: 1 },
+		});
+		expect(noContext.sections).toEqual([{ kind: "state", start: 0, end: 1 }]);
+
+		// carried: builder — section boundaries > an all-state render emits no tail section
+		const allState = buildRequest({
+			contextMessage: msg("ctx"),
+			rendered: { messages: [msg("s1"), msg("s2")], stateMessageCount: 2 },
+		});
+		expect(allState.sections).toEqual([
+			{ kind: "context", start: 0, end: 1 },
+			{ kind: "state", start: 1, end: 3 },
+		]);
+		assertNonOverlapping(allState.sections, 3);
 	});
 
 	test("a bare array render is all tail", () => {
@@ -83,6 +102,11 @@ describe("builder — section boundaries", () => {
 			stateMessageCount: 9,
 		});
 		expect(normalized.stateMessageCount).toBe(1);
+		// carried: builder — section boundaries > a negative stateMessageCount clamps to zero
+		expect(
+			normalizeRenderOutput({ messages: [msg("a")], stateMessageCount: -4 })
+				.stateMessageCount,
+		).toBe(0);
 		const built = buildRequest({
 			contextMessage: null,
 			rendered: { messages: [msg("a")], stateMessageCount: 9 },

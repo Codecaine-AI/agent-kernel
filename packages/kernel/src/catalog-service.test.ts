@@ -346,13 +346,15 @@ describe("catalog service context preview", () => {
 
 describe("catalog service state fixtures + preview", () => {
 	test("detail lists fixtures sorted with defaulted labels; malformed files are skipped", async () => {
-		await bootFixture({
-			fixtures: {
-				"mid-session.json": JSON.stringify({ label: "Mid session", state: { turns: 7 } }),
-				"empty-run.json": JSON.stringify({}),
-				"broken.json": "{ not json",
-			},
-		});
+		// carried: catalog service state fixtures + preview > a bundle without a state/fixtures/ directory answers fixtures: []
+		await bootFixture();
+		expect((await service.getAgentDetail(AGENT_NAME))?.fixtures).toEqual([]);
+
+		const fixturesDir = join(agentDir, "state", "fixtures");
+		mkdirSync(fixturesDir, { recursive: true });
+		writeFileSync(join(fixturesDir, "mid-session.json"), JSON.stringify({ label: "Mid session", state: { turns: 7 } }), "utf8");
+		writeFileSync(join(fixturesDir, "empty-run.json"), JSON.stringify({}), "utf8");
+		writeFileSync(join(fixturesDir, "broken.json"), "{ not json", "utf8");
 
 		const detail = await service.getAgentDetail(AGENT_NAME);
 		expect(detail?.fixtures).toEqual([

@@ -42,6 +42,11 @@ describe("resolveNodeScope", () => {
 			resolveNodeScope({}, { db: temp.db }),
 		);
 		expect(scope).toEqual({ containerId: temp.containerId, parentRunId: parent.runId, trigger: "post-run" });
+
+		// carried: resolveNodeScope > derives containerId from parentRunId
+		const explicit = await resolveNodeScope({ parentRunId: parent.runId }, { db: temp.db });
+		expect(explicit.containerId).toBe(temp.containerId);
+		expect(explicit.parentRunId).toBe(parent.runId);
 	});
 
 	test("rejects a missing container", async () => {

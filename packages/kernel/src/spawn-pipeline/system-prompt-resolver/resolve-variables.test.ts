@@ -44,9 +44,10 @@ describe("resolveVariables", () => {
 	});
 
 	test("required: false is not enforced", () => {
-		expect(resolveVariables({ topic: { required: false } })).toEqual({
-			topic: undefined,
-		});
+		// carried: resolveVariables > a variable without required: true may resolve to undefined
+		expect(
+			resolveVariables({ topic: { required: false }, plain: {}, flagged: { optional: true } }),
+		).toEqual({ topic: undefined, plain: undefined, flagged: undefined });
 	});
 
 	test("throws MISSING_REQUIRED_VARIABLES listing every missing name, sorted", () => {
@@ -78,6 +79,10 @@ describe("resolveVariables", () => {
 				{ text: "", flag: false },
 			),
 		).toEqual({ text: "", count: 0, flag: false });
+		// carried: resolveVariables > a default satisfies required
+		expect(
+			resolveVariables({ topic: { required: true, default: "fallback" } }),
+		).toEqual({ topic: "fallback" });
 	});
 
 	test("a null caller value or null default does not satisfy required", () => {

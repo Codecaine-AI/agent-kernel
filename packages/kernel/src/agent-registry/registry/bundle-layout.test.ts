@@ -364,5 +364,13 @@ describe("catalog doctor — bundle layout", () => {
 				expect(context.shadowedPath).toBe(join(agentDir, "context", "index.ts"));
 			},
 		);
+
+		// carried: catalog doctor — bundle layout > clean legacy flat catalog produces no warnings
+		await withBundle({ prompt: "file", context: "file" }, ({ root }) => {
+			const report = runCatalogDoctor([root]);
+			expect(report.ok).toBe(true);
+			expect(report.counts.fileForm).toBe(2);
+			expect(report.counts.folderForm).toBe(0);
+		});
 	});
 });

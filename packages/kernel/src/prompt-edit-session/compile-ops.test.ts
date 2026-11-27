@@ -43,6 +43,17 @@ describe("compilePromptEditOps — id → path resolution", () => {
 			"children",
 			2,
 		]);
+
+		// carried: compilePromptEditOps — id → path resolution > insert_after a top-level node inserts at the document level
+		const topLevel = compilePromptEditOps(fixtureDoc(), [
+			{
+				op: "insert_after",
+				refNodeId: "sec-a",
+				node: { type: "paragraph", content: ["Between sections."] },
+			},
+		]);
+		if (!topLevel.ok) throw new Error(JSON.stringify(topLevel.errors));
+		expect(topLevel.steps[0]).toMatchObject({ op: "insert", path: ["nodes", 1] });
 	});
 
 	test("colliding ids on the inserted node are reassigned", () => {
@@ -118,6 +129,17 @@ describe("compilePromptEditOps — id → path resolution", () => {
 			"par-1",
 			"par-3",
 			"par-2",
+		]);
+
+		// carried: compilePromptEditOps — id → path resolution > move_after among top-level siblings (downward) lands after the ref
+		const downward = compilePromptEditOps(fixtureDoc(), [
+			{ op: "move_after", nodeId: "sec-a", refNodeId: "sec-b" },
+		]);
+		if (!downward.ok) throw new Error(JSON.stringify(downward.errors));
+		expect(downward.doc.nodes.map((node) => node.id)).toEqual([
+			"sec-b",
+			"sec-a",
+			"par-3",
 		]);
 	});
 

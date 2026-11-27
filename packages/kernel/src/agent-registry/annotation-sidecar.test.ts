@@ -179,6 +179,20 @@ describe("addAnnotation", () => {
 			throw new Error(`expected invalid, got ${JSON.stringify(result)}`);
 		}
 		expect(existsSync(annotationsSidecarPath(bundleDir))).toBe(false);
+
+		// carried: addAnnotation > rejects a docId that is not the loaded document
+		const otherDoc = await addAnnotation(
+			bundleDir,
+			prompt,
+			addInput({ target: { ...nodeTarget, docId: "some-other-doc" } }),
+		);
+		expect(otherDoc.ok).toBe(false);
+		if (!otherDoc.ok && otherDoc.reason === "invalid") {
+			expect(otherDoc.errors[0]).toContain('targets document "some-other-doc"');
+		} else {
+			throw new Error(`expected invalid, got ${JSON.stringify(otherDoc)}`);
+		}
+		expect(existsSync(annotationsSidecarPath(bundleDir))).toBe(false);
 	});
 
 	test("rejects a structurally invalid target", async () => {

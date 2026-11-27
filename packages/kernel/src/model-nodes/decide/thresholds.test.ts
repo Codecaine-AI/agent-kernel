@@ -122,6 +122,17 @@ describe("applyThresholds", () => {
 			distribution: { a: 0.4, b: 0.4, c: 0.2 },
 		});
 		expect(tie).toMatchObject({ abstained: true, abstainReason: "low-confidence", choice: "b" });
+		// carried: applyThresholds > a tie abstains even with minMargin 0
+		const evenTie = decideOne(choiceQ(["a", "b"], { minTop: 0.5, minMargin: 0 }), {
+			type: "choice",
+			choice: "a",
+			distribution: { a: 0.5, b: 0.5 },
+		});
+		expect(evenTie).toMatchObject({
+			abstained: true,
+			abstainReason: "low-confidence",
+			thresholdApplied: { minTop: 0.5, minMargin: 0 },
+		});
 	});
 
 	test("score abstains below abstainBelow", () => {

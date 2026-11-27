@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { createAgentRunEndEvent, createAppEvent, createAgentRunStartEvent, createCallEndEvent, createCallStartEvent, createDecisionMadeEvent, createGateEndEvent, createGateStartEvent, createPiRequestSnapshotEvent, createPiTurnEndEvent, createPiTurnStartEvent, createStepEndEvent, createStepStartEvent, createToolCallEndEvent, createToolCallStartEvent, type TraceEventIds } from "./factories";
+import { createAgentRunEndEvent, createAppEvent, createAgentRunStartEvent, createCallEndEvent, createCallStartEvent, createDecisionMadeEvent, createGateEndEvent, createGateStartEvent, createPiRequestSnapshotEvent, createPiTurnEndEvent, createPiTurnStartEvent, createStepEndEvent, createStepStartEvent, createToolCallEndEvent, createToolCallStartEvent, createUserMessageEvent, type TraceEventIds } from "./factories";
 import type { TraceEvent } from "./envelope";
 import {
   EventType,
@@ -36,6 +36,15 @@ describe("factories envelope identity", () => {
     expect(event.agentId).toBe("agent-1");
     expect(event.piSessionUuid).toBe("pi-uuid-1");
     expect(event.traceLevel).toBe(TraceLevel.PROCESSING);
+
+    // carried: factories envelope identity > only containerId is required; optional ids stay undefined
+    const minimal = createUserMessageEvent({ containerId: "c" }, "hello", "build");
+    expect(minimal.containerId).toBe("c");
+    expect(minimal.runId).toBeUndefined();
+    expect(minimal.userId).toBeUndefined();
+    expect(minimal.agentId).toBeUndefined();
+    expect("piSessionUuid" in minimal).toBe(false);
+    expect(minimal.traceLevel).toBe(TraceLevel.SUMMARY);
   });
 });
 

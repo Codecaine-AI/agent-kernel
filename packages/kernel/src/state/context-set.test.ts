@@ -30,6 +30,14 @@ describe("context set", () => {
 			"<context>\nop reference\nhouse style\n</context>",
 		);
 		expect(blocks(message as AgentMessage)).toHaveLength(1);
+
+		// carried: context set > a label wraps its entry in an XML tag
+		const labelled = createContextSet([
+			{ id: "caps", label: "capabilities", content: "ops" },
+		]);
+		expect(text(labelled.render() as AgentMessage)).toBe(
+			"<context>\n<capabilities>\nops\n</capabilities>\n</context>",
+		);
 	});
 
 	test("gaining and losing a skill mid-run adds and removes an entry", () => {
@@ -96,6 +104,9 @@ describe("context set", () => {
 	});
 
 	test("removing an unknown id reports false; clear empties the set", () => {
+		// carried: context set > an empty set renders no message at all
+		expect(createContextSet().render()).toBeNull();
+
 		const set = createContextSet([{ id: "a", content: "a" }]);
 		expect(set.remove("nope")).toBe(false);
 		expect(set.get("a")?.content).toBe("a");
